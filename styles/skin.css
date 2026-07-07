@@ -137,21 +137,38 @@
   --card:        color-mix(in srgb, var(--surface), black 18%);
   --shadow-card: 0 0 8px 1px var(--border), 0 12px 32px rgba(0, 0, 0, 0.16);
 
-  /* surface — three opaque swells, each crest a hairline in --border, each
-     body filled with --canvas so a nearer swell occludes the crest behind
-     it. The stagger is in each circle's center-Y; the roll owns position. */
+  /* surface — three opaque swells, each crest a hairline, each body filled
+     with --canvas so a nearer swell occludes the crest behind it. The stagger
+     is in each circle's center-Y; the wave animations own position.
+     Atmospheric perspective: the front crest is full --border and boldest;
+     middle/back crests fade toward --canvas (70% / 45% ink) and thin out
+     (band 72.4 → 71.8 → 71.2%), so far waves recede into haze. */
   --canvas-bg:
-    radial-gradient(circle at 50% 158%, var(--canvas) 70%, var(--border) 70%, var(--border) 72%, transparent 72%),
-    radial-gradient(circle at 50% 150%, var(--canvas) 70%, var(--border) 70%, var(--border) 72%, transparent 72%),
-    radial-gradient(circle at 50% 142%, var(--canvas) 70%, var(--border) 70%, var(--border) 72%, transparent 72%);
+    radial-gradient(circle at 50% 158%, var(--canvas) 70%, var(--border) 70%, var(--border) 72.4%, transparent 72.4%),
+    radial-gradient(circle at 50% 150%, var(--canvas) 70%, color-mix(in srgb, var(--border) 70%, var(--canvas)) 70%, color-mix(in srgb, var(--border) 70%, var(--canvas)) 71.8%, transparent 71.8%),
+    radial-gradient(circle at 50% 142%, var(--canvas) 70%, color-mix(in srgb, var(--border) 45%, var(--canvas)) 70%, color-mix(in srgb, var(--border) 45%, var(--canvas)) 71.2%, transparent 71.2%);
   --canvas-bg-size:   48px 30px, 64px 38px, 80px 46px;
   --canvas-bg-repeat: repeat;
-  --canvas-anim:      wave-roll 16s linear infinite;
+  /* two composed animations: wave-roll drifts X, wave-bob swells Y */
+  --canvas-anim:      wave-roll 16s linear infinite,
+                      wave-bob 9s ease-in-out infinite alternate;
+
+  /* micro-motion — cards float on the surface; a touch buoys them up */
+  --hover-lift: translateY(-1px);
 }
-/* Ocean's wave rows roll horizontally, each layer by a different integer
-   number of its own tile width over one loop → different paces, seamless. */
+/* Ocean's swell — one wave train. All layers roll the SAME direction, nearest
+   fastest, each by an INTEGER number of its own tile width over one loop
+   (144=3×48, 128=2×64, 80=1×80), so the seam is invisible. Drift and swell are
+   SPLIT across the -x/-y longhands so two animations compose on one element:
+   wave-roll owns the horizontal drift (linear), wave-bob the rise-and-fall
+   (ease-in-out alternate ≈ a sine). Amplitudes shrink with distance (3/−2/1px);
+   the middle layer bobs in counter-phase so the sea breathes rather than pumps.
+   9s·2 vs 16s never sync (LCM 144s) — the pattern doesn't visibly repeat. */
 @keyframes wave-roll {
-  to { background-position: 96px 0, -128px 0, 80px 0; }
+  to { background-position-x: 144px, 128px, 80px; }
+}
+@keyframes wave-bob {
+  to { background-position-y: 3px, -2px, 1px; }
 }
 
 /* ============================================================
