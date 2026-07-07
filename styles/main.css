@@ -1,0 +1,281 @@
+/* ============================================================
+   Deets.Solutions — site styles.
+   Tokens first (fonts → palette → themes → skin), then the site's
+   own rules. Rules reference ONLY semantic tokens — never a raw
+   hex, font name, or geometry value. Two orthogonal axes, exactly
+   like the DeetsMusic app: theme = color, skin = shape/type/motion.
+   ============================================================ */
+@import "./fonts.css";
+@import "./palette.css";
+@import "./themes.css";
+@import "./skin.css";
+
+/* Structural site tokens — NOT skin-varied (page frame + spacing scale).
+   Everything type / shape / material / motion lives in skin.css. */
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --header-h:    4rem;
+  --content-max: 68rem;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  min-height: 100%;
+  position: relative;
+  background-color: var(--canvas);
+  background-image: var(--canvas-bg);       /* skin texture: dots / waves / aurora / grid */
+  background-size: var(--canvas-bg-size);
+  background-repeat: var(--canvas-bg-repeat);
+  animation: var(--canvas-anim);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: var(--lh-text);
+  transition: background-color var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+
+  /* crisp text: no faux weights, smoothed edges */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Storm layer (injected by controls.js) ──────────────────────
+   Decorative strokes drawn BEHIND the content; inert unless a skin
+   opts in via --storm-display (CyberStorm). Ink is a theme role. */
+.storm {
+  display: var(--storm-display);
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.storm__bolt {
+  fill: none;
+  stroke: var(--storm-ink);
+  stroke-width: var(--storm-w);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: var(--storm-glow);
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  /* Position transforms resolve in viewBox user units (0–100 across the
+     screen), origin top-left — so translateX(N) lands at N% of the width
+     regardless of viewport size. Right-edge bolts scaleX(-1) to mirror. */
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+/* Two bolts down the LEFT edge, two mirrored down the RIGHT edge. Unequal
+   cycles + staggered delays keep the four strikes from ever syncing. */
+.storm__bolt--1 { d: var(--storm-path-1); transform: translateX(10px);              animation: storm-strike var(--storm-cycle-1) linear infinite; }
+.storm__bolt--2 { d: var(--storm-path-2); transform: translateX(2px);               animation: storm-strike var(--storm-cycle-2) linear infinite 1.4s; }
+.storm__bolt--3 { d: var(--storm-path-1); transform: translateX(90px) scaleX(-1);   animation: storm-strike var(--storm-cycle-2) linear infinite 4s; }
+.storm__bolt--4 { d: var(--storm-path-2); transform: translateX(98px) scaleX(-1);   animation: storm-strike var(--storm-cycle-1) linear infinite 6.5s; }
+
+/* Content sits above the canvas texture + storm. The header outranks main so
+   its dropdown menu isn't covered by main's (later, same-context) content. */
+.site-header { position: relative; z-index: 10; }
+.site-main   { position: relative; z-index: 1; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.site-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+/* Wordmark — the title-face signature, links home. The editorial
+   underline is a skin opt-in (Vanilla only), inked in currentColor. */
+.wordmark {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.wordmark:hover { background: var(--surface-hover); }
+
+/* ── Primary nav ────────────────────────────────────────────── */
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.site-nav a {
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.site-nav a:hover { background: var(--surface-hover); color: var(--title); transform: var(--hover-lift); }
+.site-nav a[aria-current="page"] { color: var(--title); }
+
+/* ============================================================
+   Settings menu — mirrors DeetsMusic's title menu: a single
+   trigger opening a menu of rows, each row a flyout of live chips.
+   Theme chips taste the color; Skin chips taste the typeface.
+   ============================================================ */
+.settings { position: relative; display: inline-flex; align-items: center; }
+
+.settings__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--title);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+}
+.settings__trigger:hover { background: var(--surface-hover); transform: var(--hover-lift); }
+
+/* The menu + flyouts adopt the skin's material (Glass frosts them). */
+.menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 9rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  z-index: 20;
+}
+.menu[hidden] { display: none; }
+
+.menu__group { position: relative; display: flex; flex-direction: column; }
+
+/* The row is the clickable header (a real button) that toggles the flyout. */
+.menu__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.menu__row:hover,
+.menu__group.is-open > .menu__row { background: var(--surface-hover); }
+.menu__chev { color: var(--subtext); }
+
+/* Flyout opens to the LEFT of the menu (which hugs the right edge), toggled
+   by CLASS on click — no hover targets, no dead-zone gaps. */
+.flyout {
+  position: absolute;
+  top: calc(-1 * var(--space-1));
+  right: 100%;
+  margin-right: var(--space-2);
+  min-width: 9rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  display: none;
+  flex-direction: column;
+  gap: var(--space-1);
+  z-index: 30;
+}
+.menu__group.is-open .flyout { display: flex; }
+
+/* Each chip carries its own data-theme / data-skin, so the tokens resolve
+   to THAT choice — a theme chip tastes the color, a skin chip tastes the
+   typeface (rendered in its own --font-title). */
+.flyout__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;   /* name left, active dot right */
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  background: var(--canvas);
+  color: var(--title);
+  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui);
+}
+.flyout__item::after {             /* reserved right gutter; dot shows when active */
+  content: "";
+  width: 0.9em;
+  text-align: center;
+  line-height: 1;
+}
+.flyout__item:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.flyout__item[aria-checked="true"]::after { content: "•"; }
+
+/* Skin chips sit on the theme surface (skins name no color) and preview
+   the skin's own title face at a legible size. */
+.flyout__item[data-skin] {
+  background: var(--surface);
+  font-size: 1.05rem;
+}
+
+/* ── Main content canvas ────────────────────────────────────── */
+.site-main {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+/* Focus ring — keyboard users */
+a:focus-visible,
+button:focus-visible {
+  outline: var(--focus-ring-w) solid var(--title);
+  outline-offset: var(--focus-ring-off);
+}

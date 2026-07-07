@@ -1,0 +1,102 @@
+/* ============================================================
+   FONTS — bundled faces
+   ------------------------------------------------------------
+   Liberation Serif is the editorial title face (same as the
+   DeetsMusic app). Shipped locally so it renders the intended
+   hinted font on every machine instead of a substitute.
+   Liberation fonts © Red Hat, licensed under SIL OFL 1.1.
+   See assets/fonts/NOTICE.txt.
+   ============================================================ */
+
+@font-face {
+  font-family: "Liberation Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/LiberationSerif-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Liberation Serif";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/LiberationSerif-Bold.ttf") format("truetype");
+}
+
+/* ------------------------------------------------------------
+   Skin fonts (all SIL OFL 1.1, bundled like Liberation above).
+   Each pairs with a [data-skin] in skin.css:
+     Desk       → Comic Sans MS (system) + Karla; Comic Neue is the
+                  bundled fallback for the hand title.
+     Ocean      → Cinzel (engraved caps title) + Spectral (serif body).
+     CyberStorm → Orbitron (machined title) + Rajdhani (condensed body).
+   ------------------------------------------------------------ */
+
+/* Desk — Comic Neue (title fallback when Comic Sans MS is absent) */
+@font-face {
+  font-family: "Comic Neue";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/ComicNeue-Bold.woff2") format("woff2");
+}
+
+/* Desk — Karla (body) */
+@font-face {
+  font-family: "Karla";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/Karla-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Karla";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/Karla-Bold.woff2") format("woff2");
+}
+
+/* Ocean — Cinzel (engraved caps title) */
+@font-face {
+  font-family: "Cinzel";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/Cinzel-SemiBold.woff2") format("woff2");
+}
+
+/* Ocean — Spectral (body) */
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/Spectral-Regular.woff2") format("woff2");
+}
+
+/* CyberStorm — Orbitron (machined sci-fi title) */
+@font-face {
+  font-family: "Orbitron";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/Orbitron-Bold.woff2") format("woff2");
+}
+
+/* CyberStorm — Rajdhani (condensed squared body; 500 is the body weight) */
+@font-face {
+  font-family: "Rajdhani";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/Rajdhani-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Rajdhani";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/Rajdhani-Bold.woff2") format("woff2");
+}

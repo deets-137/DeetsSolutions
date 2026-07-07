@@ -1,0 +1,192 @@
+/* Settings controls — theme + skin switching, mirroring the DeetsMusic
+   title menu. Two orthogonal axes persisted independently in localStorage
+   and applied as data-theme / data-skin on <html>, so every page shares
+   one selection.
+
+   The attributes are also set inline in each page's <head> (before CSS) to
+   avoid a flash of the defaults on load; this script wires the picker,
+   keeps localStorage in sync, and injects the storm layer. */
+(function () {
+  "use strict";
+
+  var AXES = {
+    theme: {
+      attr: "data-theme",
+      key: "deets-theme",
+      def: "fairy",
+      options: [
+        { id: "fairy",     label: "Fairy" },
+        { id: "glade",     label: "Glade" },
+        { id: "sepia",     label: "Sepia" },
+        { id: "moonlight", label: "Moonlight" },
+        { id: "hornet",    label: "Hornet" },
+        { id: "viper",     label: "Viper" },
+      ],
+    },
+    skin: {
+      attr: "data-skin",
+      key: "deets-skin",
+      def: "vanilla",
+      options: [
+        { id: "vanilla",    label: "Vanilla" },
+        { id: "desk",       label: "Desk" },
+        { id: "ocean",      label: "Ocean" },
+        { id: "glass",      label: "Glass" },
+        { id: "cyberstorm", label: "CyberStorm" },
+      ],
+    },
+  };
+
+  function current(axis) {
+    try { return localStorage.getItem(axis.key) || axis.def; }
+    catch (e) { return axis.def; }
+  }
+
+  function apply(axis, id) {
+    document.documentElement.setAttribute(axis.attr, id);
+    try { localStorage.setItem(axis.key, id); } catch (e) {}
+  }
+
+  /* Build one accordion group: a clickable header row + a flyout panel of
+     chips that drops in below it. Each chip carries the axis data-* so its
+     tokens resolve to that choice (a theme chip tastes color; a skin chip
+     tastes typeface). Clicking the header toggles the panel. */
+  function buildRow(name, axis, groups) {
+    var active = current(axis);
+    apply(axis, active);
+
+    var group = document.createElement("div");
+    group.className = "menu__group";
+
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "menu__row";
+    row.setAttribute("data-row", name);
+    row.setAttribute("aria-expanded", "false");
+
+    var label = document.createElement("span");
+    label.className = "menu__label";
+    label.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+
+    var chev = document.createElement("span");
+    chev.className = "menu__chev";
+    chev.setAttribute("aria-hidden", "true");
+    chev.textContent = "‹";   /* points at the flyout, which opens to the left */
+
+    var flyout = document.createElement("div");
+    flyout.className = "flyout";
+    flyout.setAttribute("role", "menu");
+    flyout.setAttribute("aria-label", label.textContent);
+
+    axis.options.forEach(function (opt) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "flyout__item";
+      chip.setAttribute("role", "menuitemradio");
+      chip.setAttribute(axis.attr, opt.id);   // live taste of this choice
+      chip.setAttribute("aria-checked", String(opt.id === active));
+      chip.textContent = opt.label;
+
+      chip.addEventListener("click", function () {
+        apply(axis, opt.id);
+        flyout.querySelectorAll(".flyout__item").forEach(function (el) {
+          el.setAttribute("aria-checked", String(el === chip));
+        });
+      });
+
+      flyout.appendChild(chip);
+    });
+
+    // Header toggles this group; opening it collapses the others (accordion).
+    row.addEventListener("click", function () {
+      var willOpen = !group.classList.contains("is-open");
+      groups.forEach(function (g) {
+        g.classList.remove("is-open");
+        g.querySelector(".menu__row").setAttribute("aria-expanded", "false");
+      });
+      if (willOpen) {
+        group.classList.add("is-open");
+        row.setAttribute("aria-expanded", "true");
+      }
+    });
+
+    row.appendChild(label);
+    row.appendChild(chev);
+    group.appendChild(row);
+    group.appendChild(flyout);
+    return group;
+  }
+
+  function buildMenu() {
+    var mount = document.querySelector("[data-settings]");
+    if (!mount) return;
+
+    var trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "settings__trigger";
+    trigger.setAttribute("aria-haspopup", "true");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-label", "Appearance");
+    trigger.textContent = "◑";
+
+    var menu = document.createElement("div");
+    menu.className = "menu";
+    menu.setAttribute("role", "menu");
+    menu.hidden = true;
+
+    var groups = [];
+    var themeGroup = buildRow("theme", AXES.theme, groups);
+    var skinGroup = buildRow("skin", AXES.skin, groups);
+    groups.push(themeGroup, skinGroup);
+    menu.appendChild(themeGroup);
+    menu.appendChild(skinGroup);
+
+    function open() {
+      menu.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", onOutside, true);
+      document.addEventListener("keydown", onKey);
+    }
+    function close() {
+      menu.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+      document.removeEventListener("click", onOutside, true);
+      document.removeEventListener("keydown", onKey);
+    }
+    function onOutside(e) { if (!mount.contains(e.target)) close(); }
+    function onKey(e) { if (e.key === "Escape") { close(); trigger.focus(); } }
+
+    trigger.addEventListener("click", function () { menu.hidden ? open() : close(); });
+
+    mount.appendChild(trigger);
+    mount.appendChild(menu);
+  }
+
+  /* Inject the storm SVG once. It's inert (CSS display:none) unless the
+     active skin opts in via --storm-display (CyberStorm). Two bolts whose
+     geometry + motion are skin tokens; ink is the theme's --title. */
+  function injectStorm() {
+    if (document.querySelector(".storm")) return;
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "storm");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("aria-hidden", "true");
+    ["storm__bolt storm__bolt--1", "storm__bolt storm__bolt--2",
+     "storm__bolt storm__bolt--3", "storm__bolt storm__bolt--4"].forEach(function (cls) {
+      var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("class", cls);
+      p.setAttribute("pathLength", "1");
+      svg.appendChild(p);
+    });
+    document.body.insertBefore(svg, document.body.firstChild);
+  }
+
+  function init() { injectStorm(); buildMenu(); }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="vanilla">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deets</title>
+    <!-- Apply the saved theme + skin before CSS paints, to avoid a flash of
+         the defaults. Mirrors the values controls.js keeps in localStorage. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("deets-theme");
+          if (t) document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (s) document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="styles/main.css" />
+    <script src="js/controls.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/">Deets</a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="sotd/">SOTD</a>
+        <a href="cool-stuff/">Cool Stuff I Did</a>
+        <span class="settings" data-settings></span>
+      </nav>
+    </header>
+
+    <main class="site-main">
+      <!-- Intentionally empty canvas for now. -->
+    </main>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.idea/
+*.swp
+*~
+
+# Logs / env
+*.log
+.env
+.env.*
+
+# Python (local http.server has none, but just in case)
+__pycache__/
