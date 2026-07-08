@@ -16,5 +16,6 @@ desktop.ini
 # Python (local http.server has none, but just in case)
 __pycache__/
 
-# Local-only working notes / archives (not part of the site)
-docs/
+# Local-only working notes / archives (not part of the site).
+# Top-level docs/*.md is tracked — that's the repo's tech documentation.
+docs/archive/
