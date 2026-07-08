@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="fairy" data-skin="vanilla">
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,9 +13,13 @@
       (function () {
         try {
           var t = localStorage.getItem("deets-theme");
-          if (t) document.documentElement.setAttribute("data-theme", t);
-          var s = localStorage.getItem("deets-skin");
-          if (s) document.documentElement.setAttribute("data-skin", s);
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin") || "cyberstorm";
+          document.documentElement.setAttribute("data-skin", s);
         } catch (e) {}
       })();
     </script>

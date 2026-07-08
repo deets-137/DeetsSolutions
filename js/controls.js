@@ -13,7 +13,10 @@
     theme: {
       attr: "data-theme",
       key: "deets-theme",
-      def: "fairy",
+      // No saved choice: follow the OS light/dark preference, landing on
+      // Fairy (light) or Moonlight (dark). Kept in sync with the inline
+      // pre-paint script in each page's <head>.
+      def: function () { return prefersDark() ? "moonlight" : "fairy"; },
       options: [
         { id: "fairy",     label: "Fairy" },
         { id: "glade",     label: "Glade" },
@@ -26,7 +29,7 @@
     skin: {
       attr: "data-skin",
       key: "deets-skin",
-      def: "vanilla",
+      def: "cyberstorm",
       options: [
         { id: "vanilla",    label: "Vanilla" },
         { id: "desk",       label: "Desk" },
@@ -37,9 +40,23 @@
     },
   };
 
+  function prefersDark() {
+    try { return window.matchMedia("(prefers-color-scheme: dark)").matches; }
+    catch (e) { return false; }
+  }
+
+  // A `def` may be a literal id or a function resolving one at call time
+  // (the theme axis reads the OS preference).
+  function fallback(axis) {
+    return typeof axis.def === "function" ? axis.def() : axis.def;
+  }
+
   function current(axis) {
-    try { return localStorage.getItem(axis.key) || axis.def; }
-    catch (e) { return axis.def; }
+    try {
+      var saved = localStorage.getItem(axis.key);
+      if (saved) return saved;
+    } catch (e) {}
+    return fallback(axis);
   }
 
   function apply(axis, id) {

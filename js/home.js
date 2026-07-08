@@ -30,7 +30,7 @@
       fill(
         "sotd",
         songs.length + " songs · latest: “" + last.track_name +
-          "” — " + last.artist_name + " →"
+          "” - " + last.artist_name + " →"
       );
     })
     .catch(function () {});

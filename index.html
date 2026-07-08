@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="fairy" data-skin="vanilla">
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,15 +16,21 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://deets.solutions/" />
     <link rel="icon" href="assets/favicon.png" type="image/png" />
-    <!-- Apply the saved theme + skin before CSS paints, to avoid a flash of
-         the defaults. Mirrors the values controls.js keeps in localStorage. -->
+    <!-- Resolve theme + skin before CSS paints, to avoid a flash of the
+         wrong look. Saved choice wins; otherwise skin defaults to CyberStorm
+         and theme follows the OS light/dark preference (Fairy / Moonlight).
+         Mirrors the default logic in controls.js. -->
     <script>
       (function () {
         try {
           var t = localStorage.getItem("deets-theme");
-          if (t) document.documentElement.setAttribute("data-theme", t);
-          var s = localStorage.getItem("deets-skin");
-          if (s) document.documentElement.setAttribute("data-skin", s);
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin") || "cyberstorm";
+          document.documentElement.setAttribute("data-skin", s);
         } catch (e) {}
       })();
     </script>
@@ -55,7 +61,7 @@
         </div>
       </section>
       <p class="page-meta home__tag">
-        Technical Solutions Engineer — Epic, Beaker LIS. UCLA Computational
+        Technical Solutions Engineer: Epic, Beaker LIS. UCLA Computational
         &amp; Systems Biology. I build native and web apps under the Deets
         umbrella; this site is the hub for all of it.
       </p>
@@ -64,7 +70,7 @@
         <a class="home-card home-card--lead" href="cool-stuff/">
           <h2 class="home-card__title">Cool Stuff I Did</h2>
           <p class="home-card__pitch">
-            The portfolio — native and web apps built on a shared design
+            The portfolio - native and web apps built on a shared design
             system: a full Apple Music player for Windows, a local LLM agent
             harness, a blackjack trainer, health-data viz, and more.
           </p>
@@ -74,7 +80,7 @@
         <a class="home-card" href="sotd/">
           <h2 class="home-card__title">Song of the Day</h2>
           <p class="home-card__pitch">
-            A daily song journal kept with friends on Discord — album art,
+            A daily song journal kept with friends on Discord: album art,
             30-second previews, and every sort and filter you'd want.
           </p>
           <p class="home-card__live" data-live="sotd">The journal so far →</p>
@@ -83,7 +89,7 @@
         <a class="home-card" href="movies/">
           <h2 class="home-card__title">Movies</h2>
           <p class="home-card__pitch">
-            My Letterboxd film log — posters, star ratings, likes, rewatches,
+            My Letterboxd film log: posters, star ratings, likes, rewatches,
             and the occasional essay.
           </p>
           <p class="home-card__live" data-live="movies">The log so far →</p>
