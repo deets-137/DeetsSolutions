@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SOTD — Deets</title>
+    <title>Movies — Deets</title>
     <link rel="icon" href="../assets/favicon.png" type="image/png" />
     <script>
       (function () {
@@ -17,30 +17,34 @@
     </script>
     <link rel="stylesheet" href="../styles/main.css" />
     <script src="../js/controls.js" defer></script>
-    <script src="./sotd.js" defer></script>
+    <script src="./movies.js" defer></script>
   </head>
 
   <body>
     <header class="site-header">
       <a class="wordmark" href="/">Deets</a>
       <nav class="site-nav" aria-label="Primary">
-        <a href="/sotd/" aria-current="page">SOTD</a>
-        <a href="/movies/">Movies</a>
+        <a href="/sotd/">SOTD</a>
+        <a href="/movies/" aria-current="page">Movies</a>
         <a href="/cool-stuff/">Cool Stuff I Did</a>
         <span class="settings" data-settings></span>
       </nav>
     </header>
 
     <main class="site-main">
-      <!-- Song of the Day — a journal pulled from Discord by DeetsOTD.
-           sotd.js fetches songs.json and renders the grid below. -->
+      <!-- Movie log — a Letterboxd export merged into movies.json by
+           scripts/letterboxd_web.py. movies.js renders the grid below. -->
       <section class="sotd">
         <div class="sotd__bar">
-          <h1 class="sotd__title">Song of the Day</h1>
-          <div class="sotd-toolbar" data-sotd-toolbar aria-label="Sort and view"></div>
+          <h1 class="sotd__title">Movies</h1>
+          <div class="sotd-toolbar" data-movies-toolbar aria-label="Sort and view"></div>
         </div>
-        <p class="sotd__meta" data-sotd-meta></p>
-        <div class="sotd__grid" data-sotd-grid aria-live="polite"></div>
+        <p class="sotd__meta" data-movies-meta></p>
+        <div class="sotd__grid sotd__grid--movies" data-movies-grid aria-live="polite"></div>
+        <p class="movie__credit">
+          Posters from <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDB</a>.
+          This site uses the TMDB API but is not endorsed or certified by TMDB.
+        </p>
       </section>
     </main>
   </body>

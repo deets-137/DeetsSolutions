@@ -811,6 +811,61 @@ body::before {
 .tb-search__clear:hover { color: var(--title); }
 
 /* ============================================================
+   Movies — the Letterboxd log on /movies/. The cards reuse the
+   .song__* structure wholesale (so all three views, chips, and the
+   toolbar come from the rules above); only the movie-specific bits
+   live here.
+   ============================================================ */
+
+/* Covers: films with a TMDB poster (.movie--poster) get the real 2:3
+   portrait; films TMDB doesn't know fall back to the monogram tile,
+   shrunk from a square to a short banner in full view so those cards
+   don't lead with a big empty block. small/line keep their own square
+   covers (their rules above are more specific, and crop the poster). */
+.sotd__grid--movies .song__cover { aspect-ratio: 21 / 9; }
+.sotd__grid--movies .movie--poster .song__cover { aspect-ratio: 2 / 3; }
+.sotd__grid--movies .song__mono  { font-size: 2.2rem; }
+
+/* TMDB attribution — their API terms require a visible credit. */
+.movie__credit {
+  margin-top: var(--space-6);
+  color: var(--subtext);
+  font-size: 0.75rem;
+}
+.movie__credit a { color: var(--subtext); }
+.movie__credit a:hover { color: var(--title); }
+
+/* Star rating chip reads in the title colour; the like chip in text. */
+.movie__stars { letter-spacing: 0.08em; }
+.movie__liked { color: var(--text); }
+
+/* Review excerpt — full view only, clamped so an essay can't swallow
+   the grid (the title attr carries the whole text on hover). */
+.movie__review {
+  color: var(--subtext);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+}
+.sotd__grid--movies[data-view="small"] .movie__review,
+.sotd__grid--movies[data-view="line"] .movie__review { display: none; }
+
+/* line view flattens tags into fixed columns (stars ride the genre slot,
+   the like heart rides the length slot); the loose rewatch/watchlist
+   chips don't fit that grid, so they drop out. */
+.sotd__grid--movies[data-view="line"] .song__chip:not(.song__genre):not(.song__len) { display: none; }
+/* "♥ Liked" needs a touch more room than a song length does. */
+.sotd__grid--movies[data-view="line"] .song__len { width: 4.5rem; }
+
+/* A film still on the watchlist is a placeholder, not a memory. */
+.movie--watchlist { opacity: 0.72; }
+
+/* ============================================================
    Cool Stuff I Did — the project portfolio grid on /cool-stuff/.
    Same token discipline as the SOTD cards: color comes from the
    theme, shape/type/motion from the skin.
