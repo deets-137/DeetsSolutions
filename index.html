@@ -3,7 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Deets</title>
+    <title>Aditya Sundaram — Deets.Solutions</title>
+    <meta
+      name="description"
+      content="Aditya Sundaram — Technical Solutions Engineer and builder of native and web apps. Portfolio, resume, a song-of-the-day journal, and a film log."
+    />
+    <meta property="og:title" content="Aditya Sundaram — Deets.Solutions" />
+    <meta
+      property="og:description"
+      content="Portfolio and resume of Aditya Sundaram, plus a song-of-the-day journal and a film log."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://deets.solutions/" />
     <link rel="icon" href="assets/favicon.png" type="image/png" />
     <!-- Apply the saved theme + skin before CSS paints, to avoid a flash of
          the defaults. Mirrors the values controls.js keeps in localStorage. -->
@@ -19,6 +30,7 @@
     </script>
     <link rel="stylesheet" href="styles/main.css" />
     <script src="js/controls.js" defer></script>
+    <script src="js/home.js" defer></script>
   </head>
 
   <body>
@@ -28,12 +40,55 @@
         <a href="sotd/">SOTD</a>
         <a href="movies/">Movies</a>
         <a href="cool-stuff/">Cool Stuff I Did</a>
+        <a href="resume/">Resume</a>
         <span class="settings" data-settings></span>
       </nav>
     </header>
 
     <main class="site-main">
-      <!-- Intentionally empty canvas for now. -->
+      <section class="home__hero">
+        <h1 class="home__name">Aditya Sundaram</h1>
+        <p class="home__tag">
+          Technical Solutions Engineer — Epic, Beaker LIS. UCLA Computational
+          &amp; Systems Biology. I build native and web apps under the Deets
+          umbrella; this site is the hub for all of it.
+        </p>
+        <div class="home__links">
+          <a class="home__cta" href="resume/">Resume</a>
+          <a class="home__cta home__cta--soft" href="https://github.com/deets-137">GitHub ↗</a>
+          <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/">LinkedIn ↗</a>
+        </div>
+      </section>
+
+      <div class="home__grid">
+        <a class="home-card home-card--lead" href="cool-stuff/">
+          <h2 class="home-card__title">Cool Stuff I Did</h2>
+          <p class="home-card__pitch">
+            The portfolio — native and web apps built on a shared design
+            system: a full Apple Music player for Windows, a local LLM agent
+            harness, a blackjack trainer, health-data viz, and more.
+          </p>
+          <p class="home-card__live" data-live="cool">13 projects, from shipped to sketch →</p>
+        </a>
+
+        <a class="home-card" href="sotd/">
+          <h2 class="home-card__title">Song of the Day</h2>
+          <p class="home-card__pitch">
+            A daily song journal kept with friends on Discord — album art,
+            30-second previews, and every sort and filter you'd want.
+          </p>
+          <p class="home-card__live" data-live="sotd">The journal so far →</p>
+        </a>
+
+        <a class="home-card" href="movies/">
+          <h2 class="home-card__title">Movies</h2>
+          <p class="home-card__pitch">
+            My Letterboxd film log — posters, star ratings, likes, rewatches,
+            and the occasional essay.
+          </p>
+          <p class="home-card__live" data-live="movies">The log so far →</p>
+        </a>
+      </div>
     </main>
   </body>
 </html>

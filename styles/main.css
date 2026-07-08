@@ -1019,6 +1019,201 @@ body::before {
 }
 .project__link:hover { border-bottom-color: var(--title); }
 
+/* ============================================================
+   Home — the hub canvas on /. A hero (name, one-liner, link row)
+   over three section cards that route the two audiences: the
+   portfolio + resume for recruiters, the journals for friends.
+   Same token discipline as everything above.
+   ============================================================ */
+.home__hero {
+  padding: var(--space-6) 0;
+  max-width: 44rem;
+}
+.home__name {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.6);
+  color: var(--title);
+  line-height: 1.1;
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+}
+.home__tag {
+  margin-top: var(--space-3);
+  color: var(--text);
+  font-size: 1.05rem;
+}
+.home__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+/* CTA pill — same species as the toolbar pill, sized up a touch.
+   The lead (Resume) fills with the surface; the soft ones stay open. */
+.home__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--title);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-4);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.home__cta:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
+.home__cta--soft { color: var(--text); background: none; }
+.home__cta--soft:hover { color: var(--title); }
+
+/* Section cards — whole card is the link. Two columns with the lead
+   (portfolio) spanning the full row; single column when narrow. */
+.home__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+@media (min-width: 41rem) {
+  .home__grid { grid-template-columns: 1fr 1fr; }
+  .home-card--lead { grid-column: 1 / -1; }
+}
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-ui),
+              box-shadow var(--dur-med) var(--ease-ui);
+}
+.home-card:hover { transform: var(--hover-lift); }
+.home-card__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.95);
+  color: var(--title);
+  line-height: 1.2;
+}
+.home-card__pitch { color: var(--text); font-size: 0.95rem; }
+/* The live line — js/home.js swaps in counts + the latest entry. */
+.home-card__live {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  color: var(--subtext);
+  font-size: 0.85rem;
+}
+.home-card:hover .home-card__live { color: var(--title); }
+
+/* ============================================================
+   Resume — /resume/, a document rather than a grid: the resume
+   content in the site's own type system, with a print sheet in
+   the page itself doubling as the PDF export layout.
+   ============================================================ */
+.resume { max-width: 52rem; margin: 0 auto; }
+.resume__head { margin-bottom: var(--space-5); }
+.resume__name {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.35);
+  color: var(--title);
+  line-height: 1.1;
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+}
+.resume__contact {
+  margin-top: var(--space-2);
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.resume__contact a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  transition: border-color var(--dur-fast) var(--ease-ui);
+}
+.resume__contact a:hover { color: var(--title); border-bottom-color: var(--title); }
+.resume__actions { margin-top: var(--space-4); }
+
+.resume__block { margin-bottom: var(--space-6); }
+.resume__section {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.85);
+  color: var(--title);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+.resume__summary { color: var(--text); font-size: 0.95rem; }
+
+.resume__entry { margin-bottom: var(--space-5); }
+.resume__entry:last-child { margin-bottom: 0; }
+.resume__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.resume__role {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1.1rem;
+  line-height: 1.3;
+  color: var(--title);
+}
+.resume__note { font-weight: normal; color: var(--subtext); font-size: 0.85rem; }
+.resume__dates { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
+.resume__org { color: var(--text); font-size: 0.9rem; margin-top: 2px; }
+.resume__org a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+.resume__org a:hover { color: var(--title); border-bottom-color: var(--title); }
+.resume__list {
+  margin-top: var(--space-2);
+  padding-left: 1.1rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  display: grid;
+  gap: var(--space-1);
+}
+.resume__list li::marker { color: var(--subtext); }
+
+.resume__skills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-5);
+}
+.resume__skillhead {
+  font-family: var(--font-body);
+  font-weight: normal;
+  color: var(--subtext);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* Focus ring — keyboard users */
 a:focus-visible,
 button:focus-visible {
