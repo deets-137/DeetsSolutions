@@ -17,9 +17,9 @@
     <meta property="og:url" content="https://deets.solutions/" />
     <link rel="icon" href="assets/favicon.png" type="image/png" />
     <!-- Resolve theme + skin before CSS paints, to avoid a flash of the
-         wrong look. Saved choice wins; otherwise skin defaults to CyberStorm
-         and theme follows the OS light/dark preference (Fairy / Moonlight).
-         Mirrors the default logic in controls.js. -->
+         wrong look. Saved choice wins; otherwise theme follows the OS
+         light/dark preference (Fairy / Moonlight) and skin defaults to
+         CyberStorm on desktop, Ocean on mobile. Mirrors controls.js. -->
     <script>
       (function () {
         try {
@@ -29,7 +29,11 @@
               ? "moonlight" : "fairy";
           }
           document.documentElement.setAttribute("data-theme", t);
-          var s = localStorage.getItem("deets-skin") || "cyberstorm";
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
           document.documentElement.setAttribute("data-skin", s);
         } catch (e) {}
       })();
@@ -41,14 +45,16 @@
 
   <body>
     <header class="site-header">
-      <a class="wordmark" href="/">Deets</a>
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
       <nav class="site-nav" aria-label="Primary">
         <a href="sotd/">SOTD</a>
         <a href="movies/">Movies</a>
         <a href="cool-stuff/">Cool Stuff I Did</a>
         <a href="resume/">Resume</a>
-        <span class="settings" data-settings></span>
       </nav>
+      <span class="settings" data-settings></span>
     </header>
 
     <main class="site-main">
@@ -77,7 +83,7 @@
           <p class="home-card__live" data-live="cool">13 projects, from shipped to sketch →</p>
         </a>
 
-        <a class="home-card" href="sotd/">
+        <a class="home-card home-card--sotd" href="sotd/">
           <h2 class="home-card__title">Song of the Day</h2>
           <p class="home-card__pitch">
             A daily song journal kept with friends on Discord: album art,
@@ -86,7 +92,7 @@
           <p class="home-card__live" data-live="sotd">The journal so far →</p>
         </a>
 
-        <a class="home-card" href="movies/">
+        <a class="home-card home-card--movies" href="movies/">
           <h2 class="home-card__title">Movies</h2>
           <p class="home-card__pitch">
             My Letterboxd film log: posters, star ratings, likes, rewatches,
@@ -94,6 +100,37 @@
           </p>
           <p class="home-card__live" data-live="movies">The log so far →</p>
         </a>
+
+        <!-- Vibe panel: the appearance previewer, riding the right column of
+             the bento (spanning the SOTD + Movies stack). Its interior morphs
+             to the PENDING theme×skin (storm/waves/grid and all); the two
+             lists reuse the dropdown chips and each chip self-tastes its own
+             option. Confirm promotes the pending combo site-wide. Built by
+             home.js; the chip lists come from the shared
+             window.DeetsAppearance axes so the options live in one place. -->
+        <section class="vibe" aria-labelledby="vibe-title" data-vibe hidden>
+          <div class="vibe__stage">
+            <div class="vibe__inner">
+              <div class="vibe__head">
+                <h2 class="vibe__title" id="vibe-title">Vibe</h2>
+                <div class="vibe__actions">
+                  <button type="button" class="home__cta home__cta--soft vibe__reset" data-vibe-reset hidden>Reset</button>
+                  <button type="button" class="home__cta vibe__confirm" data-vibe-confirm>Confirm</button>
+                </div>
+              </div>
+              <div class="vibe__cols">
+                <div class="vibe__col">
+                  <span class="vibe__col-label">Theme</span>
+                  <div class="flyout vibe__list" role="radiogroup" aria-label="Theme" data-vibe-list="theme"></div>
+                </div>
+                <div class="vibe__col">
+                  <span class="vibe__col-label">Skin</span>
+                  <div class="flyout vibe__list" role="radiogroup" aria-label="Skin" data-vibe-list="skin"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </body>

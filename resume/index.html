@@ -18,7 +18,11 @@
               ? "moonlight" : "fairy";
           }
           document.documentElement.setAttribute("data-theme", t);
-          var s = localStorage.getItem("deets-skin") || "cyberstorm";
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
           document.documentElement.setAttribute("data-skin", s);
         } catch (e) {}
       })();
@@ -73,14 +77,16 @@
 
   <body>
     <header class="site-header">
-      <a class="wordmark" href="/">Deets</a>
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
       <nav class="site-nav" aria-label="Primary">
         <a href="/sotd/">SOTD</a>
         <a href="/movies/">Movies</a>
         <a href="/cool-stuff/">Cool Stuff I Did</a>
         <a href="/resume/" aria-current="page">Resume</a>
-        <span class="settings" data-settings></span>
       </nav>
+      <span class="settings" data-settings></span>
     </header>
 
     <main class="site-main resume">

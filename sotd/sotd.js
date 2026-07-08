@@ -5,7 +5,7 @@
    site. Cloudflare Pages serves it flat; this script fetches it and
    builds the card grid. No framework, no build step — same spirit as
    controls.js. Every visual value comes from a theme/skin token, so the
-   cards inherit all 30 theme x skin combos and the ◑ settings menu.
+   cards inherit all 30 theme x skin combos and the Vibe settings menu.
 
    NOTE: the toolbar/popover kit (makePill, facetGroup, sort/state
    machinery) is deliberately duplicated in movies/movies.js to keep each

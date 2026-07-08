@@ -167,11 +167,20 @@ body::before {
   height: var(--header-h);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--space-4);
   padding: 0 var(--space-6);
   max-width: var(--content-max);
   margin: 0 auto;
+}
+
+/* Brand — the wordmark, alone at the left. On mobile it doubles as the nav
+   menu trigger (see .nav-menu), so it's the positioning anchor for that
+   dropdown. */
+.site-brand {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Wordmark — the title-face signature, links home. The editorial
@@ -201,6 +210,7 @@ body::before {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;   /* push the nav + Vibe button to the right edge */
 }
 
 .site-nav a {
@@ -218,6 +228,56 @@ body::before {
 .site-nav a:hover { background: var(--surface-hover); color: var(--title); transform: var(--hover-lift); }
 .site-nav a[aria-current="page"] { color: var(--title); }
 
+/* ── Mobile nav menu ──────────────────────────────────────────────
+   Below the breakpoint the inline nav can't fit, so the wordmark becomes a
+   dropdown trigger (wired in controls.js) and the destinations live in this
+   popover — same panel material as the Vibe menu. Desktop never shows it. */
+.nav-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 11rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.nav-menu[hidden] { display: none; }
+.nav-menu__item {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  white-space: nowrap;
+}
+.nav-menu__item:hover { background: var(--surface-hover); color: var(--title); }
+.nav-menu__item[aria-current="page"] { color: var(--title); }
+
+/* Desktop keeps the inline nav; the wordmark's dropdown stays inert. */
+@media (min-width: 41rem) {
+  .nav-menu { display: none; }
+}
+/* Mobile: hide the inline links, keep the Vibe button pinned right on its
+   own, and flag the wordmark as a menu with a caret. */
+@media (max-width: 41rem) {
+  .site-nav { display: none; }
+  .settings { margin-left: auto; }
+  .wordmark[aria-haspopup]::after {
+    content: "▾";
+    margin-left: var(--space-1);
+    font-size: 0.7em;
+    text-decoration: none;
+  }
+}
+
 /* ============================================================
    Settings menu — mirrors DeetsMusic's title menu: a single
    trigger opening a menu of rows, each row a flyout of live chips.
@@ -228,19 +288,22 @@ body::before {
 .settings__trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
   background: none;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   color: var(--title);
   cursor: pointer;
-  font-size: 1rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
   line-height: 1;
-  transition: background var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
 }
-.settings__trigger:hover { background: var(--surface-hover); transform: var(--hover-lift); }
+.settings__trigger:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
 
 /* The menu + flyouts adopt the skin's material (Glass frosts them). */
 .menu {
@@ -283,8 +346,8 @@ body::before {
 .menu__group.is-open > .menu__row { background: var(--surface-hover); }
 .menu__chev { color: var(--subtext); }
 
-/* Flyout opens to the LEFT of the menu (which hugs the right edge), toggled
-   by CLASS on click — no hover targets, no dead-zone gaps. */
+/* Flyout opens to the LEFT of the menu (which hugs the right edge, under the
+   right-aligned Vibe button), toggled by CLASS on click — no hover targets. */
 .flyout {
   position: absolute;
   top: calc(-1 * var(--space-1));
@@ -1082,16 +1145,32 @@ body::before {
 .home__cta--soft { color: var(--text); background: none; }
 .home__cta--soft:hover { color: var(--title); }
 
-/* Section cards — whole card is the link. Two columns with the lead
-   (portfolio) spanning the full row; single column when narrow. */
+/* Section cards — whole card is the link. Single column when narrow; at
+   width it becomes a bento: the portfolio leads full-width, then SOTD and
+   Movies stack down the left while the Vibe panel rides the right column,
+   spanning that whole stack. */
 .home__grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-5);
 }
 @media (min-width: 41rem) {
-  .home__grid { grid-template-columns: 1fr 1fr; }
-  .home-card--lead { grid-column: 1 / -1; }
+  .home__grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "lead   lead"
+      "sotd   vibe"
+      "movies vibe";
+  }
+  .home-card--lead   { grid-area: lead; }
+  .home-card--sotd   { grid-area: sotd; }
+  .home-card--movies { grid-area: movies; }
+  .vibe              { grid-area: vibe; position: relative; }
+  /* Float the panel's content out of flow so it contributes NOTHING to the
+     shared rows: the SOTD + Movies stack alone sizes them, and the panel
+     fills the spanned area no matter how tall its pending skin's type runs.
+     (In-flow at narrow widths, below, so the stacked tile keeps its height.) */
+  .vibe .vibe__stage { position: absolute; inset: 0; height: auto; }
 }
 .home-card {
   display: flex;
@@ -1126,6 +1205,146 @@ body::before {
   font-size: 0.85rem;
 }
 .home-card:hover .home-card__live { color: var(--title); }
+
+/* ── Vibe panel ──────────────────────────────────────────────────
+   The home appearance previewer: a square bento tile whose interior
+   is a live "canvas window" into the PENDING theme×skin. home.js sets
+   data-theme/data-skin on .vibe, so its stage (canvas texture + scoped
+   storm/ocean) and chrome morph to that combo, while each chip inside
+   keeps its OWN data-* and self-tastes its own option. Confirm promotes
+   the pending combo to <html>. Frame is card material; the interior
+   deliberately shows the CANVAS treatment (not the card plate) so the
+   storm/waves/grid preview is visible. */
+.vibe {
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  /* Fills its grid area: down the right column (matching the SOTD + Movies
+     stack) at width; a natural-height tile when the grid is single-column.
+     min-height:0 keeps the panel from feeding its own content height back
+     into the shared rows — otherwise a taller-typed pending skin would grow
+     the tracks and drag the SOTD/Movies column up with it. The left stack
+     alone sizes the rows; the panel just fills to match and its lists scroll
+     if a skin ever needs more room. */
+  min-height: 0;
+}
+.vibe[hidden] { display: none; }
+
+.vibe__stage {
+  position: relative;
+  height: 100%;
+  background: var(--canvas);
+  overflow: hidden;
+}
+/* Scoped canvas texture (grid/aurora), mirroring body::before but pinned
+   to the panel box instead of the viewport. */
+.vibe__stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:  var(--canvas-bg);
+  background-size:   var(--canvas-bg-size);
+  background-repeat: var(--canvas-bg-repeat);
+  animation: var(--canvas-anim);
+}
+/* The injected storm/ocean SVGs default to position:fixed (viewport-wide);
+   here they fill the stage instead. Their skin-gated --storm/--ocean-display
+   and theme inks resolve from the panel's pending data-*. */
+.vibe__stage > .storm,
+.vibe__stage > .ocean { position: absolute; }
+
+.vibe__inner {
+  position: relative;
+  z-index: 1;                 /* content above the canvas window */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-5);
+}
+.vibe__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  line-height: 1;
+}
+.vibe__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;              /* let the lists scroll rather than overflow */
+}
+.vibe__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  /* Let the 1fr tracks split evenly: without this, the auto minimum of a
+     grid track lets the wider-worded Skin column (title face) outgrow Theme. */
+  min-width: 0;
+}
+.vibe__col-label {
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+/* Each list reuses the dropdown flyout's material + chip look, but sits
+   inline (not the absolute, hidden pop-out) and scrolls if it must. */
+.vibe__list {
+  position: static;
+  display: flex;
+  min-width: 0;
+  margin: 0;
+  overflow: auto;
+  /* Themed scrollbar (the Theme list overflows at six options). Inked in
+     theme roles so it morphs with the pending preview; a stable gutter keeps
+     both columns' chips aligned whether or not a bar shows. Firefox reads
+     these two; WebKit/Blink read the ::-webkit rules below. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--subtext) transparent;
+  scrollbar-gutter: stable;
+}
+.vibe__list::-webkit-scrollbar { width: var(--space-2); }
+.vibe__list::-webkit-scrollbar-track { background: transparent; }
+.vibe__list::-webkit-scrollbar-thumb {
+  background: var(--subtext);
+  border-radius: 999px;
+}
+.vibe__list::-webkit-scrollbar-thumb:hover { background: var(--title); }
+
+/* Title + actions share the top row, so the columns get the footer's height
+   back and their chips fit without scrolling. */
+.vibe__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.vibe__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.vibe__actions .home__cta { cursor: pointer; }
+.vibe__confirm:disabled { opacity: 0.5; cursor: default; }
+.vibe__confirm:disabled:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  transform: none;
+}
+
+/* Stack the two chip lists when too narrow to sit side by side. */
+@media (max-width: 30rem) {
+  .vibe__cols { grid-template-columns: 1fr; }
+}
 
 /* ============================================================
    Resume — /resume/, a document rather than a grid: the resume

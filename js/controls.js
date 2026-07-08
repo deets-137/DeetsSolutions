@@ -29,7 +29,10 @@
     skin: {
       attr: "data-skin",
       key: "deets-skin",
-      def: "cyberstorm",
+      // No saved choice: CyberStorm on desktop, but Ocean on mobile — its calm
+      // roll suits a phone better than the storm. Kept in sync with the inline
+      // pre-paint script in each page's <head>.
+      def: function () { return isMobile() ? "ocean" : "cyberstorm"; },
       options: [
         { id: "vanilla",    label: "Vanilla" },
         { id: "desk",       label: "Desk" },
@@ -42,6 +45,11 @@
 
   function prefersDark() {
     try { return window.matchMedia("(prefers-color-scheme: dark)").matches; }
+    catch (e) { return false; }
+  }
+
+  function isMobile() {
+    try { return window.matchMedia("(max-width: 41rem)").matches; }
     catch (e) { return false; }
   }
 
@@ -62,6 +70,11 @@
   function apply(axis, id) {
     document.documentElement.setAttribute(axis.attr, id);
     try { localStorage.setItem(axis.key, id); } catch (e) {}
+    // Announce the change so any other picker on the page (the Vibe menu, the
+    // home Vibe panel) can re-sync its checked state to the new truth.
+    document.dispatchEvent(new CustomEvent("deets:appearance", {
+      detail: { attr: axis.attr, id: id },
+    }));
   }
 
   /* Build one accordion group: a clickable header row + a flyout panel of
@@ -143,8 +156,7 @@
     trigger.className = "settings__trigger";
     trigger.setAttribute("aria-haspopup", "true");
     trigger.setAttribute("aria-expanded", "false");
-    trigger.setAttribute("aria-label", "Appearance");
-    trigger.textContent = "◑";
+    trigger.textContent = "Vibe";
 
     var menu = document.createElement("div");
     menu.className = "menu";
@@ -175,8 +187,90 @@
 
     trigger.addEventListener("click", function () { menu.hidden ? open() : close(); });
 
+    // If the choice changes elsewhere (the home Vibe panel's Confirm), bring
+    // this menu's dots back in line with the document's live attributes.
+    document.addEventListener("deets:appearance", function () {
+      menu.querySelectorAll(".flyout__item").forEach(function (chip) {
+        var attr = chip.hasAttribute("data-theme") ? "data-theme" : "data-skin";
+        chip.setAttribute("aria-checked", String(
+          chip.getAttribute(attr) === document.documentElement.getAttribute(attr)));
+      });
+    });
+
     mount.appendChild(trigger);
     mount.appendChild(menu);
+  }
+
+  /* Mobile nav menu: on narrow viewports the inline nav links don't fit, so
+     the "Deets" wordmark itself becomes the trigger for a dropdown of every
+     destination (Home + the page's own links). Desktop is untouched — the
+     wordmark stays a plain home link and the inline nav shows; the media
+     query in main.css hides this menu and the mobile-only affordances there.
+     Links are CLONED from the live .site-nav so the destinations (and each
+     page's aria-current) stay defined in one place: the page's markup. */
+  function buildNavMenu() {
+    var brand = document.querySelector(".site-brand");
+    var wordmark = brand && brand.querySelector(".wordmark");
+    var nav = document.querySelector(".site-nav");
+    if (!brand || !wordmark || !nav) return;
+
+    var menu = document.createElement("div");
+    menu.className = "nav-menu";
+    menu.setAttribute("role", "menu");
+    menu.hidden = true;
+
+    var home = document.createElement("a");
+    home.className = "nav-menu__item";
+    home.setAttribute("role", "menuitem");
+    home.href = "/";
+    home.textContent = "Home";
+    menu.appendChild(home);
+
+    nav.querySelectorAll("a").forEach(function (link) {
+      var item = link.cloneNode(true);
+      item.className = "nav-menu__item";
+      item.setAttribute("role", "menuitem");
+      menu.appendChild(item);
+    });
+    brand.appendChild(menu);
+
+    function mobile() { return window.matchMedia("(max-width: 41rem)").matches; }
+    function open() {
+      menu.hidden = false;
+      wordmark.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", onOutside, true);
+      document.addEventListener("keydown", onKey);
+    }
+    function close() {
+      menu.hidden = true;
+      wordmark.setAttribute("aria-expanded", "false");
+      document.removeEventListener("click", onOutside, true);
+      document.removeEventListener("keydown", onKey);
+    }
+    function onOutside(e) { if (!brand.contains(e.target)) close(); }
+    function onKey(e) { if (e.key === "Escape") { close(); wordmark.focus(); } }
+
+    // The wordmark is a menu trigger only while mobile; on desktop it's a
+    // normal home link. syncMode keeps its ARIA honest as the viewport crosses
+    // the breakpoint (and closes an open menu on the way up).
+    function syncMode() {
+      if (mobile()) {
+        wordmark.setAttribute("aria-haspopup", "true");
+        wordmark.setAttribute("aria-expanded", String(!menu.hidden));
+      } else {
+        if (!menu.hidden) close();
+        wordmark.removeAttribute("aria-haspopup");
+        wordmark.removeAttribute("aria-expanded");
+      }
+    }
+
+    wordmark.addEventListener("click", function (e) {
+      if (!mobile()) return;            // desktop: follow the home link
+      e.preventDefault();
+      menu.hidden ? open() : close();
+    });
+    window.addEventListener("resize", syncMode);
+    syncMode();
   }
 
   /* Inject the ocean SVG once. Inert (CSS display:none) unless the active
@@ -188,8 +282,13 @@
      is an opaque fill below a hairline crest, so a nearer swell occludes
      the ones behind it. Geometry lives here; ink/fill are theme roles and
      motion is skin tokens (see .ocean in main.css). */
-  function injectOcean() {
-    if (document.querySelector(".ocean")) return;
+  function buildOcean(suffix) {
+    // The pattern ids must be unique per SVG instance: the home Vibe panel
+    // renders its own scoped ocean alongside this page-level one, and two
+    // <pattern id="ocean-swell-1"> would make every url(#…) ref resolve to
+    // the first, painting the panel with the page's theme. A suffix keeps
+    // each instance's refs pointing at its own patterns.
+    var idsuf = suffix ? "-" + suffix : "";
     var NS = "http://www.w3.org/2000/svg";
     var svg = document.createElementNS(NS, "svg");
     svg.setAttribute("class", "ocean");
@@ -204,7 +303,7 @@
       var crest = "M0 " + c + " Q" + W / 4 + " " + (c - a) + " " + W / 2 + " " + c +
                   " T" + W + " " + c;
       var pat = document.createElementNS(NS, "pattern");
-      pat.setAttribute("id", "ocean-swell-" + n);
+      pat.setAttribute("id", "ocean-swell-" + n + idsuf);
       pat.setAttribute("width", W);
       pat.setAttribute("height", H);
       pat.setAttribute("patternUnits", "userSpaceOnUse");
@@ -223,18 +322,21 @@
       g.setAttribute("class", "ocean__bob ocean__bob--" + n);
       var rect = document.createElementNS(NS, "rect");
       rect.setAttribute("class", "ocean__roll ocean__roll--" + n);
-      rect.setAttribute("fill", "url(#ocean-swell-" + n + ")");
+      rect.setAttribute("fill", "url(#ocean-swell-" + n + idsuf + ")");
       g.appendChild(rect);
       svg.appendChild(g);
     });
-    document.body.insertBefore(svg, document.body.firstChild);
+    return svg;
+  }
+  function injectOcean() {
+    if (document.body.querySelector(":scope > .ocean")) return;
+    document.body.insertBefore(buildOcean(""), document.body.firstChild);
   }
 
   /* Inject the storm SVG once. It's inert (CSS display:none) unless the
      active skin opts in via --storm-display (CyberStorm). Two bolts whose
      geometry + motion are skin tokens; ink is the theme's --title. */
-  function injectStorm() {
-    if (document.querySelector(".storm")) return;
+  function buildStorm() {
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "storm");
     svg.setAttribute("viewBox", "0 0 100 100");
@@ -247,10 +349,26 @@
       p.setAttribute("pathLength", "1");
       svg.appendChild(p);
     });
-    document.body.insertBefore(svg, document.body.firstChild);
+    return svg;
+  }
+  function injectStorm() {
+    if (document.body.querySelector(":scope > .storm")) return;
+    document.body.insertBefore(buildStorm(), document.body.firstChild);
   }
 
-  function init() { injectOcean(); injectStorm(); buildMenu(); }
+  // One source of truth for the appearance axes, shared with home.js's Vibe
+  // panel: the option lists + default logic live only here, and the storm /
+  // ocean SVG builders are reused so the panel's scoped preview draws the
+  // exact same geometry as the page background.
+  window.DeetsAppearance = {
+    axes: AXES,
+    get: function (name) { return current(AXES[name]); },
+    set: function (name, id) { apply(AXES[name], id); },
+    buildStorm: buildStorm,
+    buildOcean: buildOcean,
+  };
+
+  function init() { injectOcean(); injectStorm(); buildMenu(); buildNavMenu(); }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
