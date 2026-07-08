@@ -3,7 +3,8 @@
 Technical companion to the [README](../README.md). The README says what the
 site is; this file says how it works. No build step, no framework, no
 dependencies — every page is plain HTML that loads `styles/main.css`,
-`js/controls.js`, and (for the journal pages) one page-local script.
+`js/controls.js`, and (for the home hub and the journal pages) one
+page-local script.
 
 ## Appearance system: theme × skin
 
@@ -39,10 +40,40 @@ the **storm** (CyberStorm's lightning bolts) and the **ocean** (Ocean's
 three rolling wave trains — seamless sine-period `<pattern>` tiles, each an
 opaque fill under a hairline crest so nearer swells occlude farther ones).
 In both cases the geometry lives in `controls.js`, the ink is a theme role,
-and the motion is skin tokens. Each page also sets the saved attributes
-inline in `<head>`, before CSS loads, so there's no flash of the defaults.
+and the motion is skin tokens.
 
-## The three tabs
+Each page resolves both axes inline in `<head>`, before CSS paints, so
+there's no flash of the wrong look. A saved choice wins; otherwise the
+defaults are the **CyberStorm skin** and a theme following the OS
+light/dark preference (**Fairy** light / **Moonlight** dark). That default
+logic lives in two places on purpose — the pre-paint head script on every
+page and the AXES table in `controls.js` — and they must be kept in sync.
+
+## Page bar
+
+Every page opens with the same header panel: `.page-bar` — title left,
+optional action pills (`.home__cta`) right — with the `.page-meta` dim
+line under it (journal counts, the resume's updated-on date, home's
+tagline). Home, Resume, and Cool Stuff use `.page-bar` directly; SOTD and
+Movies keep their own `.sotd__bar` because it pins (sticky) and carries
+the toolbar. `.page-bar` deliberately mirrors `.sotd__bar`'s desktop
+material and geometry (menu surface + backdrop, panel radius/border/
+shadow, same padding), so the title sits in the same place in the same
+dress on every tab — a geometry change to one should visit the other.
+
+## The pages
+
+### Home (`index.html`)
+
+The hub. A `.page-bar` (name + Resume / GitHub / LinkedIn pills), the
+tagline, then three `.home-card` links — Cool Stuff leads full-width,
+SOTD and Movies split the row (single column under 41rem). `js/home.js`
+fetches the two journal JSONs and fills each card's `[data-live]` line
+with a count and the latest entry (latest by `date` for songs; latest
+watched, `status: "watched"` only, for films); if JS or a fetch fails,
+the static fallback copy simply stays. The head carries the site's only
+meta description + Open Graph tags — the home page is the recruiter
+landing page, so it's the one that must index well.
 
 ### SOTD (`sotd/`)
 
@@ -94,6 +125,34 @@ cards are hand-written `<article class="project">` blocks directly in
 project, copy an existing card block and edit it. Styles are the
 `.cool__*` / `.project__*` sections at the bottom of `main.css`.
 
+### Resume (`resume/`)
+
+The resume in the site's type system, and the source of truth for the
+downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
+
+- **The text is verbatim** from Aditya's master resume — original
+  punctuation (plain hyphens, no em dashes), month names, capitalization
+  after semicolons. Don't reword it. The one deliberate difference: the
+  master's phone + email stay off the site; public contact is the
+  LinkedIn pill in the page bar, plus the updated-on `.page-meta` line
+  (restamped by the rebuild script).
+- The body sits on `.resume__sheet` — the skin's card material — so busy
+  canvases (CyberStorm's grid, Glass's aurora) stay behind a plate.
+  Vanilla's card is flush with the canvas by design.
+- Entry heads mirror the source PDF: a bold company + location
+  `.resume__row`, then an italic role + dates row. Rows don't wrap — the
+  left text flexes and wraps internally while the right column holds the
+  first line — so dates stay right-aligned in every skin, including the
+  wide-set CyberStorm faces. One company with several roles nests
+  `.resume__role-group`s under a single company row.
+- The in-page `media="print"` stylesheet **is** the PDF layout, and is
+  deliberately theme-exempt (paper, not a theme surface): it collapses
+  every role to black-on-white, pins both fonts to the source's serif,
+  centers the uppercase name, swaps the screen meta line for a
+  print-only contact line, and shrinks the print root `font-size` — the
+  page is sized in rem throughout, so that one knob scales type and
+  spacing together until the document lands on one page.
+
 ## Card anatomy and the three views
 
 A journal card is built once as one DOM shape (`.song` → `.song__cover` +
@@ -130,5 +189,8 @@ headers carry this warning.
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.
+- After editing resume content, `powershell -File
+  scripts/build-resume-pdf.ps1` restamps the updated-on date and reprints
+  the downloadable PDF; commit the page and PDF together.
 - Posters are hotlinked from TMDB's CDN — the repo stores only URLs
   (~120 KB of JSON), nowhere near Cloudflare's 25 MB per-file cap.

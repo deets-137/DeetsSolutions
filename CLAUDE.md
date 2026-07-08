@@ -17,6 +17,14 @@ deep dives in [docs/architecture.md](docs/architecture.md) and
   `movies/movies.json` come from generators in the sibling
   [DeetsOTD](../DeetsOTD) repo — regenerate (see docs/data.md), never
   hand-edit.
+- **Resume text is verbatim.** `resume/index.html` mirrors Aditya's
+  master resume word-for-word: original punctuation (plain hyphens — no
+  em dashes), month names, capitalization. Never reword it; phone and
+  email stay off the site. After any resume edit, rebuild the PDF with
+  `powershell -File scripts/build-resume-pdf.ps1` and commit both.
+- **The page-bar is shared.** Home, Resume, and Cool Stuff open with
+  `.page-bar`, which mirrors the journals' `.sotd__bar` panel geometry —
+  keep the two visually in sync if either changes.
 - **sotd.js and movies.js deliberately duplicate the toolbar/popover kit**
   (pills, facets, state persistence) to keep each page self-contained.
   A fix to that machinery in one file must be mirrored in the other.

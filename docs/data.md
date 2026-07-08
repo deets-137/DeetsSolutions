@@ -53,7 +53,31 @@ looks each film up on TMDB search and bakes the poster URL into the JSON.
 - TMDB's API terms require visible attribution — the movies page footer
   carries it. Keep that if you restyle the page.
 
+## Resume → `resume/AdityaSundaram_Resume.pdf`
+
+The third generated artifact — but with the direction inverted: the
+source of truth lives **in this repo**. `resume/index.html` holds the
+resume content (verbatim from Aditya's master resume, which stays
+outside the repo because it carries his phone + email), and its
+`media="print"` stylesheet is the PDF layout. Rebuild after any content
+edit:
+
+```
+powershell -File scripts/build-resume-pdf.ps1
+```
+
+The script stamps today's date into the page's "Resume - updated" line,
+then prints the page to the PDF with headless Edge — so the page and the
+download can never drift apart. Never edit the PDF directly, and never
+paste text from a PDF without proofreading it: extraction mangles
+hyphenation across line breaks (e.g. "show-stopping" → "showstopping").
+
+When Aditya revises his master resume, the update loop is: sync the
+page's text to the new version verbatim → run the script → commit the
+page and PDF together.
+
 ## Publishing a refresh
 
-The JSONs are committed and served flat, so a data refresh is just:
-regenerate → `git commit` → `git push`, and Cloudflare Pages redeploys.
+The JSONs and the resume PDF are committed and served flat, so a refresh
+is just: regenerate → `git commit` → `git push`, and Cloudflare Pages
+redeploys.

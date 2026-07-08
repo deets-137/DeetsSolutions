@@ -1,7 +1,12 @@
 # Deets.Solutions
 
 My personal website — a hand-built static site. Plain HTML/CSS/JS: no
-framework, no build step, no runtime dependencies.
+framework, no build step, no runtime dependencies. It doubles as a hub
+for recruiters (portfolio + resume) and for friends (the journals).
+
+The home page is that hub: a header bar with name and
+Resume / GitHub / LinkedIn links over live section cards that show each
+tab's count and latest entry.
 
 ## The tabs
 
@@ -12,6 +17,8 @@ framework, no build step, no runtime dependencies.
   rewatches, and reviews, with the same controls. Rewatches can be grouped
   per film or fanned out one card per sitting.
 - **Cool Stuff I Did** — a portfolio of projects, hand-written cards.
+- **Resume** — the resume rendered in the site's design system, with a
+  downloadable one-page PDF that is printed from the page itself.
 
 ## Appearance
 
@@ -23,6 +30,9 @@ header and remembered per visitor:
 
 Any theme pairs with any skin — 30 combinations, driven entirely by CSS
 tokens. Nothing in the site's styles hardcodes a color or a geometry value.
+
+First visits (no saved choice) land on the CyberStorm skin, with the theme
+following the OS light/dark preference: Fairy in light, Moonlight in dark.
 
 ## Structure
 
