@@ -5,7 +5,7 @@
 
    The attributes are also set inline in each page's <head> (before CSS) to
    avoid a flash of the defaults on load; this script wires the picker,
-   keeps localStorage in sync, and injects the storm layer. */
+   keeps localStorage in sync, and injects the ocean + storm layers. */
 (function () {
   "use strict";
 
@@ -162,6 +162,57 @@
     mount.appendChild(menu);
   }
 
+  /* Inject the ocean SVG once. Inert (CSS display:none) unless the active
+     skin opts in via --ocean-display (Ocean). Three seamless wave-train
+     patterns replace the old radial-gradient scallops, whose arcs crossed
+     at tile corners and littered the canvas with chevron artifacts. Each
+     tile is one full sine period (Q + T reflection), so the curve's value
+     AND tangent match at the tile edge — no seam, no crossings. Each train
+     is an opaque fill below a hairline crest, so a nearer swell occludes
+     the ones behind it. Geometry lives here; ink/fill are theme roles and
+     motion is skin tokens (see .ocean in main.css). */
+  function injectOcean() {
+    if (document.querySelector(".ocean")) return;
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "ocean");
+    svg.setAttribute("aria-hidden", "true");
+    var defs = document.createElementNS(NS, "defs");
+    svg.appendChild(defs);
+    // [tile width, tile height, crest baseline, amplitude], farthest first
+    // so the nearest train paints last (on top).
+    var SWELLS = { 3: [80, 46, 26, 4], 2: [64, 38, 22, 5], 1: [48, 30, 17, 6] };
+    [3, 2, 1].forEach(function (n) {
+      var s = SWELLS[n], W = s[0], H = s[1], c = s[2], a = s[3];
+      var crest = "M0 " + c + " Q" + W / 4 + " " + (c - a) + " " + W / 2 + " " + c +
+                  " T" + W + " " + c;
+      var pat = document.createElementNS(NS, "pattern");
+      pat.setAttribute("id", "ocean-swell-" + n);
+      pat.setAttribute("width", W);
+      pat.setAttribute("height", H);
+      pat.setAttribute("patternUnits", "userSpaceOnUse");
+      var fill = document.createElementNS(NS, "path");
+      fill.setAttribute("class", "ocean__fill");
+      fill.setAttribute("d", crest + " L" + W + " " + H + " L0 " + H + " Z");
+      pat.appendChild(fill);
+      var line = document.createElementNS(NS, "path");
+      line.setAttribute("class", "ocean__crest ocean__crest--" + n);
+      line.setAttribute("d", crest);
+      pat.appendChild(line);
+      defs.appendChild(pat);
+      // bob (g) and roll (rect) are separate elements so their transform
+      // animations compose instead of overwriting each other.
+      var g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "ocean__bob ocean__bob--" + n);
+      var rect = document.createElementNS(NS, "rect");
+      rect.setAttribute("class", "ocean__roll ocean__roll--" + n);
+      rect.setAttribute("fill", "url(#ocean-swell-" + n + ")");
+      g.appendChild(rect);
+      svg.appendChild(g);
+    });
+    document.body.insertBefore(svg, document.body.firstChild);
+  }
+
   /* Inject the storm SVG once. It's inert (CSS display:none) unless the
      active skin opts in via --storm-display (CyberStorm). Two bolts whose
      geometry + motion are skin tokens; ink is the theme's --title. */
@@ -182,7 +233,7 @@
     document.body.insertBefore(svg, document.body.firstChild);
   }
 
-  function init() { injectStorm(); buildMenu(); }
+  function init() { injectOcean(); injectStorm(); buildMenu(); }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
