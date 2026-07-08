@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 Personal static site (deets.solutions). Start with [README.md](README.md);
-deep dives in [docs/architecture.md](docs/architecture.md) and
+deep dives in [docs/architecture.md](docs/architecture.md),
+[docs/ui.md](docs/ui.md) (the appearance picker + interactive chrome), and
 [docs/data.md](docs/data.md).
 
 ## Working conventions

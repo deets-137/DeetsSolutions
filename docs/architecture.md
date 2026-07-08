@@ -33,8 +33,9 @@ If a rule needs a value that doesn't exist as a token, the fix is a new role
 in tier 2/3, not a literal in tier 4. `themes.css` and `skin.css` open with
 banners documenting every role.
 
-`js/controls.js` renders the ◑ settings menu, persists both choices in
-`localStorage` (`deets-theme` / `deets-skin`), and injects two inert
+`js/controls.js` renders the Vibe settings menu (its structure, state, and
+known constraints are documented in [ui.md](ui.md)), persists both choices
+in `localStorage` (`deets-theme` / `deets-skin`), and injects two inert
 decorative SVG layers that individual skins opt into via a display token:
 the **storm** (CyberStorm's lightning bolts) and the **ocean** (Ocean's
 three rolling wave trains — seamless sine-period `<pattern>` tiles, each an
@@ -43,10 +44,10 @@ In both cases the geometry lives in `controls.js`, the ink is a theme role,
 and the motion is skin tokens.
 
 Each page resolves both axes inline in `<head>`, before CSS paints, so
-there's no flash of the wrong look. A saved choice wins; otherwise the
-defaults are the **CyberStorm skin** and a theme following the OS
-light/dark preference (**Fairy** light / **Moonlight** dark). That default
-logic lives in two places on purpose — the pre-paint head script on every
+there's no flash of the wrong look. A saved choice wins; otherwise the theme
+follows the OS light/dark preference (**Fairy** light / **Moonlight** dark)
+and the skin defaults to **CyberStorm** on desktop, **Ocean** on mobile
+(≤ 41rem). That default logic lives in two places on purpose — the pre-paint head script on every
 page and the AXES table in `controls.js` — and they must be kept in sync.
 
 ## Page bar

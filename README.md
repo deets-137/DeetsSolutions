@@ -22,7 +22,7 @@ tab's count and latest entry.
 
 ## Appearance
 
-Every page has a two-axis appearance system, picked from the ◑ menu in the
+Every page has a two-axis appearance system, picked from the Vibe menu in the
 header and remembered per visitor:
 
 - **Theme** (color): Fairy, Glade, Sepia, Moonlight, Hornet, Viper
@@ -31,8 +31,9 @@ header and remembered per visitor:
 Any theme pairs with any skin — 30 combinations, driven entirely by CSS
 tokens. Nothing in the site's styles hardcodes a color or a geometry value.
 
-First visits (no saved choice) land on the CyberStorm skin, with the theme
-following the OS light/dark preference: Fairy in light, Moonlight in dark.
+First visits (no saved choice) follow the OS light/dark preference for the
+theme (Fairy in light, Moonlight in dark) and default the skin to CyberStorm
+on desktop, Ocean on mobile.
 
 ## Structure
 
