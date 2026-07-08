@@ -46,9 +46,12 @@
       }
       html { scrollbar-gutter: auto; }
       body { background: white; font-size: 10pt; }
-      body::before, .ocean, .storm, .site-header, .resume__actions { display: none !important; }
+      body::before, .ocean, .storm, .site-header, .page-bar__actions { display: none !important; }
       .site-main { max-width: none; padding: 0; }
       .resume { max-width: none; }
+      /* the bar and the sheet are screen furniture — flatten to paper */
+      .page-bar { background: none; border: none; box-shadow: none; padding: 0; margin-bottom: 0; }
+      .resume__sheet { background: none; border: none; box-shadow: none; padding: 0; }
       .resume__section { border-bottom-color: black; }
       .resume__contact a, .resume__org a { border-bottom: none; }
       .resume__entry { break-inside: avoid; margin-bottom: var(--space-4); }
@@ -69,18 +72,19 @@
     </header>
 
     <main class="site-main resume">
-      <header class="resume__head">
-        <h1 class="resume__name">Aditya Sundaram</h1>
-        <p class="resume__contact">
-          <a href="https://www.linkedin.com/in/aditya-sundaram/">linkedin.com/in/aditya-sundaram</a>
-          <span aria-hidden="true">·</span>
-          <a href="https://deets.solutions">deets.solutions</a>
-        </p>
-        <div class="resume__actions">
+      <header class="page-bar">
+        <h1 class="page-bar__title">Aditya Sundaram</h1>
+        <div class="page-bar__actions">
           <a class="home__cta" href="AdityaSundaram_Resume.pdf" download>Download PDF</a>
         </div>
       </header>
+      <p class="page-meta resume__contact">
+        <a href="https://www.linkedin.com/in/aditya-sundaram/">linkedin.com/in/aditya-sundaram</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://deets.solutions">deets.solutions</a>
+      </p>
 
+      <div class="resume__sheet">
       <section class="resume__block">
         <h2 class="resume__section">Summary</h2>
         <p class="resume__summary">
@@ -268,6 +272,7 @@
           </div>
         </div>
       </section>
+      </div>
     </main>
   </body>
 </html>

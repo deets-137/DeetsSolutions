@@ -349,6 +349,52 @@ body::before {
   padding: var(--space-6);
 }
 
+/* ── Page bar ───────────────────────────────────────────────────
+   The shared page header: title left, optional action pills right,
+   wearing the same panel material + geometry as the journal pages'
+   control bar (.sotd__bar), so every tab's title sits in the same
+   place in the same dress. Not sticky — pages with no controls to
+   pin don't pin. */
+.page-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.page-bar__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.35);
+  color: var(--title);
+  line-height: 1.1;
+  white-space: nowrap;
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+}
+.page-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* The dim line under the bar — counts on the journals, the contact
+   line on the resume, the tagline on home. */
+.page-meta {
+  margin: 0 0 var(--space-5);
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+}
+
 /* ============================================================
    Song of the Day — the card grid rendered by sotd/sotd.js from
    the DeetsOTD journal. Rules reference ONLY semantic tokens, so
@@ -917,24 +963,7 @@ body::before {
    Same token discipline as the SOTD cards: color comes from the
    theme, shape/type/motion from the skin.
    ============================================================ */
-.cool__head {
-  margin-bottom: var(--space-6);
-}
-.cool__title {
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: calc(var(--fs-title) * 1.35);
-  color: var(--title);
-  line-height: 1.1;
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
-}
-.cool__meta {
-  margin-top: var(--space-2);
-  color: var(--subtext);
-  font-size: var(--fs-nav);
-}
+/* The head is the shared .page-bar + .page-meta kit. */
 
 /* Section heading between groups of cards. */
 .cool__section {
@@ -1020,38 +1049,18 @@ body::before {
 .project__link:hover { border-bottom-color: var(--title); }
 
 /* ============================================================
-   Home — the hub canvas on /. A hero (name, one-liner, link row)
-   over three section cards that route the two audiences: the
-   portfolio + resume for recruiters, the journals for friends.
-   Same token discipline as everything above.
+   Home — the hub canvas on /. A page bar (name + Resume/GitHub/
+   LinkedIn pills) and a tagline over three section cards that
+   route the two audiences: the portfolio + resume for recruiters,
+   the journals for friends.
    ============================================================ */
-.home__hero {
-  padding: var(--space-6) 0;
-  max-width: 44rem;
-}
-.home__name {
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: calc(var(--fs-title) * 1.6);
-  color: var(--title);
-  line-height: 1.1;
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
-}
-.home__tag {
-  margin-top: var(--space-3);
-  color: var(--text);
-  font-size: 1.05rem;
-}
-.home__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-/* CTA pill — same species as the toolbar pill, sized up a touch.
-   The lead (Resume) fills with the surface; the soft ones stay open. */
+/* Tagline rides .page-meta for position; it's the intro sentence,
+   so it reads in full text ink rather than the dim meta ink. */
+.home__tag { color: var(--text); max-width: 44rem; }
+
+/* CTA pill — same species (and size) as the toolbar pills in the
+   journal bars. The lead (Resume / Download PDF) fills with the
+   surface; the soft ones stay open. */
 .home__cta {
   display: inline-flex;
   align-items: center;
@@ -1062,7 +1071,7 @@ body::before {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-1) var(--space-3);
   text-decoration: none;
   white-space: nowrap;
   transition: background var(--dur-fast) var(--ease-ui),
@@ -1079,7 +1088,6 @@ body::before {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-5);
-  margin-top: var(--space-5);
 }
 @media (min-width: 41rem) {
   .home__grid { grid-template-columns: 1fr 1fr; }
@@ -1121,25 +1129,13 @@ body::before {
 
 /* ============================================================
    Resume — /resume/, a document rather than a grid: the resume
-   content in the site's own type system, with a print sheet in
-   the page itself doubling as the PDF export layout.
+   content in the site's own type system, laid on a card "sheet"
+   so busy canvases (CyberStorm's grid, Glass's aurora) stay
+   behind a plate. A print sheet in the page itself doubles as
+   the PDF export layout.
    ============================================================ */
 .resume { max-width: 52rem; margin: 0 auto; }
-.resume__head { margin-bottom: var(--space-5); }
-.resume__name {
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: calc(var(--fs-title) * 1.35);
-  color: var(--title);
-  line-height: 1.1;
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
-}
 .resume__contact {
-  margin-top: var(--space-2);
-  color: var(--subtext);
-  font-size: var(--fs-nav);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -1151,9 +1147,22 @@ body::before {
   transition: border-color var(--dur-fast) var(--ease-ui);
 }
 .resume__contact a:hover { color: var(--title); border-bottom-color: var(--title); }
-.resume__actions { margin-top: var(--space-4); }
+
+/* The sheet — the resume body on the skin's card material. Vanilla's
+   card is flush with the canvas (invisible, by design); Desk gets
+   paper, Glass frost, CyberStorm a smoked plate over the grid. */
+.resume__sheet {
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  padding: var(--space-6);
+}
 
 .resume__block { margin-bottom: var(--space-6); }
+.resume__block:last-child { margin-bottom: 0; }
 .resume__section {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
