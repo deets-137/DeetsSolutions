@@ -1135,18 +1135,9 @@ body::before {
    the PDF export layout.
    ============================================================ */
 .resume { max-width: 52rem; margin: 0 auto; }
-.resume__contact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.resume__contact a {
-  color: var(--text);
-  text-decoration: none;
-  border-bottom: 1px solid var(--border);
-  transition: border-color var(--dur-fast) var(--ease-ui);
-}
-.resume__contact a:hover { color: var(--title); border-bottom-color: var(--title); }
+/* Contact line for the PDF only — the page's print sheet reveals it
+   (on screen the LinkedIn button lives in the page bar instead). */
+.resume__print-contact { display: none; }
 
 /* The sheet — the resume body on the skin's card material. Vanilla's
    card is flush with the canvas (invisible, by design); Desk gets
@@ -1176,29 +1167,30 @@ body::before {
 
 .resume__entry { margin-bottom: var(--space-5); }
 .resume__entry:last-child { margin-bottom: 0; }
+/* Row — mirrors the source PDF's two-line entry head: company +
+   location, then italic role + dates. The left text takes the slack
+   and WRAPS; the right column never drops below it (the row doesn't
+   wrap), so dates stay on the first line in every skin — including
+   the wide-set CyberStorm faces. */
 .resume__row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: var(--space-4);
-  flex-wrap: wrap;
 }
-.resume__role {
+.resume__row > :first-child { flex: 1 1 auto; min-width: 0; }
+.resume__row + .resume__row { margin-top: 2px; }
+.resume__org {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.3;
   color: var(--title);
 }
-.resume__note { font-weight: normal; color: var(--subtext); font-size: 0.85rem; }
-.resume__dates { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
-.resume__org { color: var(--text); font-size: 0.9rem; margin-top: 2px; }
-.resume__org a {
-  color: var(--text);
-  text-decoration: none;
-  border-bottom: 1px solid var(--border);
-}
-.resume__org a:hover { color: var(--title); border-bottom-color: var(--title); }
+.resume__role { font-style: italic; color: var(--text); font-size: 0.95rem; }
+.resume__loc,
+.resume__dates { flex: 0 0 auto; color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
+/* One company, several roles: each role + its bullets is a group. */
+.resume__role-group { margin-top: var(--space-3); }
 .resume__list {
   margin-top: var(--space-2);
   padding-left: 1.1rem;

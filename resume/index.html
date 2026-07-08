@@ -21,41 +21,49 @@
     </script>
     <link rel="stylesheet" href="../styles/main.css" />
     <script src="../js/controls.js" defer></script>
-    <!-- Print sheet — the PDF export layout. Deliberately theme-exempt:
-         paper is not a theme surface, so plain black-on-white literals are
-         fine HERE (and only here). The downloadable PDF is produced by
-         printing this page, so screen and PDF never drift apart. -->
+    <!-- Print sheet — the PDF export layout, matched to the source resume:
+         all-serif, uppercase centered name, tight single page. Deliberately
+         theme-exempt: paper is not a theme surface, so plain black-on-white
+         literals are fine HERE (and only here). The downloadable PDF is
+         produced by printing this page, so screen and PDF never drift. -->
     <style media="print">
-      @page { margin: 0.5in 0.6in; }
+      @page { margin: 0.4in 0.5in; }
       /* Collapse the two token axes to paper: every theme role resolves to
-         ink and the skin's type/motion is pinned, so the PDF is identical
-         no matter what theme × skin the visitor (or the export run) had. */
+         ink and the type is pinned to the source resume's serif, so the PDF
+         is identical no matter what theme × skin the visitor had. */
       :root {
         --canvas: white;
         --title: black;
         --text: black;
-        --subtext: #3d3d3d;
+        --subtext: #333333;
         --border: #8a8a8a;
         --font-title: "Liberation Serif", Georgia, "Times New Roman", serif;
-        --font-body: "Segoe UI", system-ui, Helvetica, Arial, sans-serif;
+        --font-body: "Liberation Serif", Georgia, "Times New Roman", serif;
         --title-underline: none;
         --hover-lift: none;
-        --space-5: 0.9rem;
-        --space-6: 1.1rem;
-        --lh-text: 1.4;
+        --space-3: 0.4rem;
+        --space-4: 0.55rem;
+        --space-5: 0.6rem;
+        --space-6: 0.75rem;
+        --lh-text: 1.25;
       }
-      html { scrollbar-gutter: auto; }
-      body { background: white; font-size: 10pt; }
-      body::before, .ocean, .storm, .site-header, .page-bar__actions { display: none !important; }
+      /* The page is sized in rem throughout, so the print ROOT size is the
+         one density knob: shrinking it scales type and spacing together
+         until the document lands on one page, like the source resume. */
+      html { font-size: 9pt; scrollbar-gutter: auto; }
+      body { background: white; }
+      body::before, .ocean, .storm, .site-header, .page-bar__actions, .page-meta { display: none !important; }
       .site-main { max-width: none; padding: 0; }
       .resume { max-width: none; }
-      /* the bar and the sheet are screen furniture — flatten to paper */
-      .page-bar { background: none; border: none; box-shadow: none; padding: 0; margin-bottom: 0; }
+      /* the bar and the sheet are screen furniture — flatten to paper,
+         with the name centered over the contact line like the source */
+      .page-bar { background: none; border: none; box-shadow: none; padding: 0; margin-bottom: 0; justify-content: center; }
+      .page-bar__title { font-size: 14pt; text-transform: uppercase; }
+      .resume__print-contact { display: block; text-align: center; font-size: 8.5pt; margin-bottom: 0.5rem; }
       .resume__sheet { background: none; border: none; box-shadow: none; padding: 0; }
-      .resume__section { border-bottom-color: black; }
-      .resume__contact a, .resume__org a { border-bottom: none; }
-      .resume__entry { break-inside: avoid; margin-bottom: var(--space-4); }
-      .resume__list { gap: 2px; }
+      .resume__section { border-bottom-color: black; text-transform: uppercase; font-size: 10pt; }
+      .resume__role-group { break-inside: avoid; }
+      .resume__list { gap: 1px; }
     </style>
   </head>
 
@@ -76,28 +84,44 @@
         <h1 class="page-bar__title">Aditya Sundaram</h1>
         <div class="page-bar__actions">
           <a class="home__cta" href="AdityaSundaram_Resume.pdf" download>Download PDF</a>
+          <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/">LinkedIn ↗</a>
         </div>
       </header>
-      <p class="page-meta resume__contact">
-        <a href="https://www.linkedin.com/in/aditya-sundaram/">linkedin.com/in/aditya-sundaram</a>
-        <span aria-hidden="true">·</span>
-        <a href="https://deets.solutions">deets.solutions</a>
-      </p>
+      <p class="page-meta">Resume - updated 7/8/2026</p>
+      <p class="resume__print-contact">linkedin.com/in/aditya-sundaram · deets.solutions</p>
 
       <div class="resume__sheet">
       <section class="resume__block">
         <h2 class="resume__section">Summary</h2>
         <p class="resume__summary">
           Technical Solutions Engineer with a track record of delivering
-          high-stakes software implementations on the hospital floor and in the
-          command center at go-lives for Epic at over 15 installs, while
-          providing critical support for 3 health systems as the primary
-          technical contact for the lab team — partnering with IT Directors and
-          CMIOs to resolve show-stopping escalations and implement cutting-edge
-          features. Internally led and scaled the Microbiology support team
-          from 3 to 9 members while driving product roadmap priorities by
-          translating clinical requirements into actionable feedback for R&amp;D.
+          high-stakes software implementations on the hospital floor and in
+          the command center at go-lives for Epic at over 15 installs while
+          also providing critical support for 3 health systems as the primary
+          technical contact for the lab team, partnering with IT Directors and
+          CMIOs to resolve show-stopping escalations and implement
+          cutting-edge features. Internally led and scaled the Microbiology
+          support team from 3 to 9 members while driving product roadmap
+          priorities by translating clinical requirements into actionable
+          feedback for R&amp;D.
         </p>
+      </section>
+
+      <section class="resume__block">
+        <h2 class="resume__section">Education</h2>
+        <article class="resume__entry">
+          <div class="resume__row">
+            <h3 class="resume__org">University of California, Los Angeles (UCLA)</h3>
+            <span class="resume__loc">Los Angeles, CA</span>
+          </div>
+          <div class="resume__row">
+            <p class="resume__role">B.S. Computational &amp; Systems Biology, Dynamical Modeling concentration</p>
+            <span class="resume__dates">June 2024</span>
+          </div>
+          <ul class="resume__list">
+            <li>GPA: 3.65/4.0</li>
+          </ul>
+        </article>
       </section>
 
       <section class="resume__block">
@@ -105,120 +129,119 @@
 
         <article class="resume__entry">
           <div class="resume__row">
-            <h3 class="resume__role">Technical Solutions Engineer, Beaker (Lab Information System)</h3>
-            <span class="resume__dates">Aug 2024 – Jun 2026</span>
+            <h3 class="resume__org">Epic Systems</h3>
+            <span class="resume__loc">Madison, WI</span>
           </div>
-          <p class="resume__org">Epic Systems — Madison, WI</p>
-          <ul class="resume__list">
-            <li>
-              Primary technical support for Beaker LIS customer teams at 3
-              health systems spanning ~25 hospitals and ~30 clinical labs:
-              Broward Health (FL), Contra Costa Health (CA, with public health
-              lab), and Essentia Health (MN/ND/WI).
-            </li>
-            <li>
-              Embedded as senior technical resource for Beaker at command
-              centers across 6 hospital go-lives; triaged incoming tickets
-              among analyst teams and resolved real-time escalations in lab and
-              command center settings, partnering with implementation teams on
-              high-priority issues.
-            </li>
-            <li>
-              Supported 11 go-lives on the lab floor assisting lab techs,
-              phlebotomists, and pathologists as they adopted new tools and
-              workflows; floated to emergency rooms and nursing stations to
-              assist with lab-adjacent workflows.
-            </li>
-            <li>
-              Presented issues, solutions, and feature proposals to CMIOs, IT
-              directors, and pathologists; responded to 4 after-hours
-              escalations alongside operations teams dealing with cloud
-              migration issues and broken third-party lab integrations.
-            </li>
-          </ul>
+
+          <div class="resume__role-group">
+            <div class="resume__row">
+              <p class="resume__role">Technical Solutions Engineer, Beaker (Lab Information System)</p>
+              <span class="resume__dates">August 2024 - June 2026</span>
+            </div>
+            <ul class="resume__list">
+              <li>
+                Primary technical support for Beaker LIS customer teams at 3
+                health systems spanning ~25 hospitals and ~30 clinical labs:
+                Broward Health (FL), Contra Costa Health (CA, with public
+                health lab), and Essentia Health (MN/ND/WI)
+              </li>
+              <li>
+                Embedded as senior technical resource for Beaker at command
+                centers across 6 hospital go-lives; Triaged incoming tickets
+                among analyst teams and resolved real-time escalations in lab
+                and command center settings, partnering with implementation
+                teams on high-priority issues
+              </li>
+              <li>
+                Supported 11 go-lives on the lab floor assisting lab techs,
+                phlebotomists, and pathologists as they adopted new tools and
+                workflows; Floated to emergency rooms and nursing stations to
+                assist with lab-adjacent workflows
+              </li>
+              <li>
+                Presented issues, solutions, and feature proposals to CMIOs,
+                IT directors, and pathologists; Responded to 4 after hours
+                escalations alongside operations teams dealing with cloud
+                migration issues and broken third party lab integrations
+              </li>
+            </ul>
+          </div>
+
+          <div class="resume__role-group">
+            <div class="resume__row">
+              <p class="resume__role">[Internal Role] Microbiology Area - Solutions Engineer Lead, Beaker</p>
+              <span class="resume__dates">August 2025 - June 2026</span>
+            </div>
+            <ul class="resume__list">
+              <li>
+                Rebuilt the Microbiology Technical Solutions team from 3 to 9
+                after taking ownership; Recruited internally, restructured the
+                support model, and kicked off development initiatives within
+                one of Beaker's 13 product areas
+              </li>
+              <li>
+                Drove reprioritization of molecular PCR testing on an
+                isolate-level for culture specimens and micro automation line
+                testing within the Microbiology roadmap by translating
+                customer pain points into actionable feedback for R&amp;D
+              </li>
+              <li>
+                Subject-matter expert for Microbiology assisting 3-5 customers
+                and implementation teams weekly; Resolved 2 show-stopping
+                Microbiology escalations this year that unblocked customer
+                go-lives
+              </li>
+              <li>
+                Worked with Third Party Integration team to drive Microbiology
+                partnership with Clinical Lab Standards Institute enabling
+                quicker and stronger implementations of microbiology for rural
+                healthcare
+              </li>
+              <li>
+                Utilized Claude Code to design a RAG-based system to dig
+                through Microbiology dev and documentation to better answer
+                emails, questions, and provide initial responses for a variety
+                of tasks
+              </li>
+            </ul>
+          </div>
         </article>
 
         <article class="resume__entry">
           <div class="resume__row">
-            <h3 class="resume__role">Microbiology Area — Solutions Engineer Lead, Beaker <span class="resume__note">(internal role)</span></h3>
-            <span class="resume__dates">Aug 2025 – Jun 2026</span>
+            <h3 class="resume__org">Matrix Capital Management</h3>
+            <span class="resume__loc">Boston, MA</span>
           </div>
-          <p class="resume__org">Epic Systems — Madison, WI</p>
-          <ul class="resume__list">
-            <li>
-              Rebuilt the Microbiology Technical Solutions team from 3 to 9
-              after taking ownership; recruited internally, restructured the
-              support model, and kicked off development initiatives within one
-              of Beaker's 13 product areas.
-            </li>
-            <li>
-              Drove reprioritization of molecular PCR testing on an
-              isolate-level for culture specimens and micro automation line
-              testing within the Microbiology roadmap by translating customer
-              pain points into actionable feedback for R&amp;D.
-            </li>
-            <li>
-              Subject-matter expert for Microbiology assisting 3–5 customers
-              and implementation teams weekly; resolved 2 show-stopping
-              Microbiology escalations this year that unblocked customer
-              go-lives.
-            </li>
-            <li>
-              Worked with the Third Party Integration team to drive a
-              Microbiology partnership with the Clinical Lab Standards
-              Institute, enabling quicker and stronger implementations of
-              microbiology for rural healthcare.
-            </li>
-            <li>
-              Utilized Claude Code to design a RAG-based system to dig through
-              Microbiology dev and documentation to better answer emails and
-              questions and provide initial responses for a variety of tasks.
-            </li>
-          </ul>
-        </article>
-
-        <article class="resume__entry">
           <div class="resume__row">
-            <h3 class="resume__role">Summer Analyst (Life Sciences)</h3>
-            <span class="resume__dates">Aug 2022 – Sep 2022</span>
+            <p class="resume__role">Summer Analyst (Life Sciences)</p>
+            <span class="resume__dates">August 2022 - September 2022</span>
           </div>
-          <p class="resume__org">Matrix Capital Management — Boston, MA</p>
           <ul class="resume__list">
             <li>
-              Summer internship at a ~$6B AUM hedge fund; conducted due
+              Summer internship at ~$6B AUM hedge fund; Conducted due
               diligence on proteomics companies through field researcher
-              interviews and financial modeling.
+              interviews and financial modeling
             </li>
           </ul>
         </article>
 
         <article class="resume__entry">
           <div class="resume__row">
-            <h3 class="resume__role">Teaching Fellow</h3>
-            <span class="resume__dates">Jun 2022 – Jul 2022</span>
+            <h3 class="resume__org">Breakthrough Silicon Valley</h3>
+            <span class="resume__loc">San Jose, CA</span>
           </div>
-          <p class="resume__org">Breakthrough Silicon Valley — San Jose, CA</p>
+          <div class="resume__row">
+            <p class="resume__role">Teaching Fellow</p>
+            <span class="resume__dates">June 2022 - July 2022</span>
+          </div>
           <ul class="resume__list">
             <li>
-              Taught 8th-grade math to ~40 students and led homeroom for ~20
+              Taught 8th grade math to ~40 students and led homeroom for ~20
               7th graders, supporting traditionally underrepresented students
-              on their path to post-secondary success.
+              on their path to post-secondary success and becoming the next
+              generation of empathetic leaders
             </li>
           </ul>
-        </article>
-      </section>
-
-      <section class="resume__block">
-        <h2 class="resume__section">Education</h2>
-        <article class="resume__entry">
-          <div class="resume__row">
-            <h3 class="resume__role">University of California, Los Angeles (UCLA)</h3>
-            <span class="resume__dates">Jun 2024</span>
-          </div>
-          <p class="resume__org">
-            B.S. Computational &amp; Systems Biology, Dynamical Modeling
-            concentration — GPA 3.65/4.0
-          </p>
         </article>
       </section>
 
@@ -226,15 +249,12 @@
         <h2 class="resume__section">Personal Projects</h2>
         <article class="resume__entry">
           <div class="resume__row">
-            <h3 class="resume__role">
-              Deets.Solutions — portfolio of native and web apps
-              <span class="resume__note">(built with Claude Code)</span>
-            </h3>
-            <span class="resume__dates">Apr 2026 – Present</span>
+            <h3 class="resume__org">Deets.Solutions</h3>
           </div>
-          <p class="resume__org">
-            <a href="/cool-stuff/">deets.solutions/cool-stuff</a>
-          </p>
+          <div class="resume__row">
+            <p class="resume__role">Website | Portfolio of Native and Web Applications [Built with Claude Code]</p>
+            <span class="resume__dates">April 2026 - Present</span>
+          </div>
           <ul class="resume__list">
             <li>
               Built a modular ecosystem of iOS and web apps using a custom
@@ -245,7 +265,7 @@
               Developed a Python tool-calling server for local LLM
               orchestration (Ollama) with a React front-end and integration
               with a Discord bot to read chats, moderate games, and act as a
-              remote controller for local dev.
+              remote controller for local dev
             </li>
           </ul>
         </article>
