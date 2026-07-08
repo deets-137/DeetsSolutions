@@ -16,6 +16,7 @@
     </script>
     <link rel="stylesheet" href="../styles/main.css" />
     <script src="../js/controls.js" defer></script>
+    <script src="./sotd.js" defer></script>
   </head>
 
   <body>
@@ -29,7 +30,16 @@
     </header>
 
     <main class="site-main">
-      <!-- Song of the Day — coming soon. -->
+      <!-- Song of the Day — a journal pulled from Discord by DeetsOTD.
+           sotd.js fetches songs.json and renders the grid below. -->
+      <section class="sotd">
+        <div class="sotd__bar">
+          <h1 class="sotd__title">Song of the Day</h1>
+          <div class="sotd-toolbar" data-sotd-toolbar aria-label="Sort and view"></div>
+        </div>
+        <p class="sotd__meta" data-sotd-meta></p>
+        <div class="sotd__grid" data-sotd-grid aria-live="polite"></div>
+      </section>
     </main>
   </body>
 </html>

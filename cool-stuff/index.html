@@ -29,7 +29,253 @@
     </header>
 
     <main class="site-main">
-      <!-- Cool Stuff I Did — coming soon. -->
+      <header class="cool__head">
+        <h1 class="cool__title">Cool Stuff I Did</h1>
+        <p class="cool__meta">
+          Apps, tools, and experiments — mostly living in private repos, all built for fun.
+        </p>
+      </header>
+
+      <h2 class="cool__section">Apps &amp; experiences</h2>
+      <div class="cool__grid">
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsMusic for Windows</h3>
+            <span class="project__status">active</span>
+          </div>
+          <p class="project__pitch">A full Apple Music player for Windows 11.</p>
+          <p class="project__desc">
+            Frameless custom chrome, full DRM playback with a live-synced gapless queue,
+            Apple Music sign-in with a local SQLite library cache, and a deeply themeable
+            UI — 6 themes &times; 5 skins driven by a token system.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Tauri v2</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">TypeScript</span>
+            <span class="project__chip">WebView2</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsLife</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">A walkable 3D museum of the music of my life.</p>
+          <p class="project__desc">
+            An interactive art project organized by era — jukeboxes and vinyl records are
+            the interaction hubs, with photos and media layering in over time. Ships as an
+            interactive build plus a recorded cinematic walkthrough.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Unity / URP</span>
+            <span class="project__chip">C#</span>
+            <span class="project__chip">Blender</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsJack</h3>
+            <span class="project__status">concept</span>
+          </div>
+          <p class="project__pitch">A blackjack trainer disguised as a blackjack game.</p>
+          <p class="project__desc">
+            Play full hands, then flip the trainer card to see the live math — dealer bust
+            odds, your bust odds, and the EV of every move. It scores decision quality, not
+            luck: the +EV move is &ldquo;right&rdquo; even when the hand loses.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Swift 6</span>
+            <span class="project__chip">iOS</span>
+            <span class="project__chip">probability engine</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsBoard</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">A spatial workspace for designing board games.</p>
+          <p class="project__desc">
+            Design cards, units, pieces, tiles, and rules with friends on a 3&times;3
+            spatial canvas. Native macOS on Core Data + CloudKit; the successor to
+            Henhouse, my earlier web take on the same idea.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Swift</span>
+            <span class="project__chip">macOS</span>
+            <span class="project__chip">CloudKit</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsTrips</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">Trip planning where friends follow along.</p>
+          <p class="project__desc">
+            One organizer plans the trip; everyone else installs the app and rides
+            shotgun. SwiftUI + SwiftData, with CloudKit sync on the roadmap.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">SwiftUI</span>
+            <span class="project__chip">SwiftData</span>
+            <span class="project__chip">iOS</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">Rogers</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">A student-forward Learning Management System.</p>
+          <p class="project__desc">
+            An LMS that brings color and joy to education software — modules under one
+            umbrella so teachers get holistic views of students, counselors see the whole
+            student journey, and schools set up robust systems in one easy go. Full-stack
+            build with a front end, back end, and Docker deployment.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">TypeScript</span>
+            <span class="project__chip">full-stack</span>
+            <span class="project__chip">Docker</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsHealth</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">A fresh take on personal health-data visualization.</p>
+          <p class="project__desc">
+            Pulls from HealthKit and the Oura API to do analytics fully on-device —
+            sleep and cardio first. Built on the same design system as the rest of the
+            Deets apps.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">SwiftUI</span>
+            <span class="project__chip">HealthKit</span>
+            <span class="project__chip">Oura</span>
+          </div>
+        </article>
+      </div>
+
+      <h2 class="cool__section">Tools &amp; systems</h2>
+      <div class="cool__grid">
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsKit</h3>
+            <span class="project__status">active</span>
+          </div>
+          <p class="project__pitch">The design system behind every Deets app.</p>
+          <p class="project__desc">
+            A Swift package holding the shared visual language — 8 color themes and 4
+            skins (glass, comic, retro, sunshine), semantic typography, and reusable
+            glass components — so every app looks and feels identical without
+            copy-pasting a theme layer.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Swift package</span>
+            <span class="project__chip">iOS / macOS</span>
+            <span class="project__chip">design system</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">Harness</h3>
+            <span class="project__status">active</span>
+          </div>
+          <p class="project__pitch">A local agent harness for Ollama-served models.</p>
+          <p class="project__desc">
+            FastAPI + WebSocket streaming into a browser UI built as a self-arranging
+            bento panel system that the model itself can rearrange, with tool packs
+            for chess, D&amp;D, blog editing, and coding — plus a Discord bridge.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Python</span>
+            <span class="project__chip">FastAPI</span>
+            <span class="project__chip">local LLMs</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsEdu</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">Modeling how US education is actually doing.</p>
+          <p class="project__desc">
+            A data pipeline over the Stanford Education Data Archive and NCES data —
+            district-level test scores as queryable timeseries, built with DuckDB and
+            shipped as portable SQLite, headed toward public visualizations.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Python</span>
+            <span class="project__chip">DuckDB</span>
+            <span class="project__chip">~1.4 GB of data</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsOTD</h3>
+            <span class="project__status">built</span>
+          </div>
+          <p class="project__pitch">Every link ever posted in a Discord channel, exported.</p>
+          <p class="project__desc">
+            Reads the hyperlinks out of a channel and writes them to deduped, grouped
+            Markdown and CSV — as a slash-command bot, a CLI, or a local web trigger.
+            It&rsquo;s where this site&rsquo;s Song of the Day journal comes from.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Python</span>
+            <span class="project__chip">Discord bot</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">Oura sleep-lag viz</h3>
+            <span class="project__status">built</span>
+          </div>
+          <p class="project__pitch">Interactive sleep &amp; stress cycles from my Oura Ring.</p>
+          <p class="project__desc">
+            A visualization exploring the lag between stress and sleep quality using my
+            own ring data. The one project on this page with a public repo.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">data viz</span>
+            <span class="project__chip">Oura</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="https://github.com/deets-137/oura-sleep-lag-viz">GitHub ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">Deets.Solutions</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">This site.</p>
+          <p class="project__desc">
+            Hand-rolled HTML/CSS with the same two-axis theme &times; skin token system
+            as the Deets apps — every page rides a color theme and a shape/type/motion
+            skin, switchable from the header.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">HTML/CSS</span>
+            <span class="project__chip">no framework</span>
+          </div>
+        </article>
+      </div>
     </main>
   </body>
 </html>

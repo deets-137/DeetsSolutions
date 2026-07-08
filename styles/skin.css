@@ -185,9 +185,10 @@
   --radius-panel:   16px;
   --radius-card:    18px;
 
-  /* frosted menus — translucent theme surface + a real backdrop blur;
-     milkier than a card (65%) since menus carry dense text */
-  --menu-surface:  color-mix(in srgb, var(--surface) 65%, transparent);
+  /* frosted menus — translucent theme surface + a real backdrop blur. Kept
+     fairly opaque (85%) since menus carry dense text and must stay readable
+     over the busy content behind them. */
+  --menu-surface:  color-mix(in srgb, var(--surface) 85%, transparent);
   --menu-backdrop: blur(16px) saturate(1.4);
   --shadow-panel:  0 8px 32px rgba(0, 0, 0, 0.18);
 
