@@ -16,6 +16,8 @@ tab's count and latest entry.
 - **Movies** — my Letterboxd film log: posters, star ratings, likes,
   rewatches, and reviews, with the same controls. Rewatches can be grouped
   per film or fanned out one card per sitting.
+- **DeetsRadio** — shared listening rooms (in progress; see
+  [docs/radio.md](docs/radio.md)).
 - **League** — live League of Legends stats for me and friends, served by
   the [DeetsLeague](../DeetsLeague) Cloudflare Worker (Riot API proxy +
   match database). The only tab that calls an API at runtime; champion and

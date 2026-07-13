@@ -20,6 +20,9 @@
   var MASTERY = document.querySelector("[data-lol-mastery]");
   var MATCHES = document.querySelector("[data-lol-matches]");
   var MATCHES_TITLE = document.querySelector("[data-lol-matches-title]");
+  var STATS_PANE = document.querySelector("[data-lol-stats-pane]");
+  var STATS_TITLE = document.querySelector("[data-lol-stats-title]");
+  var MATCHES_PANE = document.querySelector("[data-lol-matches-pane]");
   var WHO = document.querySelector("[data-lol-who]");
   var WHO_POP = document.querySelector("[data-lol-who-pop]");
   var TOOLBAR = document.querySelector("[data-lol-toolbar]");
@@ -111,6 +114,7 @@
   function loadState() {
     var s = {
       mode: "all", view: "champs", player: "D33TS#NA1", recents: [],
+      layout: "single",           // "split" = the two tail panes side by side
       champFilter: null,          // championId — narrows the whole page
       champSort: { key: "games", dir: "desc" },
       augSort: { key: "games", dir: "desc" }
@@ -119,6 +123,7 @@
       var saved = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
       if (saved.mode) s.mode = saved.mode;
       if (saved.view) s.view = saved.view;
+      if (saved.layout === "split") s.layout = "split";
       if (saved.player) s.player = saved.player;
       if (saved.recents) s.recents = saved.recents.slice(0, 6);
       if (saved.champFilter) s.champFilter = saved.champFilter;
@@ -129,11 +134,14 @@
   }
   function saveState() { try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {} }
 
-  var MODES = [
-    { key: "all", label: "All queues" }, { key: "CHERRY", label: "Arena" },
+  var MODES = [   // `short` is what the pill's value readout wears
+    { key: "all", label: "All queues", short: "All" }, { key: "CHERRY", label: "Arena" },
     { key: "ARAM", label: "ARAM" }, { key: "CLASSIC", label: "Rift" }
   ];
-  var VIEWS = [{ key: "champs", label: "Champions" }, { key: "augments", label: "Augments" }];
+  var VIEWS = [
+    { key: "champs", label: "Champions" }, { key: "augments", label: "Augments" },
+    { key: "matches", label: "Matches" }   // match list leads, stats board below
+  ];
 
   // ── Formatting ────────────────────────────────────────────────
   function kFmt(n) { return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n); }
@@ -199,22 +207,42 @@
     b.addEventListener("click", onPick);
     return b;
   }
-  function radioPill(label, options, getKey, onPick) {
-    var pop;
+  function radioPill(label, options, getKey, onPick, showValue, buildRail) {
+    var pop, val;
     function mark() {
       pop.querySelectorAll(".tb-pop__opt").forEach(function (b) {
         var on = b.dataset.key === getKey();
         b.classList.toggle("is-active", on); b.setAttribute("aria-checked", String(on));
       });
+      if (val) {
+        var cur = null;
+        options.forEach(function (o) { if (o.key === getKey()) cur = o; });
+        val.textContent = cur ? (cur.short || cur.label) : "";
+      }
     }
-    makePill(label, function (p) {
-      pop = p;
+    var entry = makePill(label, function (p) {
+      // With a rail, the pop splits into option stack | vertical hairline
+      // | icon rail; the opts live in the main stack either way.
+      var host = p;
+      if (buildRail) {
+        p.classList.add("tb-pop--cols");
+        host = el("div", "tb-pop__main");
+        p.appendChild(host);
+      }
+      pop = host;
       options.forEach(function (o) {
-        p.appendChild(optButton(o.label, o.key, o.key === getKey(), function () {
+        host.appendChild(optButton(o.label, o.key, o.key === getKey(), function () {
           onPick(o.key); mark();
         }));
       });
+      if (buildRail) p.appendChild(buildRail());
     });
+    if (showValue) {   // "Queue | Arena ▾" — the pill wears its pick
+      val = el("span", "tb-pill__value");
+      entry.pill.insertBefore(val, entry.pill.querySelector(".tb-pill__caret"));
+      mark();
+    }
+    return { mark: mark };   // so state set outside a click can re-sync the pill
   }
 
   // ── Current player + fetch pipeline ───────────────────────────
@@ -241,7 +269,11 @@
         state.recents = state.recents.slice(0, 6);
         saveState();
         renderProfile();
-        return Promise.all([ddReady, refreshStats(), refreshMatches()]);
+        // Matches land first so autoQueue can steer the mode the stats
+        // are fetched for; ddReady rides along with the stats leg.
+        return refreshMatches().then(autoQueue).then(function () {
+          return Promise.all([ddReady, refreshStats()]);
+        });
       })
       .then(function () { renderAll(); pollBudget(); })
       .catch(function (e) {
@@ -249,6 +281,23 @@
         else if (e.status === 429) setMeta("Riot's rate limit is breathing hard — try again in a minute.");
         else setMeta("Couldn't reach the stats service. Try again in a moment.");
       });
+  }
+
+  // Auto-pick the Queue filter from what the player actually plays:
+  // whatever mode dominates their last 3 games (ties go to the newest).
+  // Modes the pill doesn't list (URF, Nexus Blitz…) fall back to All
+  // queues. Runs on every player load; a manual pick still sticks for
+  // the rest of the visit.
+  function autoQueue() {
+    var tally = {}, best = null;
+    CUR.matches.slice(0, 3).forEach(function (m) {
+      tally[m.gameMode] = (tally[m.gameMode] || 0) + 1;
+      if (best === null || tally[m.gameMode] > tally[best]) best = m.gameMode;
+    });
+    if (best === null) return;   // nothing on record yet — leave the pill be
+    state.mode = MODES.some(function (o) { return o.key === best; }) ? best : "all";
+    saveState();
+    queuePill.mark();
   }
 
   function modeQuery() { return state.mode === "all" ? "" : "?mode=" + state.mode; }
@@ -270,6 +319,19 @@
     renderMastery();
     renderStats();
     renderMatches();
+  }
+
+  // One rule for both layouts: the selected view's pane leads. Single
+  // (block flow) that means it sits on top; split (the grid below 41rem
+  // never applies) it takes the left half, its partner the right —
+  // matches pair with the stats board, champs/augments pair with the
+  // match list. renderStats keeps painting whichever table View names.
+  function applyViewOrder() {
+    var sec = STATS_PANE.parentNode;
+    sec.classList.toggle("lol--split", state.layout === "split");
+    STATS_TITLE.textContent = state.view === "augments" ? "Augments" : "Champions";
+    if (state.view === "matches") sec.insertBefore(MATCHES_PANE, STATS_PANE);
+    else sec.insertBefore(STATS_PANE, MATCHES_PANE);
   }
 
   // ── Profile line: icon, level, rank, crawl progress ───────────
@@ -352,7 +414,7 @@
     { key: "name",  label: "Champion",  type: "str", dir: "asc",  get: function (s) { return champ(s.championId).name; } },
     { key: "games", label: "Games",     type: "num", dir: "desc", get: function (s) { return s.games; } },
     { key: "win",   label: "Win",       type: "num", dir: "desc", get: function (s) { return s.wins / s.games; } },
-    { key: "place", label: "Avg place", type: "num", dir: "asc",  get: function (s) { return s.avgPlacement; } },
+    { key: "place", label: "Avg place (Arena)", type: "num", dir: "asc", get: function (s) { return s.avgPlacement; } },
     { key: "kda",   label: "KDA",       type: "num", dir: "desc", get: function (s) { return s.deaths ? (s.kills + s.assists) / s.deaths : 1e9; } },
     { key: "gpm",   label: "Gold/m",    type: "num", dir: "desc", get: function (s) { return s.goldPerMin; } },
     { key: "dpm",   label: "Dmg/m",     type: "num", dir: "desc", get: function (s) { return s.damagePerMin; } }
@@ -428,7 +490,11 @@
       return;
     }
     STATS.appendChild(buildTable(CHAMP_COLS, state.champSort, rows, function (s) {
-      var tr = el("tr");
+      // Rows toggle the same champion filter as the mastery chips.
+      var on = state.champFilter === s.championId;
+      var tr = el("tr", "is-champ" + (on ? " is-active" : ""));
+      tr.title = on ? "Show all champions" : "Show only " + champ(s.championId).name;
+      tr.addEventListener("click", function () { setChampFilter(s.championId); });
       var name = td(tr, null, "lol-table__champ");
       name.appendChild(champImg(s.championId, 28));
       name.appendChild(el("span", null, champ(s.championId).name));
@@ -552,6 +618,7 @@
       // Arena reads as a bracket: top half of the lobby on row one, bottom
       // half on row two (#1–3 / #4–6 for trios, #1–4 / #5–8 for duos).
       if (info.gameMode === "CHERRY") {
+        board.classList.add("lol-board--arena");   // CSS drops the dmg column
         board.style.gridTemplateColumns =
           "repeat(" + Math.ceil(keys.length / 2) + ", minmax(0, 1fr))";
       }
@@ -568,8 +635,8 @@
           var line = el("div", "lol-board__player");
           line.appendChild(champImg(p.championId, 22));
           line.appendChild(el("span", "lol-board__name", p.riotIdGameName || p.summonerName || "—"));
-          line.appendChild(el("span", "lol-board__kda", p.kills + "/" + p.deaths + "/" + p.assists));
           line.appendChild(el("span", "lol-board__dmg", kFmt(p.totalDamageDealtToChampions) + " dmg"));
+          line.appendChild(el("span", "lol-board__kda", p.kills + "/" + p.deaths + "/" + p.assists));
           section.appendChild(line);
         });
         board.appendChild(section);
@@ -649,18 +716,70 @@
     TOOLBAR.appendChild(BUDGET_EL);
   }
 
+  // ── Layout rail: the View popover's second column ─────────────
+  // Two icons behind a vertical hairline — a square (one panel, as
+  // ever) and a divided square (split panes). Hidden on mobile by CSS
+  // (.lol-layout-rail), where the split grid never applies either.
+  function layoutIcon(kind) {
+    var NS = "http://www.w3.org/2000/svg";
+    function shape(tag, attrs) {
+      var n = document.createElementNS(NS, tag);
+      Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+      return n;
+    }
+    var svg = shape("svg", { viewBox: "0 0 14 14", width: "14", height: "14", "aria-hidden": "true" });
+    svg.appendChild(shape("rect", {
+      x: "1.5", y: "1.5", width: "11", height: "11", rx: "1.5",
+      fill: "none", stroke: "currentColor", "stroke-width": "1.5"
+    }));
+    if (kind === "split") svg.appendChild(shape("line", {
+      x1: "7", y1: "1.5", x2: "7", y2: "12.5",
+      stroke: "currentColor", "stroke-width": "1.5"
+    }));
+    return svg;
+  }
+  function layoutRail() {
+    var rail = el("div", "tb-pop__rail lol-layout-rail");
+    var icons = [];
+    function markIcons() {
+      icons.forEach(function (b) {
+        var on = b.dataset.layout === state.layout;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
+    }
+    [["single", "One panel"], ["split", "Split panels"]].forEach(function (d) {
+      var b = el("button", "tb-pop__icon");
+      b.type = "button";
+      b.dataset.layout = d[0];
+      b.title = d[1];
+      b.setAttribute("aria-label", d[1]);
+      b.appendChild(layoutIcon(d[0]));
+      b.addEventListener("click", function () {
+        state.layout = d[0]; saveState();
+        markIcons(); applyViewOrder();
+      });
+      icons.push(b);
+      rail.appendChild(b);
+    });
+    markIcons();
+    return rail;
+  }
+
   // ── Boot ──────────────────────────────────────────────────────
-  radioPill("Queue", MODES, function () { return state.mode; }, function (key) {
+  var queuePill = radioPill("Queue", MODES, function () { return state.mode; }, function (key) {
     state.mode = key; saveState();
     if (!CUR) return;
     refreshStats().then(function () { renderStats(); renderMatches(); });
     renderMatches();
-  });
+  }, true);
   radioPill("View", VIEWS, function () { return state.view; }, function (key) {
     state.view = key; saveState();
+    applyViewOrder();
     if (CUR) renderStats();
-  });
+  }, true, layoutRail);
   buildRefresh();
+  applyViewOrder();   // honor a persisted view/layout before data lands
 
   setMeta("Loading…");
   ddReady.then(function () { loadPlayer(state.player); });

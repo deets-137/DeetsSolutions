@@ -323,27 +323,32 @@
         var on = b.dataset.key === state.sortKey;
         b.classList.toggle("is-active", on); b.setAttribute("aria-checked", String(on));
       });
-      pop.querySelectorAll(".tb-pop__dir").forEach(function (b) {
+      pop.querySelectorAll(".tb-pop__icon").forEach(function (b) {
         b.classList.toggle("is-active", b.dataset.dir === state.sortDir);
       });
     }
     makePill("Sort", function (p) {
       pop = p;
+      // Options stack | vertical hairline | direction rail (↑ / ↓).
+      p.classList.add("tb-pop--cols");
+      var main = el("div", "tb-pop__main");
       SORTS.forEach(function (spec) {
-        p.appendChild(optButton(spec.label, spec.key, spec.key === state.sortKey, function () {
+        main.appendChild(optButton(spec.label, spec.key, spec.key === state.sortKey, function () {
           if (state.sortKey !== spec.key) { state.sortKey = spec.key; state.sortDir = spec.dir; }
           saveState(); mark(); refresh();
         }));
       });
-      var dirs = el("div", "tb-pop__dirs");
-      [["asc", "Asc ↑"], ["desc", "Desc ↓"]].forEach(function (d) {
-        var b = el("button", "tb-pop__dir", d[1]);
+      p.appendChild(main);
+      var rail = el("div", "tb-pop__rail");
+      [["asc", "↑", "Ascending"], ["desc", "↓", "Descending"]].forEach(function (d) {
+        var b = el("button", "tb-pop__icon", d[1]);
         b.type = "button"; b.dataset.dir = d[0];
+        b.title = d[2]; b.setAttribute("aria-label", d[2]);
         if (d[0] === state.sortDir) b.classList.add("is-active");
         b.addEventListener("click", function () { state.sortDir = d[0]; saveState(); mark(); refresh(); });
-        dirs.appendChild(b);
+        rail.appendChild(b);
       });
-      p.appendChild(dirs);
+      p.appendChild(rail);
     });
   }
 
@@ -366,7 +371,8 @@
         }));
       });
       // Rewatches: one card per film vs one per diary sitting. Divided off
-      // at the foot, same shape as the Sort popover's direction toggle.
+      // at the foot (worded toggles stay a footer; only icon toggles like
+      // the Sort popover's ↑/↓ moved to the vertical rail).
       var dirs = el("div", "tb-pop__dirs");
       [["grouped", "Grouped"], ["all", "Every watch"]].forEach(function (g) {
         var b = el("button", "tb-pop__dir", g[1]);

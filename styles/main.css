@@ -878,6 +878,13 @@ body::before {
 .tb-pill:hover { background: var(--surface-hover); color: var(--title); }
 .tb-pill.is-active { color: var(--title); border-color: var(--title); }
 .tb-pill__caret { color: var(--subtext); font-size: 0.7em; }
+/* Optional current-value readout inside a pill — "Queue | Arena ▾".
+   The divider is the value's left hairline (League's Queue pill). */
+.tb-pill__value {
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border);
+  color: var(--title);
+}
 .tb-pill[aria-expanded="true"] { color: var(--title); border-color: var(--title); }
 .tb-pill[aria-expanded="true"] .tb-pill__caret { color: var(--title); }
 
@@ -916,6 +923,42 @@ body::before {
 .tb-pop__opt:hover { background: var(--surface-hover); }
 .tb-pop__opt.is-active { color: var(--title); }
 .tb-pop__opt.is-active::after { content: "•"; color: var(--title); }
+
+/* Two-column popover: the option stack, a vertical hairline, then a slim
+   rail of icon toggles (the journals' sort-direction arrows, League's
+   single/split layout squares). */
+.tb-pop--cols { display: flex; align-items: stretch; }
+.tb-pop__main { flex: 1 1 auto; min-width: 0; }
+.tb-pop__rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-left: var(--space-1);
+  padding-left: var(--space-1);
+  border-left: 1px solid var(--border);
+}
+.tb-pop__icon {
+  display: grid;
+  place-items: center;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  padding: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.tb-pop__icon:hover { background: var(--surface-hover); color: var(--title); }
+.tb-pop__icon.is-active {
+  background: var(--surface-hover);
+  color: var(--title);
+  border-color: var(--title);
+}
 
 /* Sort direction toggle, divided off at the foot of the Sort popover. */
 .tb-pop__dirs {
@@ -1689,9 +1732,19 @@ body::before {
   white-space: nowrap;
 }
 .lol-table .is-num { text-align: right; font-variant-numeric: tabular-nums; }
-.lol-table__champ { display: flex; align-items: center; gap: var(--space-2); color: var(--title); }
+/* The name cell stays a real table-cell — display:flex here knocks the
+   td out of table layout and its row hairline lands at content height,
+   offset from the rest of the row's. Inline alignment instead. */
+.lol-table__champ { color: var(--title); }
+.lol-table__champ > * { vertical-align: middle; }
+.lol-table__champ > .lol-icon,
+.lol-table__champ > .lol-aug__icon { margin-right: var(--space-2); }
 .lol-table tbody tr:hover { background: var(--surface-hover); }
 .lol-table tbody tr:last-child td { border-bottom: none; }
+/* Champion rows toggle the champ filter, same as the mastery chips;
+   the filtered-to row keeps the hover tint so the narrow state reads. */
+.lol-table tbody tr.is-champ { cursor: pointer; }
+.lol-table tbody tr.is-active { background: var(--surface-hover); }
 .lol-aug__icon { border-radius: var(--radius-control); }
 /* Sortable headers — each th's text is a button; the active column wears
    the title color plus a direction caret. */
@@ -1716,6 +1769,36 @@ body::before {
   font-size: calc(var(--fs-title) * 0.9);
   color: var(--title);
   margin-bottom: var(--space-3);
+}
+
+/* ── Split layout ────────────────────────────────────────────────
+   The View popover's layout rail can set the two tail panes (stats
+   board, match list) side by side; DOM order decides the halves, so
+   the selected view's pane — moved first by applyViewOrder — takes
+   the left. Desktop-only: below the site breakpoint the rail is
+   hidden and the panes just stack, so a persisted split is inert.
+   The stats pane's heading only shows in split, mirroring "Matches". */
+.lol-pane { min-width: 0; }
+.lol-h2--pane { display: none; }
+@media (min-width: 41rem) {
+  .lol--split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--space-4);
+    align-items: start;
+  }
+  .lol--split > :not(.lol-pane) { grid-column: 1 / -1; }
+  .lol--split .lol-h2--pane { display: block; }
+  .lol--split .lol-board__dmg { display: none; }
+  /* The champion table's 7 nowrap columns need ~540px — more than a
+     half pane holds — so split drops the per-minute pair (columns 6+,
+     Gold/m and Dmg/m) instead of growing a scrollbar. The augment
+     table only has 4 columns, so this never touches it. */
+  .lol--split .lol-table th:nth-child(n + 6),
+  .lol--split .lol-table td:nth-child(n + 6) { display: none; }
+}
+@media (max-width: 41rem) {
+  .lol-layout-rail { display: none; }
 }
 .lol-matches { display: grid; gap: var(--space-2); margin-bottom: var(--space-6); }
 .lol-match {
@@ -1795,6 +1878,11 @@ body::before {
 .lol-board__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lol-board__kda { color: var(--text); font-variant-numeric: tabular-nums; }
 .lol-board__dmg { color: var(--subtext); font-size: 0.75rem; }
+/* Damage is the first stat to go when width runs out: Arena boards
+   (many players in bracket columns) drop it always; split layout drops
+   it everywhere (half-width panes) — that rule lives with the split
+   grid's media block so a stacked mobile "split" keeps its numbers. */
+.lol-board--arena .lol-board__dmg { display: none; }
 
 /* ============================================================
    DEETSRADIO (radio/) — shared listening rooms (docs/radio.md).

@@ -120,7 +120,7 @@ Glass's `blur(16px) saturate(1.4)`). Shape comes from `--radius-panel` /
 
 ## The mobile nav menu
 
-Below the 41rem breakpoint the four inline nav links plus the Vibe button
+Below the 41rem breakpoint the six inline nav links plus the Vibe button
 don't fit a phone, so the nav collapses: the inline `.site-nav` is hidden and
 the **"Deets" wordmark itself becomes the trigger** for a `.nav-menu`
 dropdown of every destination (Home + the page's links, with a `▾` caret).

@@ -214,9 +214,14 @@ layout purely in CSS:
 
 The control bar is built from "pills" (`makePill`) that each anchor one
 popover: option lists (`optButton`, radio semantics), facet checkbox groups
-(`facetGroup`, with optional sift box), the AND/OR combine footer, and the
-search box. Opening one closes another; Escape closes and refocuses;
-outside-click closes. State persists per page in `localStorage`.
+(`facetGroup`, with optional sift box), worded toggle footers (the AND/OR
+combine, Movies' Grouped / Every watch), icon rails (`.tb-pop__rail` — a
+vertical hairline column of icon toggles: the Sort popovers' ↑/↓
+direction arrows, League's single/split layout squares), and the search
+box. Opening one closes another; Escape closes and refocuses;
+outside-click closes. State persists per page in `localStorage`. A pill
+can also wear its current pick inline ("Queue | Arena ▾",
+`.tb-pill__value`).
 
 **Deliberate duplication:** this kit is copy-pasted between `sotd.js`,
 `movies.js`, `league.js`, and `radio/radio.js` (pills + popover open/close;

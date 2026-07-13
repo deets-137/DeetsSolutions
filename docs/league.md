@@ -136,8 +136,17 @@ all 30 theme×skin combos.
   in the title tokens (dashed hem = "editable") that flexes into all the
   width the pills don't take. Its popover lists recent lookups +
   everyone on record (`/players`). Right side: Queue pill (All / Arena /
-  ARAM / Rift, via `game_mode`), View pill (Champions / Augments),
-  Refresh pill, and the budget readout behind a hairline divider.
+  ARAM / Rift, via `game_mode` — auto-set on each player load to the
+  mode dominating their last 3 games, ties to the newest; manual picks
+  stick for the rest of the visit), View pill (Champions / Augments /
+  Matches — the selected view's pane leads the page), Refresh pill, and
+  the budget readout behind a hairline divider. Both pills wear their
+  pick: "Queue | Arena ▾". The View popover also carries a **layout
+  rail** (vertical hairline, square vs divided-square icons): split
+  puts the two tail panes side by side, selected pane left, matches
+  paired with whichever table View names (champs/augments paired with
+  the match list). Desktop-only — on mobile the rail is hidden and a
+  persisted split is inert (the panes just stack).
 - **Player head**: profile card (icon, level chip, rank line or
   "Unranked", crawl progress) left; **top-8 mastery grid (2×4,
   right-aligned)** right. Each mastery chip is a toggle that narrows the
@@ -146,7 +155,10 @@ all 30 theme×skin combos.
 - **Stats panel**: champion/augment tables sit on the resume sheet's card
   material so they read over every skin. **Column headers click to
   sort** (sensible default direction per column, click again to flip,
-  persisted per table; missing values sink).
+  persisted per table; missing values sink). **Champion rows click to
+  toggle the champ filter**, same as the mastery chips. In split
+  layout the champion table drops its per-minute columns (Gold/m,
+  Dmg/m) — the 7-column minimum outgrows a half pane.
 - **Matches**: one row per game — champ, queue, K/D/A/cs/damage, result
   badge (`W`/`L`, or `#place` in Arena, colored by Riot's win flag via
   `--go`/`--stop`), duration and age. Click toggles the full scoreboard

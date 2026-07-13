@@ -37,8 +37,8 @@
       <nav class="site-nav" aria-label="Primary">
         <a href="/sotd/">SOTD</a>
         <a href="/movies/">Movies</a>
-        <a href="/league/" aria-current="page">League</a>
         <a href="/radio/">DeetsRadio</a>
+        <a href="/league/" aria-current="page">League</a>
         <a href="/cool-stuff/">Cool Stuff I Did</a>
         <a href="/resume/">Resume</a>
       </nav>
@@ -68,9 +68,18 @@
           <div class="lol-profile" data-lol-profile hidden></div>
           <div class="lol-mastery" data-lol-mastery hidden></div>
         </div>
-        <div class="lol-stats" data-lol-stats aria-live="polite"></div>
-        <h2 class="lol-h2" data-lol-matches-title hidden>Matches</h2>
-        <div class="lol-matches" data-lol-matches></div>
+        <!-- The two tail panes. View picks which table the stats pane
+             paints and which pane leads; the View popover's layout rail
+             can set them side by side (split), selected pane left. The
+             stats pane's heading only shows in split, for symmetry. -->
+        <div class="lol-pane" data-lol-stats-pane>
+          <h2 class="lol-h2 lol-h2--pane" data-lol-stats-title>Champions</h2>
+          <div class="lol-stats" data-lol-stats aria-live="polite"></div>
+        </div>
+        <div class="lol-pane" data-lol-matches-pane>
+          <h2 class="lol-h2" data-lol-matches-title hidden>Matches</h2>
+          <div class="lol-matches" data-lol-matches></div>
+        </div>
       </section>
     </main>
   </body>
