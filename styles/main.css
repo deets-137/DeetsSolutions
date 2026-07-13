@@ -157,6 +157,82 @@ body::before {
 .storm__bolt--3 { d: var(--storm-path-1); transform: translateX(90px) scaleX(-1);   animation: storm-strike var(--storm-cycle-2) linear infinite 4s; }
 .storm__bolt--4 { d: var(--storm-path-2); transform: translateX(98px) scaleX(-1);   animation: storm-strike var(--storm-cycle-1) linear infinite 6.5s; }
 
+/* ── Sprite walkers (spawned by walkers.js) ─────────────────────
+   Deets and Happy from the DeetsLife game, occasionally strolling across
+   the bottom of the viewport. Content images like the journal posters:
+   the pixel art carries its own colors, so no theme roles — but they walk
+   IN FRONT of the content (above .site-main, below the header's menus),
+   inert to the pointer. Frame geometry (--fw/--fh, 4-frame strips at the
+   game's 7 fps) is intrinsic to the art, kept here + in walkers.js the
+   same way the ocean's wave geometry lives in controls.js. The travel
+   across the screen is a Web Animations API animation in walkers.js (so
+   Happy's sit break can pause it); only the sprite cycle lives here. */
+.walker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.walker__sprite {
+  width: var(--fw);
+  height: var(--fh);
+  background-repeat: repeat-x;
+  background-size: calc(var(--fw) * 4) var(--fh);
+  image-rendering: pixelated;
+  /* walkers.js mirrors + scales from here; feet stay on the viewport edge */
+  transform-origin: 50% 100%;
+  animation: walker-cycle 0.571s steps(4) infinite;   /* 4 frames / 7 fps */
+}
+@keyframes walker-cycle {
+  to { background-position-x: calc(var(--fw) * -4); }
+}
+.walker__sprite--deets {
+  --fw: 32px;
+  --fh: 64px;
+  background-image: url("../assets/sprites/deets/walk_side.png");
+}
+.walker__sprite--happy {
+  --fw: 32px;
+  --fh: 32px;
+  background-image: url("../assets/sprites/happy/walk_side.png");
+}
+.walker__sprite--sitting {
+  background-image: url("../assets/sprites/happy/sit_side.png");
+  background-size: var(--fw) var(--fh);   /* single frame, no cycle */
+  animation: none;
+}
+/* Skin rides: single-frame composites (both characters aboard) from
+   assets/sprites/vehicles/, graybox until Aditya draws them. Their bob
+   animates the independent translate/rotate properties, which COMPOSE
+   with the inline mirror/scale transform walkers.js sets — a transform
+   keyframe would overwrite it. */
+.walker__sprite--boat {
+  --fw: 96px;
+  --fh: 72px;
+  background-image: url("../assets/sprites/vehicles/boat.png");
+  background-size: var(--fw) var(--fh);
+  animation: walker-bob 2.6s ease-in-out infinite alternate;
+  --bob-y: -4px;
+  --bob-tilt: 2deg;
+}
+.walker__sprite--balloon {
+  --fw: 64px;
+  --fh: 96px;
+  background-image: url("../assets/sprites/vehicles/balloon.png");
+  background-size: var(--fw) var(--fh);
+  animation: walker-bob 3.4s ease-in-out infinite alternate;
+  --bob-y: -10px;
+  --bob-tilt: 0deg;
+}
+@keyframes walker-bob {
+  from { translate: 0 0;            rotate: calc(-1 * var(--bob-tilt)); }
+  to   { translate: 0 var(--bob-y); rotate: var(--bob-tilt); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .walker { display: none; }   /* walkers.js also never spawns them */
+}
+
 /* Content sits above the canvas texture + storm. The header outranks main so
    its dropdown menu isn't covered by main's (later, same-context) content. */
 .site-header { position: relative; z-index: 10; }
@@ -1432,6 +1508,697 @@ body::before {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   League — player stats rendered by league/league.js from the
+   DeetsLeague worker. Reuses the journals' bar/toolbar/pill kit
+   (.sotd__bar, .sotd-toolbar, .tb-*); everything below is the
+   page's own furniture, tokens only, same 30-combo contract.
+   ============================================================ */
+/* The combo box sits where the journals put their <h1>: dressed in the
+   title tokens so at rest it reads as the page title, with a dashed
+   hem as the only hint that it's editable. */
+.lol-who { min-width: 0; flex: 1 1 auto; }
+.lol-who__input {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.35);
+  color: var(--title);
+  line-height: 1.1;
+  background: none;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  padding: 0 0 2px;
+  min-width: 8ch;
+  width: 100%;   /* the bar's flex hands it every rem the pills don't take */
+}
+.lol-who__input:hover,
+.lol-who__input:focus { border-bottom-color: var(--title); outline: none; }
+.lol-who__input::placeholder { color: var(--subtext); opacity: 0.7; }
+.lol-who__pop { max-height: 20rem; overflow-y: auto; }
+.lol-who__group {
+  color: var(--subtext);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+}
+
+/* Refresh pill + shared-budget readout: "Refresh | 43/100 · 2 in queue".
+   The divider is the counter's left hairline; tint rides the traffic
+   tokens so "let the key breathe" reads at a glance. */
+.lol-refresh:disabled { opacity: 0.45; cursor: default; }
+.lol-refresh:disabled:hover { background: none; color: var(--subtext); transform: none; }
+.lol-budget {
+  align-self: center;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--border);
+  color: var(--subtext);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.lol-budget.is-ok { color: var(--go); }
+.lol-budget.is-warm { color: var(--pause); }
+.lol-budget.is-hot { color: var(--stop); }
+
+/* Champion / augment art in a monogram tile, same fallback contract as
+   the journals' cover art: broken or missing images leave the letter. */
+.lol-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: var(--album-bg);
+  border-radius: var(--radius-control);
+}
+.lol-icon__mono {
+  font-family: var(--font-title);
+  color: var(--subtext);
+  font-size: 0.9em;
+}
+.lol-icon__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* Player head: profile left, mastery grid right, one row on desktop.
+   Explicit [hidden] guards: these carry their own display values, which
+   would otherwise override the UA's [hidden]{display:none}. */
+.lol-profile[hidden],
+.lol-mastery[hidden] { display: none; }
+.lol-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.lol-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.lol-profile__icon {
+  border-radius: var(--radius-card);
+  border: var(--card-border-width) solid var(--border);
+}
+.lol-profile__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.lol-profile__name {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1.2rem;
+  color: var(--title);
+}
+.lol-profile__tag { color: var(--subtext); }
+.lol-profile__rank { margin: 2px 0 0; color: var(--text); font-size: 0.9rem; }
+.lol-profile__crawl { margin: 2px 0 0; color: var(--subtext); font-size: 0.8rem; }
+
+/* Mastery grid — lifetime mains, 2 rows × 4 columns, right-aligned.
+   Each chip is a button that narrows the whole page to that champion. */
+.lol-mastery {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  gap: var(--space-2);
+  margin-left: auto;
+  justify-content: end;
+}
+@media (max-width: 41rem) {
+  .lol-mastery { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-left: 0; }
+}
+.lol-mchip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.lol-mchip:hover { background: var(--surface-hover); }
+.lol-mchip.is-active { border-color: var(--title); }
+.lol-mchip.is-active .lol-mchip__name { color: var(--title); }
+.lol-mchip__txt { display: flex; flex-direction: column; line-height: 1.25; }
+.lol-mchip__name { color: var(--title); font-size: 0.85rem; }
+.lol-mchip__pts { color: var(--subtext); font-size: 0.72rem; }
+
+/* Stats table — sits on the resume sheet's panel material so the rows
+   stay readable over every skin's canvas; wide content scrolls inside. */
+.lol-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--space-6);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  padding: var(--space-2) var(--space-4);
+}
+.lol-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.lol-table th {
+  text-align: left;
+  color: var(--subtext);
+  font-weight: normal;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.lol-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.lol-table .is-num { text-align: right; font-variant-numeric: tabular-nums; }
+.lol-table__champ { display: flex; align-items: center; gap: var(--space-2); color: var(--title); }
+.lol-table tbody tr:hover { background: var(--surface-hover); }
+.lol-table tbody tr:last-child td { border-bottom: none; }
+.lol-aug__icon { border-radius: var(--radius-control); }
+/* Sortable headers — each th's text is a button; the active column wears
+   the title color plus a direction caret. */
+.lol-table__sort {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.lol-table__sort:hover,
+.lol-table__sort.is-sorted { color: var(--title); }
+.lol-table__dir { font-size: 0.85em; }
+
+/* Match rows — one line each, expanding to the scoreboard */
+.lol-h2 {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.9);
+  color: var(--title);
+  margin-bottom: var(--space-3);
+}
+.lol-matches { display: grid; gap: var(--space-2); margin-bottom: var(--space-6); }
+.lol-match {
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.lol-match__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.lol-match__row:hover { background: var(--surface-hover); }
+.lol-match__mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lol-match__head { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.lol-match__champ { color: var(--title); }
+.lol-match__queue { color: var(--subtext); font-size: 0.8rem; }
+.lol-match__nums {
+  color: var(--subtext);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lol-match__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.lol-match__result {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
+}
+.lol-match__result.is-win { color: var(--go); }
+.lol-match__result.is-loss { color: var(--stop); }
+.lol-match__when { color: var(--subtext); font-size: 0.75rem; white-space: nowrap; }
+
+/* Expanded scoreboard. The [hidden] rule is load-bearing: display:grid
+   below would otherwise override the UA's [hidden]{display:none} — the
+   same trap .tb-pop[hidden] guards against — and the board could never
+   close once opened. */
+.lol-board[hidden] { display: none; }
+.lol-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.lol-board__title {
+  font-family: var(--font-title);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-1);
+}
+.lol-board__title.is-win { color: var(--go); }
+.lol-board__title.is-loss { color: var(--stop); }
+.lol-board__player {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.82rem;
+  padding: 2px 0;
+}
+.lol-board__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lol-board__kda { color: var(--text); font-variant-numeric: tabular-nums; }
+.lol-board__dmg { color: var(--subtext); font-size: 0.75rem; }
+
+/* ============================================================
+   DEETSRADIO (radio/) — shared listening rooms (docs/radio.md).
+   Rides the journals' shared bar kit (.sotd__bar, .sotd-toolbar,
+   .tb-*); everything below is the page's own furniture, tokens
+   only, same 30-combo contract. Row/hero anatomy is ported from
+   DeetsMusic's qcard; the combobox mirrors League's (.lol-who —
+   fix one, mirror the other).
+   ============================================================ */
+/* Station combobox — dressed in the title tokens like League's. */
+.radio-who { min-width: 0; }
+.radio-who__input {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.35);
+  color: var(--title);
+  line-height: 1.1;
+  background: none;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  padding: 0 0 2px;
+  min-width: 0;
+  width: 13ch;
+}
+.radio-who__input:hover,
+.radio-who__input:focus { border-bottom-color: var(--title); outline: none; }
+.radio-who__input::placeholder { color: var(--subtext); opacity: 0.7; }
+.radio-who__pop { max-height: 20rem; overflow-y: auto; right: auto; left: 0; }
+.radio-who__group {
+  color: var(--subtext);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+}
+
+/* Pre-join gate — the peek line + name + join/start, below the bar. */
+.radio-gate {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  padding: var(--space-5) 0;
+}
+.radio-gate__line {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.85);
+  color: var(--title);
+}
+.radio-gate__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.radio-gate__name { display: grid; gap: var(--space-1); }
+.radio-gate__name-label {
+  color: var(--subtext);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.radio-gate__name-input {
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-3);
+  width: 14rem;
+  max-width: 100%;
+}
+.radio-gate__name-input:focus { border-color: var(--title); outline: none; }
+
+/* Now-playing strip — transport, countdown, progress. A card panel
+   pinned above the columns; anatomy ported from DeetsMusic's .np. */
+.radio-np {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+}
+.radio-np__art {
+  position: relative;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-hover);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+/* Blank cover — assets/sprites/radio/cover-blank.svg, a placeholder
+   Aditya hand-draws over (keep the path). Sits wherever art is missing. */
+.radio-cover-blank {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  opacity: 0.8;
+  user-select: none;
+  pointer-events: none;
+}
+.radio-np__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--dur-med) var(--ease-ui);
+}
+.radio-np--has-art:not(.radio-np--counting) .radio-np__img { opacity: 1; }
+.radio-np--idle .radio-np__img { opacity: 0; }
+/* countdown — bare digits hold the art's place; at zero the cover
+   fills in (the reveal IS the go signal — docs/radio.md, decided) */
+.radio-np__count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 2.4rem;
+  color: var(--title);
+  background: var(--surface-hover);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-ui);
+}
+.radio-np--counting .radio-np__count { opacity: 1; }
+.radio-np__center { flex: 1 1 auto; min-width: 0; display: grid; gap: var(--space-2); }
+.radio-np__meta { display: grid; gap: 0.1rem; min-width: 0; }
+.radio-np__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1.05rem;
+  color: var(--title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.radio-np__artist {
+  color: var(--subtext);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.radio-np--idle .radio-np__title { color: var(--subtext); }
+/* progress — display-only (no seek, ever: docs/radio.md) */
+.radio-scrub {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.radio-scrub__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--title);
+  border-radius: inherit;
+}
+.radio-np__controls { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+.radio-np__btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--title);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.radio-np__btn:hover { background: var(--surface-hover); transform: var(--hover-lift); }
+.radio-np__btn svg { width: 1.1rem; height: 1.1rem; fill: currentColor; }
+.radio-np__btn--play { width: 2.9rem; height: 2.9rem; }
+
+/* Columns — Queue · Search · History. Desktop: three across.
+   Mobile (≤ 41rem, the site breakpoint): tabs swap one at a time. */
+.radio-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.radio-col {
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  min-height: 12rem;
+}
+/* Column title — DeetsMusic's .panel__title, one-to-one: full title size
+   plus the skin's editorial underline opt-in. */
+.radio-col__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  margin: 0 0 var(--space-2);
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+}
+/* Column bodies scroll on their own (DeetsMusic panels), themed thin
+   scrollbar (same recipe as .vibe__list). Mobile scrolls the page. */
+.radio-col__body {
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--subtext) transparent;
+}
+.radio-col__body::-webkit-scrollbar { width: var(--space-2); }
+.radio-col__body::-webkit-scrollbar-track { background: transparent; }
+.radio-col__body::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: var(--radius-control);
+}
+.radio-col__body::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+@media (max-width: 41rem) {
+  .radio-col__body { max-height: none; overflow-y: visible; }
+}
+.radio-tabs { display: none; }
+@media (max-width: 41rem) {
+  .radio-tabs {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .radio-tabs__tab {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--fs-nav);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    padding: var(--space-1) var(--space-2);
+    cursor: pointer;
+  }
+  .radio-tabs__tab[aria-pressed="true"] { color: var(--title); border-color: var(--title); }
+  .radio-columns { grid-template-columns: 1fr; }
+  .radio-columns .radio-col { display: none; }
+  .radio-columns[data-active="queue"] [data-col="queue"],
+  .radio-columns[data-active="search"] [data-col="search"],
+  .radio-columns[data-active="history"] [data-col="history"] { display: block; }
+}
+
+/* Rows — idx-free ports of DeetsMusic's queue-row anatomy. */
+.radio-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.radio-row:hover:not(.is-dragging) { background: var(--surface-hover); transform: var(--hover-lift); }
+.radio-row--click { cursor: pointer; }   /* search rows: click = Play Now */
+.radio-row.is-dragging {
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-panel);
+  opacity: 0.96;
+  cursor: grabbing;
+}
+.radio-row.is-drop { box-shadow: inset 0 2px 0 var(--title); }
+.radio-row__art {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-hover);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.radio-row__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.radio-row__text { flex: 1 1 auto; min-width: 0; display: grid; gap: 0.05rem; }
+.radio-row__title {
+  color: var(--text);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.radio-row__artist {
+  color: var(--subtext);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.radio-row__side { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+.radio-row__act {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--subtext);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-ui),
+              background var(--dur-fast) var(--ease-ui);
+}
+.radio-row:hover .radio-row__act,
+.radio-hero:hover .radio-row__act,
+.radio-row__act:focus-visible { opacity: 1; }
+.radio-row__act:hover { background: var(--surface); color: var(--title); border-color: var(--border); }
+/* Empties + overflow counts — centered, small (DeetsMusic .qcard__more). */
+.radio-list__more,
+.radio-col .sotd__empty {
+  color: var(--subtext);
+  font-size: 0.8rem;
+  padding: var(--space-2);
+  text-align: center;
+}
+
+/* Hero — DeetsMusic's .qnow, one-to-one: a soft chip that tops the Queue
+   card (now playing) and the History card (last heard). 48px art, always
+   on the hover surface, dimmed when idle. */
+.radio-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  background: var(--surface-hover);
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-2);
+}
+.radio-hero--idle { opacity: 0.6; }
+.radio-hero .radio-row__art { width: 48px; height: 48px; }
+.radio-hero__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
+  color: var(--title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Search column */
+.radio-search__bar { margin-bottom: var(--space-3); }
+.radio-search__input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+}
+.radio-search__input:focus { border-color: var(--title); outline: none; }
+.radio-search__input::placeholder { color: var(--subtext); opacity: 0.7; }
+.radio-search__recents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+.radio-search__recent { cursor: pointer; }
+
+/* Context menu — the popover kit, unanchored (fixed at the pointer). */
+.radio-menu { position: fixed; top: 0; left: 0; right: auto; z-index: 40; }
+
+/* Toolbar popover bits */
+.radio-connect__blurb {
+  margin: 0;
+  max-width: 16rem;
+  color: var(--subtext);
+  font-size: 0.82rem;
+  padding: var(--space-2) var(--space-3);
+}
+.radio-listener {
+  color: var(--text);
+  font-size: var(--fs-nav);
+  padding: var(--space-1) var(--space-3);
+  white-space: nowrap;
 }
 
 /* Focus ring — keyboard users */

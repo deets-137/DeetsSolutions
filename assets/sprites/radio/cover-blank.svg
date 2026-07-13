@@ -1,0 +1,12 @@
+<!-- DeetsRadio blank album cover (docs/radio.md).
+     PLACEHOLDER line-art — Aditya hand-draws the real one and overwrites
+     this file (keep the filename; radio.js and main.css point here).
+     Shown wherever a track has no artwork, and behind the countdown.
+     Drawn in neutral grey on transparent so it sits on every theme. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none"
+     stroke="#8a8a8a" stroke-width="3" stroke-linecap="round">
+  <circle cx="48" cy="48" r="34"/>
+  <circle cx="48" cy="48" r="21" stroke-dasharray="4 7"/>
+  <circle cx="48" cy="48" r="9"/>
+  <circle cx="48" cy="48" r="1.5" fill="#8a8a8a" stroke="none"/>
+</svg>

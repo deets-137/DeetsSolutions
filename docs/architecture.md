@@ -50,6 +50,33 @@ and the skin defaults to **CyberStorm** on desktop, **Ocean** on mobile
 (≤ 41rem). That default logic lives in two places on purpose — the pre-paint head script on every
 page and the AXES table in `controls.js` — and they must be kept in sync.
 
+## Sprite walkers
+
+A third decorative layer: Deets and Happy — the pixel-art characters from
+the DeetsLife game — strolling across the bottom of the viewport.
+`js/walkers.js` (pages opt in by including it; every page but Resume does)
+spawns one walker soon after load and then keeps the gap between strolls
+under 30 seconds: Deets alone, Happy alone (who may pause for a sit), or
+the pair with Happy trailing. On skins with a ride, some strolls become the
+pair riding it instead — Ocean's rowboat along the bottom, Glass's hot-air
+balloon drifting across at altitude. The character art is the game's own
+4-frame side-walk strips in `assets/sprites/`, played by a CSS `steps(4)`
+animation at the game's 7 fps (the "Sprite walkers" section of `main.css`);
+the travel is a Web Animations API animation so the sit break can pause it.
+Walkers are `aria-hidden`, `pointer-events: none`, sit above `.site-main`
+but below the header's menus, and are never spawned under
+`prefers-reduced-motion`. `DeetsWalkers.spawn("deets" | "happy" | "pair" |
+"boat" | "balloon")` in the console summons one on demand.
+
+Art contracts: the character sprites are copied from the game repo
+(`../DeetsLife/game/assets/sprites/`) — if the game art is redrawn, re-copy
+the strips. The rides in `assets/sprites/vehicles/` are single-frame
+composites (both characters drawn aboard), **graybox placeholders awaiting
+Aditya's art**: `boat.png` 96×72, `balloon.png` 64×96, side view facing
+LEFT (walkers.js mirrors for rightward travel), rendered at 2×. Same
+filename + size = drop-in, zero code changes; a new ride is one `SPRITES`
+entry in walkers.js plus a `.walker__sprite--<name>` block in main.css.
+
 ## Page bar
 
 Every page opens with the same header panel: `.page-bar` — title left,
@@ -118,6 +145,20 @@ is `deets-movies-state`. Differences from SOTD:
   doesn't know keep the themed monogram tile, shrunk to a 21:9 banner in
   full view.
 
+### DeetsRadio (`radio/`)
+
+Shared listening rooms — everyone in a room hears the same music on one
+synchronized clock. Full design in [radio.md](radio.md) (room protocol,
+countdown-synced starts, Apple/Spotify plans); currently **phase 1**: the
+whole UI runs against an in-page mock transport (`radio/transport-mock.js`,
+real protocol + transport rules, fake catalog, no audio). Three cards —
+Search · Queue · History — under a now-playing transport strip; the bar
+carries a League-style station combobox. Two page-specific rules: **all
+user-facing copy lives in `radio/strings.js`** and is handwritten by Aditya
+(`[ph]`-prefixed entries are unshipped placeholders — never write copy
+inline), and the blank album cover is the hand-drawn sprite at
+`assets/sprites/radio/cover-blank.svg` (keep the path, replace the art).
+
 ### Cool Stuff I Did (`cool-stuff/`)
 
 The project portfolio. **No data pipeline** — unlike the journal tabs, the
@@ -177,11 +218,12 @@ popover: option lists (`optButton`, radio semantics), facet checkbox groups
 search box. Opening one closes another; Escape closes and refocuses;
 outside-click closes. State persists per page in `localStorage`.
 
-**Deliberate duplication:** this kit is copy-pasted between `sotd.js` and
-`movies.js` rather than extracted into a shared module, keeping each page
-self-contained (one HTML file + one JS file + one JSON). The cost: a fix to
-the toolbar machinery in one file must be mirrored in the other. Both file
-headers carry this warning.
+**Deliberate duplication:** this kit is copy-pasted between `sotd.js`,
+`movies.js`, `league.js`, and `radio/radio.js` (pills + popover open/close;
+the journals also share the facet/search popovers) rather than extracted
+into a shared module, keeping each page self-contained. The cost: a fix to
+the toolbar machinery in one file must be mirrored in the others. Each file
+header carries this warning.
 
 ## Local dev & deploy
 
