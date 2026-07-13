@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>League — Deets</title>
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("deets-theme");
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
+          document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/main.css" />
+    <script src="../js/controls.js" defer></script>
+    <script src="./league.js" defer></script>
+    <script src="../js/walkers.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/sotd/">SOTD</a>
+        <a href="/movies/">Movies</a>
+        <a href="/league/" aria-current="page">League</a>
+        <a href="/radio/">DeetsRadio</a>
+        <a href="/cool-stuff/">Cool Stuff I Did</a>
+        <a href="/resume/">Resume</a>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <!-- League of Legends stats — league.js talks to the DeetsLeague
+           Cloudflare Worker (Riot API proxy + match DB); champion and
+           augment art comes straight from Data Dragon / Community Dragon.
+           Where the journals put an <h1>, this bar carries a combo box:
+           type any Riot ID, or pick a tracked player from the popover. -->
+      <section class="sotd lol">
+        <div class="sotd__bar">
+          <div class="tb-ctrl lol-who">
+            <input class="lol-who__input" data-lol-who type="text"
+                   placeholder="Name#TAG" autocomplete="off" spellcheck="false"
+                   aria-label="Look up a Riot ID" />
+            <div class="tb-pop lol-who__pop" data-lol-who-pop hidden></div>
+          </div>
+          <div class="sotd-toolbar" data-lol-toolbar aria-label="Queue and view"></div>
+        </div>
+        <p class="sotd__meta" data-lol-meta></p>
+        <!-- Player head: profile card left, top-8 mastery grid (2×4) right.
+             Clicking a mastery champion filters the whole page to it. -->
+        <div class="lol-head">
+          <div class="lol-profile" data-lol-profile hidden></div>
+          <div class="lol-mastery" data-lol-mastery hidden></div>
+        </div>
+        <div class="lol-stats" data-lol-stats aria-live="polite"></div>
+        <h2 class="lol-h2" data-lol-matches-title hidden>Matches</h2>
+        <div class="lol-matches" data-lol-matches></div>
+      </section>
+    </main>
+  </body>
+</html>

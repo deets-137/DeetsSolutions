@@ -1,0 +1,169 @@
+# League tab
+
+The `league/` tab shows League of Legends stats for anyone who's been
+looked up — champion aggregates, Arena augment winrates, mastery, rank,
+and expandable match scoreboards. Unlike SOTD/Movies (static JSONs), this
+tab talks to the **[DeetsLeague](../../DeetsLeague) Cloudflare Worker** at
+runtime: the worker holds the Riot API key, stores trimmed match rows in
+D1, and backfills each player's history in the background.
+
+**Status**: worker deployed and crawling at `api.deets.solutions`; the
+page works locally but isn't committed/published yet.
+
+## Constraints that drive the design
+
+- **Rate limit**: personal API key = 20 req/s and **100 req / 2 min**,
+  shared across everything. The key lives as a Worker secret
+  (`wrangler secret put RIOT_API_KEY`), never in the browser or git.
+- **Matchlist depth**: match-v5 only *lists* a player's most recent ~1,000
+  match IDs **or ~2 years, whichever is smaller** (measured July 2026:
+  D33TS's list ends at 309 ids, oldest dated Aug 2024, `start=310` → `[]`
+  despite thousands of older games). Match *detail* by ID stays fetchable
+  beyond that — IDs already crawled into our DB never expire, but
+  undiscovered history slides away permanently. Backfill early; our D1 is
+  the only long-term memory. (Recovering pre-window games would take match
+  IDs from elsewhere, e.g. a Riot personal-data request.)
+- **PUUID-only world**: since June 2025 all summonerId/accountId endpoints
+  are gone. PUUIDs are permanent and global — store them. Riot IDs
+  (`Name#TAG`) are **mutable**: lookups are case-insensitive, responses
+  return canonical casing (store what Riot returns), and the
+  riot-id→puuid mapping is re-verified weekly.
+
+## Riot API map
+
+| API | Routing | Use |
+|---|---|---|
+| account-v1 by-riot-id | `americas` | Riot ID → PUUID, once per player |
+| summoner-v4 by-puuid | `na1` | profile icon, level |
+| league-v4 entries by-puuid | `na1` | rank/LP — **often `[]` (unranked); the UI handles that** |
+| champion-mastery-v4 by-puuid | `na1` | lifetime per-champ points |
+| match-v5 ids / match / timeline | `americas` | match history |
+| Data Dragon | CDN | champion/profile art — no key, fetched by the browser |
+| Community Dragon | CDN | **Arena augment** names/icons (not in Data Dragon): `raw.communitydragon.org/latest/cdragon/arena/en_us.json` |
+
+The tagline doesn't encode platform (transfers keep it), so `players`
+stores platform per person; v1 defaults everyone to `na1`.
+
+## Observed payloads (July 2026, patch 16.13)
+
+| Payload | Size |
+|---|---|
+| SR match detail (10 players) | ~68 KB |
+| Arena match detail (18 players — 2026 Arena is 6 trios; it's been 8 duos before, so nothing assumes a group size) | ~137 KB |
+| SR timeline (17 min) | ~300 KB |
+| Arena timeline (24 min) | **~1.3 MB** |
+| Trimmed participation row | ~250 bytes |
+
+Timelines are never crawled — fetched lazily only if a view ever needs
+one, cached 7 days in KV.
+
+## Worker architecture
+
+```
+browser ──> api.deets.solutions (CF Worker, secret: RIOT_API_KEY)
+              ├─ D1: players/queue, matches, participations, augments, rate ledger
+              ├─ KV: raw match JSON (30d TTL), profile snapshots (10 min)
+              ├─ cron (*/5): budgeted, yielding backfill crawler
+              └──> na1 / americas .api.riotgames.com
+browser ──> ddragon.leagueoflegends.com + communitydragon.org (art, direct)
+```
+
+Routes (all GET, JSON, CORS locked to deets.solutions + localhost):
+
+| Route | Returns |
+|---|---|
+| `/player/:name/:tag` | profile + rank + mastery merged; **enqueues new players** for backfill (open enrollment, soft cap 300) |
+| `/players` | tracked players — feeds the combo box |
+| `/stats/:puuid?queue=&mode=&patch=` | per-champion aggregates from D1, zero Riot calls |
+| `/augments/:puuid?champion=` | Arena augment win% / avg placement |
+| `/matches/:puuid?count=&champion=` | recent matches from D1 (all-time when champion-filtered); newest 3 topped up live (≤4 calls) |
+| `/match/:id` | raw match JSON, KV-first |
+| `/timeline/:id` | raw timeline JSON, KV-first, lazy |
+| `/budget` | `{used, live, limit, backfilling}` — the shared-budget readout |
+
+## Rate-limit guardrails
+
+All Riot traffic flows through one `riotFetch`, which writes to a
+**call ledger** (`rate_buckets`: one D1 row per 10s bucket, live vs cron).
+The rolling 2-minute sum drives three protections:
+
+1. **Hard stop** — live calls are refused (clean 429, no Riot call) once
+   the window hits 95, so we never actually trip Riot's limiter.
+2. **Yielding crawler** — each cron slice skips entirely if there was
+   meaningful live traffic in the last 2 minutes, and otherwise sizes
+   itself to `min(40, what's left − 10)`. Backfill is the lowest-priority
+   tenant of the key.
+3. **`/budget` + the bar readout** — `Refresh | 43/100 · 2 in queue`,
+   tinted `--go`/`--pause`/`--stop` at 50/80, so friends can see when to
+   let the key breathe. The refresh pill self-disables for 30s per click.
+
+Reads degrade rather than fail: a rate-limited top-up falls back to
+D1-only data and the page still renders.
+
+## Data model (D1)
+
+`players` (doubles as the crawl queue: status `queued → backfilling →
+live`, `backfill_cursor`, `matches_crawled`, `crawl_complete`),
+`matches` (queue, mode, patch, duration, `is_remake` — remakes are stored
+but excluded from every aggregate), `participations` (one row per
+participant per match — all 10/16/18, which is what makes duo/"games with
+friends" queries possible), `participation_augments` (Arena only, one row
+per augment picked). Arena rows carry `placement`/`subteam_id`; `win` is
+stored exactly as Riot reports it (in Arena it means "top half" and Riot
+knows each format's cutoff — never derive it from placement). Full DDL in
+[DeetsLeague/schema.sql](../../DeetsLeague/schema.sql).
+
+**Not in D1**: raw match JSON (KV, re-fetchable forever by ID — a cache,
+not an archive), timelines, mastery and rank (live calls, short TTL).
+
+## The crawler
+
+Cron every 5 minutes: pick the neediest player (`queued` beats
+`backfilling` beats `live`), page their matchlist backwards from
+`backfill_cursor`, ingest unknown matches (known IDs cost a local lookup,
+not a Riot call), advance the cursor. Resumable by construction; when the
+matchlist runs dry the player flips to `crawl_complete` and only new
+games get picked up. A ~300-game history backfills in a couple of hours;
+steady state is a few calls per player per day.
+
+## The page (`league/index.html` + `league/league.js`)
+
+Follows the sotd.js/movies.js convention — the toolbar/popover kit is
+deliberately duplicated (fix a bug there, mirror it here), tokens only,
+all 30 theme×skin combos.
+
+- **The bar**: where the journals put an `<h1>`, a combo-box input styled
+  in the title tokens (dashed hem = "editable") that flexes into all the
+  width the pills don't take. Its popover lists recent lookups +
+  everyone on record (`/players`). Right side: Queue pill (All / Arena /
+  ARAM / Rift, via `game_mode`), View pill (Champions / Augments),
+  Refresh pill, and the budget readout behind a hairline divider.
+- **Player head**: profile card (icon, level chip, rank line or
+  "Unranked", crawl progress) left; **top-8 mastery grid (2×4,
+  right-aligned)** right. Each mastery chip is a toggle that narrows the
+  whole page — stats, augments, matches — to that champion (matches come
+  champion-filtered from D1 all-time, not just recent).
+- **Stats panel**: champion/augment tables sit on the resume sheet's card
+  material so they read over every skin. **Column headers click to
+  sort** (sensible default direction per column, click again to flip,
+  persisted per table; missing values sink).
+- **Matches**: one row per game — champ, queue, K/D/A/cs/damage, result
+  badge (`W`/`L`, or `#place` in Arena, colored by Riot's win flag via
+  `--go`/`--stop`), duration and age. Click toggles the full scoreboard
+  from the raw blob: Rift shows the two teams; **Arena stacks as a
+  bracket** — top half of the lobby on row one, bottom half on row two
+  (#1–3/#4–6 trios, #1–4/#5–8 duos).
+
+Champion art falls back to a themed monogram tile (same contract as
+album art). API base is `https://api.deets.solutions`; flip the constant
+at the top of league.js to `http://localhost:8788` to test worker changes
+against `wrangler dev`.
+
+## Open items
+
+- Publish the tab (commit site changes; Pages deploys on push).
+- Timeline data is collected lazily but unused — gold graphs / item
+  timing in the expand view remain undesigned.
+- Pre-Aug-2024 history: only reachable if a Riot personal-data request
+  yields old match IDs; an importer would feed them through the same
+  ingest pipeline.

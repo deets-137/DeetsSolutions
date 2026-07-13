@@ -16,6 +16,10 @@ tab's count and latest entry.
 - **Movies** — my Letterboxd film log: posters, star ratings, likes,
   rewatches, and reviews, with the same controls. Rewatches can be grouped
   per film or fanned out one card per sitting.
+- **League** — live League of Legends stats for me and friends, served by
+  the [DeetsLeague](../DeetsLeague) Cloudflare Worker (Riot API proxy +
+  match database). The only tab that calls an API at runtime; champion and
+  augment art comes from Riot's public CDNs.
 - **Cool Stuff I Did** — a portfolio of projects, hand-written cards.
 - **Resume** — the resume rendered in the site's design system, with a
   downloadable one-page PDF that is printed from the page itself.
@@ -41,6 +45,7 @@ on desktop, Ocean on mobile.
 index.html            home hub (hero bar + live section cards via js/home.js)
 sotd/                 Song of the Day (page + generated songs.json)
 movies/               Movie log (page + generated movies.json)
+league/               League of Legends stats (talks to the DeetsLeague worker)
 cool-stuff/           project portfolio
 resume/               resume page + downloadable PDF (generated, see below)
 styles/               palette → themes → skin → main (the token tiers)
@@ -66,8 +71,12 @@ by TMDB).
 
 - [docs/architecture.md](docs/architecture.md) — the theme×skin token
   system, page/card anatomy, the toolbar kit, and per-tab details.
+- [docs/ui.md](docs/ui.md) — the Vibe appearance picker and interactive chrome.
 - [docs/data.md](docs/data.md) — how the journal JSONs are generated and
   refreshed (DeetsOTD, Letterboxd exports, TMDB posters).
+- [docs/league.md](docs/league.md) — the League tab: worker architecture,
+  data model, rate-limit guardrails, and what the Riot API can and can't
+  reveal.
 
 ## Run locally
 
