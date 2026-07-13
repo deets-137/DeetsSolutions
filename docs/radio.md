@@ -1,9 +1,13 @@
-# DeetsRadio — design (phase 1 built)
+# DeetsRadio — design (phase 2 built)
 
-**Status (2026-07-13):** phase 1 of the build order is in — the full page
-UI runs against the mock transport (`radio/transport-mock.js`), no audio,
-no Worker yet. Copy in `radio/strings.js` is being handwritten (entries
-still carrying `[ph]` are placeholders). Next: phase 2 (real MusicKit).
+**Status (2026-07-13):** phase 2 of the build order is in — real MusicKit
+(`radio/apple.js`): Apple catalog search, `authorize()` behind the Music
+Source pill, and a playback follower (full tracks when connected, 30 s
+previews otherwise), with rooms still on the mock transport
+(`radio/transport-mock.js`). The developer token signs locally — see
+[The developer token](#the-developer-token). Copy in `radio/strings.js`
+is being handwritten (entries still carrying `[ph]` are placeholders).
+Next: phase 3 (Worker + DO).
 
 Design for the **DeetsRadio** tab (`radio/`, nav label "DeetsRadio"): shared
 listening rooms. Anyone who knows a room's code joins it and hears the same
@@ -260,6 +264,25 @@ exists only because WebView2 can't open OAuth popups — the browser needs none
 of it. `authorize()` just works. None of the Rust side ports; none of it is
 needed.
 
+### The developer token
+
+Signed locally by `scripts/radio-token.ps1` — pure PowerShell, zero
+dependencies (.NET's CNG imports the PKCS#8 key and signs ES256 in the
+r‖s form JWS wants) — from credentials in `scripts/secrets/` (gitignored;
+its README says what goes there). The JWT lands in `radio/dev-token.js`
+and **is committed**: it ships to every visitor anyway, and its `origin`
+claim is locked to `deets.solutions` + `localhost:8787`/`8788` (the two
+dev-server ports in `.claude/launch.json`). Apple enforces that claim by
+matching the request's `Origin` header — browsers always send one, but
+headless calls must add it or they 401. Before writing, the script probes
+one Apple catalog request with the fresh token and aborts on rejection. ~150-day expiry; the default run re-signs only
+within 30 days of expiry (a fresh `iat` would otherwise churn commits)
+and then commits just that one file, never pushes — the nightly-sotd
+idiom, registered as a Task Scheduler job via
+`scripts/register-nightly-radio-token.ps1`. While `dev-token.js` is the
+null stub, the page quietly falls back to mock search and silent
+playback.
+
 ## Page layout
 
 Route: `radio/index.html`. Standard page chrome: site header + nav + Vibe
@@ -355,7 +378,11 @@ anatomy exactly: a `.qnow`-style now-playing hero chip on top, then an
 
 **Mobile** (≤ 41rem, the site's existing breakpoint): transport strip stays
 pinned; the three columns collapse into the mobile-nav tab pattern
-(Queue | Search | History), one visible at a time.
+(Queue | Search | History), one visible at a time. **Mobile is tabled
+(2026-07-13)** beyond that existing collapse: queue/history row menus are
+right-click only (the ⋯ kebabs were removed — rows stay narrow), which has
+no touch path on iOS. Long-press handlers / mobile-native behaviors are a
+later, deliberate pass.
 
 The progress bar is **display-only, permanently** — it shows room position
 over canonical duration; the protocol has no seek command. (Decided:
@@ -372,7 +399,7 @@ token system; every component here is re-expressed in this site's
 | Queue rows | `qcard.ts`, `queue-rows.ts` | row anatomy (idx · art · title/artist), bounded render + "+N more", drag-to-reorder with deferred re-render during drag, click-to-jump ⇒ becomes click-to-vote-skip? No — v1: click does nothing, actions live in the menu |
 | Now-playing hero | `qcard.ts` (`.qnow`), `history-card.ts` | hero block: 96px art, title/artist stack, `--idle` / `--loading` states — plus a new `--counting` state: bare digits 3 · 2 · 1 hold the hero art's place, and at zero the album cover fills in as music starts — the art reveal IS the go signal (decided; no glyph, no word at zero) |
 | Transport strip | `now-playing-card.ts` (`.np`) | cover · meta · progress · prev/play/next layout, inline SVG icon set, disabled-state handling (the scrubber becomes a non-interactive progress fill) |
-| Search card | `search-card.ts` | always-on debounced bar (300 ms), recents-as-empty-state (`localStorage`, cap 8), and the queueing idiom one-to-one: **click a song = Play Now**, menu = Play Now / Play Next / Add to Queue (Play Now in a room = front-queue + skip; a plain add when the room is idle). History rows carry the same three-item menu. |
+| Search card | `search-card.ts` | always-on debounced bar (300 ms), recents-as-empty-state (`localStorage`, cap 8), and the queueing idiom one-to-one: **click a song = Play Now**, menu = Play Now / Play Next / Add to Queue (Play Now in a room = front-queue + skip; a plain add when the room is idle). History rows carry the same three-item menu. Sectioned results as **horizontal scrollers** on the site's thin themed scrollbar (Artists · Songs two rows deep · Albums · Playlists — DeetsMusic's `.search__scroller` anatomy) with a **pane stack**: artist → Albums scroller + Top Songs, album/playlist → its tracks, ‹ back pops (fills memoized). The category filter and go-to-artist menu items are not ported. |
 | Context menu | `context-menu.ts` | right-click menu kit: Play Next / Move to Top / Move to Bottom / Remove on queue rows; Add to Queue / Play Next on search + history rows |
 | History log | `history-card.ts` | hero + "Previously" list, newest first, append-only with real repeats |
 | Empty art | shared | `♪` placeholder block idiom |
@@ -406,10 +433,14 @@ mock stays in the repo as a dev tool (query-flag selected), not a throwaway.
    reloads), fakes ~150 ms latency, and simulates a phantom listener
    ("Mockingbird") who joins and queues a song — `RadioTransport.phantom
    = false` disables, `RadioTransport.wipe()` resets all mock rooms.
-2. **Real MusicKit** — Music Source button, real catalog search (browser →
-   Apple, developer token), real full-track playback driven by the mock
-   room. This milestone is a genuinely working *solo* DeetsRadio, not a
-   demo.
+2. ✅ **Real MusicKit** (built 2026-07-13) — `radio/apple.js`: real catalog
+   search (REST + the dev token; falls back to the mock catalog while the
+   token stub is unsigned), `authorize()` / `unauthorize()` behind the
+   Music Source pill, and the playback follower — MusicKit full tracks
+   when connected, the 30 s preview `<audio>` otherwise, drift-corrected
+   against the room clock at the §Sync-details thresholds. Entries with
+   no playable asset sit silent with a note; mock-catalog entries stay
+   silent without one. A genuinely working *solo* DeetsRadio.
 3. **Worker + DO** — rooms, hibernating WebSockets, alarms, peek, resolve;
    swap the transport adapter; then the sync-feel pass (drift thresholds,
    command-latency cover-up timing) tuned against real network latency.

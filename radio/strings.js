@@ -9,17 +9,17 @@
    the fact it carries; drop it freely otherwise. */
 window.RADIO_STRINGS = {
   /* bar + meta */
-  tuneInPlaceholder: "[ph] tune in…",
+  tuneInPlaceholder: "Radio Room Code",
   yourStations:      "[ph] Your stations",
-  metaIdle:          "[ph] Type a station code to tune in — or make one up to start it.",
+  metaIdle:          "Type in the Radio Room Code to tune in to a room (duh).",
 
   /* peek / create gate (below the bar, pre-join) */
   peekLive:     "[ph] On the air: {title} — {artist} · {n} listening",
   peekQuiet:    "[ph] The air is quiet right now · {n} listening",
   joinButton:   "[ph] Tune in",
-  createLine:   "[ph] No station called {code} yet.",
-  createButton: "[ph] Start this station",
-  nameLabel:    "[ph] Your name",
+  createLine:   "The '{code}' Room doesn't exist yet. Open it?",
+  createButton: "Open the Room",
+  nameLabel:    "Your Tag",
   nameNeeded:   "[ph] Pick a name first — the room wants to know who's adding bangers.",
   joinRefused:  "[ph] That station doesn't exist. Check the code with whoever sent it.",
   peekFailed:   "[ph] Couldn't reach the station. Try again in a moment.",
@@ -29,9 +29,15 @@ window.RADIO_STRINGS = {
   sharePill:     "Invite",
   shareToast:    "[ph] Link copied — send it to a friend.",
   connectPill:   "Music Source",
-  connectExplain:"[ph] You're on previews (30 seconds a song). Connect Apple Music to hear it all.",
-  connectApple:  "[ph] Connect Apple Music",
-  connectSoon:   "[ph] Apple sign-in lands in the next build.",
+  /* account block — anatomy + strings ported from DeetsMusic's login
+     button (src/main.ts setAccount / index.html .account), per Aditya */
+  acctLabel:     "Apple Music",
+  acctSignedOut: "Not signed in",
+  acctConnected: "Connected",
+  acctWorking:   "Working…",
+  previewToggle: "[ph] 30-second previews",
+  connectFailed: "Apple log in failed. Try again!",
+  connectUnavailable: "[ph] Full songs aren't wired up on this copy of the site.",
   leavePill:     "Disconnect",
 
   /* now-playing strip */
@@ -40,38 +46,48 @@ window.RADIO_STRINGS = {
   npCounting:     "[ph] Up next: {title} — {artist}",
   catalogGap:     "[ph] This one isn't on your service — it'll pass.",
   previewEnded:   "[ph] Preview's over — the song plays on for the room.",
+  audioBlocked:   "[ph] Your browser is holding the sound — tap anything to let it out.",
 
   /* columns */
-  colQueue:   "[ph] Queue",
-  colSearch:  "[ph] Search",
-  colHistory: "[ph] History",
+  colQueue:   "Queue",
+  colSearch:  "Search",
+  colHistory: "History",
 
   queueEmpty:  "[ph] Nothing queued. Go find something →",
-  queueUpNext: "[ph] Up next",
-  addedBy:     "[ph] added by {name}",
+  queueUpNext: "Up next",
+  addedBy:     "{name}",
   moreQueued:  "[ph] +{n} more",
 
-  searchPlaceholder: "[ph] Search for a song…",
+  searchPlaceholder: "Search (using the Apple Music Catalog)",
   searchEmpty:       "[ph] Whatever you find goes in the room's queue.",
-  searchRecent:      "[ph] Recent searches",
+  searchRecent:      "Recents",
   searchNoResults:   "[ph] Nothing matched “{term}”.",
   searchBusy:        "[ph] digging…",
+  searchFailed:      "[ph] Search hiccuped — give it another go.",
+  secArtists:        "Artists",
+  secSongs:          "Songs",
+  secAlbums:         "Albums",
+  secPlaylists:      "[ph] Playlists",
+  paneTopSongs:      "Top Songs",
+  paneLoading:       "[ph] Loading…",
+  paneFailed:        "[ph] Couldn't load that one.",
+  paneEmpty:         "[ph] Nothing playable in there.",
 
   historyEmpty:      "[ph] Nothing has played yet.",
-  historyPreviously: "[ph] Previously",
+  historyPreviously: "Previously",
 
   /* row menus */
-  menuPlayNow:    "[ph] Play now",
-  menuPlayNext:   "[ph] Play next",
-  menuMoveTop:    "[ph] Move to top",
-  menuMoveBottom: "[ph] Move to bottom",
-  menuRemove:     "[ph] Remove",
-  menuAddQueue:   "[ph] Add to queue",
+  menuPlayNow:    "Play now",
+  menuPlayNext:   "Play next",
+  menuMoveTop:    "Move to top",
+  menuMoveBottom: "Move to bottom",
+  menuRemove:     "Remove",
+  menuAddQueue:   "Add to queue",
 
   /* connection */
   disconnected: "[ph] Lost the station — reconnecting…",
   reconnected:  "[ph] Back on the air.",
 
   /* dev / mock era (visible while the mock transport is in play) */
-  mockNotice: "[ph] Mock radio — fake catalog, silent playback, real rules."
+  mockNotice: "Create a Radio Room by typing in a new room code!"
 };

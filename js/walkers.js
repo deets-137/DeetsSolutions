@@ -120,13 +120,18 @@
   }
 
   function randomKind() {
-    // A skin with a ride sends the pair out in it some of the time.
-    var skin = document.documentElement.getAttribute("data-skin");
-    for (var name in SPRITES) {
-      if (SPRITES[name].skin === skin && Math.random() < VEHICLE_CHANCE) {
-        return name;
-      }
-    }
+    // STUBBED while Aditya redraws the ride art (Ocean's boat, Glass's
+    // balloon): rides are held back from auto-spawning so only the walking
+    // strolls appear. Restore the loop below when the sprites are ready.
+    // DeetsWalkers.spawn("boat"|"balloon") still summons one for art testing.
+    //
+    // // A skin with a ride sends the pair out in it some of the time.
+    // var skin = document.documentElement.getAttribute("data-skin");
+    // for (var name in SPRITES) {
+    //   if (SPRITES[name].skin === skin && Math.random() < VEHICLE_CHANCE) {
+    //     return name;
+    //   }
+    // }
     var r = Math.random();
     return r < 0.4 ? "deets" : r < 0.75 ? "happy" : "pair";
   }

@@ -24,9 +24,14 @@
       })();
     </script>
     <link rel="stylesheet" href="../styles/main.css" />
+    <!-- MusicKit JS from Apple's CDN — the documented exception to the
+         site's no-CDN rule, this page only (docs/radio.md, "Limits & costs") -->
+    <script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" async></script>
     <script src="../js/controls.js" defer></script>
     <script src="./strings.js" defer></script>
+    <script src="./dev-token.js" defer></script>
     <script src="./transport-mock.js" defer></script>
+    <script src="./apple.js" defer></script>
     <script src="./radio.js" defer></script>
     <script src="../js/walkers.js" defer></script>
   </head>
@@ -48,11 +53,12 @@
     </header>
 
     <main class="site-main">
-      <!-- DeetsRadio — shared listening rooms (docs/radio.md). Phase 1 runs
-           on the mock transport (transport-mock.js): real protocol, real
-           transport rules, fake catalog, no audio. All copy comes from
-           strings.js. Like League, the bar carries a combo box where the
-           journals put an <h1>: the station code IS the title. -->
+      <!-- DeetsRadio — shared listening rooms (docs/radio.md). Phase 2:
+           rooms still on the mock transport (transport-mock.js), but the
+           Apple side is real (apple.js + dev-token.js): search, auth, and
+           playback. All copy comes from strings.js. Like League, the bar
+           carries a combo box where the journals put an <h1>: the station
+           code IS the title. -->
       <section class="sotd radio">
         <div class="sotd__bar">
           <div class="tb-ctrl radio-who">

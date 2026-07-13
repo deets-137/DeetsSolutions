@@ -86,6 +86,7 @@
   /* -- motion ------------------------------------------------ */
   --dur-fast: 0.14s;
   --dur-med:  0.22s;
+  --dur-spin: 0.9s;   /* busy spinners (radio account button) */
   --ease-ui:  cubic-bezier(0.2, 0, 0.2, 1);
   --hover-lift: none;                 /* nav links / chips rise on hover; a skin opts in */
 

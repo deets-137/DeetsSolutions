@@ -1,9 +1,10 @@
 /* DeetsRadio — shared listening rooms (design: docs/radio.md).
 
-   Phase 1: the whole page runs against the MOCK transport
-   (transport-mock.js, window.RadioTransport) — same wire protocol the
-   Cloudflare Worker will speak, so this file survives the swap untouched.
-   No audio yet: the room clock runs, the UI follows it.
+   Phase 2: rooms still run on the MOCK transport (transport-mock.js,
+   window.RadioTransport) — same wire protocol the Cloudflare Worker will
+   speak, so this file survives the swap untouched — but the Apple side is
+   real: apple.js (window.RadioApple) owns search, authorize(), and the
+   playback follower this file feeds from tick().
 
    ALL user-facing copy comes from radio/strings.js (window.RADIO_STRINGS);
    no string literals in here. NOTE: the toolbar/popover kit (pills,
@@ -15,6 +16,7 @@
 
   var S = window.RADIO_STRINGS;
   var T = window.RadioTransport;
+  var A = window.RadioApple;   // Apple side (search / auth / playback follower)
   var BAR_INPUT = document.querySelector("[data-radio-who]");
   if (!BAR_INPUT || !S || !T) return;
   var BAR_POP = document.querySelector("[data-radio-who-pop]");
@@ -35,6 +37,7 @@
   var NAME_KEY = "deets-radio-name";
   var STATIONS_KEY = "deets-radio-stations";
   var TERMS_KEY = "deets-radio-search-recents";
+  var PREVIEWS_KEY = "deets-radio-previews";
   var UP_NEXT_CAP = 50;
   var LIST_CAP = 50;
 
@@ -42,6 +45,10 @@
   var ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
   var ICON_BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6v12h2V6zM20 6 10 12 20 18z"/></svg>';
   var ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6 14 12 4 18zM16 6v12h2V6z"/></svg>';
+  /* account-state sigils — DeetsMusic's login button anatomy (main.ts) */
+  var ICON_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var ICON_SPINNER = '<span class="radio-acct__spinner"></span>';
 
   /* ── tiny helpers ─────────────────────────────────────────────── */
   function el(tag, cls, text) {
@@ -310,6 +317,7 @@
     });
   }
   function leaveRoom() {
+    if (A) A.stop();
     if (conn) conn.close();
     conn = null;
     model = null;
@@ -373,14 +381,7 @@
       } else done();
     });
     TOOLBAR.appendChild(share);
-    makePill(S.connectPill, function (pop) {
-      pop.appendChild(el("p", "radio-connect__blurb", S.connectExplain));
-      var b = optButton(S.connectApple, function () {
-        closePop();
-        toast(S.connectSoon, "");
-      });
-      pop.appendChild(b);
-    });
+    pills.connect = makePill(S.connectPill, fillConnectPop);
     var leave = el("button", "tb-pill");
     leave.type = "button";
     leave.appendChild(el("span", "tb-pill__label", S.leavePill));
@@ -388,6 +389,73 @@
     TOOLBAR.appendChild(leave);
     renderListeners();
   }
+  /* Music Source popover — an account block ported from DeetsMusic's
+     login button (label · state sigil, status line under), plus a
+     previews toggle that matters until a source is connected. Content
+     follows the auth state (RadioApple re-fires onAuthChange after
+     connect/disconnect). */
+  function previewsOn() { return load(PREVIEWS_KEY, true) !== false; }
+  function fillConnectPop(pop) {
+    pop.textContent = "";
+    if (!A || !A.hasToken()) {     // no signed dev token on this deployment
+      pop.appendChild(el("p", "radio-connect__blurb", S.connectUnavailable));
+      return;
+    }
+    var acct = el("div", "radio-acct");
+    var btn = el("button", "radio-acct__btn");
+    btn.type = "button";
+    btn.appendChild(el("span", "radio-acct__label", S.acctLabel));
+    var icon = el("span", "radio-acct__icon");
+    icon.setAttribute("aria-hidden", "true");
+    btn.appendChild(icon);
+    var status = el("div", "radio-acct__status");
+    acct.appendChild(btn);
+    acct.appendChild(status);
+    var setAcct = function (state, note) {   // "in" | "out" | "loading"
+      icon.innerHTML = state === "in" ? ICON_CHECK : state === "out" ? ICON_X : ICON_SPINNER;
+      if (state !== "loading") btn.dataset.state = state;
+      btn.disabled = state === "loading";
+      status.textContent = note ||
+        (state === "in" ? S.acctConnected : state === "out" ? S.acctSignedOut : S.acctWorking);
+    };
+    setAcct(A.authorized() ? "in" : "out");
+    btn.addEventListener("click", function () {
+      var wasIn = A.authorized();
+      setAcct("loading");
+      (wasIn ? A.disconnect() : A.connect()).then(function () {
+        setAcct(A.authorized() ? "in" : "out");
+      }, function () {
+        setAcct(A.authorized() ? "in" : "out");
+        if (!wasIn) setMeta(S.connectFailed);  // persistent — cleared on success
+      });
+    });
+    pop.appendChild(acct);
+    if (!A.authorized()) {         // previews only matter before a source is on
+      var row = el("div", "radio-toggle");
+      row.appendChild(el("span", "radio-toggle__label", S.previewToggle));
+      var sw = el("button", "radio-toggle__switch");
+      sw.type = "button";
+      sw.setAttribute("role", "switch");
+      sw.setAttribute("aria-label", S.previewToggle);
+      sw.setAttribute("aria-checked", String(previewsOn()));
+      sw.addEventListener("click", function () {
+        var on = !previewsOn();
+        save(PREVIEWS_KEY, on);
+        sw.setAttribute("aria-checked", String(on));
+        A.setPreviews(on);
+      });
+      row.appendChild(sw);
+      pop.appendChild(row);
+    }
+  }
+  if (A) A.onAuthChange(function () {
+    if (pills.connect) fillConnectPop(pills.connect.pop);
+    /* a completed login clears the persistent failure line */
+    if (A.authorized() && META.textContent === S.connectFailed) {
+      setMeta(joined ? "" : metaIdle());
+    }
+  });
+  if (A) A.setPreviews(previewsOn());
   function renderListeners() {
     if (!pills.listening || !model) return;
     var names = model.listeners || [];
@@ -463,8 +531,10 @@
     var scrub = el("div", "radio-scrub");
     var fill = el("div", "radio-scrub__fill");
     scrub.appendChild(fill);
-    center.appendChild(meta);
+    var note = el("span", "radio-np__note");   // playback notes (preview over,
+    center.appendChild(meta);                  // catalog gap) — see tick()
     center.appendChild(scrub);
+    center.appendChild(note);
     var controls = el("div", "radio-np__controls");
     var mk = function (svg, label, onClick) {
       var b = el("button", "radio-np__btn");
@@ -485,7 +555,7 @@
     NP.appendChild(center);
     NP.appendChild(controls);
     npNodes = { art: art, img: img, count: count, title: title, artist: artist,
-                fill: fill, play: play, back: back, next: next };
+                fill: fill, note: note, play: play, back: back, next: next };
   }
   function renderNP() {
     if (!npNodes) buildNP();
@@ -509,9 +579,24 @@
     n.play.innerHTML = t.playing ? ICON_PAUSE : ICON_PLAY;
     tick();
   }
-  /* the 200 ms heartbeat: countdown digits + progress fill */
+  /* the 200 ms heartbeat: countdown digits + progress fill — and the
+     playback follower's feed (it chases this view; docs/radio.md §Sync) */
   function tick() {
-    if (!model || !npNodes || !model.current) return;
+    if (!model || !npNodes) return;
+    if (A) {
+      A.follow({
+        entry: model.current,
+        playing: model.transport.playing,
+        counting: counting(),
+        expectedMs: position()
+      });
+      var k = A.note();
+      npNodes.note.textContent =
+        k === "preview" ? S.previewEnded :
+        k === "gap"     ? S.catalogGap :
+        k === "blocked" ? S.audioBlocked : "";
+    }
+    if (!model.current) return;
     var n = npNodes;
     if (counting()) {
       var left = model.transport.startedAt - roomNow();
@@ -561,11 +646,13 @@
       act.addEventListener("click", function (e) { e.stopPropagation(); opts.action.run(); });
       side.appendChild(act);
     }
-    var kebab = el("button", "radio-row__act", "⋯");
-    kebab.type = "button";
-    kebab.setAttribute("data-kebab", "");
-    kebab.setAttribute("aria-label", "more");
-    side.appendChild(kebab);
+    if (!(opts && opts.noKebab)) {
+      var kebab = el("button", "radio-row__act", "⋯");
+      kebab.type = "button";
+      kebab.setAttribute("data-kebab", "");
+      kebab.setAttribute("aria-label", "more");
+      side.appendChild(kebab);
+    }
     li.appendChild(side);
     if (opts && opts.menu) bindMenus(li, opts.menu);
     return li;
@@ -595,6 +682,7 @@
     q.slice(0, UP_NEXT_CAP).forEach(function (entry, i) {
       var li = row(entry, {
         chip: fmt(S.addedBy, { name: entry.addedBy }),
+        noKebab: true,   // right-click carries the queue menu; keeps rows narrow
         menu: function () {
           return [
             { label: S.menuPlayNext, run: function () { send("reorder", { entryId: entry.entryId, to: 0 }); } },
@@ -658,7 +746,7 @@
       HISTORY_BODY.appendChild(el("div", "radio-who__group", S.historyPreviously));
       var list = el("ol", "radio-list");
       older.forEach(function (entry) {
-        list.appendChild(row(entry, { menu: function () { return historyMenu(entry); } }));
+        list.appendChild(row(entry, { noKebab: true, menu: function () { return historyMenu(entry); } }));
       });
       HISTORY_BODY.appendChild(list);
     }
@@ -716,6 +804,8 @@
   function renderSearchEmpty() {
     var res = searchNodes.results;
     res.textContent = "";
+    paneStack = [];
+    lastSections = null;
     var r = terms();
     if (r.length) {
       res.appendChild(el("div", "radio-who__group", S.searchRecent));
@@ -734,6 +824,195 @@
       res.appendChild(el("p", "sotd__empty", S.searchEmpty));
     }
   }
+  /* DeetsMusic's search idiom, one-to-one: click a song = Play Now;
+     the menu is Play Now / Play Next / Add to Queue. */
+  function songMenu(t) {
+    return [
+      { label: S.menuPlayNow, run: function () { playNow(t); } },
+      { label: S.menuPlayNext, run: function () { send("add", { entry: t, at: 0 }); } },
+      { label: S.menuAddQueue, run: function () { send("add", { entry: t }); } }
+    ];
+  }
+  function wireOpen(node, run) {
+    node.classList.add("radio-row--click");
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    node.addEventListener("click", run);
+    node.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); run(); }
+    });
+  }
+  function songSearchRow(t) {
+    var li = row(t, { menu: function () { return songMenu(t); } });
+    wireOpen(li, function () { playNow(t); });
+    return li;
+  }
+  function songList(tracks) {
+    var list = el("ol", "radio-list");
+    tracks.forEach(function (t) { list.appendChild(songSearchRow(t)); });
+    return list;
+  }
+  /* compact song cell for the two-row songs scroller (DeetsMusic
+     .search__song) — same click/menu contract as a row */
+  function songCell(t) {
+    var d = el("div", "radio-scell");
+    d.appendChild(rowArt(t));
+    var text = el("span", "radio-row__text");
+    text.appendChild(el("span", "radio-row__title", t.title));
+    text.appendChild(el("span", "radio-row__artist", t.artist));
+    d.appendChild(text);
+    wireOpen(d, function () { playNow(t); });
+    bindMenus(d, function () { return songMenu(t); });
+    return d;
+  }
+  /* artist / album / playlist tiles — click drills in */
+  function tile(name, sub, artworkUrl, round, onOpen) {
+    var d = el("div", "radio-tile" + (round ? " radio-tile--artist" : ""));
+    var a = el("span", "radio-tile__art");
+    var img = el("img", artworkUrl ? "radio-tile__img" : "radio-cover-blank");
+    img.alt = "";
+    img.loading = "lazy";
+    img.src = artworkUrl || "../assets/sprites/radio/cover-blank.svg";
+    a.appendChild(img);
+    d.appendChild(a);
+    d.appendChild(el("span", "radio-tile__name", name));
+    if (sub) d.appendChild(el("span", "radio-tile__sub", sub));
+    wireOpen(d, onOpen);
+    return d;
+  }
+  function scroller(mod) {
+    return el("div", "radio-scroller" + (mod ? " radio-scroller--" + mod : ""));
+  }
+  function group(label) { return el("div", "radio-who__group", label); }
+
+  /* ── pane stack (DeetsMusic's spane idiom; back pops) ─────────── */
+  var lastSections = null;   // last root results, so ‹ lands back cheaply
+  var paneStack = [];        // re-render closures for the panes above root
+  function repaintSearch() {
+    var top = paneStack[paneStack.length - 1];
+    if (top) top();
+    else if (lastSections) renderSections(lastSections.sec, lastSections.term);
+    else renderSearchEmpty();
+  }
+  function drawPane(title, fill) {
+    var res = searchNodes.results;
+    var seq = ++searchSeq;    // a new search or pane orphans this draw
+    res.textContent = "";
+    var head = el("div", "radio-pane__head");
+    var back = el("button", "radio-row__act radio-pane__back", "‹");
+    back.type = "button";
+    back.setAttribute("aria-label", "back");
+    back.addEventListener("click", function () {
+      paneStack.pop();
+      repaintSearch();
+    });
+    head.appendChild(back);
+    head.appendChild(el("span", "radio-pane__title", title));
+    res.appendChild(head);
+    var body = el("div", "radio-pane__body");
+    body.appendChild(el("p", "sotd__empty", S.paneLoading));
+    res.appendChild(body);
+    fill(body, function () { return seq === searchSeq; });
+  }
+  function pushPane(title, fill) {
+    paneStack.push(function () { drawPane(title, fill); });
+    drawPane(title, fill);
+  }
+  /* pane fills — each memoizes its fetch, so ‹ and re-draws are free */
+  function songsFill(fetchSongs) {
+    var cached = null;
+    return function (body, fresh) {
+      cached = cached || fetchSongs();
+      cached.then(function (tracks) {
+        if (!fresh()) return;
+        body.textContent = "";
+        if (!tracks.length) body.appendChild(el("p", "sotd__empty", S.paneEmpty));
+        else body.appendChild(songList(tracks));
+      }, function () {
+        if (!fresh()) return;
+        body.textContent = "";
+        body.appendChild(el("p", "sotd__empty", S.paneFailed));
+      });
+    };
+  }
+  function openAlbum(al) {
+    pushPane(al.title, songsFill(function () { return A.albumSongs(al.id); }));
+  }
+  /* artist pane: Albums scroller first, Top Songs under (DeetsMusic) */
+  function artistFill(id) {
+    var cached = null;
+    return function (body, fresh) {
+      cached = cached || A.artistDetail(id);
+      cached.then(function (d) {
+        if (!fresh()) return;
+        body.textContent = "";
+        if (d.albums.length) {
+          body.appendChild(group(S.secAlbums));
+          var sc = scroller("");
+          d.albums.forEach(function (al) {
+            sc.appendChild(tile(al.title, al.year, al.artworkUrl, false, function () {
+              openAlbum(al);
+            }));
+          });
+          body.appendChild(sc);
+        }
+        body.appendChild(group(S.paneTopSongs));
+        if (!d.topSongs.length) body.appendChild(el("p", "sotd__empty", S.paneEmpty));
+        else body.appendChild(songList(d.topSongs));
+      }, function () {
+        if (!fresh()) return;
+        body.textContent = "";
+        body.appendChild(el("p", "sotd__empty", S.paneFailed));
+      });
+    };
+  }
+
+  /* ── root sections: Artists · Songs · Albums · Playlists ──────── */
+  function renderSections(sec, term) {
+    var res = searchNodes.results;
+    res.textContent = "";
+    var albums = sec.albums || [];
+    if (!sec.songs.length && !sec.artists.length && !albums.length && !sec.playlists.length) {
+      res.appendChild(el("p", "sotd__empty", fmt(S.searchNoResults, { term: term })));
+      return;
+    }
+    if (sec.artists.length) {
+      res.appendChild(group(S.secArtists));
+      var asc = scroller("");
+      sec.artists.forEach(function (a) {
+        asc.appendChild(tile(a.name, "", a.artworkUrl, true, function () {
+          pushPane(a.name, artistFill(a.id));
+        }));
+      });
+      res.appendChild(asc);
+    }
+    if (sec.songs.length) {
+      res.appendChild(group(S.secSongs));
+      var ssc = scroller("songs");
+      sec.songs.forEach(function (t) { ssc.appendChild(songCell(t)); });
+      res.appendChild(ssc);
+    }
+    if (albums.length) {
+      res.appendChild(group(S.secAlbums));
+      var alsc = scroller("");
+      albums.forEach(function (al) {
+        alsc.appendChild(tile(al.title, al.artist, al.artworkUrl, false, function () {
+          openAlbum(al);
+        }));
+      });
+      res.appendChild(alsc);
+    }
+    if (sec.playlists.length) {
+      res.appendChild(group(S.secPlaylists));
+      var psc = scroller("");
+      sec.playlists.forEach(function (p) {
+        psc.appendChild(tile(p.name, p.curator, p.artworkUrl, false, function () {
+          pushPane(p.name, songsFill(function () { return A.playlistSongs(p.id); }));
+        }));
+      });
+      res.appendChild(psc);
+    }
+  }
   function runSearch(term) {
     var q = String(term || "").trim();
     var res = searchNodes.results;
@@ -741,39 +1020,44 @@
     var seq = ++searchSeq;
     res.textContent = "";
     res.appendChild(el("p", "sotd__empty", S.searchBusy));
-    T.search(q).then(function (tracks) {
+    /* real Apple catalog when a dev token is deployed; mock otherwise
+       (the mock only knows songs — normalize its flat list) */
+    var real = A && A.hasToken();
+    var lookup = real ? A.search(q) : T.search(q).then(function (tracks) {
+      return { songs: tracks, artists: [], albums: [], playlists: [] };
+    });
+    lookup.then(function (sec) {
+      if (seq !== searchSeq) return;
+      pushTerm(q);
+      paneStack = [];          // a fresh search lands at the root
+      lastSections = { sec: sec, term: q };
+      renderSections(sec, q);
+    }).catch(function () {
       if (seq !== searchSeq) return;
       res.textContent = "";
-      if (!tracks.length) {
-        res.appendChild(el("p", "sotd__empty", fmt(S.searchNoResults, { term: q })));
-        return;
-      }
-      pushTerm(q);
-      var list = el("ol", "radio-list");
-      tracks.forEach(function (t) {
-        /* DeetsMusic's search idiom, one-to-one: click a song = Play Now;
-           the menu is Play Now / Play Next / Add to Queue. */
-        var li = row(t, {
-          menu: function () {
-            return [
-              { label: S.menuPlayNow, run: function () { playNow(t); } },
-              { label: S.menuPlayNext, run: function () { send("add", { entry: t, at: 0 }); } },
-              { label: S.menuAddQueue, run: function () { send("add", { entry: t }); } }
-            ];
-          }
-        });
-        li.classList.add("radio-row--click");
-        li.setAttribute("role", "button");
-        li.tabIndex = 0;
-        li.addEventListener("click", function () { playNow(t); });
-        li.addEventListener("keydown", function (e) {
-          if (e.key === "Enter") { e.preventDefault(); playNow(t); }
-        });
-        list.appendChild(li);
-      });
-      res.appendChild(list);
+      res.appendChild(el("p", "sotd__empty", S.searchFailed));
     });
   }
+
+  /* ── truncation tooltips ──────────────────────────────────────── */
+  /* One delegated hover: any title/artist line that's actually ellipsized
+     gets a native tooltip with the full text — no layout shift, and it
+     stays quiet when nothing is cut off. */
+  ROOM.addEventListener("mouseover", function (e) {
+    var t = e.target;
+    if (!t || !t.classList) return;
+    if (t.classList.contains("radio-row__title") ||
+        t.classList.contains("radio-row__artist") ||
+        t.classList.contains("radio-hero__title") ||
+        t.classList.contains("radio-np__title") ||
+        t.classList.contains("radio-np__artist") ||
+        t.classList.contains("radio-tile__name") ||
+        t.classList.contains("radio-tile__sub") ||
+        t.classList.contains("radio-pane__title")) {
+      if (t.scrollWidth > t.clientWidth) t.title = t.textContent;
+      else t.removeAttribute("title");
+    }
+  });
 
   /* ── render root ──────────────────────────────────────────────── */
   function renderAll() {

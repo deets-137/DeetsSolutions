@@ -16,6 +16,10 @@ desktop.ini
 # Python (local http.server has none, but just in case)
 __pycache__/
 
+# Apple Music signing credentials (DeetsRadio) — only the README is tracked.
+scripts/secrets/*
+!scripts/secrets/README.md
+
 # Local-only working notes / archives (not part of the site).
 # Top-level docs/*.md is tracked — that's the repo's tech documentation.
 docs/archive/
