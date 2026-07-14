@@ -367,15 +367,23 @@
     if (msg.type === "snapshot") {
       model = {
         v: msg.v, transport: msg.transport, current: msg.current,
-        queue: msg.queue, history: msg.history, listeners: msg.listeners
+        queue: msg.queue, history: msg.history, listeners: msg.listeners,
+        owner: msg.owner, you: msg.you
       };
       enterRoomUI();
       renderAll();
       return;
     }
+    if (msg.type === "closed") {   // the owner signed the station off
+      leaveRoom();
+      setMeta(S.roomClosed);
+      return;
+    }
     if (!model) return;
     if (msg.type === "presence") {
       model.listeners = msg.listeners;
+      model.owner = msg.owner;     // ownership passes by join order
+      model.you = msg.you;
       renderListeners();
       return;
     }
@@ -419,6 +427,29 @@
     leave.appendChild(el("span", "tb-pill__label", S.leavePill));
     leave.addEventListener("click", leaveRoom);
     TOOLBAR.appendChild(leave);
+    /* Close Room — the owner's one power. Hidden for everyone else
+       (renderListeners toggles it as ownership passes); closing is the
+       one irreversible act, so it asks to be pressed twice. */
+    var close = el("button", "tb-pill radio-close");
+    close.type = "button";
+    close.hidden = true;
+    var closeLabel = el("span", "tb-pill__label", S.closePill);
+    close.appendChild(closeLabel);
+    var armed = null;
+    close.addEventListener("click", function () {
+      if (!armed) {
+        closeLabel.textContent = S.closeConfirm;
+        armed = setTimeout(function () {
+          armed = null;
+          closeLabel.textContent = S.closePill;
+        }, 4000);
+        return;
+      }
+      clearTimeout(armed);
+      send("close");
+    });
+    pills.close = close;
+    TOOLBAR.appendChild(close);
     renderListeners();
   }
   /* Music Source popover — an account block ported from DeetsMusic's
@@ -495,9 +526,16 @@
       fmt(S.listeningPill, { n: names.length });
     if (pills.listeningPop) {
       pills.listeningPop.textContent = "";
-      names.forEach(function (n) {
-        pills.listeningPop.appendChild(el("div", "radio-listener", n));
+      names.forEach(function (n, i) {
+        var row = el("div", "radio-listener", n);
+        if (i === model.owner) {   // the arrow points at the room's owner
+          row.appendChild(el("span", "radio-listener__owner", "←"));
+        }
+        pills.listeningPop.appendChild(row);
       });
+    }
+    if (pills.close) {
+      pills.close.hidden = !(model.owner != null && model.owner === model.you);
     }
   }
 

@@ -88,7 +88,8 @@
     Object.keys(ROOMS).forEach(function (id) {
       var r = ROOMS[id];
       out[id] = { room: r.room, transport: r.transport, current: r.current,
-                  queue: r.queue, history: r.history, v: r.v };
+                  queue: r.queue, history: r.history, v: r.v,
+                  touched: r.touched || 0 };
     });
     return out;
   }
@@ -98,9 +99,14 @@
     var saved = loadStore().rooms || {};
     Object.keys(saved).forEach(function (id) {
       var s = saved[id];
+      /* the 1 h idle+empty expiry, mock edition: a stale idle room doesn't
+         survive the reload (the worker's alarm fuse does this for real) */
+      if (!(s.transport && s.transport.playing) &&
+          Date.now() - (s.touched || 0) > 3600000) return;
       ROOMS[id] = { room: s.room, transport: s.transport, current: s.current,
                     queue: s.queue || [], history: s.history || [], v: s.v || 1,
-                    conns: [], timer: null, phantomDone: false };
+                    conns: [], timer: null, phantomDone: false,
+                    touched: s.touched || 0 };
       armAlarm(ROOMS[id]);   // a reloaded "playing" room picks its clock back up
     });
   })();
@@ -255,13 +261,20 @@
   }
   function broadcast(r, msg) {
     r.v++;
+    r.touched = now();
     msg.v = r.v;
     msg.serverNow = now();
     r.conns.forEach(function (c) { deliver(c, msg); });
     saveStore();
   }
+  /* presence is personalized (mirrors the worker): join-ordered names,
+     owner is index 0 (creator, then longest-connected), `you` is yours */
   function presence(r) {
-    broadcast(r, { type: "presence", listeners: listenerNames(r) });
+    var names = listenerNames(r);
+    r.conns.forEach(function (c, i) {
+      deliver(c, { type: "presence", serverNow: now(),
+                   listeners: names, owner: names.length ? 0 : -1, you: i });
+    });
   }
 
   /* ── phantom listener (dev-only multi-user simulation) ────────── */
@@ -328,6 +341,16 @@
             send: function (msg) {
               setTimeout(function () {
                 if (conn.closed) return;
+                if (msg.type === "close") {   // owner only — signs the station off
+                  if (r.conns[0] !== conn) return;
+                  r.conns.slice().forEach(function (c) {
+                    deliver(c, { type: "closed", serverNow: now() });
+                  });
+                  if (r.timer) { clearTimeout(r.timer); r.timer = null; }
+                  delete ROOMS[code];
+                  saveStore();
+                  return;
+                }
                 var fn = COMMANDS[msg.type];
                 if (!fn) return;
                 var fields = fn(r, msg, conn);
@@ -341,7 +364,10 @@
             }
           };
           r.conns.push(conn);
-          deliver(conn, snapshot(r));
+          r.touched = now();
+          deliver(conn, Object.assign(snapshot(r), {
+            owner: 0, you: r.conns.indexOf(conn)
+          }));
           presence(r);
           maybePhantom(r);
           resolve(conn);

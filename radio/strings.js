@@ -39,6 +39,11 @@ window.RADIO_STRINGS = {
   connectFailed: "Apple log in failed. Try again!",
   connectUnavailable: "[ph] Full songs aren't wired up on this copy of the site.",
   leavePill:     "Disconnect",
+  /* owner-only (creator, then longest-connected): signs the station off
+     for everyone and frees the code */
+  closePill:     "[ph] Close Room",
+  closeConfirm:  "[ph] You sure?",
+  roomClosed:    "[ph] The station signed off.",
 
   /* now-playing strip */
   npIdle:         "[ph] Nothing on the air",

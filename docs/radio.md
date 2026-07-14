@@ -45,10 +45,27 @@ Much of the UX is ported from the sibling **DeetsMusic** desktop app
 ## Decisions already made
 
 - **Communal controls.** Knowing the room code = trusted. Anyone can
-  play/pause/skip/back, add, remove, reorder. No host role, no auth tiers.
-- **Rooms are durable.** A DeetsRadio ID persists (queue, history, settings
-  survive everyone leaving). The room keeps "playing" while empty — rejoin
-  and it's mid-song, like a real station.
+  play/pause/skip/back, add, remove, reorder. No auth tiers — with one
+  narrow exception: a background **owner** (see Ownership & closing below)
+  whose only extra power is closing the room.
+- **Rooms are durable — until an hour of true silence.** A DeetsRadio ID
+  persists (queue, history, settings survive everyone leaving). The room
+  keeps "playing" while empty — rejoin and it's mid-song, like a real
+  station. But a room that sits **idle AND empty for 1 hour** expires: the
+  DO wipes its storage and the code returns to the pool (typing it again
+  lands on the ordinary create-confirm). Any join or command disarms the
+  fuse; a playing-but-empty room never expires mid-queue (decided
+  2026-07-14).
+- **Ownership & closing (decided 2026-07-14).** Every room has a
+  background owner: the creator, and when they disconnect, the
+  longest-connected remaining listener (join-order succession).
+  Ownership is **connection-scoped** — no accounts, so it rides the
+  socket; a reload or drop passes it on (a solo listener reclaims it on
+  rejoin). It confers exactly one power: **Close Room** (a toolbar pill
+  right of Disconnect, press-twice confirm), which broadcasts `closed`,
+  disconnects everyone, wipes storage, and frees the code. The listeners
+  popover marks the owner with a right-aligned ← pointing at their name.
+  Everything else stays fully communal.
 - **Room codes are free-form with a create confirm.** The creator types any
   code; it's slugified (lowercase, `a–z 0–9 -`, 3–24 chars). Entering a code
   that doesn't exist shows a one-tap "No room called *X* — create it?" step,
@@ -193,14 +210,16 @@ re-request snapshot).
 | `remove` | `{entryId}` | remove from queue |
 | `reorder` | `{entryId, to}` | move within queue |
 | `rename` | `{name}` | update display name |
+| `close` | — | **owner only** (ignored otherwise): broadcast `closed`, disconnect everyone, wipe the room |
 
 **Room → clients**
 
 | msg | payload |
 |---|---|
-| `snapshot` | full state: settings, transport, current, queue, history (bounded), listeners |
+| `snapshot` | full state: settings, transport, current, queue, history (bounded), listeners — plus `owner` (index, always 0: listeners are join-ordered) and `you` (your index; personalized per socket) |
 | `state` | delta broadcast after any mutation (same shape, only changed sections) |
-| `presence` | listener joined/left/renamed |
+| `presence` | listener joined/left/renamed — join-ordered `listeners` + `owner` + `you` (personalized) |
+| `closed` | the owner signed the station off; clients land back at the gate |
 
 Reconnect = new socket + `join` + fresh `snapshot`. No delta replay.
 
@@ -566,8 +585,11 @@ Spotify listeners) is untouched. Auto-continue is purely a queue *producer*.
 ## Open questions (deferred, not blockers)
 
 - **Room directory / discovery**: would need D1 + a public flag. Not v1.
-- **Kick/ban or room reset**: communal trust model punts on this; a room
-  gone wrong can be abandoned for a new code.
+- **Kick/ban**: still punted — the communal trust model stands; a room gone
+  wrong can be abandoned for a new code, or its owner can close it.
+  (Closing + 1 h idle expiry decided 2026-07-14 — see "Ownership &
+  closing"; a queue/history *reset* stays unbuilt on purpose: history is
+  append-only, the play-log philosophy.)
 
 Settled and recorded above so nobody "fixes" them later: no seek (display-
 only progress bar), volume is always local-only, queue exhaustion idles in

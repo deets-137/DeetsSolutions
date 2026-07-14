@@ -2510,11 +2510,17 @@ body::before {
   transform: translateY(-50%) translateX(0.9rem);
 }
 .radio-listener {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
   color: var(--text);
   font-size: var(--fs-nav);
   padding: var(--space-1) var(--space-3);
   white-space: nowrap;
 }
+/* right-aligned arrow pointing at the room's owner */
+.radio-listener__owner { flex: none; color: var(--title); }
 
 /* Focus ring — keyboard users */
 a:focus-visible,
