@@ -1,9 +1,11 @@
 /* DeetsRadio — UI copy (docs/radio.md, "UI text is handwritten").
 
    EVERY user-facing string on the radio page lives in this one flat object;
-   radio.js holds no copy of its own. All values below are Claude-scaffolded
-   PLACEHOLDERS, prefixed "[ph]" — Aditya handwrites each one, deleting the
-   prefix as he goes. Nothing still carrying "[ph]" may ship.
+   radio.js holds no copy of its own. The copy here is Aditya's, handwritten.
+   Claude may ADD a string when wiring up new UI, but every Claude-authored
+   value must be prefixed "[ph]" — a placeholder Aditya rewrites, deleting the
+   prefix as he goes. Claude never edits an un-prefixed (handwritten) value,
+   and nothing still carrying "[ph]" may ship.
 
    {curly} tokens are filled by radio.js (fmt()) — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -14,15 +16,15 @@ window.RADIO_STRINGS = {
   metaIdle:          "Type in the Radio Room Code to tune in to a room (duh).",
 
   /* peek / create gate (below the bar, pre-join) */
-  peekLive:     "[ph] On the air: {title} — {artist} · {n} listening",
-  peekQuiet:    "[ph] The air is quiet right now · {n} listening",
-  joinButton:   "[ph] Tune in",
+  peekLive:     "On the air: {title} — {artist} · {n} listening",
+  peekQuiet:    "Nothing's playing · {n} listening",
+  joinButton:   "Hop in",
   createLine:   "The '{code}' Room doesn't exist yet. Open it?",
   createButton: "Open the Room",
   nameLabel:    "Your Tag",
-  nameNeeded:   "[ph] Pick a name first — the room wants to know who's adding bangers.",
-  joinRefused:  "[ph] That station doesn't exist. Check the code with whoever sent it.",
-  peekFailed:   "[ph] Couldn't reach the station. Try again in a moment.",
+  nameNeeded:   "No randos allowed, enter your name first!",
+  joinRefused:  "Room no longer exists.",
+  peekFailed:   "Couldn't join the radio room. Try again soon!",
 
   /* toolbar pills — these four are handwritten (2026-07-13) */
   listeningPill: "{n} Listeners",
@@ -35,9 +37,9 @@ window.RADIO_STRINGS = {
   acctSignedOut: "Not signed in",
   acctConnected: "Connected",
   acctWorking:   "Working…",
-  previewToggle: "[ph] 30-second previews",
+  previewToggle: "30s previews",
   connectFailed: "Apple log in failed. Try again!",
-  connectUnavailable: "[ph] Full songs aren't wired up on this copy of the site.",
+  connectUnavailable: "Couldn't connect.",
   leavePill:     "Disconnect",
   /* owner-only (creator, then longest-connected): signs the station off
      for everyone and frees the code */
@@ -46,39 +48,39 @@ window.RADIO_STRINGS = {
   roomClosed:    "Closed for the night.",
 
   /* now-playing strip */
-  npIdle:         "[ph] Nothing on the air",
-  npIdleSub:      "[ph] The queue is empty — add something.",
-  npCounting:     "[ph] Up next: {title} — {artist}",
-  catalogGap:     "[ph] This one isn't on your service — it'll pass.",
-  previewEnded:   "[ph] Preview's over — the song plays on for the room.",
-  audioBlocked:   "[ph] Your browser is holding the sound — tap anything to let it out.",
+  npIdle:         "Silence",
+  npIdleSub:      "Queue something to hear something.",
+  npCounting:     "Coming up: {title} by {artist}",
+  catalogGap:     "Not on your service... skipping for you",
+  previewEnded:   "Preview's done. Still continuing for the rest of the room.",
+  audioBlocked:   "Click anywhere to tune back in!",
 
   /* columns */
   colQueue:   "Queue",
   colSearch:  "Search",
   colHistory: "History",
 
-  queueEmpty:  "[ph] Nothing queued. Go find something →",
+  queueEmpty:  "Add something to the queue!",
   queueUpNext: "Up next",
   addedBy:     "{name}",
-  moreQueued:  "[ph] +{n} more",
+  moreQueued:  "+{n} more",
 
   searchPlaceholder: "Search (using the Apple Music Catalog)",
-  searchEmpty:       "[ph] Whatever you find goes in the room's queue.",
+  searchEmpty:       "",
   searchRecent:      "Recents",
-  searchNoResults:   "[ph] Nothing matched “{term}”.",
-  searchBusy:        "[ph] digging…",
-  searchFailed:      "[ph] Search hiccuped — give it another go.",
+  searchNoResults:   "No matches for {term}.",
+  searchBusy:        "Searching...",
+  searchFailed:      "Search errored out, try again!",
   secArtists:        "Artists",
   secSongs:          "Songs",
   secAlbums:         "Albums",
   secPlaylists:      "Playlists",
   paneTopSongs:      "Top Songs",
-  paneLoading:       "[ph] Loading…",
-  paneFailed:        "[ph] Couldn't load that one.",
-  paneEmpty:         "[ph] Nothing playable in there.",
+  paneLoading:       "Loading…",
+  paneFailed:        "Couldn't load this one",
+  paneEmpty:         "Nothing playable present",
 
-  historyEmpty:      "[ph] Nothing has played yet.",
+  historyEmpty:      "Nothing yet",
   historyPreviously: "Previously",
 
   /* row menus */
@@ -91,16 +93,16 @@ window.RADIO_STRINGS = {
   menuGoArtist:   "Go to artist",
 
   /* connection */
-  disconnected: "[ph] Lost the station — reconnecting…",
-  reconnected:  "[ph] Back on the air.",
+  disconnected: "Lost a cable or two, plugging back in...",
+  reconnected:  "Back!",
 
   /* screen-reader labels (aria) — spoken, never seen */
-  ariaTuneIn:    "[ph] Tune in to a station",
-  ariaBack:      "[ph] Previous track",
-  ariaPlayPause: "[ph] Play or pause",
-  ariaSkip:      "[ph] Next track",
-  ariaMore:      "[ph] More actions",
-  ariaPaneBack:  "[ph] Back to results",
+  ariaTuneIn:    "Tune in to a station",
+  ariaBack:      "Previous track",
+  ariaPlayPause: "Play or pause",
+  ariaSkip:      "Next track",
+  ariaMore:      "More actions",
+  ariaPaneBack:  "Back to results",
 
   /* dev / mock era (visible while the mock transport is in play) */
   mockNotice: "Create a Radio Room by typing in a new room code!"

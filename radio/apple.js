@@ -173,6 +173,8 @@
   /* Shared engine state. `view` is what radio.js last showed us:
      { entry, playing, counting, expectedMs } (entry may be null). */
   var note = null;            // "gap" | "preview" | "blocked" | null
+  var gapLoggedId = null;     // last apple id logged as a catalog gap (dedupe)
+  var latestView = null;      // most recent view (async callbacks read live pos)
   var lastCorrection = 0;
   var deadIds = {};           // apple ids MusicKit refused this session
   var previewsOn = true;      // Music Source toggle (radio.js persists it)
@@ -273,8 +275,23 @@
       if (!hasGesture()) { note = "blocked"; return; }
       mkStarting = true;
       mkStartingAt = Date.now();
-      music.play().then(function () { mkStarting = false; },
-                        function () { mkStarting = false; note = "blocked"; });
+      music.play().then(function () {
+        mkStarting = false;
+        /* Fresh starts are born behind: the room clock ran from startedAt
+           while setQueue()/play() spun up, so audio begins already late.
+           Absorb that gap with one resync to the live room position now that
+           playback is real — otherwise the drift loop below limps behind and
+           re-seeks (re-buffering, audibly cutting) every few seconds. A resume
+           doesn't hit this: MusicKit picks up where it paused, already aligned.
+           Guarded so an already-aligned start (fast spin-up) takes no hitch. */
+        if (!latestView || !latestView.playing || latestView.counting) return;
+        if (mkLoadedId !== id) return;
+        var expected = latestView.expectedMs;
+        if (Math.abs(music.currentPlaybackTime * 1000 - expected) > 500) {
+          music.seekToTime(expected / 1000).catch(function () {});
+          lastCorrection = Date.now();       // hold off the drift loop's own seek
+        }
+      }, function () { mkStarting = false; note = "blocked"; });
       return;                                // let it spin up before drift checks
     }
     mkStarting = false;
@@ -325,6 +342,7 @@
 
   function follow(view) {
     note = null;
+    latestView = view;
     var entry = view && view.entry;
     var mode = playable(entry);
     if (mode === "full") { followFull(entry, view); return; }
@@ -334,7 +352,15 @@
     /* a real entry with nothing to play is a catalog gap; the mock
        catalog's silent tracks are just the mock being the mock */
     if (entry && entry.apple && entry.apple.id &&
-        entry.apple.id.indexOf("mock.") !== 0) note = "gap";
+        entry.apple.id.indexOf("mock.") !== 0) {
+      note = "gap";
+      if (gapLoggedId !== entry.apple.id) {   // once per track, not every tick
+        gapLoggedId = entry.apple.id;
+        console.warn("[radio] catalog gap — not playable on this account:", {
+          id: entry.apple.id, title: entry.title, artist: entry.artist
+        });
+      }
+    }
   }
 
   function stop() {

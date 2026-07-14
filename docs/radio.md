@@ -584,6 +584,66 @@ Spotify listeners) is untouched. Auto-continue is purely a queue *producer*.
   `queue.length < 2` at track-advance time), so listeners can see and — by
   removing/reordering — veto what's coming.
 
+## Listener identity & queue permissions (scoping, deferred)
+
+**Motivation.** When the owner reads the listener list they want to tell
+people apart, and — the real goal — grant/revoke *who may edit the queue*
+so a friend can't sabotage it. This is owner-configurable soft moderation.
+It deliberately **revises the flat communal model** recorded above ("no auth
+tiers"; kick/ban punted) — a considered change, not a regression; update
+those notes when this ships.
+
+**Why today's handles can't carry a permission.** A grant has to bind to a
+listener that *stays* that listener. Neither current handle does: the
+display **name** is user-editable (`rename`), so a grant keyed to "Alex"
+breaks the moment Alex renames or a griefer renames *into* "Alex"; the
+**positional index** (`you`, `owner: 0`) shifts on every join/leave. So the
+feature needs real identity underneath.
+
+**Two layers, kept separate:**
+
+- **Human layer — unique display names per room** (decided while scoping,
+  2026-07-14). Enforce uniqueness server-side (the DO) at **join and
+  rename**: if the name is already live in the room, refuse and the client
+  re-prompts for another. This is what lets the owner actually identify who
+  is who — an opaque suffix ("Alex ·a3f") disambiguates for the machine but
+  is meaningless to a human reader. Needs case/whitespace normalization; a
+  reconnecting listener must be able to reclaim its own name (its stale
+  socket may still be lingering — reap-or-replace, don't collide with self).
+- **Lock layer — permissions anchor to a stable per-device token, not the
+  name.** Mint a random token in localStorage, send on `join`. Grants bind
+  to the token: the name is the label the owner reads, the token is what the
+  grant sticks to. This closes the impersonation-on-absence hole — names free
+  up when someone leaves, so a name-keyed grant would let a griefer grab a
+  departed "Alex" and inherit their rights. The token also retro-hardens
+  ownership (owner = the creator's token, not "oldest socket / index 0").
+  The token is a **secret** (it's how you prove you're you) — never broadcast
+  in `presence`; if the wire must reference a listener, the server assigns an
+  opaque room-scoped handle and grants target that.
+
+**Enforcement is server-side, always.** The DO rejects `add` / `remove` /
+`reorder` (and probably `skip` — a prime sabotage vector) from any token
+lacking the capability. Hiding the edit UI client-side is cosmetic; a raw
+socket message must still bounce. Cheap: one check per mutation, no added
+Cloudflare cost (same DO, tokens are a few bytes).
+
+**Owner UI.** A configurable security panel (owner-only) listing current
+listeners with per-listener capability toggles. Copy lands as `[ph]` strings
+in `strings.js`.
+
+**Contract impact.** New `join` field (token) + a rename-collision reject
+reason + possibly a presence handle — mirror verbatim across `transport.js`,
+`transport-mock.js`, and the `../DeetsRadio` worker. Read the worker before
+proposing exact changes.
+
+**Still open (decide before building):**
+- Default posture: *default-open with revoke* (reactive, keeps communal
+  feel) vs a room-level *Open / Curated* toggle (Curated = owner + granted
+  editors only). Leaning toggle so casual rooms don't change.
+- Capability granularity: queue edits only, or transport (skip/pause) too?
+- Scope: proper v1.x design pass (+ docs update) vs a quick owner-revoke
+  prototype first.
+
 ## Limits & costs
 
 - **Spotify dev mode**: ~25 allow-listed users; extended quota realistically
@@ -605,6 +665,14 @@ Spotify listeners) is untouched. Auto-continue is purely a queue *producer*.
   (Closing + 1 h idle expiry decided 2026-07-14 — see "Ownership &
   closing"; a queue/history *reset* stays unbuilt on purpose: history is
   append-only, the play-log philosophy.)
+- **Catalog-gap collection (wanted, not built)**: when a queued track is a
+  real Apple entry that MusicKit still can't play on a listener's account,
+  `apple.js`'s `follow()` marks it a "gap" (the `catalogGap` note) and now
+  `console.warn`s it once per track with `{ id, title, artist }`. We'd like
+  to graduate that from console-only to server-side collection — post the
+  gap to the DeetsRadio worker (a lightweight endpoint, no key budget at
+  stake) so gaps accumulate for later review, to find patterns and shrink
+  how often listeners hit them. Deferred; the client-side log is the stopgap.
 
 Settled and recorded above so nobody "fixes" them later: no seek (display-
 only progress bar), volume is always local-only, queue exhaustion idles in

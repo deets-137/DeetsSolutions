@@ -945,7 +945,7 @@
         wrap.appendChild(chip);
       });
       res.appendChild(wrap);
-    } else {
+    } else if (S.searchEmpty) {
       res.appendChild(el("p", "sotd__empty", S.searchEmpty));
     }
   }
