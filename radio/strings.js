@@ -10,7 +10,7 @@
 window.RADIO_STRINGS = {
   /* bar + meta */
   tuneInPlaceholder: "Radio Room Code",
-  yourStations:      "[ph] Your stations",
+  yourStations:      "Recents",
   metaIdle:          "Type in the Radio Room Code to tune in to a room (duh).",
 
   /* peek / create gate (below the bar, pre-join) */
@@ -88,7 +88,7 @@ window.RADIO_STRINGS = {
   menuMoveBottom: "Move to bottom",
   menuRemove:     "Remove",
   menuAddQueue:   "Add to queue",
-  menuGoArtist:   "[ph] Go to artist",
+  menuGoArtist:   "Go to artist",
 
   /* connection */
   disconnected: "[ph] Lost the station — reconnecting…",

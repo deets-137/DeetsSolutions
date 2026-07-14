@@ -1,15 +1,25 @@
 # DeetsRadio — design (phase 3 built)
 
-**Status (2026-07-13):** all three build phases are in. Rooms run on the
-real transport (`radio/transport.js` → the sibling
-[DeetsRadio](../../DeetsRadio) worker at `radio-api.deets.solutions`, a
-Durable Object per room; deploy with `npx wrangler deploy` there);
-`?mock` on the page URL selects the in-page mock instead, and `?api=<url>`
-(honored on localhost only) points at a local `npx wrangler dev --port 8789`.
-The Apple side is phase 2's: catalog search, `authorize()` behind the Music
-Source pill, and the playback follower (full tracks when connected, 30 s
-previews otherwise). The developer token signs locally — see
+**Status (2026-07-14):** all three build phases are in and the worker is
+**deployed** at `radio-api.deets.solutions`. Rooms run on the real
+transport (`radio/transport.js` → the sibling
+[DeetsRadio](../../DeetsRadio) worker, a Durable Object per room; deploy
+with `npx wrangler deploy` there); `?mock` on the page URL selects the
+in-page mock instead, and `?api=<url>` (honored on localhost only) points
+at a local `npx wrangler dev --port 8789`. The Apple side is phase 2's:
+catalog search, `authorize()` behind the Music Source pill, and the
+playback follower (full tracks when connected, 30 s previews otherwise).
+The developer token signs locally — see
 [The developer token](#the-developer-token).
+
+Day-two hardening (2026-07-14, from live listening): MusicKit's own error
+dialogs are suppressed and the follower is wedge-proof (see "Providers");
+joins are single-shot and peeks sequenced (an impatient double-press or a
+stale peek can't double-join or resurrect the gate); resume-from-pause
+counts down properly (see the transport rules); **ownership, Close Room,
+and the 1 h idle expiry** landed (see "Ownership & closing"). DeetsMusic
+ports beyond the original table: the album/playlist collection menu and
+Go to Artist.
 
 Before ship: handwrite the remaining `[ph]` entries in `radio/strings.js`,
 hand-draw the blank cover sprite, and tune sync feel (drift thresholds,
@@ -391,15 +401,20 @@ doorway reuses the League tab's combobox idiom wholesale — same `.sotd__bar`
 All user-facing copy lives in **`radio/strings.js`** — one flat object the
 rest of the code imports from; no string literals in components. Aditya
 handwrites every entry; anything Claude scaffolds there carries a `[ph]`
-prefix until replaced and must not ship. Handwritten so far (2026-07-13):
-the four toolbar pills — **{n} Listeners · Invite · Music Source ·
-Disconnect**. Still `[ph]`: tune-in placeholder · Your-stations group
-label · peek/join line · create-confirm line + button · join-refused
-line · Music-Source popover copy · empty-queue hint + "Up next" label ·
-catalog-gap / preview-silence note · added-by / history labels ·
-copy-link toast · disconnected/reconnecting line. (The countdown needs no
-copy — bare digits, and at zero the album cover filling in is the go
-signal. Decided.)
+prefix until replaced and must not ship. Handwritten so far (2026-07-14):
+most of the chrome — the toolbar pills (**{n} Listeners · Invite · Music
+Source · Disconnect**) plus the Close-Room flow (**Close Room · You
+sure? · Closed for the night.**), the Invite toast, the Music-Source
+account block, create-confirm line + button, name label, both
+placeholders, column titles, section labels (Artists/Songs/Albums/
+Playlists), Up next / Previously, the Your-stations group label, and
+every menu item. Still `[ph]` (~23): peek/join lines + Tune-in button ·
+name-needed / join-refused / peek-failed · previews toggle +
+connect-unavailable · NP idle pair · playback notes (catalog gap,
+preview over, audio blocked) · queue empty / +N more · search
+empty/busy/failed/no-results · pane loading/failed/empty · history
+empty · disconnected/reconnected · the six aria labels. (The countdown needs no copy — bare digits, and at zero the
+album cover filling in is the go signal. Decided.)
 
 ### The blank cover is a hand-drawn sprite
 
