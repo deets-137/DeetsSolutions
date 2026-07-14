@@ -280,6 +280,7 @@
         if (e.status === 404) setMeta("No Riot account called " + name + "#" + tag + " — check the spelling?");
         else if (e.status === 403) setMeta("Lookups are limited to a few accounts right now — " + name + "#" + tag + " isn't on the list.");
         else if (e.status === 429) setMeta("Riot's rate limit is breathing hard — try again in a minute.");
+        else if (e.status === 503) setMeta("Riot's locked us out — the stats key needs renewing. Back soon.");
         else setMeta("Couldn't reach the stats service. Try again in a moment.");
       });
   }
@@ -364,7 +365,8 @@
     head.appendChild(el("span", "lol-profile__tag", "#" + p.tagLine));
     head.appendChild(el("span", "song__chip song__chip--soft", "level " + p.summoner.summonerLevel));
     body.appendChild(head);
-    body.appendChild(el("p", "lol-profile__rank", rankLine(p.league)));
+    body.appendChild(el("p", "lol-profile__rank",
+      p.stale ? "Live rank unavailable — showing saved stats below." : rankLine(p.league)));
     var crawl = p.crawl || {};
     var line = crawl.complete
       ? crawl.matchesCrawled + " matches on record"

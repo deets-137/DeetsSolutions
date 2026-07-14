@@ -96,7 +96,7 @@ Routes (all GET, JSON, CORS locked to deets.solutions + localhost):
 
 | Route | Returns |
 |---|---|
-| `/player/:name/:tag` | profile + rank + mastery merged; **enqueues new players** for backfill (open enrollment, soft cap 300). **Temporarily gated by `PLAYER_ALLOWLIST`** (see below) — a non-listed lookup is refused `403` before any Riot call |
+| `/player/:name/:tag` | profile + rank + mastery merged; **enqueues new players** for backfill (open enrollment, soft cap 300). **Temporarily gated by `PLAYER_ALLOWLIST`** (see below) — a non-listed lookup is refused `403` before any Riot call. Degrades + self-heals a stale puuid — see [Resilience](#resilience-degradation--puuid-re-keying) |
 | `/players` | tracked players — feeds the combo box |
 | `/stats/:puuid?queue=&mode=&patch=` | per-champion aggregates from D1, zero Riot calls |
 | `/augments/:puuid?champion=` | Arena augment win% / avg placement |
@@ -122,8 +122,38 @@ The rolling 2-minute sum drives three protections:
    tinted `--go`/`--pause`/`--stop` at 50/80, so friends can see when to
    let the key breathe. The refresh pill self-disables for 30s per click.
 
-Reads degrade rather than fail: a rate-limited top-up falls back to
-D1-only data and the page still renders.
+### Resilience: degradation & PUUID re-keying
+
+Reads degrade rather than fail, and the page never hard-blanks on a Riot
+hiccup:
+
+- **Match top-up** — a rate-limited top-up falls back to D1-only data and
+  the page still renders.
+- **Profile header** — the live header (rank/mastery/level) is the only
+  part of `/player` that needs Riot; `/stats`, `/augments`, `/matches` all
+  serve from D1. So if the header fetch fails for a *known* player,
+  `handlePlayer` degrades to the stored snapshot (`stale: true`, empty
+  rank/mastery) and the D1-backed stats still render — the page shows *"Live
+  rank unavailable — showing saved stats below."* A brand-new player has no
+  row to fall back on, so that case bubbles.
+- **Error codes on the page** — `getJSON` throws with the HTTP status;
+  `loadPlayer` maps `404`→"no such account", `403`→"not on the list"
+  (allowlist), `429`→rate limit, and **`401`/`403` from Riot → `503`** on
+  the worker → "the stats key needs renewing". Everything else is the
+  generic "couldn't reach the stats service".
+
+**PUUID re-keying (key-scoped identifiers).** Riot's encrypted PUUIDs are
+**scoped to the API key** — rotating `RIOT_API_KEY` (dev keys expire every
+24h; a production key doesn't) re-mints every stored puuid, and a `by-puuid`
+call with the old one then `400`s (or `401`s while the old key is also
+expired). `handlePlayer` handles this: on such a failure for a known player
+it re-resolves the riot id via account-v1 under the current key, and if the
+puuid drifted, **`migratePuuid()` re-keys the player's D1 rows old→new**
+(`players.puuid` PK + `participations.puuid`; `matches` is shared by
+`match_id`, untouched) so the persisted history follows, then retries once.
+Net effect: a key swap is self-healing — the first lookup after it migrates
+that player, no match history is orphaned. (This is why the production key
+is preferable: it removes the daily re-scope entirely.)
 
 **Temporary lookup allowlist (`PLAYER_ALLOWLIST`).** A stopgap while the
 free-tier strain is being sorted before publish: a comma-separated,
@@ -131,7 +161,7 @@ case-insensitive list of Riot IDs in `wrangler.jsonc` `vars`. `lookupAllowed`
 is checked in the router *before* `handlePlayer`, so a non-listed `/player`
 lookup is refused `403` (the page says so) and spends **zero** Riot calls and
 enqueues nobody — it caps enrollment, the only path that triggers a full
-backfill crawl. Currently `D33TS#NA1,blobbombs#NA1,Bishop217#NA1,Darkhawk67#NA1`
+backfill crawl. Currently `D33TS#NA1,blobbombs#NA1,Bishop217#NA1,darkhawk67#LOL`
 (the three tracked players + one). **Leave the var empty to restore open
 enrollment** — that's the only change needed to lift the gate. (The puuid
 endpoints `/stats`,`/augments`,`/matches` aren't gated, but a puuid is only
