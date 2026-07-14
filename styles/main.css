@@ -1929,6 +1929,9 @@ body::before {
   justify-items: start;
   padding: var(--space-5) 0;
 }
+/* display:grid would defeat the hidden attribute — an invisible gate must
+   not hold its 150px between the meta line and the room */
+.radio-gate[hidden] { display: none; }
 .radio-gate__line {
   margin: 0;
   font-family: var(--font-title);
