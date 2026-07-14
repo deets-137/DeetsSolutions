@@ -41,9 +41,9 @@ window.RADIO_STRINGS = {
   leavePill:     "Disconnect",
   /* owner-only (creator, then longest-connected): signs the station off
      for everyone and frees the code */
-  closePill:     "[ph] Close Room",
-  closeConfirm:  "[ph] You sure?",
-  roomClosed:    "[ph] The station signed off.",
+  closePill:     "Close Room",
+  closeConfirm:  "You sure?",
+  roomClosed:    "Closed for the night.",
 
   /* now-playing strip */
   npIdle:         "[ph] Nothing on the air",
