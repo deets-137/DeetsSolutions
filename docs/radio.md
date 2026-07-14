@@ -21,10 +21,12 @@ and the 1 h idle expiry** landed (see "Ownership & closing"). DeetsMusic
 ports beyond the original table: the album/playlist collection menu and
 Go to Artist.
 
-Before ship: handwrite the remaining `[ph]` entries in `radio/strings.js`,
-hand-draw the blank cover sprite, and tune sync feel (drift thresholds,
-cover-up timing) against real network latency — the one pass the mock
-could never host.
+Before ship: tune sync feel (drift thresholds, cover-up timing) against
+real network latency — the one pass the mock could never host. **Copy is
+done (2026-07-14):** every `radio/strings.js` entry is handwritten now, no
+`[ph]` values left. The blank cover sprite is still the scaffolded
+placeholder **by choice** — it ships as-is; Aditya polishes it later (a
+deliberate deferral, not a blocker).
 
 Design for the **DeetsRadio** tab (`radio/`, nav label "DeetsRadio"): shared
 listening rooms. Anyone who knows a room's code joins it and hears the same
@@ -349,6 +351,24 @@ idiom, registered as a Task Scheduler job via
 null stub, the page quietly falls back to mock search and silent
 playback.
 
+**Known exposure (deferred hardening, 2026-07-14).** The committed token is
+origin-locked, but Apple enforces that claim via the `Origin` header — which
+browsers force and scripts can forge. So a scraper can lift the shipped
+token, spoof `Origin: deets.solutions`, and spend the key's catalog quota
+until the next re-sign. Accepted for v0.9: the token ships to every visitor
+regardless, rotates ~every 150 days, and the data behind it (catalog search)
+is public. The non-cosmetic fix — **deferred to a future pass, ideally riding
+the v1.0 Spotify-secret work** — is to move catalog search server-side: hold
+the token as a Wrangler *secret* in the worker (never shipped), expose a
+whitelisted `/v1/catalog/…` proxy that sets `Origin` itself, and repoint
+`apple.js`'s single `apiGet` base at it (search, the artist/album/playlist
+drill-ins, and the Go-to-Artist relationship hop all funnel through that one
+helper). Kept client-side for v0.9 **on purpose**: browser→Apple direct costs
+zero worker requests, whereas proxying every debounced search would become the
+dominant (1:1-billed) slice of Cloudflare usage. Search UX is identical either
+way — catalog search runs on the developer token, not any listener's Apple
+login, so the proxy hides the token; it never gates who may search.
+
 ## Page layout
 
 Route: `radio/index.html`. Standard page chrome: site header + nav + Vibe
@@ -401,28 +421,31 @@ doorway reuses the League tab's combobox idiom wholesale — same `.sotd__bar`
 All user-facing copy lives in **`radio/strings.js`** — one flat object the
 rest of the code imports from; no string literals in components. Aditya
 handwrites every entry; anything Claude scaffolds there carries a `[ph]`
-prefix until replaced and must not ship. Handwritten so far (2026-07-14):
-most of the chrome — the toolbar pills (**{n} Listeners · Invite · Music
-Source · Disconnect**) plus the Close-Room flow (**Close Room · You
-sure? · Closed for the night.**), the Invite toast, the Music-Source
-account block, create-confirm line + button, name label, both
-placeholders, column titles, section labels (Artists/Songs/Albums/
-Playlists), Up next / Previously, the Your-stations group label, and
-every menu item. Still `[ph]` (~23): peek/join lines + Tune-in button ·
-name-needed / join-refused / peek-failed · previews toggle +
-connect-unavailable · NP idle pair · playback notes (catalog gap,
-preview over, audio blocked) · queue empty / +N more · search
-empty/busy/failed/no-results · pane loading/failed/empty · history
-empty · disconnected/reconnected · the six aria labels. (The countdown needs no copy — bare digits, and at zero the
-album cover filling in is the go signal. Decided.)
+prefix until replaced and must not ship. **Copy is complete
+(2026-07-14):** every entry is handwritten and no `[ph]` values remain in
+`radio/strings.js`. The last batch to land — peek/join lines + Tune-in
+button, name-needed / join-refused / peek-failed, the previews toggle +
+connect-unavailable, the NP idle pair, playback notes (catalog gap,
+preview over, audio blocked), queue empty / +N more, search
+empty/busy/failed/no-results, pane loading/failed/empty, history empty,
+disconnected/reconnected, and the six aria labels — joined the chrome
+that was already done (toolbar pills, Close-Room flow, Invite toast,
+Music-Source block, create-confirm, name label, column/section labels,
+Up next / Previously, the Your-stations group label, every menu item).
+The only `[ph]` mentions left in the file are in its header comment,
+which documents the convention. (The countdown needs no copy — bare
+digits, and at zero the album cover filling in is the go signal.
+Decided.)
 
 ### The blank cover is a hand-drawn sprite
 
 Any track without artwork (and the idle hero) shows
 **`assets/sprites/radio/cover-blank.svg`** — currently a Claude-scaffolded
-vinyl line-art placeholder that Aditya hand-draws over. Keep the filename
-and path (radio.js and the `.radio-cover-blank` rule point at it);
-neutral-on-transparent so it sits on every theme.
+vinyl line-art placeholder that Aditya hand-draws over. **Shipping as-is
+for now (2026-07-14) — a deliberate deferral, not a blocker;** the hand
+polish comes later. Keep the filename and path (radio.js and the
+`.radio-cover-blank` rule point at it); neutral-on-transparent so it sits
+on every theme.
 
 **In-room**, desktop — three columns under a persistent transport strip:
 
@@ -656,6 +679,17 @@ proposing exact changes.
   CDNs on this page only — a documented carve-out from the site's no-CDN
   rule (both are DRM-touching first-party SDKs; self-hosting is neither
   possible nor licensed).
+- **Abuse guards (worker-side, 2026-07-14).** Two limits keep a griefer or a
+  code-scanner from running up free-tier usage. A **per-socket command cap**
+  (20 inbound messages / 10 s; the counter rides the WebSocket attachment so
+  it survives hibernation with no storage write; overflow is dropped with a
+  single `error:"rate"` as it first trips) — since every command wakes the DO
+  and does a `storage.put` + O(n) broadcast, an unthrottled flood is a
+  wallet/quota DoS. And an **IP-keyed rate limit on `peek`** (30 / 60 s via a
+  Workers rate-limit binding, rejected at the edge before the DO wakes), since
+  peek is unauthenticated and enumerable. A **max-listeners-per-room** cap is
+  the next lever — a command cap bounds one socket, not the number of joiners
+  — and is deferred, not a launch blocker.
 
 ## Open questions (deferred, not blockers)
 
