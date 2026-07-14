@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-13T02:33:31Z",
+  "generated_at": "2026-07-14T02:00:14Z",
   "channel": "song-of-the-day",
-  "count": 323,
+  "count": 324,
   "songs": [
     {
       "post_id": 1,
@@ -7431,6 +7431,29 @@
       "apple_music_url": "https://music.apple.com/us/album/time-and-trust/1709720889?i=1709721386&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/69/ff/be/69ffbe2d-5b84-2600-8442-45172a9adeff/mzaf_11465374340686959835.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/f1/6a/06/f16a0653-ad76-ae9d-5e91-843a0ad33eef/33299.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 1611,
+      "posted_at": "2026-07-13T06:05:28.504000+00:00",
+      "date": "2026-07-13",
+      "day": "Mon",
+      "month": "07_2026",
+      "track_name": "Outline",
+      "artist_name": "gerry",
+      "album": "Outline - Single",
+      "genre": "Pop",
+      "duration": "3:54",
+      "duration_sec": 234,
+      "release_date": "2020-09-30",
+      "release_year": 2020,
+      "age_yrs": 6,
+      "service": "youtube",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://www.youtube.com/watch?v=vYF4eicIMfA&list=RDvYF4eicIMfA&start_radio=1&pp=ygURb3V0bGluZSBsdWN5IHBhcmugBwE%3D",
+      "apple_music_url": "https://music.apple.com/us/album/outline/1529844412?i=1529844415&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/a7/68/6d/a7686d52-aadb-0ebb-13d8-9c59c2a0ece0/mzaf_6844467478024982708.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/c3/86/19/c38619b4-7b4f-885d-9017-e53eca84abd3/859741760021_cover.jpg/600x600bb.jpg"
     }
   ]
 }
