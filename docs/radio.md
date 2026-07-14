@@ -292,6 +292,15 @@ is configured with `suppressErrorDialog`, and the full-track engine never
 overlaps `play()` calls while one is spinning up (overlapping starts were
 the source of MusicKit's "undefined" alert).
 
+**The full-track follower is wedge-proof by construction.** MusicKit's
+`setQueue()`/`play()` promises can hang without ever settling when called
+mid-transition, so: the silence/hold check runs before everything else on
+every tick (a pause always lands, even mid-load), every in-flight latch
+carries a timestamp and expires (a wedged call costs one retry window,
+never the room), queue swaps happen from a stopped player, and a load
+sequence counter keeps a late-settling `setQueue` from clobbering its
+retry.
+
 ### The developer token
 
 Signed locally by `scripts/radio-token.ps1` — pure PowerShell, zero

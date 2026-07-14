@@ -181,10 +181,18 @@
   var audioUrl = null;
   var audioBlocked = false;
 
-  /* full-track engine bookkeeping */
+  /* full-track engine bookkeeping. MusicKit's setQueue()/play() promises
+     can hang without settling when called mid-transition, so every latch
+     carries a timestamp and expires — a wedged call costs one retry
+     window, never the room. */
+  var LOAD_RETRY_MS = 8000;   // setQueue gets this long before we try again
+  var START_RETRY_MS = 5000;  // play() / spin-up gets this long
   var mkLoadedId = null;      // apple id currently in MusicKit's queue
   var mkLoading = false;
+  var mkLoadingAt = 0;
+  var mkSeq = 0;              // orphans a timed-out setQueue that settles late
   var mkStarting = false;     // a play() in flight — never overlap starts
+  var mkStartingAt = 0;
 
   function playable(entry) {
     if (!entry) return "none";
@@ -205,35 +213,52 @@
 
   /* full tracks: chase the view through MusicKit */
   function followFull(entry, view) {
+    var states = window.MusicKit.PlaybackStates;
+    var st = music.playbackState;
+    var mkPlaying = st === states.playing;
+    var hold = view.counting || !view.playing;
+    /* silence is enforced before anything else, every tick — a pause must
+       land even while a queue load is pending or wedged */
+    if (hold && mkPlaying) music.pause();
     var id = entry.apple.id;
     if (mkLoadedId !== id) {
-      if (mkLoading) return;                 // one load at a time
+      if (mkLoading && Date.now() - mkLoadingAt < LOAD_RETRY_MS) return;
       mkLoading = true;
+      mkLoadingAt = Date.now();
+      var seq = ++mkSeq;
       if (!audio.paused) audio.pause();      // hand-off from the preview engine
-      music.setQueue({ songs: [id] }).then(function () {
+      if (!hold && mkPlaying) {              // swap queues from a stopped player
+        try { music.stop(); } catch (e) {}
+      }
+      music.setQueue({ songs: [id], startPlaying: false }).then(function () {
+        if (seq !== mkSeq) return;           // a retried load already superseded this
         mkLoadedId = id;
         mkLoading = false;
       }, function () {
+        if (seq !== mkSeq) return;
         deadIds[id] = true;                  // e.g. NOT_FOUND — fall to preview
         mkLoading = false;
       });
       return;                                // next tick resumes the chase
     }
-    var states = window.MusicKit.PlaybackStates;
-    var st = music.playbackState;
-    var mkPlaying = st === states.playing;
-    if (view.counting || !view.playing) {    // preloaded and waiting is correct
-      if (mkPlaying) music.pause();
+    mkLoading = false;
+    if (hold) {                              // preloaded and waiting is correct
       mkStarting = false;
       return;
     }
     if (!mkPlaying) {
-      /* spin-up takes a beat — one play() call, then let it come around.
-         Overlapping starts were the source of MusicKit's own error alert. */
-      if (st === states.loading || st === states.waiting || st === states.seeking) return;
+      /* one start at a time (overlapping play() calls were the source of
+         MusicKit's own error alert), but bounded — a play() that never
+         settles gets retried after its window */
+      var spinning = st === states.loading || st === states.waiting || st === states.seeking;
+      if (spinning && !mkStarting) { mkStarting = true; mkStartingAt = Date.now(); }
+      if (mkStarting) {
+        if (Date.now() - mkStartingAt < START_RETRY_MS) return;
+        mkStarting = false;                  // wedged — try again
+      }
       if (!hasGesture()) { note = "blocked"; return; }
-      if (mkStarting) return;
       mkStarting = true;
+      mkStartingAt = Date.now();
       music.play().then(function () { mkStarting = false; },
                         function () { mkStarting = false; note = "blocked"; });
       return;                                // let it spin up before drift checks
@@ -303,7 +328,9 @@
     audio.removeAttribute("src");
     audioUrl = null;
     mkLoadedId = null;
+    mkLoading = false;
     mkStarting = false;
+    mkSeq++;                  // orphan any setQueue still settling
     note = null;
   }
 
