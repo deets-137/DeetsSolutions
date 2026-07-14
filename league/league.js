@@ -278,6 +278,7 @@
       .then(function () { renderAll(); pollBudget(); })
       .catch(function (e) {
         if (e.status === 404) setMeta("No Riot account called " + name + "#" + tag + " — check the spelling?");
+        else if (e.status === 403) setMeta("Lookups are limited to a few accounts right now — " + name + "#" + tag + " isn't on the list.");
         else if (e.status === 429) setMeta("Riot's rate limit is breathing hard — try again in a minute.");
         else setMeta("Couldn't reach the stats service. Try again in a moment.");
       });

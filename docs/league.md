@@ -96,7 +96,7 @@ Routes (all GET, JSON, CORS locked to deets.solutions + localhost):
 
 | Route | Returns |
 |---|---|
-| `/player/:name/:tag` | profile + rank + mastery merged; **enqueues new players** for backfill (open enrollment, soft cap 300) |
+| `/player/:name/:tag` | profile + rank + mastery merged; **enqueues new players** for backfill (open enrollment, soft cap 300). **Temporarily gated by `PLAYER_ALLOWLIST`** (see below) — a non-listed lookup is refused `403` before any Riot call |
 | `/players` | tracked players — feeds the combo box |
 | `/stats/:puuid?queue=&mode=&patch=` | per-champion aggregates from D1, zero Riot calls |
 | `/augments/:puuid?champion=` | Arena augment win% / avg placement |
@@ -124,6 +124,18 @@ The rolling 2-minute sum drives three protections:
 
 Reads degrade rather than fail: a rate-limited top-up falls back to
 D1-only data and the page still renders.
+
+**Temporary lookup allowlist (`PLAYER_ALLOWLIST`).** A stopgap while the
+free-tier strain is being sorted before publish: a comma-separated,
+case-insensitive list of Riot IDs in `wrangler.jsonc` `vars`. `lookupAllowed`
+is checked in the router *before* `handlePlayer`, so a non-listed `/player`
+lookup is refused `403` (the page says so) and spends **zero** Riot calls and
+enqueues nobody — it caps enrollment, the only path that triggers a full
+backfill crawl. Currently `D33TS#NA1,blobbombs#NA1,Bishop217#NA1,Darkhawk67#NA1`
+(the three tracked players + one). **Leave the var empty to restore open
+enrollment** — that's the only change needed to lift the gate. (The puuid
+endpoints `/stats`,`/augments`,`/matches` aren't gated, but a puuid is only
+obtainable via a `/player` lookup, so they're not an enrollment vector.)
 
 ## Data model (D1)
 
