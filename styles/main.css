@@ -2050,8 +2050,25 @@ body::before {
   white-space: nowrap;
 }
 .radio-np__note:empty { display: none; }
-/* progress — display-only (no seek, ever: docs/radio.md) */
+/* progress — display-only (no seek, ever: docs/radio.md); mm:ss labels
+   flank the bar — numbers, not affordances */
+.radio-np__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.radio-np__time {
+  flex: none;
+  min-width: 2.2rem;
+  color: var(--subtext);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.radio-np__time--total { text-align: right; }
+.radio-np__time:empty { display: none; }
 .radio-scrub {
+  flex: 1 1 auto;
   height: 5px;
   border-radius: 999px;
   background: var(--surface-hover);
@@ -2082,6 +2099,13 @@ body::before {
 .radio-np__btn:hover { background: var(--surface-hover); transform: var(--hover-lift); }
 .radio-np__btn svg { width: 1.1rem; height: 1.1rem; fill: currentColor; }
 .radio-np__btn--play { width: 2.9rem; height: 2.9rem; }
+/* nothing behind the button = nothing to press (DeetsMusic disabled idiom) */
+.radio-np__btn[disabled] {
+  color: var(--subtext);
+  opacity: 0.45;
+  cursor: default;
+}
+.radio-np__btn[disabled]:hover { background: var(--surface); transform: none; }
 
 /* Columns — Queue · Search · History. Desktop: three across.
    Mobile (≤ 41rem, the site breakpoint): tabs swap one at a time. */

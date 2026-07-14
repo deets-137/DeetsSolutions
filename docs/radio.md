@@ -1,13 +1,20 @@
-# DeetsRadio — design (phase 2 built)
+# DeetsRadio — design (phase 3 built)
 
-**Status (2026-07-13):** phase 2 of the build order is in — real MusicKit
-(`radio/apple.js`): Apple catalog search, `authorize()` behind the Music
-Source pill, and a playback follower (full tracks when connected, 30 s
-previews otherwise), with rooms still on the mock transport
-(`radio/transport-mock.js`). The developer token signs locally — see
-[The developer token](#the-developer-token). Copy in `radio/strings.js`
-is being handwritten (entries still carrying `[ph]` are placeholders).
-Next: phase 3 (Worker + DO).
+**Status (2026-07-13):** all three build phases are in. Rooms run on the
+real transport (`radio/transport.js` → the sibling
+[DeetsRadio](../../DeetsRadio) worker at `radio-api.deets.solutions`, a
+Durable Object per room; deploy with `npx wrangler deploy` there);
+`?mock` on the page URL selects the in-page mock instead, and `?api=<url>`
+(honored on localhost only) points at a local `npx wrangler dev --port 8789`.
+The Apple side is phase 2's: catalog search, `authorize()` behind the Music
+Source pill, and the playback follower (full tracks when connected, 30 s
+previews otherwise). The developer token signs locally — see
+[The developer token](#the-developer-token).
+
+Before ship: handwrite the remaining `[ph]` entries in `radio/strings.js`,
+hand-draw the blank cover sprite, and tune sync feel (drift thresholds,
+cover-up timing) against real network latency — the one pass the mock
+could never host.
 
 Design for the **DeetsRadio** tab (`radio/`, nav label "DeetsRadio"): shared
 listening rooms. Anyone who knows a room's code joins it and hears the same
@@ -102,14 +109,22 @@ the sync. `startedAt > serverNow` ⇒ the room is in its counting state.
 Transport rules:
 
 - **play** (resume from pause): `startedAt = now + LEAD − pausedPosition`;
-  broadcast; alarm at `startedAt + durationMs`. Countdown shows.
+  broadcast; alarm at `startedAt + durationMs`. Countdown shows —
+  `pausedPosition` **stays set through the lead** (cleared only by the next
+  advance), so clients read the scheduled boundary as
+  `startedAt + pausedPosition`, hold position frozen while the digits run,
+  and the room clock never rewinds. Generally: *counting* ⇔
+  `playing && startedAt + (pausedPosition ?? 0) > serverNow` (a fresh start
+  has no `pausedPosition`, reducing to `startedAt > serverNow`).
 - **play** (from idle, queue non-empty) / **skip** / **back**: current ↔
   history shuffle as appropriate (skip: current → history, next up becomes
   current; back: newest history entry → current, current returns to the
   *front* of the queue), then `startedAt = now + LEAD`; alarm reset.
   Countdown shows.
-- **pause**: store `pausedPosition = max(0, now − startedAt)` (a pause
-  mid-countdown cancels to paused-at-zero); cancel alarm; broadcast.
+- **pause**: store `pausedPosition = max(0, now − startedAt)` — unless the
+  room is mid-countdown, which cancels back to wherever the count started
+  from (zero for a fresh start, the old `pausedPosition` for a resume);
+  cancel alarm; broadcast.
 - **track end** (alarm): same queue shuffle as skip but **seamless** —
   `startedAt = ` the previous track's exact end. The boundary is known in
   advance, so clients preload the next track against it and roll straight
@@ -235,7 +250,11 @@ cross-catalog work):
 In v0.9 every entry is minted with `spotify: null` and `match: "single"`;
 the stored `isrc` is what lets a v1.0 Worker backfill Spotify IDs lazily
 (resolve-on-first-sight for any entry it encounters with an ISRC and no
-`spotify` block).
+`spotify` block). **v0.9 ships without `POST /resolve` at all** — there is
+no other catalog to match yet, so the adder's client sends the Apple
+search result as the entry and the room's `sanitizeEntry()` rebuilds it
+field-by-field (whitelist, length caps, https-only URLs, sane duration).
+The endpoint arrives with the Spotify flag.
 
 **Resolution flow** (Worker `POST /resolve`): adder's client sends the track
 it picked from search (either provider) → Worker looks up the *other* catalog
@@ -441,9 +460,26 @@ mock stays in the repo as a dev tool (query-flag selected), not a throwaway.
    against the room clock at the §Sync-details thresholds. Entries with
    no playable asset sit silent with a note; mock-catalog entries stay
    silent without one. A genuinely working *solo* DeetsRadio.
-3. **Worker + DO** — rooms, hibernating WebSockets, alarms, peek, resolve;
-   swap the transport adapter; then the sync-feel pass (drift thresholds,
-   command-latency cover-up timing) tuned against real network latency.
+3. ✅ **Worker + DO** (built 2026-07-13) — the sibling
+   [DeetsRadio](../../DeetsRadio) repo: one plain-JS ES-module worker,
+   `RadioRoom` DO per room (SQLite-backed, free tier). Hibernatable
+   WebSockets (`ping`/`pong` auto-answered without waking the object),
+   storage-alarm track advancement (an empty durable room keeps playing;
+   a slept-through backlog of short tracks catches itself up one alarm at
+   a time), `GET /room/{code}/peek`, and the join/create refusal that
+   makes ghost rooms impossible. The DO ports the mock's `COMMANDS`
+   verbatim and never trusts a client blob — `sanitizeEntry()` rebuilds
+   every add (field whitelist, length caps, https-only URLs, 1 s–2 h
+   duration), queue capped at 200, messages at 16 KB. Write-lean by
+   design: one batched `storage.put` per mutation, presence broadcasts
+   persist nothing, history rides DO SQLite rows (500 would outgrow the
+   128 KB per-value cap). Client side, `radio/transport.js` owns
+   reconnect (backoff + rejoin with `create:false`, surfaced as
+   `conn.onStatus("down"|"up")` → the disconnected/reconnected meta
+   copy) and `v`-gap detection (a skipped state version forces a
+   reconnect; the fresh snapshot repairs the model). Still owed: the
+   sync-feel pass (drift thresholds, command-latency cover-up timing)
+   tuned against real network latency — don't tune it on the mock.
 
 Caveat, on purpose: **don't polish sync feel against the mock** — it's
 zero-latency and will make cover-up timings feel wrong. That pass belongs

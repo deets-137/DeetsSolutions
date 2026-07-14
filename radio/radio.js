@@ -190,15 +190,20 @@
     var d = serverNow - Date.now();
     clockOffset = joined ? clockOffset * 0.7 + d * 0.3 : d;
   }
+  /* A scheduled start counts down until startedAt + pausedPosition (a
+     resume keeps pausedPosition set through the lead; a fresh start has
+     none, so it reduces to startedAt). Position holds frozen while the
+     digits run — the room clock never rewinds. */
   function position() {
     if (!model || !model.current) return 0;
     var t = model.transport;
-    if (!t.playing) return t.pausedPosition || 0;
+    if (!t.playing || counting()) return t.pausedPosition || 0;
     return Math.max(0, roomNow() - t.startedAt);
   }
   function counting() {
-    return !!(model && model.current && model.transport.playing &&
-              model.transport.startedAt > roomNow());
+    if (!model || !model.current || !model.transport.playing) return false;
+    var t = model.transport;
+    return t.startedAt + (t.pausedPosition || 0) > roomNow();
   }
 
   /* ── bar combobox: the title IS the station field ─────────────── */
@@ -310,6 +315,12 @@
       roomCode = code;
       joined = true;
       conn.onMessage(onMessage);
+      /* the real transport reports drops + rejoins; the mock has no wire */
+      if (conn.onStatus) conn.onStatus(function (s) {
+        if (!joined) return;
+        if (s === "down") setMeta(S.disconnected);
+        else toast(S.reconnected, "");
+      });
       rememberStation(code);
       try { history.replaceState(null, "", "#" + code); } catch (e) {}
     }).catch(function (err) {
@@ -322,11 +333,13 @@
     conn = null;
     model = null;
     joined = false;
+    inRoom = false;
     roomCode = null;
     ROOM.hidden = true;
     GATE.hidden = true;
     buildToolbar();
     setMeta(metaIdle());
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
   }
 
   /* ── wire in ──────────────────────────────────────────────────── */
@@ -471,7 +484,12 @@
 
   /* ── room UI shell ────────────────────────────────────────────── */
   var activeCol = "queue";
+  var inRoom = false;
   function enterRoomUI() {
+    /* a reconnect snapshot repairs the model; the shell (toolbar, search
+       state, focus) stays exactly where the listener left it */
+    if (inRoom) return;
+    inRoom = true;
     GATE.hidden = true;
     ROOM.hidden = false;
     QUEUE_TITLE.textContent = S.colQueue;
@@ -528,12 +546,20 @@
     var meta = el("div", "radio-np__meta");
     meta.appendChild(title);
     meta.appendChild(artist);
+    /* display-only progress row: elapsed · bar · canonical duration
+       (times are numbers, not affordances — there is no seek) */
+    var prog = el("div", "radio-np__progress");
+    var elapsed = el("span", "radio-np__time");
     var scrub = el("div", "radio-scrub");
     var fill = el("div", "radio-scrub__fill");
     scrub.appendChild(fill);
+    var total = el("span", "radio-np__time radio-np__time--total");
+    prog.appendChild(elapsed);
+    prog.appendChild(scrub);
+    prog.appendChild(total);
     var note = el("span", "radio-np__note");   // playback notes (preview over,
     center.appendChild(meta);                  // catalog gap) — see tick()
-    center.appendChild(scrub);
+    center.appendChild(prog);
     center.appendChild(note);
     var controls = el("div", "radio-np__controls");
     var mk = function (svg, label, onClick) {
@@ -545,17 +571,22 @@
       controls.appendChild(b);
       return b;
     };
-    var back = mk(ICON_BACK, "back", function () { send("back"); });
-    var play = mk(ICON_PLAY, "play-pause", function () {
+    var back = mk(ICON_BACK, S.ariaBack, function () { send("back"); });
+    var play = mk(ICON_PLAY, S.ariaPlayPause, function () {
       send(model && model.transport.playing ? "pause" : "play");
     });
     play.classList.add("radio-np__btn--play");
-    var next = mk(ICON_NEXT, "skip", function () { send("skip"); });
+    var next = mk(ICON_NEXT, S.ariaSkip, function () { send("skip"); });
     NP.appendChild(art);
     NP.appendChild(center);
     NP.appendChild(controls);
     npNodes = { art: art, img: img, count: count, title: title, artist: artist,
-                fill: fill, note: note, play: play, back: back, next: next };
+                fill: fill, note: note, play: play, back: back, next: next,
+                elapsed: elapsed, total: total };
+  }
+  function mmss(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   }
   function renderNP() {
     if (!npNodes) buildNP();
@@ -563,12 +594,20 @@
     var cur = model.current;
     var t = model.transport;
     NP.classList.toggle("radio-np--idle", !cur);
+    /* DeetsMusic's disabled-state handling, communal edition: back needs a
+       history, play/skip need something to play */
+    n.back.disabled = !(model.history && model.history.length);
+    var dead = !cur && !model.queue.length;
+    n.play.disabled = dead;
+    n.next.disabled = dead;
     if (!cur) {
       n.title.textContent = S.npIdle;
       n.artist.textContent = S.npIdleSub;
       n.img.removeAttribute("src");
       NP.classList.remove("radio-np--counting");
       n.fill.style.width = "0%";
+      n.elapsed.textContent = "";
+      n.total.textContent = "";
       n.play.innerHTML = ICON_PLAY;
       return;
     }
@@ -598,17 +637,22 @@
     }
     if (!model.current) return;
     var n = npNodes;
+    n.total.textContent = mmss(model.current.durationMs);
     if (counting()) {
-      var left = model.transport.startedAt - roomNow();
+      var t = model.transport;
+      var left = t.startedAt + (t.pausedPosition || 0) - roomNow();
       var digit = Math.min(3, Math.ceil(left / 1000));
       NP.classList.add("radio-np--counting");
       n.count.textContent = digit > 0 ? String(digit) : "";
-      n.fill.style.width = "0%";
+      var frozen = Math.min(position(), model.current.durationMs);
+      n.fill.style.width = (frozen / model.current.durationMs * 100).toFixed(2) + "%";
+      n.elapsed.textContent = mmss(frozen);
     } else {
       NP.classList.remove("radio-np--counting");
       n.count.textContent = "";
-      var pct = Math.min(100, position() / model.current.durationMs * 100);
-      n.fill.style.width = pct.toFixed(2) + "%";
+      var pos = Math.min(position(), model.current.durationMs);
+      n.fill.style.width = (pos / model.current.durationMs * 100).toFixed(2) + "%";
+      n.elapsed.textContent = mmss(pos);
     }
   }
   setInterval(function () { if (joined && !ROOM.hidden) tick(); }, 200);
@@ -650,7 +694,7 @@
       var kebab = el("button", "radio-row__act", "⋯");
       kebab.type = "button";
       kebab.setAttribute("data-kebab", "");
-      kebab.setAttribute("aria-label", "more");
+      kebab.setAttribute("aria-label", S.ariaMore);
       side.appendChild(kebab);
     }
     li.appendChild(side);
@@ -901,7 +945,7 @@
     var head = el("div", "radio-pane__head");
     var back = el("button", "radio-row__act radio-pane__back", "‹");
     back.type = "button";
-    back.setAttribute("aria-label", "back");
+    back.setAttribute("aria-label", S.ariaPaneBack);
     back.addEventListener("click", function () {
       paneStack.pop();
       repaintSearch();
@@ -1070,6 +1114,7 @@
 
   /* ── boot ─────────────────────────────────────────────────────── */
   BAR_INPUT.placeholder = S.tuneInPlaceholder;
+  BAR_INPUT.setAttribute("aria-label", S.ariaTuneIn);
   setMeta(metaIdle());
   setActiveCol("queue");
   var hashCode = slugify(location.hash.replace(/^#/, ""));
@@ -1077,4 +1122,12 @@
     BAR_INPUT.value = hashCode;
     commitCode(hashCode);
   }
+  /* stations are links, even mid-session: a #code arriving while the page
+     is open (pasted URL, back button) switches rooms like typing it would */
+  window.addEventListener("hashchange", function () {
+    var code = slugify(location.hash.replace(/^#/, ""));
+    if (!code || code === roomCode) return;
+    BAR_INPUT.value = code;
+    commitCode(code);
+  });
 })();

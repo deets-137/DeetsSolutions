@@ -31,6 +31,7 @@
     <script src="./strings.js" defer></script>
     <script src="./dev-token.js" defer></script>
     <script src="./transport-mock.js" defer></script>
+    <script src="./transport.js" defer></script>
     <script src="./apple.js" defer></script>
     <script src="./radio.js" defer></script>
     <script src="../js/walkers.js" defer></script>
@@ -53,18 +54,19 @@
     </header>
 
     <main class="site-main">
-      <!-- DeetsRadio — shared listening rooms (docs/radio.md). Phase 2:
-           rooms still on the mock transport (transport-mock.js), but the
-           Apple side is real (apple.js + dev-token.js): search, auth, and
-           playback. All copy comes from strings.js. Like League, the bar
-           carries a combo box where the journals put an <h1>: the station
-           code IS the title. -->
+      <!-- DeetsRadio — shared listening rooms (docs/radio.md). Phase 3:
+           rooms live on the real transport (transport.js → the ../DeetsRadio
+           worker at radio-api.deets.solutions, a Durable Object per room);
+           ?mock selects the in-page fake instead. The Apple side is real
+           (apple.js + dev-token.js): search, auth, and playback. All copy
+           comes from strings.js. Like League, the bar carries a combo box
+           where the journals put an <h1>: the station code IS the title. -->
       <section class="sotd radio">
         <div class="sotd__bar">
           <div class="tb-ctrl radio-who">
+            <!-- aria-label comes from strings.js (radio.js boot) -->
             <input class="radio-who__input" data-radio-who type="text"
-                   autocomplete="off" spellcheck="false"
-                   aria-label="Tune in to a station" />
+                   autocomplete="off" spellcheck="false" />
             <div class="tb-pop radio-who__pop" data-radio-who-pop hidden></div>
           </div>
           <div class="sotd-toolbar" data-radio-toolbar aria-label="Station controls"></div>

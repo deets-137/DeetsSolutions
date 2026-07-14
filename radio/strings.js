@@ -88,6 +88,14 @@ window.RADIO_STRINGS = {
   disconnected: "[ph] Lost the station — reconnecting…",
   reconnected:  "[ph] Back on the air.",
 
+  /* screen-reader labels (aria) — spoken, never seen */
+  ariaTuneIn:    "[ph] Tune in to a station",
+  ariaBack:      "[ph] Previous track",
+  ariaPlayPause: "[ph] Play or pause",
+  ariaSkip:      "[ph] Next track",
+  ariaMore:      "[ph] More actions",
+  ariaPaneBack:  "[ph] Back to results",
+
   /* dev / mock era (visible while the mock transport is in play) */
   mockNotice: "Create a Radio Room by typing in a new room code!"
 };

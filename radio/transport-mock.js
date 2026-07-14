@@ -149,18 +149,23 @@
       var t = r.transport;
       if (t.playing) return null;
       if (r.current) {                       // resume from pause — countdown
+        /* pausedPosition stays: clients read the countdown lead off
+           startedAt + pausedPosition and hold position frozen through it */
         t.startedAt = now() + LEAD - (t.pausedPosition || 0);
+        t.playing = true;
       } else if (r.queue.length) {           // play from idle — countdown
         advance(r, now() + LEAD);
       } else return null;
-      t.playing = true;
-      t.pausedPosition = null;
       return ["transport", "current", "queue", "history"];
     },
     pause: function (r) {
       var t = r.transport;
       if (!t.playing || !r.current) return null;
-      t.pausedPosition = Math.max(0, now() - t.startedAt);  // mid-countdown → 0
+      /* pause mid-countdown cancels to where it counted from (a fresh
+         start counted from zero, a resume from its pausedPosition) */
+      t.pausedPosition = t.startedAt + (t.pausedPosition || 0) > now()
+        ? (t.pausedPosition || 0)
+        : Math.max(0, now() - t.startedAt);
       t.playing = false;
       t.startedAt = null;
       return ["transport"];

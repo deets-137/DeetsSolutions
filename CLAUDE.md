@@ -39,13 +39,19 @@ protocol, sync design, build phases).
   entry without the prefix or put copy inline in `radio/radio.js`. The
   blank album cover is his hand-drawn sprite at
   `assets/sprites/radio/cover-blank.svg` — keep the path, never redraw it.
-- **The League tab is the one runtime-API page.** Its backend is the
-  sibling [DeetsLeague](../DeetsLeague) repo — a Cloudflare Worker
-  (`api.deets.solutions`, deployed via `npx wrangler deploy`) that proxies
-  Riot behind a 100-req/2-min key. All Riot traffic must flow through the
+- **Two tabs have runtime backends, each a sibling Cloudflare Worker repo
+  deployed with `npx wrangler deploy`.** League:
+  [DeetsLeague](../DeetsLeague) (`api.deets.solutions`) proxies Riot
+  behind a 100-req/2-min key — all Riot traffic must flow through the
   worker's `riotFetch` (call ledger + guardrails); never call Riot or
-  spend key budget from the browser. Champion/augment art comes from Data
-  Dragon / Community Dragon CDNs directly. See [docs/league.md](docs/league.md).
+  spend key budget from the browser; champion/augment art comes from Data
+  Dragon / Community Dragon CDNs directly
+  ([docs/league.md](docs/league.md)). DeetsRadio:
+  [DeetsRadio](../DeetsRadio) (`radio-api.deets.solutions`) holds a
+  Durable Object per listening room; the wire protocol is contract —
+  `radio/transport.js`, the in-page mock (`radio/transport-mock.js`,
+  selected with `?mock`), and the worker must keep speaking it verbatim
+  ([docs/radio.md](docs/radio.md)).
 - **Visual verification is the user's.** After UI changes, make sure the
   page loads cleanly (console, DOM counts), then hand off — Aditya prefers
   to test look-and-feel himself in his own browser at http://localhost:8787
