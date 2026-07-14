@@ -283,6 +283,15 @@ exists only because WebView2 can't open OAuth popups — the browser needs none
 of it. `authorize()` just works. None of the Rust side ports; none of it is
 needed.
 
+**Autoplay is gated on a gesture.** Browsers refuse `play()` until the page
+has been interacted with, and MusicKit surfaces that refusal as its own
+`alert()` — so neither engine even attempts playback before
+`navigator.userActivation` says the page has seen a gesture (a hard refresh
+into a live room lands silent with the "blocked" note until a tap), MusicKit
+is configured with `suppressErrorDialog`, and the full-track engine never
+overlaps `play()` calls while one is spinning up (overlapping starts were
+the source of MusicKit's "undefined" alert).
+
 ### The developer token
 
 Signed locally by `scripts/radio-token.ps1` — pure PowerShell, zero

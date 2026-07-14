@@ -39,7 +39,10 @@
     if (!token || !window.MusicKit) return Promise.reject(new Error("musickit-unavailable"));
     configuring = window.MusicKit.configure({
       developerToken: token,
-      app: { name: "DeetsRadio", build: "0.9" }
+      app: { name: "DeetsRadio", build: "0.9" },
+      /* MusicKit ships its own alert() for playback errors ("undefined",
+         autoplay refusals) — the room narrates those itself via note() */
+      suppressErrorDialog: true
     }).then(function () {
       music = window.MusicKit.getInstance();
       configuring = null;
@@ -160,6 +163,18 @@
   var deadIds = {};           // apple ids MusicKit refused this session
   var previewsOn = true;      // Music Source toggle (radio.js persists it)
 
+  /* Autoplay policy: until the page has seen a user gesture, play() is
+     refused — so the engines don't even try (a hard refresh into a live
+     room lands silent with the "blocked" note until a tap; the 200 ms
+     tick picks playback up on the first gesture). */
+  var activated = false;
+  document.addEventListener("pointerdown", function () { activated = true; }, true);
+  document.addEventListener("keydown", function () { activated = true; }, true);
+  function hasGesture() {
+    if (navigator.userActivation) return navigator.userActivation.hasBeenActive;
+    return activated;
+  }
+
   /* preview engine: one hidden <audio>, reused */
   var audio = new Audio();
   audio.preload = "auto";
@@ -169,6 +184,7 @@
   /* full-track engine bookkeeping */
   var mkLoadedId = null;      // apple id currently in MusicKit's queue
   var mkLoading = false;
+  var mkStarting = false;     // a play() in flight — never overlap starts
 
   function playable(entry) {
     if (!entry) return "none";
@@ -204,15 +220,25 @@
       return;                                // next tick resumes the chase
     }
     var states = window.MusicKit.PlaybackStates;
-    var mkPlaying = music.playbackState === states.playing;
+    var st = music.playbackState;
+    var mkPlaying = st === states.playing;
     if (view.counting || !view.playing) {    // preloaded and waiting is correct
       if (mkPlaying) music.pause();
+      mkStarting = false;
       return;
     }
     if (!mkPlaying) {
-      music.play().catch(function () { note = "blocked"; });
+      /* spin-up takes a beat — one play() call, then let it come around.
+         Overlapping starts were the source of MusicKit's own error alert. */
+      if (st === states.loading || st === states.waiting || st === states.seeking) return;
+      if (!hasGesture()) { note = "blocked"; return; }
+      if (mkStarting) return;
+      mkStarting = true;
+      music.play().then(function () { mkStarting = false; },
+                        function () { mkStarting = false; note = "blocked"; });
       return;                                // let it spin up before drift checks
     }
+    mkStarting = false;
     var localMs = music.currentPlaybackTime * 1000;
     var t = Date.now();
     if (Math.abs(localMs - view.expectedMs) > DRIFT_MS &&
@@ -239,6 +265,7 @@
       return;
     }
     if (audio.paused) {
+      if (!hasGesture()) { note = "blocked"; return; }
       audio.currentTime = view.expectedMs / 1000;
       var p = audio.play();
       if (p && p.then) p.then(function () {
@@ -276,6 +303,7 @@
     audio.removeAttribute("src");
     audioUrl = null;
     mkLoadedId = null;
+    mkStarting = false;
     note = null;
   }
 

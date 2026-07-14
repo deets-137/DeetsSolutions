@@ -183,6 +183,8 @@
   var clockOffset = 0;      // serverNow − Date.now(), rolling
   var roomCode = null;
   var joined = false;
+  var joining = false;      // a connect in flight — joins are single-shot
+  var peekSeq = 0;          // only the newest peek may render the gate
   var pills = {};           // toolbar pill entries by name
 
   function roomNow() { return Date.now() + clockOffset; }
@@ -249,16 +251,23 @@
     closePop();
     BAR_INPUT.value = code;
     BAR_INPUT.setAttribute("data-slug", "");
-    if (joined && code === roomCode) return;
+    if (joining || (joined && code === roomCode)) return;
     if (joined) leaveRoom();
+    var seq = ++peekSeq;
     T.peek(code).then(function (p) {
+      /* joins orphan in-flight peeks: a slow response must never render a
+         stale gate over a room we've since entered */
+      if (seq !== peekSeq || joining || joined) return;
       /* Returning listener: once a name is saved, existing stations join
          instantly — the gate only appears for create-confirm (always, so a
          typo never mints a room) or when we don't know who you are yet. */
       var stored = String(load(NAME_KEY, "")).trim();
       if (p.exists && stored) { joinRoom(code, stored, false); return; }
       renderGate(code, p);
-    }).catch(function () { setMeta(S.peekFailed); });
+    }).catch(function () {
+      if (seq !== peekSeq || joining || joined) return;
+      setMeta(S.peekFailed);
+    });
   }
   function nameField() {
     var wrap = el("label", "radio-gate__name");
@@ -298,7 +307,10 @@
       var who = name ? name.input.value.trim() : stored;
       if (!who) { toast(S.nameNeeded, ""); if (name) name.input.focus(); return; }
       save(NAME_KEY, who);
-      joinRoom(code, who, !p.exists);
+      go.disabled = true;     // one press, one join; re-armed if it fails
+      joinRoom(code, who, !p.exists).then(function () {
+        if (!joined) go.disabled = false;
+      });
     });
     form.appendChild(go);
     GATE.appendChild(form);
@@ -310,7 +322,13 @@
 
   /* ── join / leave ─────────────────────────────────────────────── */
   function joinRoom(code, who, create) {
-    T.connect(code, { name: who, create: !!create }).then(function (c) {
+    /* single-shot: an impatient second press while the handshake is in
+       flight must not open a second socket (each one counts as a listener) */
+    if (joining || (joined && code === roomCode)) return Promise.resolve();
+    joining = true;
+    peekSeq++;               // orphan any peek still in the air
+    return T.connect(code, { name: who, create: !!create }).then(function (c) {
+      joining = false;
       conn = c;
       roomCode = code;
       joined = true;
@@ -324,6 +342,7 @@
       rememberStation(code);
       try { history.replaceState(null, "", "#" + code); } catch (e) {}
     }).catch(function (err) {
+      joining = false;
       setMeta(err && err.code === "no-room" ? S.joinRefused : S.peekFailed);
     });
   }
@@ -499,11 +518,12 @@
     buildTabs();
     buildSearch();
     setMeta("");
+    /* fresh-station empty state: land on search, ready to type — the queue
+       column already says it's empty, the meta line stays quiet */
     if (!model.current && !model.queue.length) {
       setActiveCol("search");
       var inp = SEARCH_BODY.querySelector("input");
       if (inp) inp.focus();
-      setMeta(S.queueEmpty);
     }
   }
   function buildTabs() {
