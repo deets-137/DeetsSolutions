@@ -599,25 +599,27 @@
     });
   }
 
-  // Full scoreboard from the raw match blob (KV-cached on the worker).
-  // Arena groups duos by placement; SR shows the two teams.
+  // Full scoreboard, served from D1 by the worker (no Riot call). Arena groups
+  // by subteam ordered by placement; other modes split into the two sides by
+  // win. Matches ingested before names were stored self-heal server-side on
+  // first open.
   function fillBoard(board, matchId) {
     board.appendChild(el("p", "sotd__empty", "Loading scoreboard…"));
-    getJSON("/match/" + matchId).then(function (match) {
+    getJSON("/scoreboard/" + matchId).then(function (data) {
       board.textContent = "";
-      var info = match.info;
+      var arena = data.gameMode === "CHERRY";
       var groups = {};
-      info.participants.forEach(function (p) {
-        var key = info.gameMode === "CHERRY" ? "sub" + p.playerSubteamId : "team" + p.teamId;
+      data.participants.forEach(function (p) {
+        var key = arena ? "sub" + p.subteamId : "team" + p.win;
         (groups[key] = groups[key] || []).push(p);
       });
       var keys = Object.keys(groups).sort(function (a, b) {
         var pa = groups[a][0], pb = groups[b][0];
-        return info.gameMode === "CHERRY" ? pa.placement - pb.placement : pa.teamId - pb.teamId;
+        return arena ? pa.placement - pb.placement : pb.win - pa.win;
       });
       // Arena reads as a bracket: top half of the lobby on row one, bottom
       // half on row two (#1–3 / #4–6 for trios, #1–4 / #5–8 for duos).
-      if (info.gameMode === "CHERRY") {
+      if (arena) {
         board.classList.add("lol-board--arena");   // CSS drops the dmg column
         board.style.gridTemplateColumns =
           "repeat(" + Math.ceil(keys.length / 2) + ", minmax(0, 1fr))";
@@ -625,17 +627,15 @@
       keys.forEach(function (key) {
         var g = groups[key];
         var section = el("div", "lol-board__team");
-        var title = info.gameMode === "CHERRY"
-          ? "#" + g[0].placement
-          : (g[0].win ? "Victory" : "Defeat");
+        var title = arena ? "#" + g[0].placement : (g[0].win ? "Victory" : "Defeat");
         var t = el("div", "lol-board__title", title);
         t.classList.add(g[0].win ? "is-win" : "is-loss");
         section.appendChild(t);
         g.forEach(function (p) {
           var line = el("div", "lol-board__player");
           line.appendChild(champImg(p.championId, 22));
-          line.appendChild(el("span", "lol-board__name", p.riotIdGameName || p.summonerName || "—"));
-          line.appendChild(el("span", "lol-board__dmg", kFmt(p.totalDamageDealtToChampions) + " dmg"));
+          line.appendChild(el("span", "lol-board__name", p.name || "—"));
+          line.appendChild(el("span", "lol-board__dmg", kFmt(p.damage) + " dmg"));
           line.appendChild(el("span", "lol-board__kda", p.kills + "/" + p.deaths + "/" + p.assists));
           section.appendChild(line);
         });

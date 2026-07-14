@@ -57,13 +57,37 @@ stores platform per person; v1 defaults everyone to `na1`.
 Timelines are never crawled — fetched lazily only if a view ever needs
 one, cached 7 days in KV.
 
+### Free-tier ceilings (reset 00:00 UTC)
+
+The whole backend runs on Cloudflare's free plan, so these are the hard
+walls, in the order we bump into them:
+
+| Resource | Free limit | What spends it |
+|---|---|---|
+| **D1 rows written / day** | **100,000** | `ingestMatch` — the real constraint (see below) |
+| KV writes / day | 1,000 | `profile:`/`tl:` puts (was raw blobs — that's what we hit) |
+| D1 rows read / day | 5,000,000 | stats/aggregates, the crawler's known-checks, `/budget` polls |
+| D1 storage | 5 GB total | all tables + indexes |
+| Worker external subrequests / invocation | 50 | Riot `fetch`es → **implicitly caps `CRAWL_BUDGET` at ~48** |
+| Worker subrequests to CF services / invocation | 1,000 | D1/KV calls (plenty of headroom) |
+| Worker requests / day | 100,000 | every fetch + every cron tick |
+
+D1 counts index maintenance as extra writes: a `participations` insert
+touches two indexes (`+2`), a `matches` insert one (`+1`). A Classic match
+costs ~32 write-units. Arena *used* to cost ~215 because each pick was its
+own `participation_augments` row (`~80/match`, ~80 % of all writes); those
+now ride the participation row as a JSON `augments` column, so an Arena
+match is ~56 — the packing cut a full-DB rebuild ~93k → ~38k write-units.
+Backfill writes, not the Riot key, still gate how many players we can
+track. `/budget` reports `kvWrites`; a D1 gauge is a to-do.
+
 ## Worker architecture
 
 ```
 browser ──> api.deets.solutions (CF Worker, secret: RIOT_API_KEY)
-              ├─ D1: players/queue, matches, participations, augments, rate ledger
-              ├─ KV: raw match JSON (30d TTL), profile snapshots (10 min)
-              ├─ cron (*/5): budgeted, yielding backfill crawler
+              ├─ D1: players/queue, matches, participations, augments, rate + KV-write ledgers
+              ├─ KV: profile snapshots (10 min), timelines (7d, lazy)
+              ├─ cron (*/30): budgeted backfill crawler, no-op when queue empty
               └──> na1 / americas .api.riotgames.com
 browser ──> ddragon.leagueoflegends.com + communitydragon.org (art, direct)
 ```
@@ -76,10 +100,11 @@ Routes (all GET, JSON, CORS locked to deets.solutions + localhost):
 | `/players` | tracked players — feeds the combo box |
 | `/stats/:puuid?queue=&mode=&patch=` | per-champion aggregates from D1, zero Riot calls |
 | `/augments/:puuid?champion=` | Arena augment win% / avg placement |
-| `/matches/:puuid?count=&champion=` | recent matches from D1 (all-time when champion-filtered); newest 3 topped up live (≤4 calls) |
-| `/match/:id` | raw match JSON, KV-first |
+| `/matches/:puuid?count=&champion=` | recent matches from D1 (all-time when champion-filtered); on visit, tops up everything since the last visit (pages until a known game, capped at `TOPUP_MAX`) |
+| `/match/:id` | raw match JSON, re-fetched live from Riot + ingested to D1 (not cached); debug/self-heal path, off the hot path |
+| `/scoreboard/:id` | full scoreboard from D1 — no Riot call; self-heals pre-name matches once on first open |
 | `/timeline/:id` | raw timeline JSON, KV-first, lazy |
-| `/budget` | `{used, live, limit, backfilling}` — the shared-budget readout |
+| `/budget` | `{used, live, limit, backfilling, kvWrites, kvWriteLimit}` — the shared-budget readout |
 
 ## Rate-limit guardrails
 
@@ -107,24 +132,46 @@ live`, `backfill_cursor`, `matches_crawled`, `crawl_complete`),
 `matches` (queue, mode, patch, duration, `is_remake` — remakes are stored
 but excluded from every aggregate), `participations` (one row per
 participant per match — all 10/16/18, which is what makes duo/"games with
-friends" queries possible), `participation_augments` (Arena only, one row
-per augment picked). Arena rows carry `placement`/`subteam_id`; `win` is
-stored exactly as Riot reports it (in Arena it means "top half" and Riot
-knows each format's cutoff — never derive it from placement). Full DDL in
+friends" queries *and* the D1-served scoreboard possible, and is why a
+newly-added friend's shared games light up with no re-fetch). Each row
+carries the participant's `riot_id_game_name` (for the scoreboard) and, on
+Arena, an `augments` JSON array (packed in-row — no side table). Arena rows
+carry `placement`/`subteam_id`; `win` is stored exactly as Riot reports it
+(in Arena it means "top half" and Riot knows each format's cutoff — never
+derive it from placement). Full DDL in
 [DeetsLeague/schema.sql](../../DeetsLeague/schema.sql).
 
-**Not in D1**: raw match JSON (KV, re-fetchable forever by ID — a cache,
-not an archive), timelines, mastery and rank (live calls, short TTL).
+**Not in D1**: raw match JSON (never persisted — the normalized rows hold
+everything every endpoint serves, scoreboard included), timelines and
+profile snapshots (KV, short TTL). The raw blob used to sit in KV too, but
+caching one per crawled match blew the free tier's 1,000-writes/day cap;
+`/budget` now reports `kvWrites` against `kvWriteLimit`.
+
+**Scoreboard self-heal (decaying cost).** `/scoreboard/:id` serves from D1,
+but matches ingested before `riot_id_game_name` existed have no stored
+names. On first open of such a match the worker re-fetches + re-ingests it
+once (writing the names), so every later open is a pure D1 read. No bulk
+re-backfill was run — the cost is one Riot call + one re-ingest per *old*
+match, only when someone actually opens it, and it decays to zero as the
+back catalogue gets viewed. New matches store names from ingest and never
+self-heal.
 
 ## The crawler
 
-Cron every 5 minutes: pick the neediest player (`queued` beats
-`backfilling` beats `live`), page their matchlist backwards from
-`backfill_cursor`, ingest unknown matches (known IDs cost a local lookup,
-not a Riot call), advance the cursor. Resumable by construction; when the
-matchlist runs dry the player flips to `crawl_complete` and only new
-games get picked up. A ~300-game history backfills in a couple of hours;
-steady state is a few calls per player per day.
+Cron every 30 minutes, and **only for first-time backfill**: pick the
+neediest player still in the queue (`queued` beats `backfilling`), page
+their matchlist backwards from `backfill_cursor`, ingest unknown matches
+(known IDs cost a local lookup, not a Riot call), advance the cursor.
+Resumable by construction; when the matchlist runs dry the player flips to
+`crawl_complete`/`live` and the cron ignores them from then on. If nobody
+is mid-backfill the slice no-ops, so an idle site spends nothing.
+
+**Steady state lives on the page, not the cron.** Loading `/matches`
+tops up everything played since the last visit — it pages the matchlist
+newest-first and stops at the first already-ingested game (`TOPUP_MAX`
+caps the catch-up so one lookup stays under the free plan's 50 external
+subrequests). So new games appear when someone actually opens the tab,
+and the backend does no background work when the site is idle.
 
 ## The page (`league/index.html` + `league/league.js`)
 
@@ -162,9 +209,9 @@ all 30 theme×skin combos.
 - **Matches**: one row per game — champ, queue, K/D/A/cs/damage, result
   badge (`W`/`L`, or `#place` in Arena, colored by Riot's win flag via
   `--go`/`--stop`), duration and age. Click toggles the full scoreboard
-  from the raw blob: Rift shows the two teams; **Arena stacks as a
-  bracket** — top half of the lobby on row one, bottom half on row two
-  (#1–3/#4–6 trios, #1–4/#5–8 duos).
+  from `/scoreboard/:id` (served from D1, no Riot call): Rift splits the
+  two sides by win; **Arena stacks as a bracket** — top half of the lobby
+  on row one, bottom half on row two (#1–3/#4–6 trios, #1–4/#5–8 duos).
 
 Champion art falls back to a themed monogram tile (same contract as
 album art). API base is `https://api.deets.solutions`; flip the constant
