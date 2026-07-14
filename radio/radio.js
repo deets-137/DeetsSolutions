@@ -912,13 +912,21 @@
     }
   }
   /* DeetsMusic's search idiom, one-to-one: click a song = Play Now;
-     the menu is Play Now / Play Next / Add to Queue. */
+     the menu is Play Now / Play Next / Add to Queue (+ Go to Artist on
+     real catalog tracks). */
   function songMenu(t) {
-    return [
+    var items = [
       { label: S.menuPlayNow, run: function () { playNow(t); } },
       { label: S.menuPlayNext, run: function () { send("add", { entry: t, at: 0 }); } },
       { label: S.menuAddQueue, run: function () { send("add", { entry: t }); } }
     ];
+    if (canDrillArtist(t.apple && t.apple.id)) {
+      items.push({ label: S.menuGoArtist, run: function () {
+        setActiveCol("search");          // the drill lands in the search column
+        goToArtist("songs", t.apple.id, t.artist);
+      } });
+    }
+    return items;
   }
   function wireOpen(node, run) {
     node.classList.add("radio-row--click");
@@ -969,11 +977,19 @@
     if (menu) bindMenus(d, menu);
     return d;
   }
-  function albumTile(al, sub) {
+  /* withArtist mirrors DeetsMusic: Go to Artist only where the album's
+     artist isn't already on screen (root results, not the artist pane) */
+  function albumTile(al, sub, withArtist) {
     return tile(al.title, sub, al.artworkUrl, false, function () {
       openAlbum(al);
     }, function () {
-      return collectionMenu(function () { return A.albumSongs(al.id); });
+      var items = collectionMenu(function () { return A.albumSongs(al.id); });
+      if (withArtist && canDrillArtist(al.id)) {
+        items.push({ label: S.menuGoArtist, run: function () {
+          goToArtist("albums", al.id, al.artist || "");
+        } });
+      }
+      return items;
     });
   }
   function scroller(mod) {
@@ -1003,12 +1019,14 @@
       repaintSearch();
     });
     head.appendChild(back);
-    head.appendChild(el("span", "radio-pane__title", title));
+    var titleEl = el("span", "radio-pane__title", title);
+    head.appendChild(titleEl);
     res.appendChild(head);
     var body = el("div", "radio-pane__body");
     body.appendChild(el("p", "sotd__empty", S.paneLoading));
     res.appendChild(body);
-    fill(body, function () { return seq === searchSeq; });
+    fill(body, function () { return seq === searchSeq; },
+         function (t) { titleEl.textContent = t; });   // late relabel (go-to drills)
   }
   function pushPane(title, fill) {
     paneStack.push(function () { drawPane(title, fill); });
@@ -1033,6 +1051,33 @@
   }
   function openAlbum(al) {
     pushPane(al.title, songsFill(function () { return A.albumSongs(al.id); }));
+  }
+  /* Go to Artist — DeetsMusic's drillRelated: the pane opens at once on the
+     fallback name (the row's own artist string), the catalog id resolves
+     via one memoized hop, then the pane relabels and fills in place. */
+  function goToArtist(kind, id, fallbackName) {
+    var fillCache = null;                // ‹ back re-draws reuse the fill
+    pushPane(fallbackName, function (body, fresh, setTitle) {
+      A.relatedArtist(kind, id).then(function (a) {
+        if (!fresh()) return;
+        if (!a) {
+          body.textContent = "";
+          body.appendChild(el("p", "sotd__empty", S.paneFailed));
+          return;
+        }
+        setTitle(a.name || fallbackName);
+        fillCache = fillCache || artistFill(a.id);
+        fillCache(body, fresh);
+      }, function () {
+        if (!fresh()) return;
+        body.textContent = "";
+        body.appendChild(el("p", "sotd__empty", S.paneFailed));
+      });
+    });
+  }
+  /* real catalog items only — the mock knows no artists to go to */
+  function canDrillArtist(appleId) {
+    return !!(A && A.hasToken() && appleId && String(appleId).indexOf("mock.") !== 0);
   }
   /* artist pane: Albums scroller first, Top Songs under (DeetsMusic) */
   function artistFill(id) {
@@ -1090,7 +1135,7 @@
       res.appendChild(group(S.secAlbums));
       var alsc = scroller("");
       albums.forEach(function (al) {
-        alsc.appendChild(albumTile(al, al.artist));
+        alsc.appendChild(albumTile(al, al.artist, true));
       });
       res.appendChild(alsc);
     }

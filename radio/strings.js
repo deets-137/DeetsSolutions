@@ -27,7 +27,7 @@ window.RADIO_STRINGS = {
   /* toolbar pills — these four are handwritten (2026-07-13) */
   listeningPill: "{n} Listeners",
   sharePill:     "Invite",
-  shareToast:    "[ph] Link copied — send it to a friend.",
+  shareToast:    "Invite link copied!",
   connectPill:   "Music Source",
   /* account block — anatomy + strings ported from DeetsMusic's login
      button (src/main.ts setAccount / index.html .account), per Aditya */
@@ -67,7 +67,7 @@ window.RADIO_STRINGS = {
   secArtists:        "Artists",
   secSongs:          "Songs",
   secAlbums:         "Albums",
-  secPlaylists:      "[ph] Playlists",
+  secPlaylists:      "Playlists",
   paneTopSongs:      "Top Songs",
   paneLoading:       "[ph] Loading…",
   paneFailed:        "[ph] Couldn't load that one.",
@@ -83,6 +83,7 @@ window.RADIO_STRINGS = {
   menuMoveBottom: "Move to bottom",
   menuRemove:     "Remove",
   menuAddQueue:   "Add to queue",
+  menuGoArtist:   "[ph] Go to artist",
 
   /* connection */
   disconnected: "[ph] Lost the station — reconnecting…",

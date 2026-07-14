@@ -1894,6 +1894,9 @@ body::before {
    ============================================================ */
 /* Station combobox — dressed in the title tokens like League's. */
 .radio-who { min-width: 0; }
+/* The meta line doubles as the toast slot in-room — reserve its one line
+   so copy appearing (Invite toast, reconnect notes) never shifts the page */
+.radio .sotd__meta { min-height: 1.5em; min-height: 1lh; }
 .radio-who__input {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
@@ -2138,9 +2141,11 @@ body::before {
   text-underline-offset: var(--title-underline-offset);
 }
 /* Column bodies scroll on their own (DeetsMusic panels), themed thin
-   scrollbar (same recipe as .vibe__list). Mobile scrolls the page. */
+   scrollbar (same recipe as .vibe__list). Cards are LOCKED at full height
+   (DeetsMusic panel idiom) — a two-song queue owns the same card as a
+   fifty-song one. Mobile scrolls the page instead. */
 .radio-col__body {
-  max-height: 60vh;
+  height: 60vh;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--subtext) transparent;
@@ -2153,7 +2158,7 @@ body::before {
 }
 .radio-col__body::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 @media (max-width: 41rem) {
-  .radio-col__body { max-height: none; overflow-y: visible; }
+  .radio-col__body { height: auto; overflow-y: visible; }
 }
 .radio-tabs { display: none; }
 @media (max-width: 41rem) {

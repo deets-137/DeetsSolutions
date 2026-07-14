@@ -154,6 +154,20 @@
         }).map(mapSong);
       });
   }
+  /* Go-to-Artist hop (DeetsMusic's drillRelated): a song or album knows its
+     artist's NAME but not its catalog id — one relationship call resolves
+     it, session-memoized so a repeat drill costs no Apple call. */
+  var relatedCache = {};
+  function relatedArtist(kind, id) {     // kind: "songs" | "albums"
+    var key = kind + ":" + id;
+    relatedCache[key] = relatedCache[key] ||
+      apiGet("/" + kind + "/" + encodeURIComponent(id) + "/artists")
+        .then(function (json) {
+          var a = (json.data && json.data[0]) || null;
+          return a ? { id: a.id, name: (a.attributes && a.attributes.name) || "" } : null;
+        });
+    return relatedCache[key];
+  }
 
   /* ── playback follower ────────────────────────────────────────── */
   /* Shared engine state. `view` is what radio.js last showed us:
@@ -355,6 +369,7 @@
     artistDetail: artistDetail,
     albumSongs: albumSongs,
     playlistSongs: playlistSongs,
+    relatedArtist: relatedArtist,
     follow: follow,
     note: function () { return note; },
     setPreviews: function (on) { previewsOn = !!on; },
