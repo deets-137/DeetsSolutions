@@ -624,6 +624,9 @@
       n.title.textContent = S.npIdle;
       n.artist.textContent = S.npIdleSub;
       n.img.removeAttribute("src");
+      /* drop has-art too — its opacity rule out-specifies the idle one, and
+         a src-less img left visible renders as a broken-image glyph */
+      NP.classList.remove("radio-np--has-art");
       NP.classList.remove("radio-np--counting");
       n.fill.style.width = "0%";
       n.elapsed.textContent = "";
@@ -815,12 +818,32 @@
       HISTORY_BODY.appendChild(list);
     }
   }
-  /* Play Now — the DeetsMusic idiom, translated to a communal room:
-     put it at the front of the queue and skip to it. When the room is
-     idle, the add alone starts it (skipping would blow past it). */
-  function playNow(entry) {
-    send("add", { entry: entry, at: 0 });
-    if (model && model.current) send("skip");
+  /* Play Now / Play Next / Add to Queue, translated to room sends — for one
+     track or a whole collection. "now"/"next" front-load in order (add at
+     0,1,2… keeps the block together ahead of the old queue), "later"
+     appends; "now" then skips to the front. When the room is idle, the
+     first add alone starts it (skipping would blow past it). */
+  function sendAll(tracks, how) {   // how: "now" | "next" | "later"
+    if (!tracks.length) return;
+    var hadCurrent = model && model.current;
+    tracks.forEach(function (t, i) {
+      send("add", how === "later" ? { entry: t } : { entry: t, at: i });
+    });
+    if (how === "now" && hadCurrent) send("skip");
+  }
+  function playNow(entry) { sendAll([entry], "now"); }
+  /* album / playlist tiles carry the song menu over the whole collection —
+     DeetsMusic's collectionMenu, tracks fetched lazily on pick */
+  function collectionMenu(fetchSongs) {
+    var pick = function (how) {
+      fetchSongs().then(function (tracks) { sendAll(tracks, how); },
+                        function () { toast(S.paneFailed, ""); });
+    };
+    return [
+      { label: S.menuPlayNow, run: function () { pick("now"); } },
+      { label: S.menuPlayNext, run: function () { pick("next"); } },
+      { label: S.menuAddQueue, run: function () { pick("later"); } }
+    ];
   }
   function historyMenu(entry) {
     return [
@@ -929,8 +952,9 @@
     bindMenus(d, function () { return songMenu(t); });
     return d;
   }
-  /* artist / album / playlist tiles — click drills in */
-  function tile(name, sub, artworkUrl, round, onOpen) {
+  /* artist / album / playlist tiles — click drills in; albums and
+     playlists also carry the collection menu on right-click */
+  function tile(name, sub, artworkUrl, round, onOpen, menu) {
     var d = el("div", "radio-tile" + (round ? " radio-tile--artist" : ""));
     var a = el("span", "radio-tile__art");
     var img = el("img", artworkUrl ? "radio-tile__img" : "radio-cover-blank");
@@ -942,7 +966,15 @@
     d.appendChild(el("span", "radio-tile__name", name));
     if (sub) d.appendChild(el("span", "radio-tile__sub", sub));
     wireOpen(d, onOpen);
+    if (menu) bindMenus(d, menu);
     return d;
+  }
+  function albumTile(al, sub) {
+    return tile(al.title, sub, al.artworkUrl, false, function () {
+      openAlbum(al);
+    }, function () {
+      return collectionMenu(function () { return A.albumSongs(al.id); });
+    });
   }
   function scroller(mod) {
     return el("div", "radio-scroller" + (mod ? " radio-scroller--" + mod : ""));
@@ -1014,9 +1046,7 @@
           body.appendChild(group(S.secAlbums));
           var sc = scroller("");
           d.albums.forEach(function (al) {
-            sc.appendChild(tile(al.title, al.year, al.artworkUrl, false, function () {
-              openAlbum(al);
-            }));
+            sc.appendChild(albumTile(al, al.year));
           });
           body.appendChild(sc);
         }
@@ -1060,9 +1090,7 @@
       res.appendChild(group(S.secAlbums));
       var alsc = scroller("");
       albums.forEach(function (al) {
-        alsc.appendChild(tile(al.title, al.artist, al.artworkUrl, false, function () {
-          openAlbum(al);
-        }));
+        alsc.appendChild(albumTile(al, al.artist));
       });
       res.appendChild(alsc);
     }
@@ -1072,6 +1100,8 @@
       sec.playlists.forEach(function (p) {
         psc.appendChild(tile(p.name, p.curator, p.artworkUrl, false, function () {
           pushPane(p.name, songsFill(function () { return A.playlistSongs(p.id); }));
+        }, function () {
+          return collectionMenu(function () { return A.playlistSongs(p.id); });
         }));
       });
       res.appendChild(psc);
