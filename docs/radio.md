@@ -75,17 +75,19 @@ Much of the UX is ported from the sibling **DeetsMusic** desktop app
   Apple half with the Spotify half behind a Worker config flag, and the
   Spotify connect button is hidden behind the same flag. Nothing in the
   protocol or storage changes when Spotify lands.
-- **v1.0 — YouTube, not Spotify (rerouted 2026-07-14; built 2026-07-15,
-  undeployed).** Spotify's Feb-2026 dev-mode rules (5 users, owner needs
-  Premium) shelved that plan — [spotify.md](spotify.md) keeps it as
-  reference. The free full-track tier is YouTube instead:
-  [youtube.md](youtube.md) is the design of record (IFrame player layer,
-  `resolve`/`setVideo`/`setSong` verbs, the match desk, the D1 match
-  registry). `Entry` gained `youtube: {id, durationMs}`; `spotify` stays
-  a stub. Since the YT-first-adds build (2026-07-15) an entry may also be
-  **YouTube-only** (`apple: null`, video thumb as artwork) — minted by
-  pasting a YouTube link into the search box; the engine mux is
-  per-entry, so those play video even for Apple subscribers.
+- **v1.0 — YouTube, not Spotify (rerouted 2026-07-14; SHIPPED
+  2026-07-15, worker 182ef7ab).** Spotify's Feb-2026 dev-mode rules (5
+  users, owner needs Premium) shelved that plan —
+  [spotify.md](spotify.md) keeps it as reference. The free full-track
+  tier is YouTube instead: [youtube.md](youtube.md) documents it
+  (IFrame player layer, `resolve`/`setVideo`/`setSong` verbs, the
+  Match Desk with pending matches, the live D1 match registry, the
+  parked Data API key). `Entry` gained `youtube: {id, durationMs}`;
+  `spotify` stays a stub. An entry may also be **YouTube-only**
+  (`apple: null`, video thumb as artwork) — minted by pasting a
+  YouTube link into the search box while the Data API key is live; the
+  engine mux is per-entry, so those play video even for Apple
+  subscribers.
 - **v1.x — auto-continue** (designed below, built after the resolve pipeline
   is battle-tested).
 
@@ -541,7 +543,7 @@ the bar **parks** (empty + dimmed) instead of rolling, ONE red sticky
 toast stands for as long as the silence lasts (revised from
 once-per-track warn toasts in his copy pass, same day), and the NP note
 names the reason. The bar shows what YOU hear; the room clock is
-untouched. See [youtube.md](youtube.md) build log.*
+untouched. See [youtube.md](youtube.md), "Personal silence".*
 
 ## The site-shell (built 2026-07-14): browse the site while the room plays
 
