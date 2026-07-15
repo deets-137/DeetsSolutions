@@ -68,6 +68,7 @@
   /* account-state sigils — DeetsMusic's login button anatomy (main.ts) */
   var ICON_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var ICON_WAIT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h8M4 14h8M5 2c0 5 6 5 6 12M11 2c0 5-6 5-6 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
   var ICON_SPINNER = '<span class="radio-acct__spinner"></span>';
 
   /* ── tiny helpers ─────────────────────────────────────────────── */
@@ -450,6 +451,8 @@
     if (connToast) { connToast.dismiss(); connToast = null; }
     if (blockedToast) { blockedToast.dismiss(); blockedToast = null; }
     if (silenceToast) { silenceToast.dismiss(); silenceToast = null; }
+    if (pendingToast) { pendingToast.dismiss(); pendingToast = null; }
+    pendingToastN = -1;   // a rejoin re-raises the nudge
     if (A) A.stop();
     if (Y) Y.stop();
     activeEngine = null;
@@ -929,6 +932,7 @@
       var inp = SEARCH_BODY.querySelector("input");
       if (inp) inp.focus();
     }
+    syncPendingToast();   // parked matches survive reloads — nudge on entry
   }
   function buildTabs() {
     TABS.textContent = "";
@@ -1726,8 +1730,8 @@
        clone carries the load-bearing durationMs (the room alarm
        schedules off it). So MATCHED pastes survive keyless; a YT-only
        entry can't exist without a real duration, so an unmatched
-       keyless paste explains itself instead of minting (build log
-       chunk 8). */
+       keyless paste parks at the desk instead of minting
+       (docs/youtube.md, "YouTube-first adds" + "Pending matches"). */
     var lookP = Y ? Y.lookup(id) : Promise.resolve(null);
     lookP.then(function (info) {
       if (seq !== searchSeq) return;
@@ -1767,8 +1771,14 @@
     matchP.then(function (song) {
       if (seq !== searchSeq) return;
       if (keyless && !song) {
+        /* no auto-match and no duration to mint with — park it at the
+           desk (device-local) and let a human link the AM song there
+           (docs/youtube.md, "Pending matches") */
+        addPending({ id: info.id, title: info.title, channel: info.channel });
         res.textContent = "";
-        res.appendChild(el("p", "sotd__empty", S.ytAddNeedsKey));
+        res.appendChild(el("p", "sotd__empty", S.ytAddParked));
+        renderDesk();
+        syncPendingToast();
         return;
       }
       renderYtPane(info, parsed, song);
@@ -1851,6 +1861,47 @@
      applies immediately — no confirm; undo is pasting something else. */
   var deskSel = null;            // selected entryId
   var deskMeta = {};             // videoId → oEmbed title (best-effort cache)
+  /* Pending matches (docs/youtube.md, "Pending matches"): unmatched
+     pastes park HERE — device-local, localStorage-backed, never on the
+     wire — until a human links an AM song (which is just a normal add
+     with the video block riding) or removes them. Oldest fall off past
+     the cap. */
+  var PENDING_KEY = "deets-radio-pending";
+  var PENDING_CAP = 20;
+  var pending = load(PENDING_KEY, []);
+  var pendingSel = null;         // selected pending videoId in the desk list
+  var pendingPick = null;        // {videoId, song} armed, awaiting Confirm
+  var pendingToast = null;       // the sticky nudge (syncPendingToast)
+  var pendingToastN = -1;        // count last toasted — manual dismiss holds
+                                 // the toast down until the count CHANGES
+  function addPending(v) {
+    if (pending.some(function (p) { return p.id === v.id; })) return;
+    pending.push(v);
+    if (pending.length > PENDING_CAP) pending = pending.slice(-PENDING_CAP);
+    save(PENDING_KEY, pending);
+  }
+  function dropPending(id) {
+    pending = pending.filter(function (p) { return p.id !== id; });
+    save(PENDING_KEY, pending);
+    if (pendingSel === id) pendingSel = null;
+    if (pendingPick && pendingPick.videoId === id) pendingPick = null;
+  }
+  function syncPendingToast() {
+    var n = pending.length;
+    if (!inRoom || !n) {
+      if (pendingToast) { pendingToast.dismiss(); pendingToast = null; }
+      if (!n) pendingToastN = -1;
+      return;
+    }
+    if (n === pendingToastN) return;
+    if (pendingToast) pendingToast.dismiss();
+    var msg = n === 1 ? S.pendingToastOne : fmt(S.pendingToast, { n: n });
+    pendingToast = notify("warn", msg, {
+      sticky: true,
+      actions: [{ label: S.toastDismiss, onPick: function () { pendingToast = null; } }]
+    });
+    pendingToastN = n;
+  }
   /* YouTube URLs ONLY — no bare-id fallback: both fields that call this
      are dual-mode now (link = video, words = song search), and any
      11-char word ("temperature") would otherwise read as a video id */
@@ -1859,7 +1910,12 @@
     var m = /(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/.exec(s);
     return m ? m[1] : null;
   }
-  function deskSelect(id) { deskSel = id; renderDesk(); }
+  function deskSelect(id) {
+    deskSel = id;
+    pendingSel = null;
+    pendingPick = null;
+    renderDesk();
+  }
   function renderDesk() {
     if (!DESK || !model) return;
     /* don't rebuild mid-typing — a presence ping would eat the paste */
@@ -1872,19 +1928,58 @@
     DESK.appendChild(head);
     var entries = model.current ? [model.current] : [];
     entries = entries.concat(model.queue || []);
-    if (!entries.length) {
+    if (!entries.length && !pending.length) {
       DESK.appendChild(el("p", "sotd__empty", S.deskEmpty));
       deskSel = null;
+      pendingSel = null;
       return;
     }
-    if (!entries.some(function (e) { return e.entryId === deskSel; })) {
+    if (pendingSel && !pending.some(function (p) { return p.id === pendingSel; })) {
+      pendingSel = null;
+    }
+    if (!entries.length && !pendingSel) pendingSel = pending[0].id;
+    if (entries.length &&
+        !entries.some(function (e) { return e.entryId === deskSel; })) {
       deskSel = entries[0].entryId;
     }
     var cols = el("div", "radio-desk__cols");
     var list = el("div", "radio-desk__list");
+    /* pending matches sit on top — parked pastes waiting for a human to
+       link an AM song; wide video thumbs + the --pause hourglass keep
+       them legible as not-real-entries-yet (his sketch, 2026-07-15) */
+    if (pending.length) {
+      list.appendChild(el("p", "radio-desk__group", S.deskPendingLabel));
+      pending.forEach(function (p) {
+        var isPSel = p.id === pendingSel;
+        var guess = Y ? Y.parseTitle(p.title, p.channel)
+                      : { artist: p.channel, title: p.title };
+        var b = el("button", "radio-desk__row" + (isPSel ? " is-selected" : ""));
+        b.type = "button";
+        var th = el("img", "radio-desk__rowthumb");
+        th.alt = "";
+        th.loading = "lazy";
+        th.src = "https://i.ytimg.com/vi/" + p.id + "/mqdefault.jpg";
+        b.appendChild(th);
+        var ptext = el("span", "radio-row__text");
+        ptext.appendChild(el("span", "radio-row__title", guess.title));
+        ptext.appendChild(el("span", "radio-row__artist", guess.artist));
+        b.appendChild(ptext);
+        var pbadge = el("span", "radio-desk__badge radio-desk__badge--wait");
+        pbadge.innerHTML = ICON_WAIT;
+        pbadge.setAttribute("aria-hidden", "true");
+        b.appendChild(pbadge);
+        b.addEventListener("click", function () {
+          pendingSel = p.id;
+          pendingPick = null;
+          renderDesk();
+        });
+        list.appendChild(b);
+      });
+      if (entries.length) list.appendChild(el("div", "radio-desk__rule"));
+    }
     var sel = null;
     entries.forEach(function (e) {
-      var isSel = e.entryId === deskSel;
+      var isSel = !pendingSel && e.entryId === deskSel;
       if (isSel) sel = e;
       var b = el("button", "radio-desk__row" + (isSel ? " is-selected" : ""));
       b.type = "button";
@@ -1902,7 +1997,111 @@
     });
     cols.appendChild(list);
     var work = el("div", "radio-desk__work");
-    if (sel) {
+    var psel = null;
+    pending.forEach(function (p) { if (p.id === pendingSel) psel = p; });
+    if (psel) {
+      /* pending workbench (his layout from the sketch review): video
+         first, the search UNDER it so results sit adjacent to the box,
+         then Confirm/Remove — picking a result only ARMS the link;
+         Confirm performs it, so a misclick costs nothing */
+      var pthumb = el("img", "radio-desk__thumb");
+      pthumb.alt = "";
+      pthumb.loading = "lazy";
+      pthumb.src = "https://i.ytimg.com/vi/" + psel.id + "/mqdefault.jpg";
+      work.appendChild(pthumb);
+      work.appendChild(el("p", "radio-desk__video", psel.title));
+      var acts = el("div", "radio-desk__acts");
+      if (canQueue()) {
+        var pin = el("input", "radio-desk__input");
+        pin.type = "text";
+        pin.placeholder = S.deskPendingSearch;
+        pin.setAttribute("aria-label", S.deskPendingSearch);
+        var pres = el("div", "radio-desk__results");
+        var pseq = 0;
+        var runPend = function (q) {
+          q = String(q || "").trim();
+          var seq = ++pseq;
+          if (!q || !(A && A.hasToken())) { pres.textContent = ""; return; }
+          A.search(q).then(function (sec) {
+            if (seq !== pseq) return;
+            pres.textContent = "";
+            var songs = (sec.songs || []).slice(0, 5);
+            if (!songs.length) {
+              pres.appendChild(el("p", "sotd__empty", S.deskNoSongs));
+              return;
+            }
+            songs.forEach(function (t) {
+              var b = el("button", "radio-desk__row");
+              b.type = "button";
+              b.appendChild(rowArt(t));
+              var tx = el("span", "radio-row__text");
+              tx.appendChild(el("span", "radio-row__title", t.title));
+              tx.appendChild(el("span", "radio-row__artist", t.artist));
+              b.appendChild(tx);
+              b.addEventListener("click", function () {
+                pendingPick = { videoId: psel.id, song: t };
+                Array.prototype.forEach.call(pres.children, function (c) {
+                  c.classList.remove("is-selected");
+                });
+                b.classList.add("is-selected");
+                renderPick();
+              });
+              pres.appendChild(b);
+            });
+          }).catch(function () {});
+        };
+        var pendTimer = null;
+        pin.addEventListener("input", function () {
+          if (pendTimer) clearTimeout(pendTimer);
+          pendTimer = setTimeout(function () { runPend(pin.value); }, 300);
+        });
+        pin.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") runPend(pin.value);
+        });
+        work.appendChild(pin);
+        work.appendChild(pres);
+        /* the armed pick gets a persistent pane — search results are
+           transient DOM (a broadcast re-render wipes them), and Confirm
+           must never act on something the user can't see */
+        var pickPane = el("div", "radio-desk__song");
+        var renderPick = function () {
+          pickPane.textContent = "";
+          var pk = (pendingPick && pendingPick.videoId === psel.id)
+            ? pendingPick.song : null;
+          pickPane.hidden = !pk;
+          if (!pk) return;
+          pickPane.appendChild(rowArt(pk));
+          var ptx = el("span", "radio-row__text");
+          ptx.appendChild(el("span", "radio-row__title", pk.title));
+          ptx.appendChild(el("span", "radio-row__artist", pk.artist));
+          pickPane.appendChild(ptx);
+        };
+        renderPick();
+        work.appendChild(pickPane);
+        var confirmB = el("button", "radio-desk__act radio-desk__act--go", S.deskPendingConfirm);
+        confirmB.type = "button";
+        confirmB.addEventListener("click", function () {
+          if (!pendingPick || pendingPick.videoId !== psel.id) return;  // nothing armed
+          if (!canQueue()) return;   // cap revoked mid-session: keep the pending
+          var entry = JSON.parse(JSON.stringify(pendingPick.song));
+          entry.youtube = { id: psel.id, durationMs: 0 };  // setVideo's idiom: 0 = unknown
+          sendAll([entry], "later", "manual");
+          dropPending(psel.id);
+          renderDesk();
+          syncPendingToast();
+        });
+        acts.appendChild(confirmB);
+      }
+      var removeB = el("button", "radio-desk__act", S.deskPendingRemove);
+      removeB.type = "button";
+      removeB.addEventListener("click", function () {
+        dropPending(psel.id);
+        renderDesk();
+        syncPendingToast();
+      });
+      acts.appendChild(removeB);
+      work.appendChild(acts);
+    } else if (sel) {
       /* the workbench field, first — always at the top (Aditya,
          2026-07-15) — and DUAL-MODE since YT-first adds (his call,
          2026-07-15): a YouTube link re-pins the video (setVideo, as
@@ -1912,8 +2111,12 @@
       if (canQueue()) {
         var input = el("input", "radio-desk__input");
         input.type = "text";
-        input.placeholder = S.deskPaste;
-        input.setAttribute("aria-label", S.deskPaste);
+        /* still dual-mode — the placeholder just leads with the likelier
+           act: no video yet invites the paste, attached video means the
+           song fix is what's left (his call, 2026-07-15) */
+        var inPh = sel.youtube ? S.deskSearch : S.deskPaste;
+        input.placeholder = inPh;
+        input.setAttribute("aria-label", inPh);
         var status = el("p", "radio-desk__status");
         var results = el("div", "radio-desk__results");
         var miniSeq = 0;

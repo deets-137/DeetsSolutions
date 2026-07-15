@@ -94,16 +94,16 @@ window.RADIO_STRINGS = {
 
   /* YT-first adds (docs/youtube.md, "YouTube-first adds") — pasting a
      YouTube link into the search box: lookup → Apple reverse-match →
-     a one-result add pane. All [ph]. */
-  ytAddBusy:      "[ph]Reading that link…",
-  ytAddMatched:   "[ph]Matched on Apple Music — add away.",
-  ytAddVideoOnly: "[ph]No Apple match — this one rides as video only.",
-  ytAddFailed:    "[ph]Couldn't read that video. Double-check the link?",
+     a one-result add pane. Aditya's copy pass, 2026-07-15. */
+  ytAddBusy:      "Reading that link…",
+  ytAddMatched:   "Matched to an Apple Music song. Click or add to queue as you normally would!",
+  ytAddVideoOnly: "No easy match on Apple Music, match it at the desk below for the future!",
+  ytAddFailed:    "Couldn't find a video at the link, try the share button on YouTube!",
   /* fires as a toast; the entry still adds, just without that video */
-  ytAddNoEmbed:   "[ph]The artist turned off embedding — that exact video can't play here, so it won't ride along.",
-  /* keyless fallback (Data API parked): an unmatched paste can't mint a
-     YT-only entry without a real duration, so it explains instead */
-  ytAddNeedsKey:  "[ph]No Apple match, and video-only adds are off while auto-matching is down.",
+  ytAddNoEmbed:   "The artist turned off embedding so that exact video can't play here.",
+  /* keyless unmatched paste: parked at the desk's pending list — a
+     human links the AM song there and only then can it play */
+  ytAddParked:    "No Apple Music song match, check the Match Desk to link one up.",
 
   historyEmpty:      "Nothing yet",
   historyPreviously: "Previously",
@@ -116,19 +116,34 @@ window.RADIO_STRINGS = {
   menuRemove:     "Remove",
   menuAddQueue:   "Add to queue",
   menuGoArtist:   "Go to artist",
-  menuFixVideo:   "[ph]Fix video",
+  menuFixVideo:   "Fix video",
 
   /* match desk (docs/youtube.md, "The match desk") — songs left, video
      workbench right. The field is dual-mode (2026-07-15): paste a
      YouTube link to re-pin the video, or type to search the Apple
      catalog (songs only) and click a result to re-pin the SONG. */
-  deskTitle:    "[ph]Video desk",
-  deskEmpty:    "[ph]Nothing queued to match.",
-  deskNoVideo:  "[ph]No video attached yet.",
-  deskPaste:    "[ph]Paste a YouTube link, or search to fix the song",
-  deskNoSongs:  "[ph]No songs by that name.",
-  deskSent:     "[ph]Sent — the badge flips when the room takes it.",
-  deskSongSent: "[ph]Song re-pinned — updating for the room.",
+  deskTitle:    "Match Desk",
+  deskEmpty:    "Nothing queued to match.",
+  deskNoVideo:  "No video attached yet.",
+  /* the dual-mode field stays dual-mode; the placeholder just leads
+     with the likelier act (his call, 2026-07-15): no video attached ⇒
+     invite the paste, video attached ⇒ invite the song fix */
+  deskPaste:    "Paste a YouTube link",
+  deskSearch:   "Search Apple Music",
+  deskNoSongs:  "No songs by that name.",
+  deskSent:     "Received!",
+  deskSongSent: "New song attached, updating the room!",
+  /* pending matches (docs/youtube.md, "Pending matches") — parked unmatched
+     pastes pinned atop the desk list. Label, search placeholder, both
+     buttons, and the sticky toast are Aditya's (sketch review,
+     2026-07-15). Picking a result only arms the link; Confirm adds. */
+  deskPendingLabel:   "Waiting to be matched",
+  deskPendingSearch:  "Search in the AM catalog to link",
+  deskPendingConfirm: "Confirm link",
+  deskPendingRemove:  "Remove from queue",
+  pendingToast: "{n} songs waiting to be matched. Check the desk to link them up so they can play!",
+  /* singular, mechanically derived from his plural (2026-07-15) */
+  pendingToastOne: "1 song waiting to be matched. Check the desk to link it up so it can play!",
 
   /* connection */
   disconnected: "Lost a cable or two, plugging back in...",

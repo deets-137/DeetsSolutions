@@ -2086,7 +2086,7 @@ body::before {
   height: 200px;
 }
 .radio-np--video .radio-np__count { font-size: 3rem; }
-/* personal silence (docs/youtube.md build log, 2026-07-15): the room
+/* personal silence (docs/youtube.md, "Personal silence"): the room
    plays but this device hears nothing — the progress row parks empty
    and dims; radio.js zeroes the fill and raises the toast */
 .radio-np--muted .radio-np__progress { opacity: 0.45; }
@@ -2718,7 +2718,9 @@ body::before {
   min-height: 1em;
   margin-top: var(--space-1);
   font-size: 0.8rem;
-  color: var(--stop);
+  /* both remaining messages (Received! / song re-pin ack) are success
+     acks — the --stop styling belonged to the dead bad-link error */
+  color: var(--go);
 }
 /* the dual-mode field's song results (rows reuse .radio-desk__row) */
 .radio-desk__results {
@@ -2737,6 +2739,45 @@ body::before {
   padding: 2px 4px;
 }
 .radio-desk__song--none { opacity: 0.75; }
+/* pending matches (docs/youtube.md, "Pending matches"): parked pastes pinned atop
+   the desk list — wide video thumbs, --pause hourglass badge, and the
+   workbench's two-step Confirm/Remove pair */
+.radio-desk__group {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--subtext);
+}
+.radio-desk__rule {
+  border-top: 1px solid var(--panel-border);
+  margin: var(--space-1) 0;
+}
+.radio-desk__rowthumb {
+  flex: none;
+  width: 2.6rem;
+  height: 1.55rem;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+.radio-desk__badge--wait { color: var(--pause); opacity: 1; }
+.radio-desk__acts {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.radio-desk__act {
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.radio-desk__act:hover { background: var(--surface-hover); }
+.radio-desk__act--go { color: var(--go); }
 @media (max-width: 41rem) {
   .radio-desk__cols { grid-template-columns: minmax(0, 1fr); }
 }

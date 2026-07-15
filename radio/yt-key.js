@@ -6,8 +6,9 @@
    keyless IFrame API and never touches this. While this is null the
    resolver quietly sits out; playback of already-matched entries, the
    match desk (oEmbed is keyless), and MATCHED search-box pastes (the
-   keyless oEmbed fallback, build log chunk 8) still work — only
-   auto-resolve and YT-only adds are down.
+   keyless oEmbed fallback — docs/youtube.md, "YouTube-first adds")
+   still work; unmatched pastes park at the desk ("Pending matches") —
+   only auto-resolve and video-only adds are down.
 
    PARKED FOR LAUNCH (2026-07-15): the quota is one shared 10k-unit/day
    pool across every visitor, and the D1 registry isn't created yet, so
