@@ -346,9 +346,21 @@
     var entry = view && view.entry;
     var mode = playable(entry);
     if (mode === "full") { followFull(entry, view); return; }
-    if (mode === "preview" && !previewsOn) { silence(); return; }  // toggled off — chosen silence, no note
+    if (mode === "preview" && !previewsOn) {
+      /* toggled off — chosen silence, but SAY so (note "off"): a rolling
+         room with a silent device was read as a bug in live testing
+         (2026-07-15) — radio.js toasts it and parks the progress bar */
+      silence();
+      note = "off";
+      return;
+    }
     if (mode === "preview") { followPreview(entry, view); return; }
     silence();
+    /* a YT-only entry landing here (video off, or a dead id) has nothing
+       Apple-side by construction — same silent-device treatment (note
+       "gap": toast + parked bar), but nothing to report: the gap
+       collector keys on Apple ids (docs/youtube.md, YT-first adds) */
+    if (entry && !entry.apple) { note = "gap"; return; }
     /* a real entry with nothing to play is a catalog gap; the mock
        catalog's silent tracks are just the mock being the mock */
     if (entry && entry.apple && entry.apple.id &&

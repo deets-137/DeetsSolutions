@@ -143,7 +143,7 @@
     var c = conn.token && r.caps[conn.token];
     return c ? { queue: c.queue, player: c.player } : modeDefault(r);
   }
-  var QUEUE_VERBS = { add: 1, remove: 1, reorder: 1 };
+  var QUEUE_VERBS = { add: 1, remove: 1, reorder: 1, resolve: 1, setVideo: 1, setSong: 1 };
   var PLAYER_VERBS = { play: 1, pause: 1, skip: 1, back: 1 };
 
   /* ── transport rules (mirror docs/radio.md exactly) ───────────── */
@@ -252,6 +252,51 @@
       r.queue.splice(to, 0, e);
       return ["queue"];
     },
+    /* v1.0 YouTube verbs (docs/youtube.md) — the worker speaks these
+       verbatim; the mock skips only the D1 registry. */
+    resolve: function (r, msg) {
+      var yt = ytBlock(msg.youtube);
+      if (!yt) return null;
+      var hit = findEntry(r, msg.entryId);
+      if (!hit || hit.entry.youtube) return null;  // fill-missing only
+      hit.entry.youtube = yt;
+      return [hit.where];
+    },
+    setVideo: function (r, msg) {                  // overwrite allowed (desk)
+      var yt = ytBlock(msg.youtube);
+      if (!yt) return null;
+      var hit = findEntry(r, msg.entryId);
+      if (!hit) return null;
+      hit.entry.youtube = yt;
+      return [hit.where];
+    },
+    /* the desk's AM re-pin (docs/youtube.md, YT-first adds): swap the
+       entry's Apple identity, keep its video block and add provenance.
+       The CURRENT entry keeps its frozen durationMs — the alarm is
+       scheduled off it (a mismatch clamps, the existing rule); a queued
+       entry adopts the new song's length. */
+    setSong: function (r, msg) {
+      var song = msg.song;
+      if (!song || !song.title) return null;
+      var hit = findEntry(r, msg.entryId);
+      if (!hit) return null;
+      var e = hit.entry;
+      var dur = hit.where === "current"
+        ? e.durationMs
+        : (Math.round(Number(song.durationMs)) || e.durationMs);
+      e.isrc = song.isrc || null;
+      e.title = String(song.title);
+      e.artist = song.artist || "";
+      e.album = song.album || "";
+      e.artworkUrl = song.artworkUrl || null;
+      e.apple = song.apple && song.apple.id
+        ? { id: String(song.apple.id),
+            durationMs: Math.round(Number(song.apple.durationMs)) || 0 }
+        : null;
+      e.previewUrl = song.previewUrl || null;
+      e.durationMs = dur;
+      return [hit.where];
+    },
     rename: function (r, msg, conn) {
       if (!conn || !msg.name) return null;
       var name = String(msg.name).slice(0, 40);
@@ -268,6 +313,19 @@
   function indexOf(list, entryId) {
     for (var i = 0; i < list.length; i++) if (list[i].entryId === entryId) return i;
     return -1;
+  }
+  /* current + queue lookup for the video verbs (the worker's findEntry) */
+  function findEntry(r, entryId) {
+    if (r.current && r.current.entryId === entryId)
+      return { entry: r.current, where: "current" };
+    var i = indexOf(r.queue, entryId);
+    return i >= 0 ? { entry: r.queue[i], where: "queue" } : null;
+  }
+  /* the worker's ytBlock, verbatim: 11-char id whitelist */
+  function ytBlock(p) {
+    if (!p || typeof p !== "object" || !/^[A-Za-z0-9_-]{11}$/.test(p.id || "")) return null;
+    var d = Math.round(Number(p.durationMs)) || 0;
+    return { id: p.id, durationMs: d > 0 && d <= 7200000 ? d : 0 };
   }
 
   /* ── wire messages ────────────────────────────────────────────── */

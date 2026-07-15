@@ -34,6 +34,8 @@
     <script src="./transport-mock.js" defer></script>
     <script src="./transport.js" defer></script>
     <script src="./apple.js" defer></script>
+    <script src="./yt-key.js" defer></script>
+    <script src="./youtube.js" defer></script>
     <script src="./radio.js" defer></script>
     <script src="../js/walkers.js" defer></script>
   </head>
@@ -99,7 +101,13 @@
                Everyone reads it; the owner gets R|E capability pills
                (queue / player), the kick x, and the room-mode dropdown
                (docs/radio.md, "Listener identity & queue permissions") -->
-          <div class="radio-crew" data-radio-crew hidden></div>
+          <div class="radio-service">
+            <div class="radio-crew" data-radio-crew hidden></div>
+            <!-- the match desk: the room's songs on the left, the video
+                 workbench on the right — paste a YouTube link to fix the
+                 attached video (docs/youtube.md, "The match desk") -->
+            <div class="radio-desk" data-radio-desk hidden></div>
+          </div>
         </div>
       </section>
     </main>

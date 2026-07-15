@@ -2073,7 +2073,23 @@ body::before {
   background: var(--surface-hover);
   border-radius: var(--radius-control);
   overflow: hidden;
+  /* the video-tier grow rides the countdown (docs/youtube.md) */
+  transition: width calc(var(--dur-med) * 2) var(--ease-ui),
+              height calc(var(--dur-med) * 2) var(--ease-ui);
 }
+/* video tier (docs/youtube.md): once YouTube first plays, the hero holds
+   ~200px for the whole session — video tracks show the player (the fixed
+   layer rect-tracks this box), fallback tracks show cover art at the same
+   size. 200px is YouTube's TOS minimum player size, not a style choice. */
+.radio-np--video .radio-np__art {
+  width: 200px;
+  height: 200px;
+}
+.radio-np--video .radio-np__count { font-size: 3rem; }
+/* personal silence (docs/youtube.md build log, 2026-07-15): the room
+   plays but this device hears nothing — the progress row parks empty
+   and dims; radio.js zeroes the fill and raises the toast */
+.radio-np--muted .radio-np__progress { opacity: 0.45; }
 /* Blank cover — assets/sprites/radio/cover-blank.svg, a placeholder
    Aditya hand-draws over (keep the path). Sits wherever art is missing. */
 .radio-cover-blank {
@@ -2396,6 +2412,13 @@ body::before {
   padding: var(--space-1) var(--space-2);
 }
 .radio-search__recent { cursor: pointer; }
+/* YT-first add pane (docs/youtube.md): the one-line matched / video-only
+   status above the single result row */
+.radio-ytadd__status {
+  margin: var(--space-2) var(--space-2) 0;
+  font-size: 0.85rem;
+  color: var(--subtext);
+}
 
 /* Drill panes (artist / album / playlist) — DeetsMusic's spane idiom:
    ‹ back + title header over the pane body; panes stack, back pops. */
@@ -2613,6 +2636,112 @@ body::before {
    kick ✕, and the room-mode dropdown. The ✕ wears --stop — the theme's
    own close-role: deep red where the theme has red, in-family on the
    monochrome themes (token discipline; no raw scarlet). */
+/* the room's two service windows: crew (moderation) left, match desk
+   (video curation, docs/youtube.md) right; they wrap on thin viewports */
+.radio-service {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.radio-service .radio-crew { width: 100%; }
+.radio-desk {
+  margin-top: var(--space-4);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  padding: var(--space-3);
+}
+.radio-desk__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+.radio-desk__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.radio-desk__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 4px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-control);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+}
+.radio-desk__row:hover,
+.radio-desk__row.is-selected { background: var(--surface-hover); }
+.radio-desk__badge {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  color: var(--subtext);
+  opacity: 0.6;
+}
+.radio-desk__badge svg { width: 0.85rem; height: 0.85rem; }
+.radio-desk__badge--has { color: var(--go); opacity: 1; }
+.radio-desk__thumb {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  border-radius: var(--radius-control);
+}
+.radio-desk__video {
+  margin: var(--space-2) 0;
+  font-size: 0.85rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.radio-desk__video--none { color: var(--subtext); }
+.radio-desk__input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.radio-desk__status {
+  min-height: 1em;
+  margin-top: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--stop);
+}
+/* the dual-mode field's song results (rows reuse .radio-desk__row) */
+.radio-desk__results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+/* the attached AM song — the workbench's counterpart to the video info */
+.radio-desk__song {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  padding: 2px 4px;
+}
+.radio-desk__song--none { opacity: 0.75; }
+@media (max-width: 41rem) {
+  .radio-desk__cols { grid-template-columns: minmax(0, 1fr); }
+}
+
 .radio-crew {
   width: min(100%, 34rem);
   margin-top: var(--space-4);
@@ -2876,6 +3005,48 @@ body::before {
     align-items: center;
     gap: var(--space-2);
   }
+  /* video tier in the bottom strip (docs/youtube.md, decided): the art
+     becomes a full-width ~200px video row above center/controls — the
+     strip simply grows while the video tier is active */
+  .radio-shell__slot .radio-np--video {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "art art"
+      "center controls"
+      "center actions";
+  }
+  .radio-shell__slot .radio-np--video .radio-np__art {
+    width: 100%;
+    height: 200px;
+    aspect-ratio: auto;
+  }
+}
+
+/* the YouTube player layer: ONE fixed-position host that never reparents
+   (an iframe move = reload + ads replay); it rect-tracks the live
+   .radio-np__art (docs/youtube.md, "The player layer"). Black is the
+   letterbox — content, not chrome, like album art. z: above the shell
+   frame (35), under menus (40) and toasts (50). */
+.radio-yt-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* below the sticky toolbar (z 5) and header (10): scrolling tucks the
+     video under the bar like the card it tracks (Aditya, 2026-07-15) */
+  z-index: 4;
+  display: none;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  background: #000;
+}
+/* shell open: the frame paints at z 35, so the dock's video must ride
+   above it (menus 40 and toasts 50 stay on top) */
+:root[data-radio-shell] .radio-yt-layer { z-index: 38; }
+.radio-yt-layer iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 /* Focus ring — keyboard users */

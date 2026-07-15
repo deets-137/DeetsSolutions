@@ -29,6 +29,7 @@
   var S = window.RADIO_STRINGS;
   var T = window.RadioTransport;
   var A = window.RadioApple;   // Apple side (search / auth / playback follower)
+  var Y = window.RadioYouTube; // YouTube side (free full-track tier + player layer)
   var BAR_INPUT = document.querySelector("[data-radio-who]");
   if (!BAR_INPUT || !S || !T) return;
   var BAR_POP = document.querySelector("[data-radio-who-pop]");
@@ -46,6 +47,7 @@
   var HISTORY_TITLE = document.querySelector("[data-radio-title-history]");
   var HISTORY_BODY = document.querySelector("[data-radio-history]");
   var CREW = document.querySelector("[data-radio-crew]");
+  var DESK = document.querySelector("[data-radio-desk]");
 
   var NAME_KEY = "deets-radio-name";
   var TOKEN_KEY = "deets-radio-token";
@@ -448,6 +450,9 @@
     if (connToast) { connToast.dismiss(); connToast = null; }
     if (blockedToast) { blockedToast.dismiss(); blockedToast = null; }
     if (A) A.stop();
+    if (Y) Y.stop();
+    activeEngine = null;
+    NP.classList.remove("radio-np--video");   // hero size resets at the gate
     if (conn) conn.close();
     conn = null;
     model = null;
@@ -457,6 +462,7 @@
     ROOM.hidden = true;
     GATE.hidden = true;
     if (CREW) { CREW.hidden = true; CREW.textContent = ""; }
+    if (DESK) { DESK.hidden = true; DESK.textContent = ""; deskSel = null; }
     buildToolbar();
     META.hidden = false;      // the gate's status line is back in play
     setMeta(metaIdle());
@@ -729,6 +735,38 @@
       });
     });
     pop.appendChild(acct);
+    /* YouTube box — account anatomy, no account: its one control is the
+       enable toggle (docs/youtube.md; the free full-track tier) */
+    if (Y) {
+      var yt = el("div", "radio-acct");
+      var ybtn = el("button", "radio-acct__btn");
+      ybtn.type = "button";
+      ybtn.appendChild(el("span", "radio-acct__label", S.ytLabel));
+      var yicon = el("span", "radio-acct__icon");
+      yicon.setAttribute("aria-hidden", "true");
+      ybtn.appendChild(yicon);
+      var ystatus = el("div", "radio-acct__status");
+      var setYt = function () {
+        var on = Y.enabled();
+        yicon.innerHTML = on ? ICON_CHECK : ICON_X;
+        ybtn.dataset.state = on ? "in" : "out";
+        ystatus.textContent = on ? S.ytOn : S.ytOff;
+        /* the auto-match budget: our own ledger of the shared Data-API
+           key's spend, this device only (docs/youtube.md, quota) */
+        if (on && Y.hasKey() && Y.quotaLeft) {
+          ystatus.textContent += " " + fmt(S.ytQuota,
+            { n: Math.floor(Y.quotaLeft() / 101) });
+        }
+      };
+      setYt();
+      ybtn.addEventListener("click", function () {
+        Y.setEnabled(!Y.enabled());
+        setYt();
+      });
+      yt.appendChild(ybtn);
+      yt.appendChild(ystatus);
+      pop.appendChild(yt);
+    }
     if (!A.authorized()) {         // previews only matter before a source is on
       var row = el("div", "radio-toggle");
       row.appendChild(el("span", "radio-toggle__label", S.previewToggle));
@@ -918,6 +956,8 @@
 
   /* ── now-playing strip (transport + countdown + progress) ─────── */
   var npNodes = null;
+  var activeEngine = null;   // whichever follower tick() is feeding (A or Y)
+  var silenceToasted = null; // entryId|cause of the last silence toast
   function buildNP() {
     NP.textContent = "";
     var art = el("div", "radio-np__art");
@@ -930,6 +970,9 @@
     art.appendChild(mono);
     art.appendChild(img);
     art.appendChild(count);
+    /* the video layer rect-tracks this node wherever it reparents
+       (docs/youtube.md, "The player layer") */
+    if (Y) Y.attachTo(art);
     var center = el("div", "radio-np__center");
     var title = el("span", "radio-np__title");
     var artist = el("span", "radio-np__artist");
@@ -1053,17 +1096,38 @@
      playback follower's feed (it chases this view; docs/radio.md §Sync) */
   function tick() {
     if (!model || !npNodes) return;
-    if (A) {
-      A.follow({
+    /* engine mux (docs/youtube.md) — PER-ENTRY since YT-first adds:
+       Apple keeps an entry only when it can actually play it (connected
+       AND the entry carries an apple id) — a YT-only add goes to video
+       even for Apple subscribers; else YouTube when the entry has a
+       video and the box is enabled; else apple.js lands on previews /
+       the gap note internally. Exactly one engine follows; a switch
+       stops the loser. The hero holds video size for the whole session
+       once YouTube first plays (no per-track height bounce). */
+    var eng = A;
+    var appleFull = A && A.authorized() &&
+                    model.current && model.current.apple && model.current.apple.id;
+    if (Y && !appleFull && Y.playable(model.current) === "video") eng = Y;
+    if (eng !== activeEngine) {
+      if (activeEngine) activeEngine.stop();
+      activeEngine = eng;
+    }
+    if (eng === Y && !NP.classList.contains("radio-np--video")) {
+      NP.classList.add("radio-np--video");
+    }
+    var k = null;
+    if (eng) {
+      eng.follow({
         entry: model.current,
         playing: model.transport.playing,
         counting: counting(),
         expectedMs: position()
       });
-      var k = A.note();
+      k = eng.note();
       npNodes.note.textContent =
         k === "preview" ? S.previewEnded :
-        k === "gap"     ? S.catalogGap : "";
+        k === "gap"     ? S.catalogGap :
+        k === "off"     ? S.silenceOff : "";
       /* blocked is a page-wide condition, not a track note: a sticky red
          toast — and the unblocking click is itself what retires it (the
          follower's next tick clears the note, we dismiss here) */
@@ -1076,6 +1140,22 @@
     }
     if (!model.current) return;
     var n = npNodes;
+    /* Personal silence (2026-07-15, Aditya's call from live testing): a
+       room that plays while THIS device hears nothing must say so — one
+       toast per track+cause, and the progress row parks (empty + dimmed)
+       instead of rolling. The room clock is untouched; the bar simply
+       shows what YOU hear, not what the room does. */
+    var silentNow = model.transport.playing && !counting() &&
+                    (k === "gap" || k === "preview" || k === "off");
+    if (silentNow) {
+      var sKey = model.current.entryId + "|" + k;
+      if (silenceToasted !== sKey) {
+        silenceToasted = sKey;
+        notify("warn", k === "preview" ? S.previewEnded :
+                       k === "gap" ? S.catalogGap : S.silenceOff);
+      }
+    }
+    NP.classList.toggle("radio-np--muted", silentNow);
     n.total.textContent = mmss(model.current.durationMs);
     if (counting()) {
       var t = model.transport;
@@ -1089,9 +1169,14 @@
     } else {
       NP.classList.remove("radio-np--counting");
       n.count.textContent = "";
-      var pos = Math.min(position(), model.current.durationMs);
-      n.fill.style.width = (pos / model.current.durationMs * 100).toFixed(2) + "%";
-      n.elapsed.textContent = mmss(pos);
+      if (silentNow) {
+        n.fill.style.width = "0%";
+        n.elapsed.textContent = "";
+      } else {
+        var pos = Math.min(position(), model.current.durationMs);
+        n.fill.style.width = (pos / model.current.durationMs * 100).toFixed(2) + "%";
+        n.elapsed.textContent = mmss(pos);
+      }
     }
   }
   setInterval(function () { if (joined && !ROOM.hidden) tick(); }, 200);
@@ -1175,7 +1260,12 @@
             { label: S.menuPlayNext, run: function () { send("reorder", { entryId: entry.entryId, to: 0 }); } },
             { label: S.menuMoveTop, run: function () { send("reorder", { entryId: entry.entryId, to: 0 }); } },
             { label: S.menuMoveBottom, run: function () { send("reorder", { entryId: entry.entryId, to: model.queue.length - 1 }); } },
-            { label: S.menuRemove, run: function () { send("remove", { entryId: entry.entryId }); } }
+            { label: S.menuRemove, run: function () { send("remove", { entryId: entry.entryId }); } },
+            /* jumps to the match desk with this row selected */
+            { label: S.menuFixVideo, run: function () {
+              deskSelect(entry.entryId);
+              if (DESK) DESK.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            } }
           ];
         }
       });
@@ -1243,18 +1333,22 @@
      0,1,2… keeps the block together ahead of the old queue), "later"
      appends; "now" then skips to the front. When the room is idle, the
      first add alone starts it (skipping would blow past it). */
-  function sendAll(tracks, how) {   // how: "now" | "next" | "later"
+  function sendAll(tracks, how, src) {   // how: "now" | "next" | "later"
     if (!tracks.length) return;
     /* the one funnel every add takes (search click, menus, collections) —
-       a read-only queue cap stops it here with the note, before any send */
+       a read-only queue cap stops it here with the note, before any send.
+       src is the D1 provenance of an adder-attached video block: YT-first
+       adds ride "manual" (human-picked video); everything else omits it. */
     if (!canQueue()) { toast(S.permDenied, ""); return; }
     var hadCurrent = model && model.current;
     tracks.forEach(function (t, i) {
-      send("add", how === "later" ? { entry: t } : { entry: t, at: i });
+      var msg = how === "later" ? { entry: t } : { entry: t, at: i };
+      if (src) msg.source = src;
+      send("add", msg);
     });
     if (how === "now" && hadCurrent) send("skip");
   }
-  function playNow(entry) { sendAll([entry], "now"); }
+  function playNow(entry, src) { sendAll([entry], "now", src); }
   /* album / playlist tiles carry the song menu over the whole collection —
      DeetsMusic's collectionMenu, tracks fetched lazily on pick */
   function collectionMenu(fetchSongs) {
@@ -1339,11 +1433,11 @@
   /* DeetsMusic's search idiom, one-to-one: click a song = Play Now;
      the menu is Play Now / Play Next / Add to Queue (+ Go to Artist on
      real catalog tracks). */
-  function songMenu(t) {
+  function songMenu(t, src) {
     var items = canQueue() ? [
-      { label: S.menuPlayNow, run: function () { playNow(t); } },
-      { label: S.menuPlayNext, run: function () { send("add", { entry: t, at: 0 }); } },
-      { label: S.menuAddQueue, run: function () { send("add", { entry: t }); } }
+      { label: S.menuPlayNow, run: function () { playNow(t, src); } },
+      { label: S.menuPlayNext, run: function () { sendAll([t], "next", src); } },
+      { label: S.menuAddQueue, run: function () { sendAll([t], "later", src); } }
     ] : [];   // read-only queue: the drills below still work
     if (canDrillArtist(t.apple && t.apple.id)) {
       items.push({ label: S.menuGoArtist, run: function () {
@@ -1362,9 +1456,9 @@
       if (e.key === "Enter") { e.preventDefault(); run(); }
     });
   }
-  function songSearchRow(t) {
-    var li = row(t, { menu: function () { return songMenu(t); } });
-    wireOpen(li, function () { playNow(t); });
+  function songSearchRow(t, src) {
+    var li = row(t, { menu: function () { return songMenu(t, src); } });
+    wireOpen(li, function () { playNow(t, src); });
     return li;
   }
   function songList(tracks) {
@@ -1581,6 +1675,11 @@
     var q = String(term || "").trim();
     var res = searchNodes.results;
     if (!q) { renderSearchEmpty(); return; }
+    /* YT-first adds (docs/youtube.md): a pasted YouTube link takes the
+       lookup → reverse-match path instead of Apple search. URLs stay out
+       of the Recents chips (pushTerm is the Apple path's). */
+    var ytId = parseYtId(q);
+    if (ytId) { runYtAdd(ytId); return; }
     var seq = ++searchSeq;
     res.textContent = "";
     res.appendChild(el("p", "sotd__empty", S.searchBusy));
@@ -1601,6 +1700,94 @@
       res.textContent = "";
       res.appendChild(el("p", "sotd__empty", S.searchFailed));
     });
+  }
+
+  /* ── YT-first adds (docs/youtube.md, "YouTube-first adds") ──────
+     Paste a link → one 1-unit videos.list (title/channel/thumb/duration/
+     embeddable) → title-parse guess → FREE Apple reverse-match at the
+     resolver's ±2 s rule → a one-result pane: a matched link mints the
+     full dual entry, a miss mints a YT-only entry (apple: null, the
+     video thumb as artwork). Adds ride source "manual" — the pasted
+     video is a human pick, curated-grade D1 provenance. */
+  function pickByDuration(songs, ms) {
+    for (var i = 0; i < (songs || []).length; i++) {
+      var d = songs[i].durationMs || 0;
+      if (d && Math.abs(d - ms) <= 2000) return songs[i];
+    }
+    return null;
+  }
+  function runYtAdd(id) {
+    var res = searchNodes.results;
+    var seq = ++searchSeq;
+    res.textContent = "";
+    paneStack = [];
+    lastSections = null;
+    res.appendChild(el("p", "sotd__empty", S.ytAddBusy));
+    /* no key (or ledger empty) = no duration, and duration is load-bearing
+       (the room alarm schedules off it) — the paste can't mint an entry */
+    var lookP = Y ? Y.lookup(id) : Promise.resolve(null);
+    lookP.then(function (info) {
+      if (seq !== searchSeq) return;
+      if (!info || !info.durationMs) {
+        res.textContent = "";
+        res.appendChild(el("p", "sotd__empty", S.ytAddFailed));
+        return;
+      }
+      var parsed = Y.parseTitle(info.title, info.channel);
+      var q1 = parsed.artist ? parsed.artist + " " + parsed.title : parsed.title;
+      var matchP = (A && A.hasToken() && q1)
+        ? A.search(q1).then(function (sec) {
+            var hit = pickByDuration(sec.songs, info.durationMs);
+            if (hit || !parsed.artist) return hit;
+            /* one retry on the bare title — artist guesses miss more */
+            return A.search(parsed.title).then(function (sec2) {
+              return pickByDuration(sec2.songs, info.durationMs);
+            });
+          }).catch(function () { return null; })
+        : Promise.resolve(null);
+      matchP.then(function (song) {
+        if (seq !== searchSeq) return;
+        renderYtPane(info, parsed, song);
+      });
+    });
+  }
+  function renderYtPane(info, parsed, song) {
+    var res = searchNodes.results;
+    res.textContent = "";
+    var entry;
+    if (song) {
+      entry = JSON.parse(JSON.stringify(song));
+    } else {
+      entry = {
+        isrc: null,
+        title: parsed.title || info.title,
+        artist: parsed.artist || "",
+        album: "",
+        artworkUrl: info.thumb,      // https i.ytimg.com — passes sanitizeEntry
+        apple: null,
+        spotify: null,
+        previewUrl: null,
+        durationMs: info.durationMs,
+        match: "single"
+      };
+    }
+    var statusText = song ? S.ytAddMatched : S.ytAddVideoOnly;
+    if (info.embeddable) {
+      entry.youtube = { id: info.id, durationMs: info.durationMs };
+    } else {
+      /* the artist turned embedding off — that exact video can never play
+         in the room, so it doesn't ride (Aditya, 2026-07-15). A matched
+         entry still adds clean (resolveSweep finds a playable video like
+         any Apple add); a miss adds video-less — the desk is the fix, and
+         "video only" would be a lie, so the status says why instead. */
+      entry.youtube = null;
+      notify("warn", S.ytAddNoEmbed);
+      if (!song) statusText = S.ytAddNoEmbed;
+    }
+    res.appendChild(el("p", "radio-ytadd__status", statusText));
+    var list = el("ol", "radio-list");
+    list.appendChild(songSearchRow(entry, "manual"));
+    res.appendChild(list);
   }
 
   /* ── truncation tooltips ──────────────────────────────────────── */
@@ -1631,7 +1818,205 @@
     renderHistory();
     renderListeners();
     renderCrew();
+    renderDesk();
+    resolveSweep();
   }
+
+  /* ── match desk: songs left, video workbench right (docs/youtube.md,
+     "The match desk"). Everyone reads it; edits (the paste field) ride
+     the queue capability like every other entry mutation. Pasting
+     applies immediately — no confirm; undo is pasting something else. */
+  var deskSel = null;            // selected entryId
+  var deskMeta = {};             // videoId → oEmbed title (best-effort cache)
+  /* YouTube URLs ONLY — no bare-id fallback: both fields that call this
+     are dual-mode now (link = video, words = song search), and any
+     11-char word ("temperature") would otherwise read as a video id */
+  function parseYtId(raw) {
+    var s = String(raw || "").trim();
+    var m = /(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/.exec(s);
+    return m ? m[1] : null;
+  }
+  function deskSelect(id) { deskSel = id; renderDesk(); }
+  function renderDesk() {
+    if (!DESK || !model) return;
+    /* don't rebuild mid-typing — a presence ping would eat the paste */
+    if (DESK.contains(document.activeElement) &&
+        document.activeElement.tagName === "INPUT") return;
+    DESK.hidden = false;
+    DESK.textContent = "";
+    var head = el("div", "radio-crew__head");
+    head.appendChild(el("span", "radio-crew__title", S.deskTitle));
+    DESK.appendChild(head);
+    var entries = model.current ? [model.current] : [];
+    entries = entries.concat(model.queue || []);
+    if (!entries.length) {
+      DESK.appendChild(el("p", "sotd__empty", S.deskEmpty));
+      deskSel = null;
+      return;
+    }
+    if (!entries.some(function (e) { return e.entryId === deskSel; })) {
+      deskSel = entries[0].entryId;
+    }
+    var cols = el("div", "radio-desk__cols");
+    var list = el("div", "radio-desk__list");
+    var sel = null;
+    entries.forEach(function (e) {
+      var isSel = e.entryId === deskSel;
+      if (isSel) sel = e;
+      var b = el("button", "radio-desk__row" + (isSel ? " is-selected" : ""));
+      b.type = "button";
+      b.appendChild(rowArt(e));
+      var text = el("span", "radio-row__text");
+      text.appendChild(el("span", "radio-row__title", e.title));
+      text.appendChild(el("span", "radio-row__artist", e.artist));
+      b.appendChild(text);
+      var badge = el("span", "radio-desk__badge" + (e.youtube ? " radio-desk__badge--has" : ""));
+      badge.innerHTML = e.youtube ? ICON_CHECK : ICON_X;
+      badge.setAttribute("aria-hidden", "true");
+      b.appendChild(badge);
+      b.addEventListener("click", function () { deskSelect(e.entryId); });
+      list.appendChild(b);
+    });
+    cols.appendChild(list);
+    var work = el("div", "radio-desk__work");
+    if (sel) {
+      /* the workbench field, first — always at the top (Aditya,
+         2026-07-15) — and DUAL-MODE since YT-first adds (his call,
+         2026-07-15): a YouTube link re-pins the video (setVideo, as
+         ever); anything else searches the free Apple catalog — songs
+         only — and clicking a result re-pins the SONG (setSong). One
+         rule page-wide: links mean video, words mean songs. */
+      if (canQueue()) {
+        var input = el("input", "radio-desk__input");
+        input.type = "text";
+        input.placeholder = S.deskPaste;
+        input.setAttribute("aria-label", S.deskPaste);
+        var status = el("p", "radio-desk__status");
+        var results = el("div", "radio-desk__results");
+        var miniSeq = 0;
+        var runMini = function (q) {
+          q = String(q || "").trim();
+          var seq = ++miniSeq;
+          if (!q || !(A && A.hasToken())) { results.textContent = ""; return; }
+          A.search(q).then(function (sec) {
+            if (seq !== miniSeq) return;
+            results.textContent = "";
+            var songs = (sec.songs || []).slice(0, 5);
+            if (!songs.length) {
+              results.appendChild(el("p", "sotd__empty", S.deskNoSongs));
+              return;
+            }
+            songs.forEach(function (t) {
+              var b = el("button", "radio-desk__row");
+              b.type = "button";
+              b.appendChild(rowArt(t));
+              var tx = el("span", "radio-row__text");
+              tx.appendChild(el("span", "radio-row__title", t.title));
+              tx.appendChild(el("span", "radio-row__artist", t.artist));
+              b.appendChild(tx);
+              b.addEventListener("click", function () {
+                input.value = "";
+                results.textContent = "";
+                /* immediate ack; the broadcast's re-render (row swap) is
+                   the real confirmation and replaces this within a beat */
+                status.textContent = S.deskSongSent;
+                input.blur();      // let the broadcast's re-render land
+                send("setSong", { entryId: sel.entryId, song: t });
+              });
+              results.appendChild(b);
+            });
+          }).catch(function () {});
+        };
+        var miniTimer = null;
+        var commit = function () {
+          var id = parseYtId(input.value);
+          if (id) {
+            input.value = "";
+            results.textContent = "";
+            status.textContent = S.deskSent;
+            input.blur();          // let the broadcast's re-render land
+            send("setVideo", { entryId: sel.entryId, youtube: { id: id, durationMs: 0 } });
+            return;
+          }
+          runMini(input.value);
+        };
+        input.addEventListener("input", function () {
+          if (miniTimer) clearTimeout(miniTimer);
+          if (parseYtId(input.value)) return;    // links apply on Enter/paste
+          miniTimer = setTimeout(function () { runMini(input.value); }, 300);
+        });
+        input.addEventListener("keydown", function (e) { if (e.key === "Enter") commit(); });
+        input.addEventListener("paste", function () { setTimeout(commit, 0); });
+        work.appendChild(input);
+        work.appendChild(status);
+        work.appendChild(results);
+      }
+      /* the attached AM song — what setSong re-pins; a YT-only entry
+         shows its parsed guess here until a real song is pinned */
+      var songPane = el("div", "radio-desk__song" + (sel.apple ? "" : " radio-desk__song--none"));
+      songPane.appendChild(rowArt(sel));
+      var stx = el("span", "radio-row__text");
+      stx.appendChild(el("span", "radio-row__title", sel.title));
+      stx.appendChild(el("span", "radio-row__artist", sel.artist));
+      songPane.appendChild(stx);
+      work.appendChild(songPane);
+      if (sel.youtube) {
+        var vid = sel.youtube.id;
+        var thumb = el("img", "radio-desk__thumb");
+        thumb.alt = "";
+        thumb.loading = "lazy";
+        thumb.src = "https://i.ytimg.com/vi/" + vid + "/mqdefault.jpg";
+        work.appendChild(thumb);
+        work.appendChild(el("p", "radio-desk__video", deskMeta[vid] || vid));
+        if (!deskMeta[vid]) {
+          /* oEmbed is keyless; a CORS refusal just leaves the bare id */
+          fetch("https://www.youtube.com/oembed?format=json&url=" +
+                encodeURIComponent("https://www.youtube.com/watch?v=" + vid))
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (j) {
+              if (j && j.title) { deskMeta[vid] = j.title; renderDesk(); }
+            }).catch(function () {});
+        }
+      } else {
+        work.appendChild(el("p", "radio-desk__video radio-desk__video--none", S.deskNoVideo));
+      }
+    }
+    cols.appendChild(work);
+    DESK.appendChild(cols);
+  }
+  /* auto-resolver sweep (docs/youtube.md, "Resolve"): the current entry +
+     the next two queued get one Data-API attempt each; a hit rides the
+     resolve verb so the whole room — and the D1 registry — benefits. The
+     registry upstream makes this once-per-song-EVER; the once-per-session
+     memo here just stops a missing match from burning quota every render. */
+  var resolveTried = {};
+  function resolveSweep() {
+    if (!Y || !Y.hasKey() || !joined || !model || !canQueue()) return;
+    [model.current].concat((model.queue || []).slice(0, 2)).forEach(function (e) {
+      if (!e || e.youtube || resolveTried[e.entryId]) return;
+      /* mock-catalog entries stay silent mocks */
+      if (!e.apple || !e.apple.id || e.apple.id.indexOf("mock.") === 0) return;
+      resolveTried[e.entryId] = true;
+      Y.resolve(e).then(function (best) {
+        if (!best || !joined) return;
+        send("resolve", {
+          entryId: e.entryId,
+          youtube: { id: best.id, durationMs: best.durationMs },
+          source: best.source
+        });
+      });
+    });
+  }
+
+  /* Leaving the page kills the music for any engine — ask first while
+     the room is live (docs/youtube.md; room-wide, arguably owed since
+     v0.9). Browsers show their own generic wording; ours can't ride it. */
+  window.addEventListener("beforeunload", function (e) {
+    if (joined && model && model.transport && model.transport.playing) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
 
   /* ── boot ─────────────────────────────────────────────────────── */
   BAR_INPUT.placeholder = S.tuneInPlaceholder;

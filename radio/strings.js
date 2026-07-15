@@ -37,7 +37,15 @@ window.RADIO_STRINGS = {
   acctSignedOut: "Not signed in",
   acctConnected: "Connected",
   acctWorking:   "Working…",
-  previewToggle: "30s previews",
+  /* previews relabel + the YouTube box label are Aditya's, dictated in
+     the 2026-07-14 YouTube-design session; the yt status lines are [ph] */
+  previewToggle: "AM Previews",
+  ytLabel:       "YouTube",
+  ytOn:          "[ph]On — full songs play here, video and all",
+  ytOff:         "[ph]Off",
+  /* {n} = auto-matches left today on this device's ledger (each costs
+     ~101 of the key's 10k daily units; the D1 registry makes repeats free) */
+  ytQuota:       "[ph]· ~{n} auto-matches left today",
   connectFailed: "Apple log in failed. Try again!",
   connectUnavailable: "Couldn't connect.",
   leavePill:     "Disconnect",
@@ -54,6 +62,9 @@ window.RADIO_STRINGS = {
   catalogGap:     "Not on your service... skipping for you",
   previewEnded:   "Preview's done. Still continuing for the rest of the room.",
   audioBlocked:   "Click anywhere to tune back in!",
+  /* previews toggled off + no source connected = chosen silence; the
+     room keeps playing (toast + parked progress bar, 2026-07-15) */
+  silenceOff:     "[ph]AM Previews are off — connect a source or flip them on to hear the room.",
 
   /* columns */
   colQueue:   "Queue",
@@ -80,6 +91,16 @@ window.RADIO_STRINGS = {
   paneFailed:        "Couldn't load this one",
   paneEmpty:         "Nothing playable present",
 
+  /* YT-first adds (docs/youtube.md, "YouTube-first adds") — pasting a
+     YouTube link into the search box: lookup → Apple reverse-match →
+     a one-result add pane. All [ph]. */
+  ytAddBusy:      "[ph]Reading that link…",
+  ytAddMatched:   "[ph]Matched on Apple Music — add away.",
+  ytAddVideoOnly: "[ph]No Apple match — this one rides as video only.",
+  ytAddFailed:    "[ph]Couldn't read that video. Double-check the link?",
+  /* fires as a toast; the entry still adds, just without that video */
+  ytAddNoEmbed:   "[ph]The artist turned off embedding — that exact video can't play here, so it won't ride along.",
+
   historyEmpty:      "Nothing yet",
   historyPreviously: "Previously",
 
@@ -91,6 +112,19 @@ window.RADIO_STRINGS = {
   menuRemove:     "Remove",
   menuAddQueue:   "Add to queue",
   menuGoArtist:   "Go to artist",
+  menuFixVideo:   "[ph]Fix video",
+
+  /* match desk (docs/youtube.md, "The match desk") — songs left, video
+     workbench right. The field is dual-mode (2026-07-15): paste a
+     YouTube link to re-pin the video, or type to search the Apple
+     catalog (songs only) and click a result to re-pin the SONG. */
+  deskTitle:    "[ph]Video desk",
+  deskEmpty:    "[ph]Nothing queued to match.",
+  deskNoVideo:  "[ph]No video attached yet.",
+  deskPaste:    "[ph]Paste a YouTube link, or search to fix the song",
+  deskNoSongs:  "[ph]No songs by that name.",
+  deskSent:     "[ph]Sent — the badge flips when the room takes it.",
+  deskSongSent: "[ph]Song re-pinned — updating for the room.",
 
   /* connection */
   disconnected: "Lost a cable or two, plugging back in...",

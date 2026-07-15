@@ -75,9 +75,17 @@ Much of the UX is ported from the sibling **DeetsMusic** desktop app
   Apple half with the Spotify half behind a Worker config flag, and the
   Spotify connect button is hidden behind the same flag. Nothing in the
   protocol or storage changes when Spotify lands.
-- **v1.0 — Spotify.** Flip the flag, add the PKCE flow + Web Playback SDK
-  client, backfill `spotify` IDs lazily (a queue/history entry with
-  `spotify: null` and an ISRC gets resolved on first sight by a v1 Worker).
+- **v1.0 — YouTube, not Spotify (rerouted 2026-07-14; built 2026-07-15,
+  undeployed).** Spotify's Feb-2026 dev-mode rules (5 users, owner needs
+  Premium) shelved that plan — [spotify.md](spotify.md) keeps it as
+  reference. The free full-track tier is YouTube instead:
+  [youtube.md](youtube.md) is the design of record (IFrame player layer,
+  `resolve`/`setVideo`/`setSong` verbs, the match desk, the D1 match
+  registry). `Entry` gained `youtube: {id, durationMs}`; `spotify` stays
+  a stub. Since the YT-first-adds build (2026-07-15) an entry may also be
+  **YouTube-only** (`apple: null`, video thumb as artwork) — minted by
+  pasting a YouTube link into the search box; the engine mux is
+  per-entry, so those play video even for Apple subscribers.
 - **v1.x — auto-continue** (designed below, built after the resolve pipeline
   is battle-tested).
 
@@ -224,8 +232,9 @@ tier (SQLite-backed DOs, hibernation) covers this comfortably.
 
 - A room is an island: its own state, its own connections, strict ordering
   of commands because one object processes them serially. No cross-room
-  coordination, no shared DB contention (D1 stays out of this design until
-  a cross-room feature — e.g. a public room directory — needs it).
+  coordination, no shared DB contention. The one cross-room store is
+  v1.0's **D1 match registry** ([youtube.md](youtube.md)) — exactly the
+  threshold this bullet reserved D1 for; the worker fails open without it.
 - **Hibernation API**: the DO is evicted from memory between messages while
   its WebSockets stay open. An idle room with listeners attached costs
   nothing; heartbeat ping/pong is answered by the platform without waking
@@ -251,6 +260,7 @@ re-request snapshot).
 | `add` | `{entry, at?}` | resolved entry (see below) appended / inserted — needs the **queue** capability |
 | `remove` | `{entryId}` | remove from queue — **queue** capability |
 | `reorder` | `{entryId, to}` | move within queue — **queue** capability |
+| `resolve` / `setVideo` / `setSong` | see [youtube.md](youtube.md) | v1.0 curation verbs (auto-resolver backfill · desk video re-pin · desk song re-pin) — all **queue** capability; youtube.md's protocol table is the record |
 | `rename` | `{name}` | update display name; refused with `error: "name-taken"` (no close) if live in the room |
 | `setCap` | `{t, cap, level}` | **owner only**: grant/revoke — `t` a roster handle, `cap` `"queue"\|"player"`, `level` `"r"\|"e"`. Persists on the target's token |
 | `kick` | `{t}` | **owner only**: disconnect that listener (a kick is just a kick — no ban; the token layer keeps ban within reach) |
@@ -524,7 +534,13 @@ later, deliberate pass.
 
 The progress bar is **display-only, permanently** — it shows room position
 over canonical duration; the protocol has no seek command. (Decided:
-recorded here so nobody "adds" it.)
+recorded here so nobody "adds" it.) *Revised 2026-07-15 (Aditya, from
+live testing): during **personal silence** — the room plays but this
+device hears nothing (catalog gap, preview over, previews toggled off) —
+the bar **parks** (empty + dimmed) instead of rolling, a warn toast fires
+once per track+cause, and the NP note names the reason. The bar shows
+what YOU hear; the room clock is untouched. See [youtube.md](youtube.md)
+build log.*
 
 ## The site-shell (built 2026-07-14): browse the site while the room plays
 
