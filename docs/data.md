@@ -19,6 +19,11 @@ Shape: `{ generated_at, channel, count, songs: [...] }` — each song carries
 track/artist/album, artwork and 30-sec preview URLs, genre, duration,
 release date, uploader, and the posted date.
 
+A wrong match (a bare YouTube/Spotify title that resolved to a more-famous
+namesake) is fixed at the source, not in the JSON: `python review.py search
+"<track>"` to find it, then `python review.py fix <song_id> --url "<correct
+link>"` (tags it `manual`), then regenerate. See DeetsOTD's `docs/USAGE.md`.
+
 ## Movies → `movies/movies.json`
 
 `letterboxd_web.py` merges a [Letterboxd data export](https://letterboxd.com/settings/data/)
@@ -44,11 +49,19 @@ Letterboxd exports carry no artwork, so if `TMDB_API_KEY` is set in
 DeetsOTD's `.env` (free key: themoviedb.org → Settings → API), the script
 looks each film up on TMDB search and bakes the poster URL into the JSON.
 
+- **Matches are validated on release year** (exact, then ±1 for regional
+  premiere drift). TMDB ranks by popularity, so a naive "first hit" grabs a
+  louder same-title namesake for underground/foreign films — the year check
+  is what keeps the right poster. A film with no year falls back to TMDB's
+  top hit.
 - **Nothing is downloaded** — only the URL string is stored; visitors'
   browsers fetch images straight from `image.tmdb.org`.
 - Lookups cache in `DeetsOTD/exports/tmdb_posters.json` (gitignored there),
   so a refresh only queries films it hasn't seen. Delete a film's cache
-  entry to force a re-lookup (e.g. after TMDB fixes a wrong match).
+  entry to force a re-lookup, or **pin the right poster by hand**: set the
+  film's `"<Name> (<Year>)"` key to the correct `/poster_path.jpg` (from the
+  right film's TMDB page) — the cache is a plain override, not a read-only
+  artifact, so an edit there survives every regen.
 - No key still works: films fall back to the themed monogram tile.
 - TMDB's API terms require visible attribution — the movies page footer
   carries it. Keep that if you restyle the page.
