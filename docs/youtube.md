@@ -140,6 +140,22 @@ Build started 2026-07-14. Chunks, in order; mark ✅ with notes as they land:
    catch-up seek after it ends is the documented platform tax, not the
    bug. If it's still choppy, suspect the pad measurement (log
    `seekPad` in the settle branch) before anything else.
+7. ✅ **Data API parked for launch (2026-07-15, Aditya's call)** —
+   `radio/yt-key.js` is `null` again for the public push (the key is
+   recoverable from the Google Cloud console or the file's git
+   history; it's referrer-locked).
+   Why: the 10k-unit/day quota is ONE pool shared by every visitor, the
+   D1 registry is still uncreated so nothing amortizes, and each device
+   keeps its own optimistic ledger — public traffic could exhaust the
+   day fast. Keyless degradation is the designed inert mode, no code
+   changes: resolver + resolveSweep sit out (`Y.hasKey()` gates), a
+   pasted YT link lands on `ytAddFailed` (no duration ⇒ can't mint),
+   the Music Source box just omits the quota line; playback (keyless
+   IFrame) and the desk (keyless oEmbed `setVideo`/`setSong`) still
+   work in full. Re-enable = restore the key, ideally after
+   `npx wrangler d1 create deets-radio-matches` + binding so quota
+   amortizes to once per unique song ever.
+
 `radio/yt-key.js` (Claude added the missing quotes — a bare identifier
 throws at load). Resolver verified live from localhost: a real search
 returned a `- Topic` Art Track with duration inside ±2 s, source
