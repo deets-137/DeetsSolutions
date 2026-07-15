@@ -28,6 +28,7 @@
          site's no-CDN rule, this page only (docs/radio.md, "Limits & costs") -->
     <script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" async></script>
     <script src="../js/controls.js" defer></script>
+    <script src="../js/toast.js" defer></script>
     <script src="./strings.js" defer></script>
     <script src="./dev-token.js" defer></script>
     <script src="./transport-mock.js" defer></script>
@@ -94,6 +95,11 @@
               <div class="radio-col__body" data-radio-history></div>
             </section>
           </div>
+          <!-- crew panel: always-up listener roster under the columns.
+               Everyone reads it; the owner gets R|E capability pills
+               (queue / player), the kick x, and the room-mode dropdown
+               (docs/radio.md, "Listener identity & queue permissions") -->
+          <div class="radio-crew" data-radio-crew hidden></div>
         </div>
       </section>
     </main>

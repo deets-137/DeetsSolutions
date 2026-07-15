@@ -32,7 +32,9 @@ protocol, sync design, build phases).
 - **sotd.js, movies.js, league/league.js, and radio/radio.js deliberately
   duplicate the toolbar/popover kit** (pills, facets, state persistence)
   to keep each page self-contained. A fix to that machinery in one file
-  must be mirrored in the others.
+  must be mirrored in the others. The toast host (`js/toast.js`) is the
+  exception by design: shared chrome like `controls.js`, one copy on
+  every page ([docs/ui.md](docs/ui.md), "Toasts").
 - **DeetsRadio copy is handwritten.** Every user-facing string on the
   radio page lives in `radio/strings.js`; Aditya writes them. Claude may
   only add `[ph]`-prefixed placeholders there and must never edit an

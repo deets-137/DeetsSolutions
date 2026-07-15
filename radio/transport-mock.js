@@ -89,7 +89,7 @@
       var r = ROOMS[id];
       out[id] = { room: r.room, transport: r.transport, current: r.current,
                   queue: r.queue, history: r.history, v: r.v,
-                  touched: r.touched || 0 };
+                  caps: r.caps || {}, touched: r.touched || 0 };
     });
     return out;
   }
@@ -105,14 +105,46 @@
           Date.now() - (s.touched || 0) > 3600000) return;
       ROOMS[id] = { room: s.room, transport: s.transport, current: s.current,
                     queue: s.queue || [], history: s.history || [], v: s.v || 1,
-                    conns: [], timer: null, phantomDone: false,
-                    touched: s.touched || 0 };
+                    caps: s.caps || {}, conns: [], timer: null,
+                    phantomDone: false, touched: s.touched || 0 };
       armAlarm(ROOMS[id]);   // a reloaded "playing" room picks its clock back up
     });
   })();
 
-  var now = function () { return Date.now(); };
-  var uid = function () { return Math.random().toString(36).slice(2, 10); };
+  /* function declarations, not var-assigned expressions: boot() above runs
+     at load and re-arms the alarm of a restored PLAYING room, which calls
+     now() — a var here would still be undefined at that moment (the crash
+     only ever showed with a playing room persisted in localStorage) */
+  function now() { return Date.now(); }
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+
+  /* ── identity + capabilities (mirror the worker verbatim) ─────── */
+  function normName(s) {
+    return String(s).trim().replace(/\s+/g, " ").toLowerCase();
+  }
+  function modeDefault(r) {
+    return r.room && r.room.settings && r.room.settings.mode === "restricted"
+      ? { queue: "r", player: "r" }
+      : { queue: "e", player: "e" };
+  }
+  /* owner = the creator whenever their token is connected; join-order
+     fallback (index 0) when the creator is away */
+  function ownerIndex(r) {
+    if (!r.conns.length) return -1;
+    var t = r.room && r.room.ownerToken;
+    if (t) for (var i = 0; i < r.conns.length; i++) {
+      if (r.conns[i].token === t) return i;
+    }
+    return 0;
+  }
+  function capsOf(r, conn) {
+    var own = ownerIndex(r);
+    if (own >= 0 && r.conns[own] === conn) return { queue: "e", player: "e" };
+    var c = conn.token && r.caps[conn.token];
+    return c ? { queue: c.queue, player: c.player } : modeDefault(r);
+  }
+  var QUEUE_VERBS = { add: 1, remove: 1, reorder: 1 };
+  var PLAYER_VERBS = { play: 1, pause: 1, skip: 1, back: 1 };
 
   /* ── transport rules (mirror docs/radio.md exactly) ───────────── */
   function position(r) {
@@ -221,7 +253,15 @@
       return ["queue"];
     },
     rename: function (r, msg, conn) {
-      if (conn && msg.name) { conn.name = String(msg.name).slice(0, 40); presence(r); }
+      if (!conn || !msg.name) return null;
+      var name = String(msg.name).slice(0, 40);
+      /* per-room unique names, same line the join holds */
+      var clash = r.conns.some(function (c) {
+        return c !== conn && normName(c.name) === normName(name);
+      });
+      if (clash) { deliver(conn, { type: "error", code: "name-taken" }); return null; }
+      conn.name = name;
+      presence(r);
       return null;
     }
   };
@@ -231,10 +271,22 @@
   }
 
   /* ── wire messages ────────────────────────────────────────────── */
-  function listenerNames(r) {
-    return r.conns.map(function (c) { return c.name; });
+  /* join-ordered roster: name + opaque handle (what setCap/kick target;
+     tokens are secrets and never ride the wire) + current caps */
+  function roster(r) {
+    var own = ownerIndex(r);
+    return {
+      owner: own,
+      listeners: r.conns.map(function (c, i) {
+        return {
+          name: c.name, h: c.h,
+          caps: i === own ? { queue: "e", player: "e" } : capsOf(r, c)
+        };
+      })
+    };
   }
   function snapshot(r) {
+    var ro = roster(r);
     return {
       type: "snapshot", v: r.v, serverNow: now(),
       room: r.room,
@@ -242,7 +294,8 @@
       current: r.current,
       queue: r.queue,
       history: r.history.slice(-50),
-      listeners: listenerNames(r)
+      listeners: ro.listeners,
+      owner: ro.owner
     };
   }
   function delta(r, fields) {
@@ -267,13 +320,13 @@
     r.conns.forEach(function (c) { deliver(c, msg); });
     saveStore();
   }
-  /* presence is personalized (mirrors the worker): join-ordered names,
-     owner is index 0 (creator, then longest-connected), `you` is yours */
+  /* presence is personalized (mirrors the worker): the join-ordered roster,
+     the owner (creator's token, join-order fallback), and `you` — yours */
   function presence(r) {
-    var names = listenerNames(r);
+    var ro = roster(r);
     r.conns.forEach(function (c, i) {
       deliver(c, { type: "presence", serverNow: now(),
-                   listeners: names, owner: names.length ? 0 : -1, you: i });
+                   listeners: ro.listeners, owner: ro.owner, you: i });
     });
   }
 
@@ -281,7 +334,8 @@
   function maybePhantom(r) {
     if (!API.phantom || r.phantomDone || r.conns.length !== 1) return;
     r.phantomDone = true;
-    var ghost = { name: API.phantomName, handler: null, closed: false };
+    var ghost = { name: API.phantomName, token: "mock-phantom", h: uid(),
+                  handler: null, closed: false };
     setTimeout(function () {
       if (!r.conns.length) return;         // everyone left; stay gone
       r.conns.push(ghost);
@@ -324,17 +378,39 @@
         setTimeout(function () {
           var r = ROOMS[code];
           if (!r && !opts.create) return reject({ code: "no-room" });
+          var token = typeof opts.token === "string" ? opts.token.slice(0, 64) : "";
+          var name = String(opts.name || "?").slice(0, 40);
+          if (r) {
+            /* reap-or-replace: the same device token supersedes its own
+               lingering connection instead of colliding with itself */
+            r.conns.slice().forEach(function (c) {
+              if (token && c.token === token) {
+                c.closed = true;
+                r.conns.splice(r.conns.indexOf(c), 1);
+              }
+            });
+            /* per-room unique names (worker parity) */
+            var clash = r.conns.some(function (c) {
+              return normName(c.name) === normName(name);
+            });
+            if (clash) return reject({ code: "name-taken" });
+            if (r.conns.length >= 32) return reject({ code: "full" });
+          }
           if (!r) {
             r = ROOMS[code] = {
-              room: { id: code, createdAt: now(), settings: { requireBothCatalogs: false } },
+              room: { id: code, createdAt: now(),
+                      settings: { requireBothCatalogs: false, mode: "open" },
+                      ownerToken: token || null },
               transport: { playing: false, startedAt: null, pausedPosition: null },
               current: null, queue: [], history: [], v: 1,
-              conns: [], timer: null, phantomDone: false
+              caps: {}, conns: [], timer: null, phantomDone: false
             };
             saveStore();
           }
           var conn = {
-            name: String(opts.name || "?").slice(0, 40),
+            name: name,
+            token: token,
+            h: uid(),
             handler: null,
             closed: false,
             onMessage: function (cb) { conn.handler = cb; },
@@ -342,7 +418,8 @@
               setTimeout(function () {
                 if (conn.closed) return;
                 if (msg.type === "close") {   // owner only — signs the station off
-                  if (r.conns[0] !== conn) return;
+                  var own = ownerIndex(r);
+                  if (own < 0 || r.conns[own] !== conn) return;
                   r.conns.slice().forEach(function (c) {
                     deliver(c, { type: "closed", serverNow: now() });
                   });
@@ -351,8 +428,53 @@
                   saveStore();
                   return;
                 }
+                /* owner-only moderation (worker parity): grants, kick, mode */
+                if (msg.type === "setCap" || msg.type === "kick" || msg.type === "setMode") {
+                  var ownM = ownerIndex(r);
+                  if (ownM < 0 || r.conns[ownM] !== conn) {
+                    deliver(conn, { type: "error", code: "perm" });
+                    return;
+                  }
+                  if (msg.type === "setMode") {
+                    var mode = msg.mode === "restricted" ? "restricted" : "open";
+                    if (r.room.settings.mode === mode) return;
+                    r.room.settings.mode = mode;
+                    broadcast(r, delta(r, ["room"]));
+                    presence(r);
+                    return;
+                  }
+                  var target = null;
+                  r.conns.forEach(function (c) { if (c.h === msg.t) target = c; });
+                  if (!target || target === conn) return;  // no self-kick / self-demote
+                  if (msg.type === "kick") {
+                    /* a kick is just a kick — disconnect, no ban (2026-07-14).
+                       Don't flag the conn closed here: deliver() checks the
+                       flag at fire time, and the kicked message still has to
+                       land (the client closes its side on receipt). */
+                    deliver(target, { type: "kicked", serverNow: now() });
+                    r.conns.splice(r.conns.indexOf(target), 1);
+                    presence(r);
+                    return;
+                  }
+                  var cap = msg.cap === "player" ? "player" : msg.cap === "queue" ? "queue" : null;
+                  var level = msg.level === "r" || msg.level === "e" ? msg.level : null;
+                  if (!cap || !level || !target.token) return;
+                  var cur = Object.assign(modeDefault(r), r.caps[target.token]);
+                  cur[cap] = level;
+                  r.caps[target.token] = cur;
+                  saveStore();
+                  presence(r);
+                  return;
+                }
                 var fn = COMMANDS[msg.type];
                 if (!fn) return;
+                /* capability enforcement — mirrors the worker's choke point */
+                var need = QUEUE_VERBS[msg.type] ? "queue"
+                         : PLAYER_VERBS[msg.type] ? "player" : null;
+                if (need && capsOf(r, conn)[need] !== "e") {
+                  deliver(conn, { type: "error", code: "perm" });
+                  return;
+                }
                 var fields = fn(r, msg, conn);
                 if (fields) { armAlarm(r); broadcast(r, delta(r, fields)); }
               }, LATENCY);
@@ -366,7 +488,7 @@
           r.conns.push(conn);
           r.touched = now();
           deliver(conn, Object.assign(snapshot(r), {
-            owner: 0, you: r.conns.indexOf(conn)
+            you: r.conns.indexOf(conn)
           }));
           presence(r);
           maybePhantom(r);
@@ -387,6 +509,9 @@
         }, 250);
       });
     },
+
+    /* catalog-gap report — the real transport POSTs /gaps; no server here */
+    reportGap: function () {},
 
     /* dev reset: RadioTransport.wipe() in the console */
     wipe: function () {

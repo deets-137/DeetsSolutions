@@ -22,6 +22,8 @@
 
   --header-h:    4rem;
   --content-max: 68rem;
+  /* the site-shell's gutter dock (DeetsRadio browse-while-listening) */
+  --radio-dock-w: 19rem;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,6 +35,13 @@ html {
      the centered header + content re-center by ~half the scrollbar width when
      you move between pages, reading as a sideways jump. */
   scrollbar-gutter: stable;
+  /* The page scrollbar is ours, not the OS's — the same thin themed bar
+     the panel scrollers ride (themes.css declares the thumb roles; this
+     finishes what that comment promised). Matters doubly inside the
+     radio site-shell, where a native bar would float mid-screen at the
+     framed page's edge. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
 }
 
 body {
@@ -903,6 +912,80 @@ body::before {
   z-index: 20;
 }
 .tb-pop[hidden] { display: none; }
+
+/* ── Toasts — shared chrome (js/toast.js; docs/ui.md) ───────────
+   A fixed top-right host under the header; toasts fly in from the
+   right, newest on top. Severity wears the theme's traffic-light
+   roles as a left stripe (success --go, warn --pause, error --stop;
+   info stays neutral), so every theme — the monochrome ones included —
+   expresses them in-family. z 50: over the radio site-shell (35) and
+   the row menus (40), so the room can reach you while you browse. */
+.toast-host {
+  position: fixed;
+  top: calc(var(--header-h) + var(--space-2));
+  right: var(--space-4);
+  width: 19rem;
+  max-width: calc(100vw - 2 * var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 50;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--toast-accent, var(--panel-border));
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text);
+  font-size: 0.86rem;
+  animation: toast-in var(--dur-med) var(--ease-ui) both;
+}
+.toast--success { --toast-accent: var(--go); }
+.toast--warn    { --toast-accent: var(--pause); }
+.toast--error   { --toast-accent: var(--stop); }
+.toast--out {
+  opacity: 0;
+  transform: translateX(30%);
+  transition: opacity var(--dur-med) var(--ease-ui),
+              transform var(--dur-med) var(--ease-ui);
+  pointer-events: none;
+}
+.toast__text { margin: 0; overflow-wrap: break-word; }
+.toast__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.toast__btn { font-size: 0.8rem; }
+/* the countdown — drains over the toast's lifetime; hover holds it
+   (toast.js holds the reap timer in step) */
+.toast__bar {
+  height: 2px;
+  margin-top: var(--space-2);
+  background: var(--toast-accent, var(--subtext));
+  transform-origin: left;
+  animation-name: toast-bar;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+.toast:hover .toast__bar { animation-play-state: paused; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(110%); }
+}
+@keyframes toast-bar {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+  .toast--out { transform: none; }
+}
 .tb-pop__opt {
   display: flex;
   align-items: center;
@@ -2163,25 +2246,27 @@ body::before {
 @media (max-width: 41rem) {
   .radio-col__body { height: auto; overflow-y: visible; }
 }
-.radio-tabs { display: none; }
+/* Tab styling lives outside the media query: the mobile collapse AND the
+   site-shell dock (below) both flip the same switcher on. */
+.radio-tabs {
+  display: none;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.radio-tabs__tab {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+.radio-tabs__tab[aria-pressed="true"] { color: var(--title); border-color: var(--title); }
 @media (max-width: 41rem) {
-  .radio-tabs {
-    display: flex;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-  }
-  .radio-tabs__tab {
-    flex: 1;
-    font-family: var(--font-body);
-    font-size: var(--fs-nav);
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-control);
-    padding: var(--space-1) var(--space-2);
-    cursor: pointer;
-  }
-  .radio-tabs__tab[aria-pressed="true"] { color: var(--title); border-color: var(--title); }
+  .radio-tabs { display: flex; }
   .radio-columns { grid-template-columns: 1fr; }
   .radio-columns .radio-col { display: none; }
   .radio-columns[data-active="queue"] [data-col="queue"],
@@ -2521,6 +2606,277 @@ body::before {
 }
 /* right-aligned arrow pointing at the room's owner */
 .radio-listener__owner { flex: none; color: var(--title); }
+
+/* Crew panel — the always-up listener roster under the columns (half the
+   content column, left). Everyone reads the same panel; the owner's
+   edition adds per-listener R|E capability pills (queue / player), the
+   kick ✕, and the room-mode dropdown. The ✕ wears --stop — the theme's
+   own close-role: deep red where the theme has red, in-family on the
+   monochrome themes (token discipline; no raw scarlet). */
+.radio-crew {
+  width: min(100%, 34rem);
+  margin-top: var(--space-4);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  padding: var(--space-3);
+}
+.radio-crew__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.radio-crew__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
+  color: var(--title);
+}
+.radio-crew__modenote { color: var(--subtext); font-size: 0.82rem; }
+.radio-crew__mode { position: relative; }
+/* roster grid: name · queue pill · player pill · kick (non-owners see a
+   single name column — the grid collapses to it) */
+.radio-crew__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1) var(--space-2); align-items: center; }
+.radio-crew__grid--owner { grid-template-columns: minmax(0, 1fr) auto auto 1.7rem; }
+.radio-crew__col {
+  color: var(--subtext);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.radio-crew__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: var(--fs-nav);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* R|E split pill — two segments, one lit. R lights in the theme's stop
+   role, E in its go role (in-family on the monochrome themes). */
+.radio-cap {
+  display: inline-flex;
+  justify-self: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.radio-cap__seg {
+  min-width: 1.9rem;
+  padding: 0.1rem 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--subtext);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+}
+.radio-cap__seg + .radio-cap__seg { border-left: 1px solid var(--border); }
+.radio-cap__seg:hover { background: var(--surface-hover); }
+.radio-cap__seg[aria-pressed="true"] { background: var(--surface-hover); font-weight: 600; }
+.radio-cap__seg[data-level="r"][aria-pressed="true"] { color: var(--stop); }
+.radio-cap__seg[data-level="e"][aria-pressed="true"] { color: var(--go); }
+.radio-cap__seg[disabled] { cursor: default; opacity: 0.55; }
+.radio-cap__seg[disabled]:hover { background: none; }
+.radio-cap__seg[disabled][aria-pressed="true"]:hover { background: var(--surface-hover); }
+/* the kick ✕ — the one deliberately loud control on the panel */
+.radio-crew__kick {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--stop);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.radio-crew__kick svg { width: 1rem; height: 1rem; }
+.radio-crew__kick:hover { background: var(--surface-hover); border-color: var(--stop); }
+.radio-crew__kick[disabled] { opacity: 0.3; cursor: default; }
+.radio-crew__kick[disabled]:hover { background: none; border-color: transparent; }
+
+/* Site-shell — browse the site while the room plays (docs/radio.md).
+   A fixed viewport grid over the whole radio page: the framed page (it
+   brings its own header) beside a right-gutter dock holding the
+   REPARENTED room UI — the NP strip re-stacked into a square player
+   (DeetsMusic's .np re-stack: cover on top at column width, meta /
+   progress / transport under) above the tabbed columns. Under 66rem the
+   dock collapses to a bottom strip: the player rides horizontal and the
+   columns sit that width out. z-index 35 keeps the row context menus
+   (.radio-menu, 40) above the dock. */
+:root[data-radio-shell],
+:root[data-radio-shell] body { overflow: hidden; }
+/* The covered page keeps its skin, loses its content: header + main hide
+   so nothing bleeds through the gutter. The dock paints FLAT canvas with
+   a panel-border divider — the parent's fixed texture layers (grid,
+   ocean, storm) are viewport-sized, the frame's copies are frame-sized,
+   and the two can never line up at the boundary; letting them show made
+   the frame's edge read as a seam. The framed page paints its own
+   background as always. */
+:root[data-radio-shell] .site-header,
+:root[data-radio-shell] .site-main { visibility: hidden; }
+.radio-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--radio-dock-w);
+}
+.radio-shell[hidden] { display: none; }
+.radio-shell__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: var(--canvas);
+}
+.radio-shell__dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--canvas);
+  border-left: 1px solid var(--panel-border);
+}
+.radio-shell__return { justify-content: center; }
+/* strip-only room/disconnect pills — the return pill's stand-ins once
+   the bottom strip hides it (there's no gutter to put it in). They live
+   INSIDE the NP card (under the transport, per Aditya's sketch) and stay
+   hidden everywhere but the strip. */
+.radio-shell__actions { display: none; }
+/* icon pills, splitting the transport row's width between them (the
+   grid column is sized by the controls row above); equal-width by
+   construction — content can't skew a 1fr/1fr grid */
+.radio-shell__actions .tb-pill {
+  min-width: 0;
+  justify-content: center;
+}
+.radio-shell__actions .tb-pill svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+/* armed Disconnect: checkmark icon + a small "?", icon-sized */
+.radio-shell__actions .tb-pill .tb-pill__label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75em;
+}
+.radio-shell__slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+/* the square player: the same live .radio-np nodes, re-stacked */
+.radio-shell__slot .radio-np {
+  flex: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  margin-bottom: 0;
+  padding: var(--space-3);
+}
+.radio-shell__slot .radio-np__art {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+.radio-shell__slot .radio-np__count { font-size: 3.6rem; }
+.radio-shell__slot .radio-np__controls { justify-content: center; }
+/* the multicard: tabs + one column at a time (the mobile collapse's
+   switcher, gutter edition); the visible column fills the dock */
+.radio-shell__slot .radio-tabs { display: flex; margin-bottom: 0; }
+.radio-shell__slot .radio-columns {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+.radio-shell__slot .radio-col { display: none; min-height: 0; }
+.radio-shell__slot .radio-columns[data-active="queue"]   [data-col="queue"],
+.radio-shell__slot .radio-columns[data-active="search"]  [data-col="search"],
+.radio-shell__slot .radio-columns[data-active="history"] [data-col="history"] {
+  display: flex;
+  flex-direction: column;
+}
+.radio-shell__slot .radio-col__body {
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* Bottom strip — the gutter is too thin for cards; the player docks to
+   the bottom edge (per Aditya: the NP card alone, horizontal again). */
+@media (max-width: 66rem) {
+  .radio-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .radio-shell__dock {
+    flex-direction: row;
+    align-items: center;
+    border-top: 1px solid var(--panel-border);
+    border-left: 0;
+  }
+  .radio-shell__return { display: none; }
+  .radio-shell__slot { flex-direction: row; align-items: center; }
+  .radio-shell__slot .radio-tabs,
+  .radio-shell__slot .radio-columns { display: none; }
+  /* the card re-flows as a grid so the room/disconnect pills sit in
+     their own row under the transport buttons */
+  .radio-shell__slot .radio-np {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "art center controls"
+      "art center actions";
+    align-items: center;
+    column-gap: var(--space-4);
+    row-gap: var(--space-2);
+  }
+  .radio-shell__slot .radio-np__art {
+    grid-area: art;
+    width: 56px;
+    height: 56px;
+    aspect-ratio: auto;
+  }
+  .radio-shell__slot .radio-np__center { grid-area: center; }
+  .radio-shell__slot .radio-np__count { font-size: 1.6rem; }
+  .radio-shell__slot .radio-np__controls {
+    grid-area: controls;
+    justify-content: flex-end;
+  }
+  .radio-shell__slot .radio-shell__actions {
+    grid-area: actions;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: var(--space-2);
+  }
+}
 
 /* Focus ring — keyboard users */
 a:focus-visible,

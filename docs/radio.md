@@ -21,10 +21,37 @@ and the 1 h idle expiry** landed (see "Ownership & closing"). DeetsMusic
 ports beyond the original table: the album/playlist collection menu and
 Go to Artist.
 
+Day-three build (2026-07-14, evening): **the site-shell** (browse the
+site while the room plays — see "The site-shell") and **listener
+identity & permissions** landed (see that section — no longer deferred:
+device tokens, per-room unique names, R|E capabilities, kick, the
+Open/Restricted room mode, and the always-up crew panel). The worker
+grew the **max-listeners cap (32)** and the **catalog-gap collector**
+(`POST /gaps` → a `GapLog` DO; the console warn now also reports).
+⚠ **Deploy note:** the `listeners` broadcast changed shape (names →
+roster objects), so the worker deploy (`npx wrangler deploy` in
+`../DeetsRadio`) and the site publish must land **together** — an old
+page against the new worker renders `[object Object]` in the listener
+list. New `[ph]` strings await Aditya's copy (shell return pill, crew
+panel labels, kick/name-taken/full/perm lines).
+
+Day-four polish (2026-07-14, shell UX session): the dock's **seam fix**
+(opaque canvas + divider), the bottom strip's **icon stand-ins** inside
+the NP card (radio / unplug, checkmark+"?" confirm), the **hashchange
+echo guard** (leaving from inside the shell no longer boomerangs back
+into the room — a kicked listener stays kicked), and the **site-wide
+toast system** (`js/toast.js`, shared chrome — [ui.md](ui.md), "Toasts")
+with the radio's transient pops migrated onto it: invite copied, perm
+denied, disconnected (sticky) / reconnected, kicked, room closed, and
+audio-blocked. The meta line is gate-only now; in-room the UI sits
+directly under the bar. Details in "The site-shell" and the toast
+paragraph there. One more `[ph]` joined the list: `toastDismiss`.
+
 Before ship: tune sync feel (drift thresholds, cover-up timing) against
 real network latency — the one pass the mock could never host. **Copy is
-done (2026-07-14):** every `radio/strings.js` entry is handwritten now, no
-`[ph]` values left. The blank cover sprite is still the scaffolded
+done for v0.9's original surface (2026-07-14):** every earlier
+`radio/strings.js` entry is handwritten; the day-three additions are
+`[ph]` until rewritten. The blank cover sprite is still the scaffolded
 placeholder **by choice** — it ships as-is; Aditya polishes it later (a
 deliberate deferral, not a blocker).
 
@@ -56,10 +83,13 @@ Much of the UX is ported from the sibling **DeetsMusic** desktop app
 
 ## Decisions already made
 
-- **Communal controls.** Knowing the room code = trusted. Anyone can
-  play/pause/skip/back, add, remove, reorder. No auth tiers — with one
-  narrow exception: a background **owner** (see Ownership & closing below)
-  whose only extra power is closing the room.
+- **Communal controls — by default.** Knowing the room code = trusted.
+  In an **Open** room (the default) anyone can play/pause/skip/back, add,
+  remove, reorder. *Revised 2026-07-14 (a considered change, not a
+  regression):* the owner can now flip the room to **Restricted** and
+  grant per-listener capabilities — see "Listener identity & queue
+  permissions", which is built. The background **owner** (see Ownership &
+  closing) holds the moderation powers: close, mode, grants, kick.
 - **Rooms are durable — until an hour of true silence.** A DeetsRadio ID
   persists (queue, history, settings survive everyone leaving). The room
   keeps "playing" while empty — rejoin and it's mid-song, like a real
@@ -68,16 +98,16 @@ Much of the UX is ported from the sibling **DeetsMusic** desktop app
   lands on the ordinary create-confirm). Any join or command disarms the
   fuse; a playing-but-empty room never expires mid-queue (decided
   2026-07-14).
-- **Ownership & closing (decided 2026-07-14).** Every room has a
-  background owner: the creator, and when they disconnect, the
-  longest-connected remaining listener (join-order succession).
-  Ownership is **connection-scoped** — no accounts, so it rides the
-  socket; a reload or drop passes it on (a solo listener reclaims it on
-  rejoin). It confers exactly one power: **Close Room** (a toolbar pill
-  right of Disconnect, press-twice confirm), which broadcasts `closed`,
-  disconnects everyone, wipes storage, and frees the code. The listeners
-  popover marks the owner with a right-aligned ← pointing at their name.
-  Everything else stays fully communal.
+- **Ownership & closing (decided 2026-07-14; token-hardened same day).**
+  Every room has a background owner: the **creator, whenever their device
+  token is connected** (`room.ownerToken`, written at creation — a reload
+  no longer hands the room away for good), with **join-order fallback**
+  (longest-connected listener) while the creator is away. Ownership
+  confers the moderation powers: **Close Room** (a toolbar pill right of
+  Disconnect, press-twice confirm — broadcasts `closed`, disconnects
+  everyone, wipes storage, frees the code), plus the crew panel's grants,
+  kick, and room mode. The listeners popover and the crew panel mark the
+  owner with a right-aligned ←.
 - **Room codes are free-form with a create confirm.** The creator types any
   code; it's slugified (lowercase, `a–z 0–9 -`, 3–24 chars). Entering a code
   that doesn't exist shows a one-tap "No room called *X* — create it?" step,
@@ -215,23 +245,34 @@ re-request snapshot).
 
 | msg | payload | effect |
 |---|---|---|
-| `join` | `{name, create?: bool}` | registers presence; server replies with `snapshot`. `create: true` initializes an uninitialized room (see below); without it, joining one is refused |
-| `play` / `pause` | — | transport (see rules above) |
-| `skip` / `back` | — | transport |
-| `add` | `{entry, at?}` | resolved entry (see below) appended / inserted |
-| `remove` | `{entryId}` | remove from queue |
-| `reorder` | `{entryId, to}` | move within queue |
-| `rename` | `{name}` | update display name |
+| `join` | `{name, create?: bool, token}` | registers presence; server replies with `snapshot`. `create: true` initializes an uninitialized room (see below); without it, joining one is refused. `token` = the device token (below). Refused with `error: "name-taken"` (name live in the room under another token; same token reaps-and-replaces its own lingering socket) or `error: "full"` (32 listeners) — both final, like `no-room` |
+| `play` / `pause` | — | transport (see rules above) — needs the **player** capability |
+| `skip` / `back` | — | transport — needs the **player** capability |
+| `add` | `{entry, at?}` | resolved entry (see below) appended / inserted — needs the **queue** capability |
+| `remove` | `{entryId}` | remove from queue — **queue** capability |
+| `reorder` | `{entryId, to}` | move within queue — **queue** capability |
+| `rename` | `{name}` | update display name; refused with `error: "name-taken"` (no close) if live in the room |
+| `setCap` | `{t, cap, level}` | **owner only**: grant/revoke — `t` a roster handle, `cap` `"queue"\|"player"`, `level` `"r"\|"e"`. Persists on the target's token |
+| `kick` | `{t}` | **owner only**: disconnect that listener (a kick is just a kick — no ban; the token layer keeps ban within reach) |
+| `setMode` | `{mode}` | **owner only**: `"open"` \| `"restricted"` — sets what caps a fresh token joins with (e\|e vs r\|r) |
 | `close` | — | **owner only** (ignored otherwise): broadcast `closed`, disconnect everyone, wipe the room |
+
+Capability denials answer `{type:"error", code:"perm"}` — enforcement is
+server-side on every mutating verb; hidden client affordances are cosmetic.
 
 **Room → clients**
 
 | msg | payload |
 |---|---|
-| `snapshot` | full state: settings, transport, current, queue, history (bounded), listeners — plus `owner` (index, always 0: listeners are join-ordered) and `you` (your index; personalized per socket) |
-| `state` | delta broadcast after any mutation (same shape, only changed sections) |
-| `presence` | listener joined/left/renamed — join-ordered `listeners` + `owner` + `you` (personalized) |
+| `snapshot` | full state: room (settings incl. `mode`), transport, current, queue, history (bounded), listeners — plus `owner` (roster index: the creator's token when connected, else 0) and `you` (your index; personalized per socket) |
+| `state` | delta broadcast after any mutation (same shape, only changed sections; `room` rides it when the mode changes) |
+| `presence` | listener joined/left/renamed/granted — join-ordered `listeners` + `owner` + `you` (personalized) |
+| `kicked` | you specifically: the owner's ✕ — land back at the gate |
 | `closed` | the owner signed the station off; clients land back at the gate |
+
+`listeners` entries are objects: `{name, h, caps: {queue, player}}` — `h`
+is an opaque per-connection handle (what `setCap`/`kick` target). The
+device token itself **never rides a broadcast**.
 
 Reconnect = new socket + `join` + fresh `snapshot`. No delta replay.
 
@@ -245,7 +286,10 @@ by the Start-this-station button). A stray `join` without the flag on an
 uninitialized room is refused — ghost rooms are impossible by construction.
 
 ```
-room:      { id, createdAt, settings: { requireBothCatalogs: bool } }
+room:      { id, createdAt, settings: { requireBothCatalogs: bool,
+             mode: "open" | "restricted" }, ownerToken: string | null }
+caps:      { [deviceToken]: { queue: "r"|"e", player: "r"|"e" } }
+             (explicit grants only; capped 200, oldest-trimmed)
 transport: { playing: bool, startedAt: epochMs | null, pausedPosition: ms | null }
 current:   Entry | null
 queue:     Entry[]          (ordered)
@@ -482,6 +526,98 @@ The progress bar is **display-only, permanently** — it shows room position
 over canonical duration; the protocol has no seek command. (Decided:
 recorded here so nobody "adds" it.)
 
+## The site-shell (built 2026-07-14): browse the site while the room plays
+
+No browser lets audio survive a real navigation, so the shell inverts the
+site instead: **while joined**, a same-origin click in the radio page's
+header loads that page in a full-viewport iframe OVER the radio page —
+which never unloads, so the socket, MusicKit, and the room clock ride
+through untouched (no hiccup; playback is continuous by construction).
+The framed page needs **zero changes** and doesn't know it's framed; its
+own header (nav, Vibe picker) is *the* header while browsing. Every page
+of the site keeps being a dumb flat page — all the machinery lives in
+`radio.js` (the `site-shell` section) + the `.radio-shell` CSS block.
+
+- **The gutter dock.** The room UI **reparents** (same live DOM nodes —
+  queue drag, menus, search panes, and the countdown all ride along) into
+  a right-gutter column beside the frame: the NP strip re-stacked into a
+  **square player** (DeetsMusic's `.np` re-stack: cover on top at column
+  width, meta / progress / transport under — there was no narrow mode to
+  port, so this is ours), above the **tabbed multicard** — the mobile
+  collapse's Queue | Search | History switcher, gutter edition, full
+  behavior intact. Width rides `--radio-dock-w` (19rem, a layout constant
+  beside `--content-max`). The dock paints **flat `--canvas` behind a 1px
+  `--panel-border` divider** (2026-07-14, day four): it was transparent at
+  first, but the parent's fixed texture layers are viewport-sized while
+  the frame's copies are frame-sized, so the two could never line up and
+  the frame's edge read as a seam. Under **66rem** the dock collapses to a
+  **bottom strip**: the player rides horizontal (the page's normal NP
+  anatomy) and the columns sit that width out (decided: the NP card alone
+  is the small-viewport shell). The strip **hides the return pill** (no
+  gutter to put it in); instead the NP card re-flows as a grid and carries
+  two stand-in pills **inside it, in a row under the transport buttons**
+  (2026-07-14, Aditya's sketch): **Radio Room** (home, same as the return
+  pill; a line-drawn radio icon) and **Disconnect** (an unplugged-plug
+  icon; leaves the room, press-twice confirm — while armed the icon
+  swaps to a checkmark + "?", same footprint so the button never
+  resizes; the Close-Room idiom). Both are icon-only,
+  `flex: 1 1 0` so together they span exactly the transport row's width;
+  "Radio Room" / "Disconnect" ride as aria-labels (`shellRoomPill` /
+  `leavePill`), "Confirm?" is `shellLeaveConfirm` — all Aditya's. The
+  pills are built in `buildNP()` as NP anatomy and ride the card
+  everywhere, CSS-hidden outside the strip.
+- **Coming home.** Three ways, all reparenting everything back where it
+  was: the dock's return pill; **Back** past the first framed page (the
+  shell pushes one history entry on open; the frame's own navigations
+  stack naturally on top, so Back first walks the browsing trail); or any
+  framed page navigating to `/radio/` — the **framed-guard** at the top of
+  radio.js (`window.top !== window`) makes a framed radio page post
+  `{deetsRadio:"home"}` to the parent and stay inert instead of booting.
+  Transient pops (invite copied, perm denied, disconnected/reconnected,
+  kicked, room closed, audio-blocked) ride the site's shared toast host —
+  `js/toast.js`, z 50, above the shell — so the room reaches you while
+  you browse ([docs/ui.md](ui.md), "Toasts"; wired 2026-07-14, the
+  `notify()` helper falls back to the meta line if the module is
+  absent). The meta line is a **gate-only** surface now (2026-07-14):
+  in-room its lone message (disconnected) rides the sticky toast, so
+  `enterRoomUI` hides the meta — the reserved line + margin collapse and
+  the room scoots up under the bar — and `leaveRoom` restores it for the
+  gate's copy (idle instructions, refusals, kicked/closed landings). The
+  sticky disconnected toast carries the one Dismiss action
+  (`toastDismiss`, `[ph]`) and retires itself on reconnect. The autoplay-blocked state
+  (hard refresh into a live room — see "Providers") is a sticky red
+  toast rather than an NP note: the unblocking click is what retires it
+  (the follower's next tick clears the note). Gap and preview-over notes
+  stay contextual in the NP card.
+  Leaving the room from inside the shell (Disconnect, a kick, the room
+  closing) is guarded against the **hashchange echo** (2026-07-14):
+  `shellClose()`'s `history.back()` lands on an entry that still carries
+  `#code`, and the mid-session hashchange listener would re-commit — a
+  silent boomerang straight back into the room just left (a kicked
+  listener would rejoin unnoticed). `leaveRoom` arms a one-shot,
+  2 s-boxed guard (`hashEcho`) that the hashchange listener consumes,
+  stripping the restored hash instead of rejoining.
+  The guard is load-bearing: a `#code` deep link auto-commits on boot and
+  a saved name joins instantly, so an unguarded framed radio page would
+  **double-join the room**. The iframe is created per visit and removed on
+  close, which collapses its session-history entries.
+- **The address bar stays `/radio/#code`** the whole time (decided): that
+  IS the page you're on, a copied URL keeps meaning "the station", and a
+  refresh was always going to need a fresh gesture anyway (autoplay).
+- **Theme sync.** A Vibe change made inside the frame writes localStorage;
+  the parent's `storage` listener re-applies `data-theme`/`data-skin` and
+  re-fires `deets:appearance` so its own picker follows. The ocean/storm
+  layers are always injected and opt in by attribute, so the attribute is
+  the whole switch.
+- **What's intercepted:** left, unmodified, same-origin clicks on the
+  radio page's own header links only — modified clicks, `target=_blank`,
+  and external links keep native behavior; the page's own nav entry
+  becomes a no-op instead of a music-killing reload. Not joined = nothing
+  intercepted.
+- The crew panel stays on the radio page (under the frame) rather than
+  riding the dock — moderation happens at home; a deliberate cut for dock
+  space.
+
 ## UX ports from DeetsMusic
 
 Port the **anatomy, not the pixels**: DeetsMusic has its own parallel
@@ -607,65 +743,64 @@ Spotify listeners) is untouched. Auto-continue is purely a queue *producer*.
   `queue.length < 2` at track-advance time), so listeners can see and — by
   removing/reordering — veto what's coming.
 
-## Listener identity & queue permissions (scoping, deferred)
+## Listener identity & queue permissions (built 2026-07-14)
 
 **Motivation.** When the owner reads the listener list they want to tell
-people apart, and — the real goal — grant/revoke *who may edit the queue*
-so a friend can't sabotage it. This is owner-configurable soft moderation.
-It deliberately **revises the flat communal model** recorded above ("no auth
-tiers"; kick/ban punted) — a considered change, not a regression; update
-those notes when this ships.
+people apart, and — the real goal — grant/revoke who may edit the queue or
+drive the player, so a friend can't sabotage the room. Owner-configurable
+soft moderation. This deliberately **revised the flat communal model**
+(the "Decisions" bullets above carry the revision notes).
 
-**Why today's handles can't carry a permission.** A grant has to bind to a
-listener that *stays* that listener. Neither current handle does: the
-display **name** is user-editable (`rename`), so a grant keyed to "Alex"
-breaks the moment Alex renames or a griefer renames *into* "Alex"; the
-**positional index** (`you`, `owner: 0`) shifts on every join/leave. So the
-feature needs real identity underneath.
+**Two layers, kept separate (as scoped; both built):**
 
-**Two layers, kept separate:**
+- **Human layer — unique display names per room.** Enforced server-side
+  (the DO) at **join and rename**: a name already live in the room refuses
+  with `error: "name-taken"` (a join refusal also closes; a rename refusal
+  doesn't) and the gate re-prompts with the name field forced. Names are
+  normalized (case + inner whitespace) before comparison. A reconnecting
+  device **reclaims its own name**: the same token reaps-and-replaces its
+  lingering socket rather than colliding with itself.
+- **Lock layer — a per-device token, not the name.** `radio.js` mints a
+  random 32-hex token once (`localStorage`, `deets-radio-token`) and sends
+  it on every `join`. Grants bind to the token; the name is only the label
+  the owner reads. The token is a **secret** — never broadcast; the wire
+  references listeners by server-assigned per-connection handles (`h` in
+  the roster), which `setCap`/`kick` target. The token also retro-hardened
+  ownership: `room.ownerToken` is written at creation, so the creator owns
+  the room whenever connected, join-order fallback otherwise.
 
-- **Human layer — unique display names per room** (decided while scoping,
-  2026-07-14). Enforce uniqueness server-side (the DO) at **join and
-  rename**: if the name is already live in the room, refuse and the client
-  re-prompts for another. This is what lets the owner actually identify who
-  is who — an opaque suffix ("Alex ·a3f") disambiguates for the machine but
-  is meaningless to a human reader. Needs case/whitespace normalization; a
-  reconnecting listener must be able to reclaim its own name (its stale
-  socket may still be lingering — reap-or-replace, don't collide with self).
-- **Lock layer — permissions anchor to a stable per-device token, not the
-  name.** Mint a random token in localStorage, send on `join`. Grants bind
-  to the token: the name is the label the owner reads, the token is what the
-  grant sticks to. This closes the impersonation-on-absence hole — names free
-  up when someone leaves, so a name-keyed grant would let a griefer grab a
-  departed "Alex" and inherit their rights. The token also retro-hardens
-  ownership (owner = the creator's token, not "oldest socket / index 0").
-  The token is a **secret** (it's how you prove you're you) — never broadcast
-  in `presence`; if the wire must reference a listener, the server assigns an
-  opaque room-scoped handle and grants target that.
+**The capability model (decided 2026-07-14).** Two independent R|E
+capabilities per listener: **queue** (add/remove/reorder) and **player**
+(play/pause/skip/back). Defaults come from the room's mode — **Open**
+joins land `e|e` (today's communal feel, unchanged), **Restricted** joins
+land `r|r` until promoted. Explicit grants persist per token (map capped
+at 200, oldest-trimmed) and survive reconnects; the owner is always
+effectively `e|e`. Enforcement is **server-side, always** — one check per
+mutating verb ahead of the command dispatch; the client mirrors it by
+disabling transport buttons, dropping drag, and emptying mutation menus
+(menus are built at open time, so a mid-session grant applies instantly).
 
-**Enforcement is server-side, always.** The DO rejects `add` / `remove` /
-`reorder` (and probably `skip` — a prime sabotage vector) from any token
-lacking the capability. Hiding the edit UI client-side is cosmetic; a raw
-socket message must still bounce. Cheap: one check per mutation, no added
-Cloudflare cost (same DO, tokens are a few bytes).
+**Kick is a kick (decided 2026-07-14).** The owner's ✕ disconnects the
+listener (`kicked` message, then close) — **no ban**. The token layer is
+what would make a ban stick, so it stays within easy reach; revisit if
+kick-and-return becomes a real nuisance.
 
-**Owner UI.** A configurable security panel (owner-only) listing current
-listeners with per-listener capability toggles. Copy lands as `[ph]` strings
-in `strings.js`.
+**The crew panel (built).** Always up for everyone, under the columns —
+half the content column wide, left-aligned. Non-owners read a plain
+roster (owner arrow included). The owner's edition adds two R|E split
+pills per listener (Queue / Player columns), the kick ✕ — worn in the
+theme's `--stop` role: deep red where the theme has red, in-family on the
+monochrome themes (token discipline; no raw scarlet) — and the room-mode
+dropdown (Open / Restricted) top-right. No self-kick, no toggling the
+owner's own row. The always-up-for-everyone posture is deliberate: it
+leaves room for owner-appointed co-owners/admins later. Restricted's
+meaning may grow (an optional room password is the sketched candidate —
+not designed yet).
 
-**Contract impact.** New `join` field (token) + a rename-collision reject
-reason + possibly a presence handle — mirror verbatim across `transport.js`,
-`transport-mock.js`, and the `../DeetsRadio` worker. Read the worker before
-proposing exact changes.
-
-**Still open (decide before building):**
-- Default posture: *default-open with revoke* (reactive, keeps communal
-  feel) vs a room-level *Open / Curated* toggle (Curated = owner + granted
-  editors only). Leaning toggle so casual rooms don't change.
-- Capability granularity: queue edits only, or transport (skip/pause) too?
-- Scope: proper v1.x design pass (+ docs update) vs a quick owner-revoke
-  prototype first.
+**Contract note.** The `join` token, refusal codes, roster shape, and the
+three owner verbs are mirrored verbatim across `transport.js`,
+`transport-mock.js`, and the `../DeetsRadio` worker, per the protocol
+tables above.
 
 ## Limits & costs
 
@@ -687,26 +822,27 @@ proposing exact changes.
   and does a `storage.put` + O(n) broadcast, an unthrottled flood is a
   wallet/quota DoS. And an **IP-keyed rate limit on `peek`** (30 / 60 s via a
   Workers rate-limit binding, rejected at the edge before the DO wakes), since
-  peek is unauthenticated and enumerable. A **max-listeners-per-room** cap is
-  the next lever — a command cap bounds one socket, not the number of joiners
-  — and is deferred, not a launch blocker.
+  peek is unauthenticated and enumerable. The **max-listeners-per-room cap
+  (32, built 2026-07-14)** closes the third lever: joins beyond it are
+  refused with `error: "full"` before any state is touched. Gap reports
+  (`POST /gaps`) carry their own IP limit (10/60 s, `GAP_RL`) so a report
+  flood can't starve an IP's peek budget.
 
 ## Open questions (deferred, not blockers)
 
 - **Room directory / discovery**: would need D1 + a public flag. Not v1.
-- **Kick/ban**: still punted — the communal trust model stands; a room gone
-  wrong can be abandoned for a new code, or its owner can close it.
-  (Closing + 1 h idle expiry decided 2026-07-14 — see "Ownership &
-  closing"; a queue/history *reset* stays unbuilt on purpose: history is
-  append-only, the play-log philosophy.)
-- **Catalog-gap collection (wanted, not built)**: when a queued track is a
-  real Apple entry that MusicKit still can't play on a listener's account,
-  `apple.js`'s `follow()` marks it a "gap" (the `catalogGap` note) and now
-  `console.warn`s it once per track with `{ id, title, artist }`. We'd like
-  to graduate that from console-only to server-side collection — post the
-  gap to the DeetsRadio worker (a lightweight endpoint, no key budget at
-  stake) so gaps accumulate for later review, to find patterns and shrink
-  how often listeners hit them. Deferred; the client-side log is the stopgap.
+- **Kick: built (2026-07-14); ban: still punted.** The owner's ✕
+  disconnects — see "Listener identity & queue permissions". A ban would
+  key on the device token (already in place), so it stays one small step
+  away if kick-and-return becomes a nuisance. A queue/history *reset*
+  stays unbuilt on purpose: history is append-only, the play-log
+  philosophy.
+- **Catalog-gap collection: built (2026-07-14).** `apple.js`'s once-per-
+  track gap warn now also posts `{id, title, artist}` to the worker —
+  `POST /gaps` → a singleton `GapLog` DO (SQLite rows, capped 500,
+  IP-rate-limited, body rides text/plain so the request stays
+  CORS-simple). `GET /gaps` reads the newest 200 back for review. The
+  mock's `reportGap` is a no-op.
 
 Settled and recorded above so nobody "fixes" them later: no seek (display-
 only progress bar), volume is always local-only, queue exhaustion idles in

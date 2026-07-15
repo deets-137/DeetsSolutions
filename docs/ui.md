@@ -231,3 +231,32 @@ its relationship to the journals' sticky `.sotd__bar`, is documented in
 `movies.js`) is covered in
 [architecture.md](architecture.md#toolbar--popover-kit). Those aren't
 repeated here; this doc is the appearance-picker reference.
+
+## Toasts (js/toast.js)
+
+Shared chrome like `controls.js` — loaded on every page, deliberately NOT
+part of the duplicated toolbar kit (a toast has no page-specific logic).
+`window.DeetsToast.push({ kind, text, sticky, timeout, actions })` →
+`{ dismiss }`; the API contract is documented in the file's header.
+
+- **Host**: a fixed top-right column under the header (`.toast-host`,
+  z 50 — above the radio site-shell (35) and row menus (40), so the room
+  reaches you while browsing in the shell). Newest on top, capped at 4
+  (the oldest timed toast yields first). `aria-live="polite"`; an error
+  toast carries `role="alert"`.
+- **Severity wears the traffic-light roles** (2026-07-14, Aditya's call):
+  success `--go`, warn `--pause`, error `--stop` as a left accent stripe;
+  info stays neutral (`--panel-border`). Every theme — the monochrome
+  ones included — expresses them in-family for free, since the roles
+  already exist per theme.
+- **Timed by default** (3.2 s): a thin countdown bar drains over the
+  toast's life; hovering pauses bar and reaper together. `sticky: true`
+  never times out — give it an action; **Dismiss is an ordinary action
+  button** on sticky toasts (timed ones get none). Fly-in from the right
+  on `--dur-med`/`--ease-ui`; reduced-motion drops the slide.
+- **Zero copy in the module.** Callers own their strings — the radio page
+  feeds `strings.js` entries (its transient pops migrated 2026-07-14:
+  invite copied, perm denied, disconnected sticky + reconnect,
+  kicked, room closed, and the sticky audio-blocked toast that the
+  unblocking click retires; the meta line keeps persistent status).
+  Ephemeral by design: no history, no queue beyond the visible stack.

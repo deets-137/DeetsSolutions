@@ -3,8 +3,9 @@
 Technical companion to the [README](../README.md). The README says what the
 site is; this file says how it works. No build step, no framework, no
 dependencies — every page is plain HTML that loads `styles/main.css`,
-`js/controls.js`, and (for the home hub and the journal pages) one
-page-local script.
+`js/controls.js`, `js/toast.js` (the shared toast host — see
+[ui.md](ui.md), "Toasts"), and (for the home hub and the journal pages)
+one page-local script.
 
 ## Appearance system: theme × skin
 

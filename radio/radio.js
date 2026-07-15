@@ -14,6 +14,18 @@
 (function () {
   "use strict";
 
+  /* Framed radio is the site-shell's go-home signal, never a second room.
+     While the shell is up (see the site-shell section), every page of the
+     site loads inside an iframe on TOP of the live radio page — including
+     /radio/ itself when a framed page's nav points back here. Booting in
+     that frame would peek, auto-join from a saved name or #code, and
+     double-count a listener. So a framed radio page does exactly one
+     thing: tell the parent to close the shell, then stay inert. */
+  if (window.top !== window) {
+    try { window.parent.postMessage({ deetsRadio: "home" }, location.origin); } catch (e) {}
+    return;
+  }
+
   var S = window.RADIO_STRINGS;
   var T = window.RadioTransport;
   var A = window.RadioApple;   // Apple side (search / auth / playback follower)
@@ -33,8 +45,10 @@
   var SEARCH_BODY = document.querySelector("[data-radio-search]");
   var HISTORY_TITLE = document.querySelector("[data-radio-title-history]");
   var HISTORY_BODY = document.querySelector("[data-radio-history]");
+  var CREW = document.querySelector("[data-radio-crew]");
 
   var NAME_KEY = "deets-radio-name";
+  var TOKEN_KEY = "deets-radio-token";
   var STATIONS_KEY = "deets-radio-stations";
   var TERMS_KEY = "deets-radio-search-recents";
   var PREVIEWS_KEY = "deets-radio-previews";
@@ -45,6 +59,10 @@
   var ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
   var ICON_BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6v12h2V6zM20 6 10 12 20 18z"/></svg>';
   var ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6 14 12 4 18zM16 6v12h2V6z"/></svg>';
+  /* shell-strip stand-ins: a radio (home to the station) and an
+     unplugged plug (disconnect) — line icons, ICON_CHECK's idiom */
+  var ICON_RADIO = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9 18 4"/><rect x="3.5" y="9" width="17" height="11" rx="2"/><circle cx="9" cy="14.5" r="2.5"/><path d="M15 12.5h3M15 15h3M15 17.5h2"/></svg>';
+  var ICON_UNPLUG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8.5h3a3.5 3.5 0 0 1 0 7H9z"/><path d="M15.5 10.5H19M15.5 13.5H19"/><path d="M9 12H6.5C4.7 12 4 13.3 4 15v2"/><path d="M20.5 7.5 22 6M20.5 16.5 22 18"/></svg>';
   /* account-state sigils — DeetsMusic's login button anatomy (main.ts) */
   var ICON_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -75,6 +93,23 @@
   function save(key, val) {
     try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
   }
+  /* The device token (docs/radio.md, "Listener identity & queue
+     permissions"): a random secret minted once per browser, sent on every
+     join. It's what capability grants and ownership anchor to — never the
+     editable display name — and it never rides any broadcast. */
+  function deviceToken() {
+    var t = load(TOKEN_KEY, null);
+    if (t) return t;
+    var bytes = new Uint8Array(16);
+    try { crypto.getRandomValues(bytes); } catch (e) {
+      for (var i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    t = Array.prototype.map.call(bytes, function (b) {
+      return ("0" + b.toString(16)).slice(-2);
+    }).join("");
+    save(TOKEN_KEY, t);
+    return t;
+  }
 
   var metaTimer = null;
   function setMeta(text) {
@@ -84,6 +119,20 @@
   function toast(text, revertTo) {
     setMeta(text);
     metaTimer = setTimeout(function () { setMeta(revertTo || ""); }, 3200);
+  }
+  /* Transient pops ride the site's shared toast host (js/toast.js) —
+     it floats over the site-shell, so the room reaches you while you
+     browse; the meta line stays for persistent status. Falls back to
+     the meta line if the module didn't load. */
+  function notify(kind, text, extra) {
+    if (window.DeetsToast) {
+      var opts = extra || {};
+      opts.kind = kind;
+      opts.text = text;
+      return window.DeetsToast.push(opts);
+    }
+    toast(text, "");
+    return { dismiss: function () {} };
   }
   function metaIdle() {
     return S.metaIdle + (T.kind === "mock" ? "  ·  " + S.mockNotice : "");
@@ -151,6 +200,7 @@
   function openMenu(x, y, items) {
     closeMenu();
     closePop();
+    if (!items.length) return;   // caps may have emptied a row's menu
     menuEl = el("div", "tb-pop radio-menu");
     menuEl.setAttribute("role", "menu");
     items.forEach(function (it) {
@@ -179,6 +229,8 @@
 
   /* ── client state ─────────────────────────────────────────────── */
   var conn = null;
+  var connToast = null;     // the sticky disconnected toast (see onStatus)
+  var blockedToast = null;  // the sticky audio-blocked toast (see tick)
   var model = null;         // mirror of the room: transport/current/queue/history/listeners
   var clockOffset = 0;      // serverNow − Date.now(), rolling
   var roomCode = null;
@@ -206,6 +258,22 @@
     if (!model || !model.current || !model.transport.playing) return false;
     var t = model.transport;
     return t.startedAt + (t.pausedPosition || 0) > roomNow();
+  }
+  /* Capabilities (docs/radio.md, "Listener identity & queue permissions"):
+     mine ride the roster the server broadcasts. The checks here only shape
+     affordances — enforcement is the room's, always. */
+  function amOwner() {
+    return !!model && model.owner != null && model.owner === model.you;
+  }
+  function myCaps() {
+    var me = model && model.listeners && model.listeners[model.you];
+    return (me && me.caps) || { queue: "e", player: "e" };
+  }
+  function canQueue() { return myCaps().queue === "e"; }
+  function canPlayer() { return myCaps().player === "e"; }
+  function roomMode() {
+    return model && model.room && model.room.settings &&
+           model.room.settings.mode === "restricted" ? "restricted" : "open";
   }
 
   /* ── bar combobox: the title IS the station field ─────────────── */
@@ -279,11 +347,16 @@
     wrap.appendChild(input);
     return { wrap: wrap, input: input };
   }
-  function renderGate(code, p) {
+  function renderGate(code, p, nameTaken) {
     GATE.hidden = false;
     GATE.textContent = "";
     var line, button;
-    if (p.exists) {
+    if (nameTaken) {
+      /* the join bounced off the room's unique-name rule — same gate,
+         name field forced so a new tag can be picked */
+      line = S.nameTaken;
+      button = S.joinButton;
+    } else if (p.exists) {
       line = p.nowPlaying
         ? fmt(S.peekLive, { title: p.nowPlaying.title, artist: p.nowPlaying.artist, n: p.listeners })
         : fmt(S.peekQuiet, { n: p.listeners });
@@ -296,7 +369,7 @@
     var form = el("div", "radio-gate__form");
     var stored = String(load(NAME_KEY, "")).trim();
     var name = null;
-    if (!stored) {                    // name is asked once, then remembered
+    if (!stored || nameTaken) {       // name is asked once, then remembered
       name = nameField();
       form.appendChild(name.wrap);
     }
@@ -327,26 +400,53 @@
     if (joining || (joined && code === roomCode)) return Promise.resolve();
     joining = true;
     peekSeq++;               // orphan any peek still in the air
-    return T.connect(code, { name: who, create: !!create }).then(function (c) {
+    return T.connect(code, {
+      name: who, create: !!create, token: deviceToken()
+    }).then(function (c) {
       joining = false;
       conn = c;
       roomCode = code;
       joined = true;
       conn.onMessage(onMessage);
-      /* the real transport reports drops + rejoins; the mock has no wire */
+      /* the real transport reports drops + rejoins; the mock has no wire.
+         Down = persistent meta + a sticky toast (its Dismiss is the one
+         action button); the reconnect retires the toast itself. */
       if (conn.onStatus) conn.onStatus(function (s) {
         if (!joined) return;
-        if (s === "down") setMeta(S.disconnected);
-        else toast(S.reconnected, "");
+        if (s === "down") {
+          setMeta(S.disconnected);
+          if (!connToast) connToast = notify("error", S.disconnected, {
+            sticky: true, actions: [{ label: S.toastDismiss }]
+          });
+        } else {
+          if (connToast) { connToast.dismiss(); connToast = null; }
+          setMeta("");
+          notify("success", S.reconnected);
+        }
       });
       rememberStation(code);
       try { history.replaceState(null, "", "#" + code); } catch (e) {}
     }).catch(function (err) {
       joining = false;
-      setMeta(err && err.code === "no-room" ? S.joinRefused : S.peekFailed);
+      var code2 = err && err.code;
+      if (code2 === "name-taken") {          // someone in there wears this name
+        renderGate(code, { exists: true }, true);
+        return;
+      }
+      setMeta(code2 === "no-room" ? S.joinRefused :
+              code2 === "full" ? S.roomFull : S.peekFailed);
     });
   }
   function leaveRoom() {
+    /* Leaving from inside the shell: shellClose()'s history.back() lands
+       on an entry that still carries #code, and that hashchange would
+       re-commit the room we're leaving — a disconnect (or kick, or room
+       close) would silently boomerang right back in. Arm a one-shot
+       guard so the hashchange listener can swallow its own echo. */
+    if (shell && shell.open) hashEcho = { code: roomCode, at: Date.now() };
+    shellClose();            // no room, no shell — land back on the gate
+    if (connToast) { connToast.dismiss(); connToast = null; }
+    if (blockedToast) { blockedToast.dismiss(); blockedToast = null; }
     if (A) A.stop();
     if (conn) conn.close();
     conn = null;
@@ -356,17 +456,132 @@
     roomCode = null;
     ROOM.hidden = true;
     GATE.hidden = true;
+    if (CREW) { CREW.hidden = true; CREW.textContent = ""; }
     buildToolbar();
+    META.hidden = false;      // the gate's status line is back in play
     setMeta(metaIdle());
     try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
   }
+
+  /* ── site-shell: browse the site while the room plays ─────────── */
+  /* No browser lets audio survive a real navigation, so while joined the
+     shell inverts the site: a header nav click loads that page in a
+     full-viewport same-origin iframe OVER this one, and the radio page —
+     socket, MusicKit, room clock — never unloads. The framed page needs
+     no changes and doesn't know it's framed; its own header (nav, Vibe
+     picker) is THE header while browsing. The room UI reparents into a
+     gutter dock beside the frame — the NP strip re-stacked as a square
+     player over the tabbed columns (same live nodes, so queue drag,
+     menus, search panes, and the countdown all ride along) — and CSS
+     collapses the dock to a bottom strip when the gutter is too thin.
+     Coming home (dock pill, Back past the first framed page, or any
+     framed page navigating to /radio/ — see the framed-guard up top)
+     reparents everything where it was. The address bar stays on
+     /radio/#code the whole time: that IS the page you're on. */
+  var shell = null;          // { root, slot, frame, open }
+  var hashEcho = null;       // leaveRoom's history.back() echo (see there)
+  function buildShell() {
+    var root = el("div", "radio-shell");
+    root.hidden = true;
+    var dock = el("aside", "radio-shell__dock");
+    var ret = el("button", "tb-pill radio-shell__return");
+    ret.type = "button";
+    ret.appendChild(el("span", "tb-pill__label", S.shellReturn));
+    ret.addEventListener("click", function () { shellClose(); });
+    var slot = el("div", "radio-shell__slot");
+    dock.appendChild(ret);
+    dock.appendChild(slot);
+    root.appendChild(dock);
+    document.body.appendChild(root);
+    shell = { root: root, slot: slot, frame: null, open: false };
+  }
+  function shellOpen(path) {
+    if (!shell) buildShell();
+    if (!shell.open) {
+      shell.open = true;
+      shell.slot.appendChild(NP);
+      shell.slot.appendChild(TABS);
+      shell.slot.appendChild(COLS);
+      shell.root.hidden = false;
+      document.documentElement.setAttribute("data-radio-shell", "");
+      /* one entry, so Back past the framed page closes the shell (the
+         frame's own navigations stack their entries on top of this) */
+      try { history.pushState({ radioShell: true }, ""); } catch (e) {}
+    }
+    /* a fresh iframe per visit: removing it on close collapses the
+       frame's session-history entries, so the close-pill's history.back()
+       reliably pops OUR entry instead of walking dead framed pages */
+    if (shell.frame) shell.frame.remove();
+    var frame = el("iframe", "radio-shell__frame");
+    frame.setAttribute("title", S.ariaShellPage);
+    frame.src = path;
+    shell.root.insertBefore(frame, shell.root.firstChild);
+    shell.frame = frame;
+  }
+  function shellClose(fromPop) {
+    if (!shell || !shell.open) return;
+    shell.open = false;
+    if (shell.frame) { shell.frame.remove(); shell.frame = null; }
+    shell.root.hidden = true;
+    document.documentElement.removeAttribute("data-radio-shell");
+    /* home, in markup order (np · tabs · columns) — anchored BEFORE the
+       crew panel, which stays in ROOM and would otherwise end up on top */
+    var anchor = CREW && CREW.parentNode === ROOM ? CREW : null;
+    ROOM.insertBefore(NP, anchor);
+    ROOM.insertBefore(TABS, anchor);
+    ROOM.insertBefore(COLS, anchor);
+    if (!fromPop) { try { history.back(); } catch (e) {} }
+  }
+  window.addEventListener("popstate", function () {
+    shellClose(true);
+  });
+  /* a framed /radio/ page announcing itself (see the framed-guard) */
+  window.addEventListener("message", function (e) {
+    if (e.origin !== location.origin) return;
+    if (e.data && e.data.deetsRadio === "home") shellClose();
+  });
+  /* While joined, same-origin page links in OUR header open the shell
+     instead of navigating (navigation kills the music). Modified clicks,
+     new-tab targets, and external links keep their native behavior; a
+     click on this page's own nav entry becomes a no-op rather than a
+     music-killing reload. */
+  document.addEventListener("click", function (e) {
+    if (!joined || e.defaultPrevented || e.button !== 0 ||
+        e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target && e.target.closest ? e.target.closest(".site-header a") : null;
+    if (!a || (a.target && a.target !== "_self")) return;
+    var url;
+    try { url = new URL(a.getAttribute("href") || "", location.href); } catch (err) { return; }
+    if (url.origin !== location.origin) return;
+    e.preventDefault();
+    var here = location.pathname.replace(/\/?$/, "/");
+    if (url.pathname.replace(/\/?$/, "/") === here) return;   // already home
+    shellOpen(url.pathname + url.search);
+  });
+  /* Theme/skin changes made INSIDE a framed page write localStorage; the
+     storage event carries them back so this page (the dock, the room
+     behind the frame) never falls out of step. The layers (ocean/storm)
+     are always injected and opt in by attribute, so the attribute IS the
+     switch; the deets:appearance event brings our own Vibe menu's checks
+     along (controls.js listens for it). */
+  window.addEventListener("storage", function (e) {
+    var attr = e.key === "deets-theme" ? "data-theme" :
+               e.key === "deets-skin" ? "data-skin" : null;
+    if (!attr || !e.newValue) return;
+    document.documentElement.setAttribute(attr, e.newValue);
+    try {
+      document.dispatchEvent(new CustomEvent("deets:appearance", {
+        detail: { attr: attr, id: e.newValue }
+      }));
+    } catch (err) {}
+  });
 
   /* ── wire in ──────────────────────────────────────────────────── */
   function onMessage(msg) {
     if (msg.serverNow) noteClock(msg.serverNow);
     if (msg.type === "snapshot") {
       model = {
-        v: msg.v, transport: msg.transport, current: msg.current,
+        v: msg.v, room: msg.room, transport: msg.transport, current: msg.current,
         queue: msg.queue, history: msg.history, listeners: msg.listeners,
         owner: msg.owner, you: msg.you
       };
@@ -376,20 +591,41 @@
     }
     if (msg.type === "closed") {   // the owner signed the station off
       leaveRoom();
-      setMeta(S.roomClosed);
+      notify("info", S.roomClosed);
+      setMeta(S.roomClosed);       // after notify: its meta fallback would
+      return;                      // otherwise revert-erase this line
+    }
+    if (msg.type === "kicked") {   // the owner's ✕ — a kick is just a kick
+      leaveRoom();
+      notify("error", S.kickedMeta);
+      setMeta(S.kickedMeta);
+      return;
+    }
+    if (msg.type === "error") {
+      if (msg.code === "perm") { notify("warn", S.permDenied); return; }
+      if (msg.code === "name-taken" || msg.code === "full") {
+        /* a rejoin was refused mid-session (name grabbed while we were
+           down / room filled up) — land back at the gate */
+        var c = roomCode;
+        leaveRoom();
+        if (msg.code === "full") setMeta(S.roomFull);
+        else renderGate(c, { exists: true }, true);
+      }
       return;
     }
     if (!model) return;
     if (msg.type === "presence") {
       model.listeners = msg.listeners;
-      model.owner = msg.owner;     // ownership passes by join order
+      model.owner = msg.owner;     // creator's token, join-order fallback
       model.you = msg.you;
-      renderListeners();
+      /* caps ride presence, and they gate transport buttons, drag, and
+         menus everywhere — re-render the lot, it's cheap and rare */
+      renderAll();
       return;
     }
     if (msg.type === "state") {
       model.v = msg.v;
-      ["transport", "current", "queue", "history"].forEach(function (k) {
+      ["transport", "current", "queue", "history", "room"].forEach(function (k) {
         if (Object.prototype.hasOwnProperty.call(msg, k)) model[k] = msg[k];
       });
       renderAll();
@@ -415,7 +651,7 @@
     share.appendChild(el("span", "tb-pill__label", S.sharePill));
     share.addEventListener("click", function () {
       var url = location.origin + location.pathname + "#" + roomCode;
-      var done = function () { toast(S.shareToast, ""); };
+      var done = function () { notify("success", S.shareToast); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(done, done);
       } else done();
@@ -521,22 +757,113 @@
   if (A) A.setPreviews(previewsOn());
   function renderListeners() {
     if (!pills.listening || !model) return;
-    var names = model.listeners || [];
+    var crowd = model.listeners || [];   // roster objects: { name, h, caps }
     pills.listening.pill.querySelector(".tb-pill__label").textContent =
-      fmt(S.listeningPill, { n: names.length });
+      fmt(S.listeningPill, { n: crowd.length });
     if (pills.listeningPop) {
       pills.listeningPop.textContent = "";
-      names.forEach(function (n, i) {
-        var row = el("div", "radio-listener", n);
+      crowd.forEach(function (l, i) {
+        var row = el("div", "radio-listener", l.name);
         if (i === model.owner) {   // the arrow points at the room's owner
           row.appendChild(el("span", "radio-listener__owner", "←"));
         }
         pills.listeningPop.appendChild(row);
       });
     }
-    if (pills.close) {
-      pills.close.hidden = !(model.owner != null && model.owner === model.you);
+    if (pills.close) pills.close.hidden = !amOwner();
+  }
+
+  /* ── crew panel: the always-up roster under the columns ───────── */
+  /* Everyone sees the same panel; non-owners read it as a plain list.
+     The owner's edition adds, per listener, two R|E split pills — queue
+     edits and player control, the two capabilities — plus the kick ✕
+     (a kick is just a kick: disconnect, no ban), and the room-mode
+     dropdown top-right (Open joins land e|e, Restricted joins land r|r).
+     Grants/kicks target the roster's opaque handles, never names. */
+  function capPill(l, cap, locked) {
+    var wrap = el("span", "radio-cap");
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label",
+      fmt(cap === "queue" ? S.ariaCapQueue : S.ariaCapPlayer, { name: l.name }));
+    [["r", S.capR], ["e", S.capE]].forEach(function (lv) {
+      var b = el("button", "radio-cap__seg", lv[1]);
+      b.type = "button";
+      b.dataset.level = lv[0];
+      var on = (l.caps && l.caps[cap]) === lv[0];
+      b.setAttribute("aria-pressed", String(on));
+      b.disabled = locked;
+      if (!locked && !on) b.addEventListener("click", function () {
+        send("setCap", { t: l.h, cap: cap, level: lv[0] });
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+  function renderCrew() {
+    if (!CREW || !model) return;
+    CREW.hidden = false;
+    CREW.textContent = "";
+    var owner = amOwner();
+    var head = el("div", "radio-crew__head");
+    head.appendChild(el("span", "radio-crew__title", S.crewTitle));
+    if (owner) {
+      /* room-mode dropdown — the popover kit, panel edition */
+      var ctrl = el("div", "tb-ctrl radio-crew__mode");
+      var pill = el("button", "tb-pill");
+      pill.type = "button";
+      pill.setAttribute("aria-haspopup", "true");
+      pill.setAttribute("aria-expanded", "false");
+      pill.appendChild(el("span", "tb-pill__label",
+        roomMode() === "restricted" ? S.modeRestricted : S.modeOpen));
+      pill.appendChild(el("span", "tb-pill__caret", "▾"));
+      var pop = el("div", "tb-pop");
+      pop.hidden = true;
+      pop.setAttribute("role", "menu");
+      var entry = { ctrl: ctrl, pill: pill, pop: pop };
+      [["open", S.modeOpen], ["restricted", S.modeRestricted]].forEach(function (m) {
+        var b = optButton(m[1], function () {
+          closePop();
+          send("setMode", { mode: m[0] });
+        });
+        if (m[0] === roomMode()) b.classList.add("is-active");
+        pop.appendChild(b);
+      });
+      pill.addEventListener("click", function () { togglePop(entry); });
+      ctrl.appendChild(pill);
+      ctrl.appendChild(pop);
+      head.appendChild(ctrl);
+    } else {
+      head.appendChild(el("span", "radio-crew__modenote",
+        roomMode() === "restricted" ? S.modeRestricted : S.modeOpen));
     }
+    CREW.appendChild(head);
+    var grid = el("div", "radio-crew__grid" + (owner ? " radio-crew__grid--owner" : ""));
+    if (owner) {
+      grid.appendChild(el("span", "radio-crew__col"));   // name column, unlabeled
+      grid.appendChild(el("span", "radio-crew__col", S.crewColQueue));
+      grid.appendChild(el("span", "radio-crew__col", S.crewColPlayer));
+      grid.appendChild(el("span", "radio-crew__col"));   // the ✕ column
+    }
+    (model.listeners || []).forEach(function (l, i) {
+      var name = el("span", "radio-crew__name", l.name);
+      if (i === model.owner) name.appendChild(el("span", "radio-listener__owner", "←"));
+      grid.appendChild(name);
+      if (!owner) return;
+      var lockedRow = i === model.owner;   // the owner's own caps don't toggle
+      grid.appendChild(capPill(l, "queue", lockedRow));
+      grid.appendChild(capPill(l, "player", lockedRow));
+      var x = el("button", "radio-crew__kick");
+      x.type = "button";
+      x.innerHTML = ICON_X;
+      x.setAttribute("aria-label", fmt(S.ariaKick, { name: l.name }));
+      if (i === model.you || lockedRow) {
+        x.disabled = true;                 // no self-kick, no kicking the owner
+      } else {
+        x.addEventListener("click", function () { send("kick", { t: l.h }); });
+      }
+      grid.appendChild(x);
+    });
+    CREW.appendChild(grid);
   }
 
   /* ── room UI shell ────────────────────────────────────────────── */
@@ -549,6 +876,11 @@
     inRoom = true;
     GATE.hidden = true;
     ROOM.hidden = false;
+    /* in-room the meta line is dead air — its one in-room message
+       (disconnected) rides the sticky toast now, so the reserved line
+       + margin collapse and the room scoots up under the bar. It
+       returns with the gate (leaveRoom), where its copy lives. */
+    META.hidden = true;
     QUEUE_TITLE.textContent = S.colQueue;
     SEARCH_TITLE.textContent = S.colSearch;
     HISTORY_TITLE.textContent = S.colHistory;
@@ -635,9 +967,45 @@
     });
     play.classList.add("radio-np__btn--play");
     var next = mk(ICON_NEXT, S.ariaSkip, function () { send("skip"); });
+    /* shell-strip stand-ins, riding INSIDE the card under the transport
+       (CSS shows them only in the bottom strip, where the return pill is
+       hidden): Radio Room = home, Disconnect asks twice like Close Room */
+    var actions = el("div", "radio-shell__actions");
+    var room = el("button", "tb-pill radio-shell__room");
+    room.type = "button";
+    room.innerHTML = ICON_RADIO;
+    room.setAttribute("aria-label", S.shellRoomPill);
+    room.addEventListener("click", function () { shellClose(); });
+    var leave = el("button", "tb-pill radio-shell__leave");
+    leave.type = "button";
+    leave.setAttribute("aria-label", S.leavePill);
+    var leaveLabel = el("span", "tb-pill__label");
+    leaveLabel.innerHTML = ICON_UNPLUG;
+    leave.appendChild(leaveLabel);
+    var leaveArmed = null;
+    leave.addEventListener("click", function () {
+      if (!leaveArmed) {
+        /* armed = checkmark + "?" — same footprint as the icon, no
+           text-width jump (Aditya's call) */
+        leaveLabel.innerHTML = ICON_CHECK;
+        leaveLabel.appendChild(document.createTextNode(S.shellLeaveConfirm));
+        leaveArmed = setTimeout(function () {
+          leaveArmed = null;
+          leaveLabel.innerHTML = ICON_UNPLUG;
+        }, 4000);
+        return;
+      }
+      clearTimeout(leaveArmed);
+      leaveArmed = null;
+      leaveLabel.innerHTML = ICON_UNPLUG;
+      leaveRoom();
+    });
+    actions.appendChild(room);
+    actions.appendChild(leave);
     NP.appendChild(art);
     NP.appendChild(center);
     NP.appendChild(controls);
+    NP.appendChild(actions);
     npNodes = { art: art, img: img, count: count, title: title, artist: artist,
                 fill: fill, note: note, play: play, back: back, next: next,
                 elapsed: elapsed, total: total };
@@ -653,11 +1021,13 @@
     var t = model.transport;
     NP.classList.toggle("radio-np--idle", !cur);
     /* DeetsMusic's disabled-state handling, communal edition: back needs a
-       history, play/skip need something to play */
-    n.back.disabled = !(model.history && model.history.length);
+       history, play/skip need something to play — and all three need the
+       player capability (Restricted rooms hand it out; docs/radio.md) */
+    var lock = !canPlayer();
+    n.back.disabled = lock || !(model.history && model.history.length);
     var dead = !cur && !model.queue.length;
-    n.play.disabled = dead;
-    n.next.disabled = dead;
+    n.play.disabled = lock || dead;
+    n.next.disabled = lock || dead;
     if (!cur) {
       n.title.textContent = S.npIdle;
       n.artist.textContent = S.npIdleSub;
@@ -693,8 +1063,16 @@
       var k = A.note();
       npNodes.note.textContent =
         k === "preview" ? S.previewEnded :
-        k === "gap"     ? S.catalogGap :
-        k === "blocked" ? S.audioBlocked : "";
+        k === "gap"     ? S.catalogGap : "";
+      /* blocked is a page-wide condition, not a track note: a sticky red
+         toast — and the unblocking click is itself what retires it (the
+         follower's next tick clears the note, we dismiss here) */
+      if (k === "blocked") {
+        if (!blockedToast) blockedToast = notify("error", S.audioBlocked, { sticky: true });
+      } else if (blockedToast) {
+        blockedToast.dismiss();
+        blockedToast = null;
+      }
     }
     if (!model.current) return;
     var n = npNodes;
@@ -789,6 +1167,10 @@
         chip: fmt(S.addedBy, { name: entry.addedBy }),
         noKebab: true,   // right-click carries the queue menu; keeps rows narrow
         menu: function () {
+          /* every queue-menu item mutates; read-only caps empty it and
+             openMenu stays shut (items() runs at open time, so a grant
+             mid-session takes effect without a re-render) */
+          if (!canQueue()) return [];
           return [
             { label: S.menuPlayNext, run: function () { send("reorder", { entryId: entry.entryId, to: 0 }); } },
             { label: S.menuMoveTop, run: function () { send("reorder", { entryId: entry.entryId, to: 0 }); } },
@@ -797,7 +1179,7 @@
           ];
         }
       });
-      li.draggable = true;
+      li.draggable = canQueue();
       li.dataset.idx = String(i);
       li.addEventListener("dragstart", function (e) {
         dragFrom = i;
@@ -863,6 +1245,9 @@
      first add alone starts it (skipping would blow past it). */
   function sendAll(tracks, how) {   // how: "now" | "next" | "later"
     if (!tracks.length) return;
+    /* the one funnel every add takes (search click, menus, collections) —
+       a read-only queue cap stops it here with the note, before any send */
+    if (!canQueue()) { toast(S.permDenied, ""); return; }
     var hadCurrent = model && model.current;
     tracks.forEach(function (t, i) {
       send("add", how === "later" ? { entry: t } : { entry: t, at: i });
@@ -873,6 +1258,7 @@
   /* album / playlist tiles carry the song menu over the whole collection —
      DeetsMusic's collectionMenu, tracks fetched lazily on pick */
   function collectionMenu(fetchSongs) {
+    if (!canQueue()) return [];      // every item queues; read-only = no menu
     var pick = function (how) {
       fetchSongs().then(function (tracks) { sendAll(tracks, how); },
                         function () { toast(S.paneFailed, ""); });
@@ -884,6 +1270,7 @@
     ];
   }
   function historyMenu(entry) {
+    if (!canQueue()) return [];      // every item queues; read-only = no menu
     return [
       { label: S.menuPlayNow, run: function () { playNow(strip(entry)); } },
       { label: S.menuPlayNext, run: function () { send("add", { entry: strip(entry), at: 0 }); } },
@@ -953,11 +1340,11 @@
      the menu is Play Now / Play Next / Add to Queue (+ Go to Artist on
      real catalog tracks). */
   function songMenu(t) {
-    var items = [
+    var items = canQueue() ? [
       { label: S.menuPlayNow, run: function () { playNow(t); } },
       { label: S.menuPlayNext, run: function () { send("add", { entry: t, at: 0 }); } },
       { label: S.menuAddQueue, run: function () { send("add", { entry: t }); } }
-    ];
+    ] : [];   // read-only queue: the drills below still work
     if (canDrillArtist(t.apple && t.apple.id)) {
       items.push({ label: S.menuGoArtist, run: function () {
         setActiveCol("search");          // the drill lands in the search column
@@ -1243,6 +1630,7 @@
     renderQueue();
     renderHistory();
     renderListeners();
+    renderCrew();
   }
 
   /* ── boot ─────────────────────────────────────────────────────── */
@@ -1259,6 +1647,13 @@
      is open (pasted URL, back button) switches rooms like typing it would */
   window.addEventListener("hashchange", function () {
     var code = slugify(location.hash.replace(/^#/, ""));
+    /* the echo of leaveRoom's own history.back() (see leaveRoom): swallow
+       it once and strip the restored hash instead of rejoining */
+    if (hashEcho && code === hashEcho.code && Date.now() - hashEcho.at < 2000) {
+      hashEcho = null;
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      return;
+    }
     if (!code || code === roomCode) return;
     BAR_INPUT.value = code;
     commitCode(code);

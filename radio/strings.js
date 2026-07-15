@@ -95,6 +95,8 @@ window.RADIO_STRINGS = {
   /* connection */
   disconnected: "Lost a cable or two, plugging back in...",
   reconnected:  "Back!",
+  /* the sticky disconnected toast's one action button (js/toast.js) */
+  toastDismiss: "[ph]Dismiss",
 
   /* screen-reader labels (aria) — spoken, never seen */
   ariaTuneIn:    "Tune in to a station",
@@ -105,5 +107,33 @@ window.RADIO_STRINGS = {
   ariaPaneBack:  "Back to results",
 
   /* dev / mock era (visible while the mock transport is in play) */
-  mockNotice: "Create a Radio Room by typing in a new room code!"
+  mockNotice: "Create a Radio Room by typing in a new room code!",
+
+  /* site-shell — browsing the site while the room plays (docs/radio.md).
+     [ph] placeholders, Aditya's to rewrite. Radio Room and the armed
+     "?" (rendered after a checkmark icon) are Aditya's, dictated in the
+     2026-07-14 session (the bottom strip's stand-ins for the hidden
+     return pill; its Disconnect reuses leavePill). */
+  shellReturn:       "[ph]Back to the station",
+  shellRoomPill:     "Radio Room",
+  shellLeaveConfirm: "?",
+  ariaShellPage: "[ph]Site page — the radio keeps playing",
+
+  /* crew panel + permissions (docs/radio.md, "Listener identity & queue
+     permissions"). R / E and Open / Restricted are Aditya's, dictated in
+     the 2026-07-14 session; the rest are [ph] placeholders. */
+  capR:           "R",
+  capE:           "E",
+  modeOpen:       "Open",
+  modeRestricted: "Restricted",
+  crewTitle:      "[ph]Listeners",
+  crewColQueue:   "[ph]Queue",
+  crewColPlayer:  "[ph]Player",
+  permDenied:     "[ph]The owner has that locked down.",
+  kickedMeta:     "[ph]The owner kicked you out.",
+  nameTaken:      "[ph]Someone in there already has that name — pick another.",
+  roomFull:       "[ph]That room is full.",
+  ariaKick:       "[ph]Kick {name}",
+  ariaCapQueue:   "[ph]Queue edits for {name}",
+  ariaCapPlayer:  "[ph]Player control for {name}"
 };

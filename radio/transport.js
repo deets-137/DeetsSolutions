@@ -53,25 +53,47 @@
       return true;
     }
 
+    /* join refusals that end the connection for good — reconnecting would
+       just be refused again (no-room), collide again (name-taken), or pile
+       on (full). Only refusals of a JOIN are final: the same name-taken
+       code answering a mid-session rename is a plain no (the socket lives),
+       so finality is gated on still awaiting the join's snapshot.
+       kicked/closed below are final the same way. */
+    var FINAL = { "no-room": 1, "name-taken": 1, "full": 1 };
+    var awaitingJoin = false;
+
     function open(create) {
+      awaitingJoin = true;
       ws = new WebSocket(wsBase + "/room/" + code + "/ws");
       ws.onopen = function () {
-        ws.send(JSON.stringify({ type: "join", name: opts.name, create: !!create }));
+        ws.send(JSON.stringify({
+          type: "join", name: opts.name, create: !!create, token: opts.token
+        }));
       };
       ws.onmessage = function (ev) {
         if (ev.data === "pong") return;
         var msg;
         try { msg = JSON.parse(ev.data); } catch (e) { return; }
-        if (msg.type === "error" && msg.code === "no-room") {
+        if (msg.type === "error" && FINAL[msg.code] && awaitingJoin) {
           closed = true;                       // a refusal is final, not a drop
           clearInterval(pinger);
           try { ws.close(); } catch (e) {}
-          settle("reject", { code: "no-room" });
+          /* joining: reject the connect promise. Already in (a rejoin was
+             refused — e.g. our name got taken while we were down): pass the
+             error through so the page can land back at the gate. */
+          if (!settle("reject", { code: msg.code })) deliver(msg);
+          return;
+        }
+        if (msg.type === "kicked" || msg.type === "closed") {
+          closed = true;                       // the room ended it — stay gone
+          clearInterval(pinger);
+          deliver(msg);
           return;
         }
         if (msg.type === "snapshot") {
           lastV = msg.v;
           retry = 0;
+          awaitingJoin = false;
           if (!settle("resolve", conn)) status("up");  // a rejoin, not the join
           deliver(msg);
           return;
@@ -149,7 +171,18 @@
 
     /* Catalog search belongs to apple.js on this transport; radio.js only
        falls back here while the dev token is the null stub. */
-    search: function () { return Promise.resolve([]); }
+    search: function () { return Promise.resolve([]); },
+
+    /* POST /gaps — best-effort catalog-gap report (docs/radio.md, graduated
+       from console-only). The body rides the default text/plain so the
+       request stays CORS-simple (no preflight); failures are swallowed —
+       a gap report must never bother a listener. */
+    reportGap: function (info) {
+      try {
+        fetch(api + "/gaps", { method: "POST", body: JSON.stringify(info) })
+          .catch(function () {});
+      } catch (e) {}
+    }
   };
 
   var useMock = false;

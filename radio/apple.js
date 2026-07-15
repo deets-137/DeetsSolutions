@@ -356,9 +356,12 @@
       note = "gap";
       if (gapLoggedId !== entry.apple.id) {   // once per track, not every tick
         gapLoggedId = entry.apple.id;
-        console.warn("[radio] catalog gap — not playable on this account:", {
-          id: entry.apple.id, title: entry.title, artist: entry.artist
-        });
+        var info = { id: entry.apple.id, title: entry.title, artist: entry.artist };
+        console.warn("[radio] catalog gap — not playable on this account:", info);
+        /* …and to the worker's collector, so gaps accumulate for review
+           (docs/radio.md — graduated from console-only) */
+        var T = window.RadioTransport;
+        if (T && T.reportGap) T.reportGap(info);
       }
     }
   }
