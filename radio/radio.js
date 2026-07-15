@@ -1723,32 +1723,58 @@
     paneStack = [];
     lastSections = null;
     res.appendChild(el("p", "sotd__empty", S.ytAddBusy));
-    /* no key (or ledger empty) = no duration, and duration is load-bearing
-       (the room alarm schedules off it) — the paste can't mint an entry */
+    /* videos.list is the full path (real duration + embeddable). When it
+       can't run — key parked, quota dry, API flaky — keyless oEmbed is
+       the fallback: enough metadata to reverse-match on Apple, whose
+       clone carries the load-bearing durationMs (the room alarm
+       schedules off it). So MATCHED pastes survive keyless; a YT-only
+       entry can't exist without a real duration, so an unmatched
+       keyless paste explains itself instead of minting (build log
+       chunk 8). */
     var lookP = Y ? Y.lookup(id) : Promise.resolve(null);
     lookP.then(function (info) {
       if (seq !== searchSeq) return;
-      if (!info || !info.durationMs) {
+      if (info && info.durationMs) { ytMatch(seq, info, false); return; }
+      var oeP = Y ? Y.oembed(id) : Promise.resolve(null);
+      oeP.then(function (oe) {
+        if (seq !== searchSeq) return;
+        if (!oe) {
+          res.textContent = "";
+          res.appendChild(el("p", "sotd__empty", S.ytAddFailed));
+          return;
+        }
+        ytMatch(seq, oe, true);
+      });
+    });
+  }
+  function ytMatch(seq, info, keyless) {
+    var res = searchNodes.results;
+    var parsed = Y.parseTitle(info.title, info.channel);
+    var q1 = parsed.artist ? parsed.artist + " " + parsed.title : parsed.title;
+    /* keyless has no duration to test against — take the top hit; the
+       one-result pane is human-reviewed before anything adds, and the
+       eyeballs are the verification the duration test stood in for */
+    var pick = keyless
+      ? function (songs) { return (songs && songs[0]) || null; }
+      : function (songs) { return pickByDuration(songs, info.durationMs); };
+    var matchP = (A && A.hasToken() && q1)
+      ? A.search(q1).then(function (sec) {
+          var hit = pick(sec.songs);
+          if (hit || !parsed.artist) return hit;
+          /* one retry on the bare title — artist guesses miss more */
+          return A.search(parsed.title).then(function (sec2) {
+            return pick(sec2.songs);
+          });
+        }).catch(function () { return null; })
+      : Promise.resolve(null);
+    matchP.then(function (song) {
+      if (seq !== searchSeq) return;
+      if (keyless && !song) {
         res.textContent = "";
-        res.appendChild(el("p", "sotd__empty", S.ytAddFailed));
+        res.appendChild(el("p", "sotd__empty", S.ytAddNeedsKey));
         return;
       }
-      var parsed = Y.parseTitle(info.title, info.channel);
-      var q1 = parsed.artist ? parsed.artist + " " + parsed.title : parsed.title;
-      var matchP = (A && A.hasToken() && q1)
-        ? A.search(q1).then(function (sec) {
-            var hit = pickByDuration(sec.songs, info.durationMs);
-            if (hit || !parsed.artist) return hit;
-            /* one retry on the bare title — artist guesses miss more */
-            return A.search(parsed.title).then(function (sec2) {
-              return pickByDuration(sec2.songs, info.durationMs);
-            });
-          }).catch(function () { return null; })
-        : Promise.resolve(null);
-      matchP.then(function (song) {
-        if (seq !== searchSeq) return;
-        renderYtPane(info, parsed, song);
-      });
+      renderYtPane(info, parsed, song);
     });
   }
   function renderYtPane(info, parsed, song) {

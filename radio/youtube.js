@@ -395,6 +395,37 @@
     return lookupMemo[videoId];
   }
 
+  /* keyless oEmbed lookup (2026-07-15, the key parked for launch — build
+     log chunk 8): same shape as lookup() so runYtAdd can fall back to it,
+     but durationMs is 0 (oEmbed has no duration) and embeddable is
+     unknowable here — reported true, a refusal surfaces at playback as a
+     gap. Callers treat this as "matched adds only": without a real
+     duration a YT-only entry can't exist (the room alarm schedules off
+     durationMs), and the Apple match's clone supplies it instead. */
+  var oembedMemo = {};
+  function oembed(videoId) {
+    if (oembedMemo[videoId]) return oembedMemo[videoId];
+    var p = fetch("https://www.youtube.com/oembed?format=json&url=" +
+        encodeURIComponent("https://www.youtube.com/watch?v=" + videoId))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.title) return null;
+        return {
+          id: videoId,
+          title: j.title,
+          channel: j.author_name || "",
+          thumb: j.thumbnail_url || null,
+          durationMs: 0,
+          embeddable: true
+        };
+      }).catch(function () { return null; });
+    oembedMemo[videoId] = p.then(function (info) {
+      if (!info) delete oembedMemo[videoId];   // a flaky miss may retry
+      return info;
+    });
+    return oembedMemo[videoId];
+  }
+
   /* video title → {artist, title} guess (the fiddly part, docs/youtube.md):
      Topic uploads are label-clean — the channel IS "<Artist> - Topic" and
      the title IS the song. Everything else gets the music-video treatment:
@@ -437,6 +468,7 @@
     stop: stop,
     resolve: resolve,
     lookup: lookup,
+    oembed: oembed,
     parseTitle: parseTitle,
     quotaLeft: quotaLeft
   };

@@ -155,6 +155,23 @@ Build started 2026-07-14. Chunks, in order; mark ✅ with notes as they land:
    work in full. Re-enable = restore the key, ideally after
    `npx wrangler d1 create deets-radio-matches` + binding so quota
    amortizes to once per unique song ever.
+8. ✅ **Keyless matched-paste fallback (2026-07-15, his call after
+   seeing the parked paste die)** — `runYtAdd` no longer requires the
+   metered `videos.list`: when it can't run (key parked / quota dry /
+   API flaky), new keyless `Y.oembed(id)` (same shape as `Y.lookup`,
+   `durationMs: 0`, `embeddable` unknowable so reported true) feeds the
+   same title-parse → Apple reverse-match, shared in the extracted
+   `ytMatch(seq, info, keyless)`. Keyless matching takes the TOP hit —
+   there's no duration to test against, and the one-result pane is
+   human-reviewed before anything adds; the Apple clone supplies the
+   load-bearing durationMs, the video block rides as `{id,
+   durationMs: 0}` (setVideo's idiom, 0 = unknown). An unmatched
+   keyless paste can't mint a YT-only entry (no real duration), so it
+   lands on new `[ph]` `ytAddNeedsKey` instead. Accepted cost: no
+   `embeddable` check keyless — a disabled video attaches and surfaces
+   at playback as the gap treatment. Files: youtube.js (`oembed` +
+   export), radio.js (`runYtAdd` fallback + `ytMatch`), strings.js
+   (`ytAddNeedsKey` `[ph]`), yt-key.js comment.
 
 `radio/yt-key.js` (Claude added the missing quotes — a bare identifier
 throws at load). Resolver verified live from localhost: a real search

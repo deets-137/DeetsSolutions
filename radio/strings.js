@@ -100,6 +100,9 @@ window.RADIO_STRINGS = {
   ytAddFailed:    "[ph]Couldn't read that video. Double-check the link?",
   /* fires as a toast; the entry still adds, just without that video */
   ytAddNoEmbed:   "[ph]The artist turned off embedding — that exact video can't play here, so it won't ride along.",
+  /* keyless fallback (Data API parked): an unmatched paste can't mint a
+     YT-only entry without a real duration, so it explains instead */
+  ytAddNeedsKey:  "[ph]No Apple match, and video-only adds are off while auto-matching is down.",
 
   historyEmpty:      "Nothing yet",
   historyPreviously: "Previously",
