@@ -2570,7 +2570,6 @@ body::before {
 .radio-acct__icon svg { width: 1rem; height: 1rem; display: block; }
 .radio-acct__btn[data-state="in"]  .radio-acct__icon { color: var(--go); }
 .radio-acct__btn[data-state="out"] .radio-acct__icon { color: var(--stop); }
-.radio-acct__status { color: var(--subtext); font-size: 0.82rem; padding: 0 var(--space-1); }
 .radio-acct__spinner {
   width: 0.85rem; height: 0.85rem;
   border-radius: 50%;

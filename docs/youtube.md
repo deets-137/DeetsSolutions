@@ -172,6 +172,23 @@ Build started 2026-07-14. Chunks, in order; mark ✅ with notes as they land:
    at playback as the gap treatment. Files: youtube.js (`oembed` +
    export), radio.js (`runYtAdd` fallback + `ytMatch`), strings.js
    (`ytAddNeedsKey` `[ph]`), yt-key.js comment.
+9. ✅ **Copy pass round 1 + Music Source box slim-down (2026-07-15,
+   his calls):** the source boxes drop their status-text lines — two
+   sources stacked, the icon IS the status (check/✕/spinner,
+   aria-pressed for screen readers; DeetsMusic's presentation minus its
+   status line). `ytOn`/`ytOff`/`ytQuota` deleted with the line
+   (`acctSignedOut`/`acctConnected`/`acctWorking` sit unused — his
+   handwritten copy, kept for him to delete); `.radio-acct__status` CSS
+   gone. The personal-silence toast is now ONE red STICKY toast
+   (severity error) with his copy in `silenceOff`, raised while the
+   silence lasts and retired when audio returns / the room idles /
+   leaveRoom — replaces the once-per-track+cause warn toasts (the
+   once-per memo died). His copy also landed for the crew panel
+   (`crewColPlayer` "Play/Pause", `permDenied`, `kickedMeta`,
+   `nameTaken`, `roomFull`), and these were approved as-was:
+   `crewTitle`, `crewColQueue`, all arias, `toastDismiss`,
+   `shellReturn`, `ariaShellPage`. Still `[ph]`: the 6 `ytAdd*`,
+   `menuFixVideo`, the 7 `desk*`.
 
 `radio/yt-key.js` (Claude added the missing quotes — a bare identifier
 throws at load). Resolver verified live from localhost: a real search

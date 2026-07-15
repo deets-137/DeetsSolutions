@@ -449,6 +449,7 @@
     shellClose();            // no room, no shell — land back on the gate
     if (connToast) { connToast.dismiss(); connToast = null; }
     if (blockedToast) { blockedToast.dismiss(); blockedToast = null; }
+    if (silenceToast) { silenceToast.dismiss(); silenceToast = null; }
     if (A) A.stop();
     if (Y) Y.stop();
     activeEngine = null;
@@ -706,6 +707,10 @@
       pop.appendChild(el("p", "radio-connect__blurb", S.connectUnavailable));
       return;
     }
+    /* DeetsMusic's presentation minus its status line (his call,
+       2026-07-15): two sources stacked, and the icon IS the status —
+       check in, ✕ out, spinner while working; aria-pressed says it
+       for screen readers */
     var acct = el("div", "radio-acct");
     var btn = el("button", "radio-acct__btn");
     btn.type = "button";
@@ -713,15 +718,14 @@
     var icon = el("span", "radio-acct__icon");
     icon.setAttribute("aria-hidden", "true");
     btn.appendChild(icon);
-    var status = el("div", "radio-acct__status");
     acct.appendChild(btn);
-    acct.appendChild(status);
-    var setAcct = function (state, note) {   // "in" | "out" | "loading"
+    var setAcct = function (state) {   // "in" | "out" | "loading"
       icon.innerHTML = state === "in" ? ICON_CHECK : state === "out" ? ICON_X : ICON_SPINNER;
-      if (state !== "loading") btn.dataset.state = state;
+      if (state !== "loading") {
+        btn.dataset.state = state;
+        btn.setAttribute("aria-pressed", String(state === "in"));
+      }
       btn.disabled = state === "loading";
-      status.textContent = note ||
-        (state === "in" ? S.acctConnected : state === "out" ? S.acctSignedOut : S.acctWorking);
     };
     setAcct(A.authorized() ? "in" : "out");
     btn.addEventListener("click", function () {
@@ -745,18 +749,11 @@
       var yicon = el("span", "radio-acct__icon");
       yicon.setAttribute("aria-hidden", "true");
       ybtn.appendChild(yicon);
-      var ystatus = el("div", "radio-acct__status");
       var setYt = function () {
         var on = Y.enabled();
         yicon.innerHTML = on ? ICON_CHECK : ICON_X;
         ybtn.dataset.state = on ? "in" : "out";
-        ystatus.textContent = on ? S.ytOn : S.ytOff;
-        /* the auto-match budget: our own ledger of the shared Data-API
-           key's spend, this device only (docs/youtube.md, quota) */
-        if (on && Y.hasKey() && Y.quotaLeft) {
-          ystatus.textContent += " " + fmt(S.ytQuota,
-            { n: Math.floor(Y.quotaLeft() / 101) });
-        }
+        ybtn.setAttribute("aria-pressed", String(on));
       };
       setYt();
       ybtn.addEventListener("click", function () {
@@ -764,7 +761,6 @@
         setYt();
       });
       yt.appendChild(ybtn);
-      yt.appendChild(ystatus);
       pop.appendChild(yt);
     }
     if (!A.authorized()) {         // previews only matter before a source is on
@@ -957,7 +953,7 @@
   /* ── now-playing strip (transport + countdown + progress) ─────── */
   var npNodes = null;
   var activeEngine = null;   // whichever follower tick() is feeding (A or Y)
-  var silenceToasted = null; // entryId|cause of the last silence toast
+  var silenceToast = null;   // the sticky personal-silence toast (see tick)
   function buildNP() {
     NP.textContent = "";
     var art = el("div", "radio-np__art");
@@ -1138,23 +1134,24 @@
         blockedToast = null;
       }
     }
-    if (!model.current) return;
-    var n = npNodes;
-    /* Personal silence (2026-07-15, Aditya's call from live testing): a
-       room that plays while THIS device hears nothing must say so — one
-       toast per track+cause, and the progress row parks (empty + dimmed)
-       instead of rolling. The room clock is untouched; the bar simply
-       shows what YOU hear, not what the room does. */
-    var silentNow = model.transport.playing && !counting() &&
+    /* Personal silence (2026-07-15, Aditya's calls from live testing): a
+       room that plays while THIS device hears nothing must say so — ONE
+       red sticky toast for as long as it lasts (retired the moment audio
+       comes back or the room idles; his copy), and the progress row
+       parks (empty + dimmed) instead of rolling. The room clock is
+       untouched; the bar simply shows what YOU hear, not what the room
+       does. Raised before the no-current return so an emptied queue
+       can't strand it. */
+    var silentNow = !!model.current && model.transport.playing && !counting() &&
                     (k === "gap" || k === "preview" || k === "off");
     if (silentNow) {
-      var sKey = model.current.entryId + "|" + k;
-      if (silenceToasted !== sKey) {
-        silenceToasted = sKey;
-        notify("warn", k === "preview" ? S.previewEnded :
-                       k === "gap" ? S.catalogGap : S.silenceOff);
-      }
+      if (!silenceToast) silenceToast = notify("error", S.silenceOff, { sticky: true });
+    } else if (silenceToast) {
+      silenceToast.dismiss();
+      silenceToast = null;
     }
+    if (!model.current) return;
+    var n = npNodes;
     NP.classList.toggle("radio-np--muted", silentNow);
     n.total.textContent = mmss(model.current.durationMs);
     if (counting()) {

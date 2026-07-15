@@ -537,10 +537,11 @@ over canonical duration; the protocol has no seek command. (Decided:
 recorded here so nobody "adds" it.) *Revised 2026-07-15 (Aditya, from
 live testing): during **personal silence** — the room plays but this
 device hears nothing (catalog gap, preview over, previews toggled off) —
-the bar **parks** (empty + dimmed) instead of rolling, a warn toast fires
-once per track+cause, and the NP note names the reason. The bar shows
-what YOU hear; the room clock is untouched. See [youtube.md](youtube.md)
-build log.*
+the bar **parks** (empty + dimmed) instead of rolling, ONE red sticky
+toast stands for as long as the silence lasts (revised from
+once-per-track warn toasts in his copy pass, same day), and the NP note
+names the reason. The bar shows what YOU hear; the room clock is
+untouched. See [youtube.md](youtube.md) build log.*
 
 ## The site-shell (built 2026-07-14): browse the site while the room plays
 

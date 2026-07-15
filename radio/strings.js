@@ -31,21 +31,20 @@ window.RADIO_STRINGS = {
   sharePill:     "Invite",
   shareToast:    "Invite link copied!",
   connectPill:   "Music Source",
-  /* account block — anatomy + strings ported from DeetsMusic's login
-     button (src/main.ts setAccount / index.html .account), per Aditya */
+  /* account block — anatomy ported from DeetsMusic's login button
+     (src/main.ts setAccount / index.html .account), per Aditya. The
+     status-text line died 2026-07-15 (his call): the icon IS the
+     status now, so acctSignedOut/acctConnected/acctWorking sit unused —
+     kept for reference, his to delete. */
   acctLabel:     "Apple Music",
   acctSignedOut: "Not signed in",
   acctConnected: "Connected",
   acctWorking:   "Working…",
   /* previews relabel + the YouTube box label are Aditya's, dictated in
-     the 2026-07-14 YouTube-design session; the yt status lines are [ph] */
+     the 2026-07-14 YouTube-design session. (ytOn/ytOff/ytQuota died with
+     the status line, 2026-07-15.) */
   previewToggle: "AM Previews",
   ytLabel:       "YouTube",
-  ytOn:          "[ph]On — full songs play here, video and all",
-  ytOff:         "[ph]Off",
-  /* {n} = auto-matches left today on this device's ledger (each costs
-     ~101 of the key's 10k daily units; the D1 registry makes repeats free) */
-  ytQuota:       "[ph]· ~{n} auto-matches left today",
   connectFailed: "Apple log in failed. Try again!",
   connectUnavailable: "Couldn't connect.",
   leavePill:     "Disconnect",
@@ -62,9 +61,11 @@ window.RADIO_STRINGS = {
   catalogGap:     "Not on your service... skipping for you",
   previewEnded:   "Preview's done. Still continuing for the rest of the room.",
   audioBlocked:   "Click anywhere to tune back in!",
-  /* previews toggled off + no source connected = chosen silence; the
-     room keeps playing (toast + parked progress bar, 2026-07-15) */
-  silenceOff:     "[ph]AM Previews are off — connect a source or flip them on to hear the room.",
+  /* personal silence — the room plays but THIS device hears nothing
+     (gap / preview over / previews off): ONE red sticky toast while it
+     lasts + the parked progress bar (his call + copy, 2026-07-15);
+     also the NP note for the previews-off cause */
+  silenceOff:     "No audio is playing as no source or previews are available.",
 
   /* columns */
   colQueue:   "Queue",
@@ -133,7 +134,7 @@ window.RADIO_STRINGS = {
   disconnected: "Lost a cable or two, plugging back in...",
   reconnected:  "Back!",
   /* the sticky disconnected toast's one action button (js/toast.js) */
-  toastDismiss: "[ph]Dismiss",
+  toastDismiss: "Dismiss",
 
   /* screen-reader labels (aria) — spoken, never seen */
   ariaTuneIn:    "Tune in to a station",
@@ -147,30 +148,30 @@ window.RADIO_STRINGS = {
   mockNotice: "Create a Radio Room by typing in a new room code!",
 
   /* site-shell — browsing the site while the room plays (docs/radio.md).
-     [ph] placeholders, Aditya's to rewrite. Radio Room and the armed
-     "?" (rendered after a checkmark icon) are Aditya's, dictated in the
-     2026-07-14 session (the bottom strip's stand-ins for the hidden
-     return pill; its Disconnect reuses leavePill). */
-  shellReturn:       "[ph]Back to the station",
+     Radio Room and the armed "?" (rendered after a checkmark icon) are
+     Aditya's, dictated in the 2026-07-14 session (the bottom strip's
+     stand-ins for the hidden return pill; its Disconnect reuses
+     leavePill); the rest approved as-is 2026-07-15. */
+  shellReturn:       "Back to the station",
   shellRoomPill:     "Radio Room",
   shellLeaveConfirm: "?",
-  ariaShellPage: "[ph]Site page — the radio keeps playing",
+  ariaShellPage: "Site page — the radio keeps playing",
 
   /* crew panel + permissions (docs/radio.md, "Listener identity & queue
      permissions"). R / E and Open / Restricted are Aditya's, dictated in
-     the 2026-07-14 session; the rest are [ph] placeholders. */
+     the 2026-07-14 session; the rest are his copy pass, 2026-07-15. */
   capR:           "R",
   capE:           "E",
   modeOpen:       "Open",
   modeRestricted: "Restricted",
-  crewTitle:      "[ph]Listeners",
-  crewColQueue:   "[ph]Queue",
-  crewColPlayer:  "[ph]Player",
-  permDenied:     "[ph]The owner has that locked down.",
-  kickedMeta:     "[ph]The owner kicked you out.",
-  nameTaken:      "[ph]Someone in there already has that name — pick another.",
-  roomFull:       "[ph]That room is full.",
-  ariaKick:       "[ph]Kick {name}",
-  ariaCapQueue:   "[ph]Queue edits for {name}",
-  ariaCapPlayer:  "[ph]Player control for {name}"
+  crewTitle:      "Listeners",
+  crewColQueue:   "Queue",
+  crewColPlayer:  "Play/Pause",
+  permDenied:     "Ask owner for permissions!",
+  kickedMeta:     "You have been disconnected by the owner.",
+  nameTaken:      "That tag is already taken, try another one!",
+  roomFull:       "Room is full.",
+  ariaKick:       "Kick {name}",
+  ariaCapQueue:   "Queue edits for {name}",
+  ariaCapPlayer:  "Player control for {name}"
 };
