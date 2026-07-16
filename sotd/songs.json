@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-15T02:00:13Z",
+  "generated_at": "2026-07-16T02:00:16Z",
   "channel": "song-of-the-day",
-  "count": 325,
+  "count": 326,
   "songs": [
     {
       "post_id": 1,
@@ -7477,6 +7477,29 @@
       "apple_music_url": "https://music.apple.com/us/album/3am/1600970778?i=1600970779&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/5b/b8/37/5bb837f0-0840-ae31-4c02-19df53e55482/mzaf_10850152577286278233.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/e0/04/99/e0049935-362f-4315-2126-695327c12a66/193436278355_DramaSingleAMArtwork.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 2262,
+      "posted_at": "2026-07-15T06:44:56.443000+00:00",
+      "date": "2026-07-15",
+      "day": "Wed",
+      "month": "07_2026",
+      "track_name": "Ninety",
+      "artist_name": "Jaden",
+      "album": "SYRE",
+      "genre": "Hip-Hop/Rap",
+      "duration": "7:48",
+      "duration_sec": 468,
+      "release_date": "2017-11-17",
+      "release_year": 2017,
+      "age_yrs": 9,
+      "service": "youtube",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://www.youtube.com/watch?v=huRFB-urWAc&list=RDFofi08x84dA&index=6",
+      "apple_music_url": "https://music.apple.com/us/album/ninety/1440934200?i=1440934388&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/5d/72/a5/5d72a51c-e757-6d56-5148-21f8ab7cb0a2/mzaf_6453027810678030155.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/02/8b/55/028b5574-5ca6-3513-3610-0baf76165406/00850494008934.rgb.jpg/600x600bb.jpg"
     }
   ]
 }
