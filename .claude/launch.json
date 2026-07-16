@@ -3,13 +3,13 @@
   "configurations": [
     {
       "name": "deets-site",
-      "runtimeExecutable": "python",
+      "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8787"],
       "port": 8787
     },
     {
       "name": "deets-site-alt",
-      "runtimeExecutable": "python",
+      "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8788"],
       "port": 8788
     }
