@@ -3,7 +3,7 @@
 The `league/` tab shows League of Legends stats for anyone who's been
 looked up — champion aggregates, Arena augment winrates, mastery, rank,
 and expandable match scoreboards. Unlike SOTD/Movies (static JSONs), this
-tab talks to the **[DeetsLeague](../../DeetsLeague) Cloudflare Worker** at
+tab talks to the **[DeetsLeague](https://github.com/deets-137/DeetsLeague) Cloudflare Worker** at
 runtime: the worker holds the Riot API key, stores trimmed match rows in
 D1, and backfills each player's history in the background.
 
@@ -181,7 +181,7 @@ Arena, an `augments` JSON array (packed in-row — no side table). Arena rows
 carry `placement`/`subteam_id`; `win` is stored exactly as Riot reports it
 (in Arena it means "top half" and Riot knows each format's cutoff — never
 derive it from placement). Full DDL in
-[DeetsLeague/schema.sql](../../DeetsLeague/schema.sql).
+[DeetsLeague/schema.sql](https://github.com/deets-137/DeetsLeague/blob/master/schema.sql).
 
 **Not in D1**: raw match JSON (never persisted — the normalized rows hold
 everything every endpoint serves, scoreboard included), timelines and

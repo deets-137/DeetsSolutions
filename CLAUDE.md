@@ -19,7 +19,7 @@ protocol, sync design, build phases).
   Every component must survive all 30 theme×skin combos.
 - **Generated JSONs are read-only.** `sotd/songs.json` and
   `movies/movies.json` come from generators in the sibling
-  [DeetsOTD](../DeetsOTD) repo — regenerate (see docs/data.md), never
+  [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo — regenerate (see docs/data.md), never
   hand-edit.
 - **Resume text is verbatim.** `resume/index.html` mirrors Aditya's
   master resume word-for-word: original punctuation (plain hyphens — no
@@ -43,13 +43,13 @@ protocol, sync design, build phases).
   `assets/sprites/radio/cover-blank.svg` — keep the path, never redraw it.
 - **Two tabs have runtime backends, each a sibling Cloudflare Worker repo
   deployed with `npx wrangler deploy`.** League:
-  [DeetsLeague](../DeetsLeague) (`api.deets.solutions`) proxies Riot
+  [DeetsLeague](https://github.com/deets-137/DeetsLeague) (`api.deets.solutions`) proxies Riot
   behind a 100-req/2-min key — all Riot traffic must flow through the
   worker's `riotFetch` (call ledger + guardrails); never call Riot or
   spend key budget from the browser; champion/augment art comes from Data
   Dragon / Community Dragon CDNs directly
   ([docs/league.md](docs/league.md)). DeetsRadio:
-  [DeetsRadio](../DeetsRadio) (`radio-api.deets.solutions`) holds a
+  [DeetsRadio](https://github.com/deets-137/DeetsRadio) (`radio-api.deets.solutions`) holds a
   Durable Object per listening room; the wire protocol is contract —
   `radio/transport.js`, the in-page mock (`radio/transport-mock.js`,
   selected with `?mock`), and the worker must keep speaking it verbatim

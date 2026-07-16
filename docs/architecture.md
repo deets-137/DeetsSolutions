@@ -107,7 +107,7 @@ landing page, so it's the one that must index well.
 ### SOTD (`sotd/`)
 
 A Song-of-the-Day journal scraped from a Discord channel by
-[DeetsOTD](../../DeetsOTD) (separate repo), whose `scan.py --web` exports
+[DeetsOTD](https://github.com/deets-137/DeetsOTD) (separate repo), whose `scan.py --web` exports
 `songs.json` — display data only, no private Discord ids — which is committed
 here and served flat. `sotd.js` fetches it and builds the card grid.
 

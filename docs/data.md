@@ -1,7 +1,7 @@
 # Data pipelines
 
 Both journal tabs render a static JSON committed to this repo. The
-generators live in the [DeetsOTD](../../DeetsOTD) repo; this site never
+generators live in the [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo; this site never
 calls an API at runtime. Never hand-edit the JSONs — regenerate them.
 
 ## SOTD → `sotd/songs.json`
