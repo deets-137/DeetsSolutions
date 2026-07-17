@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-16T02:00:16Z",
+  "generated_at": "2026-07-17T02:55:12Z",
   "channel": "song-of-the-day",
-  "count": 326,
+  "count": 327,
   "songs": [
     {
       "post_id": 1,
@@ -7500,6 +7500,29 @@
       "apple_music_url": "https://music.apple.com/us/album/ninety/1440934200?i=1440934388&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/5d/72/a5/5d72a51c-e757-6d56-5148-21f8ab7cb0a2/mzaf_6453027810678030155.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/02/8b/55/028b5574-5ca6-3513-3610-0baf76165406/00850494008934.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 2589,
+      "posted_at": "2026-07-16T07:02:27.598000+00:00",
+      "date": "2026-07-16",
+      "day": "Thu",
+      "month": "07_2026",
+      "track_name": "The Fig Tree",
+      "artist_name": "Matilda Mann",
+      "album": "Make Up - EP",
+      "genre": "Pop",
+      "duration": "3:09",
+      "duration_sec": 189,
+      "release_date": "2026-05-21",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/the-fig-tree/6781898275?i=6781898279",
+      "apple_music_url": "https://music.apple.com/us/album/the-fig-tree/6781898275?i=6781898279&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/fb/e1/74/fbe1747b-23fc-9957-0169-b8bfed905bbb/mzaf_3296264572360314787.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d8/f9/c6/d8f9c636-7e1b-c085-0492-7268d0f04d56/3548205.jpg/600x600bb.jpg"
     }
   ]
 }
