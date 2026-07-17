@@ -12,8 +12,15 @@ Discord server/channel/message ids):
 
 ```
 cd ../DeetsOTD
-python scan.py --web --web-out "../DeetsSolutions/sotd/songs.json"
+python scan.py --enrich --web --web-out "../DeetsSolutions/sotd/songs.json"
 ```
+
+`--enrich` is required, not optional: `--web` only archives and exports what
+storage.db already holds, so without `--enrich` a newly-posted song lands
+unresolved (blank track/artist, `"resolved": "no"`) and is never retried. If a
+brand-new release still comes back unresolved — the free iTunes id lookup can
+lag Apple Music's catalog by hours on day-of-release — just re-run the same
+command later; `--enrich` re-attempts every post still missing a match.
 
 Shape: `{ generated_at, channel, count, songs: [...] }` — each song carries
 track/artist/album, artwork and 30-sec preview URLs, genre, duration,
