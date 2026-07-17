@@ -51,11 +51,11 @@
         <a class="wordmark" href="/">Deets</a>
       </div>
       <nav class="site-nav" aria-label="Primary">
-        <a href="sotd/">SOTD</a>
+        <a href="sotd/" data-nav-core>SOTD</a>
         <a href="movies/">Movies</a>
         <a href="radio/">DeetsRadio</a>
         <a href="league/">League</a>
-        <a href="cool-stuff/">Cool Stuff I Did</a>
+        <a href="cool-stuff/" data-nav-core>Cool Stuff I Did</a>
         <a href="resume/">Resume</a>
       </nav>
       <span class="settings" data-settings></span>
@@ -77,64 +77,102 @@
       </p>
 
       <div class="home__grid">
-        <a class="home-card home-card--lead" href="cool-stuff/">
-          <h2 class="home-card__title">Cool Stuff I Did</h2>
-          <p class="home-card__pitch">
-            The portfolio - native and web apps built on a shared design
-            system: a full Apple Music player for Windows, a local LLM agent
-            harness, a blackjack trainer, health-data viz, and more.
-          </p>
-          <p class="home-card__live" data-live="cool">13 projects, from shipped to sketch →</p>
-        </a>
+        <!-- SOTD hub: the showcase column. home.js fills the hero with the
+             latest of Deets' picks (friends' picks stay behind the journal's
+             vanity gate) and builds the cover calendar — clicking a day loads
+             that day's song into the hero; "Open the journal" is the real
+             navigation. Hidden until songs.json loads; if that fetch fails,
+             the hub simply never appears and the nav link still covers SOTD. -->
+        <section class="sotd-hub" aria-labelledby="sotd-hub-title" data-sotd-hub hidden>
+          <div class="sotd-hub__head">
+            <h2 class="home-card__title" id="sotd-hub-title">Song of the Day</h2>
+            <a class="home__cta home__cta--soft" href="sotd/">Open the journal →</a>
+          </div>
+          <div class="sotd-hub__hero" data-hub-hero></div>
+          <div class="sotd-hub__stats" data-hub-stats></div>
+          <div class="sotd-cal" data-hub-cal>
+            <div class="sotd-cal__head">
+              <button type="button" class="sotd-cal__nav" data-cal-prev aria-label="Previous month">‹</button>
+              <span class="sotd-cal__label" data-cal-label aria-live="polite"></span>
+              <button type="button" class="sotd-cal__nav" data-cal-next aria-label="Next month">›</button>
+            </div>
+            <div class="sotd-cal__grid" data-cal-grid></div>
+          </div>
+          <!-- Liner notes: journal-wide fun stats, computed by home.js from
+               the same picks the hero/calendar use. Stays hidden if no fact
+               clears its threshold. -->
+          <div class="sotd-facts" data-hub-facts hidden></div>
+        </section>
 
-        <a class="home-card home-card--sotd" href="sotd/">
-          <h2 class="home-card__title">Song of the Day</h2>
-          <p class="home-card__pitch">
-            A daily song journal kept with friends on Discord: album art,
-            30-second previews, and every sort and filter you'd want.
-          </p>
-          <p class="home-card__live" data-live="sotd">The journal so far →</p>
-        </a>
+        <div class="home__side">
+          <a class="home-card home-card--lead" href="cool-stuff/">
+            <h2 class="home-card__title">Cool Stuff I Did</h2>
+            <p class="home-card__pitch">
+              The portfolio - native and web apps built on a shared design
+              system: a full Apple Music player for Windows, a local LLM agent
+              harness, a blackjack trainer, health-data viz, and more.
+            </p>
+            <p class="home-card__live" data-live="cool">13 projects, from shipped to sketch →</p>
+          </a>
 
-        <a class="home-card home-card--movies" href="movies/">
-          <h2 class="home-card__title">Movies</h2>
-          <p class="home-card__pitch">
-            My Letterboxd film log: posters, star ratings, likes, rewatches,
-            and the occasional essay.
-          </p>
-          <p class="home-card__live" data-live="movies">The log so far →</p>
-        </a>
+          <a class="home-card home-card--movies" href="movies/">
+            <h2 class="home-card__title">Movies</h2>
+            <p class="home-card__pitch">
+              My Letterboxd film log: posters, star ratings, likes, rewatches,
+              and the occasional essay.
+            </p>
+            <p class="home-card__live" data-live="movies">The log so far →</p>
+          </a>
 
-        <!-- Vibe panel: the appearance previewer, riding the right column of
-             the bento (spanning the SOTD + Movies stack). Its interior morphs
-             to the PENDING theme×skin (storm/waves/grid and all); the two
-             lists reuse the dropdown chips and each chip self-tastes its own
-             option. Confirm promotes the pending combo site-wide. Built by
-             home.js; the chip lists come from the shared
-             window.DeetsAppearance axes so the options live in one place. -->
-        <section class="vibe" aria-labelledby="vibe-title" data-vibe hidden>
-          <div class="vibe__stage">
-            <div class="vibe__inner">
-              <div class="vibe__head">
-                <h2 class="vibe__title" id="vibe-title">Vibe</h2>
-                <div class="vibe__actions">
-                  <button type="button" class="home__cta home__cta--soft vibe__reset" data-vibe-reset hidden>Reset</button>
-                  <button type="button" class="home__cta vibe__confirm" data-vibe-confirm>Confirm</button>
+          <!-- League card: profile snapshot for D33TS#NA1. home.js fills the
+               level/games line, rank, and profile icon from the worker's
+               /players route (all D1 — zero Riot key spend; rank is the
+               snapshot each League-tab visit persists) + Data Dragon art;
+               the static copy below is the no-JS fallback. -->
+          <a class="home-card home-card--league" href="league/">
+            <h2 class="home-card__title">League</h2>
+            <div class="home-card__profile">
+              <span class="home-card__pfp" data-league-pfp><span class="home-card__pfp-mono">D</span></span>
+              <span class="home-card__who">
+                <span class="home-card__riotid">D33TS<span class="home-card__riotid-tag">#NA1</span></span>
+                <span class="home-card__sub" data-league-sub>Summoner's Rift &amp; Arena</span>
+              </span>
+            </div>
+            <p class="home-card__rank" data-league-rank hidden></p>
+            <p class="home-card__live" data-live="league">Champion stats, augment winrates, scoreboards →</p>
+          </a>
+
+          <!-- Vibe panel: the appearance previewer, closing out the side
+               stack. Its interior morphs to the PENDING theme×skin
+               (storm/waves/grid and all); the two lists reuse the dropdown
+               chips and each chip self-tastes its own option. Confirm
+               promotes the pending combo site-wide. Built by home.js; the
+               chip lists come from the shared window.DeetsAppearance axes
+               so the options live in one place. -->
+          <section class="vibe" aria-labelledby="vibe-title" data-vibe hidden>
+            <div class="vibe__stage">
+              <div class="vibe__inner">
+                <div class="vibe__head">
+                  <h2 class="vibe__title" id="vibe-title">Vibe</h2>
+                  <div class="vibe__actions">
+                    <button type="button" class="home__cta home__cta--soft vibe__reset" data-vibe-reset hidden>Reset</button>
+                    <button type="button" class="home__cta vibe__confirm" data-vibe-confirm>Confirm</button>
+                  </div>
                 </div>
-              </div>
-              <div class="vibe__cols">
-                <div class="vibe__col">
-                  <span class="vibe__col-label">Theme</span>
-                  <div class="flyout vibe__list" role="radiogroup" aria-label="Theme" data-vibe-list="theme"></div>
-                </div>
-                <div class="vibe__col">
-                  <span class="vibe__col-label">Skin</span>
-                  <div class="flyout vibe__list" role="radiogroup" aria-label="Skin" data-vibe-list="skin"></div>
+                <div class="vibe__cols">
+                  <div class="vibe__col">
+                    <span class="vibe__col-label">Theme</span>
+                    <div class="flyout vibe__list" role="radiogroup" aria-label="Theme" data-vibe-list="theme"></div>
+                  </div>
+                  <div class="vibe__col">
+                    <span class="vibe__col-label">Skin</span>
+                    <div class="flyout vibe__list" role="radiogroup" aria-label="Skin" data-vibe-list="skin"></div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </main>
   </body>

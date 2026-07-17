@@ -162,6 +162,32 @@
     if (links.childNodes.length) body.appendChild(links);
 
     card.appendChild(body);
+
+    /* Line view: the row itself toggles open into a horizontal detail card
+       (cover, album, chips, links, play) right in the list. Links and the
+       play button keep their own clicks. refresh() rebuilds cards on every
+       view change and sets data-view first, so the button affordances only
+       exist while the grid renders as lines. */
+    function toggleOpen() {
+      var open = card.classList.toggle("song--open");
+      card.setAttribute("aria-expanded", String(open));
+    }
+    if (GRID.getAttribute("data-view") === "line") {
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-expanded", "false");
+    }
+    card.addEventListener("click", function (e) {
+      if (GRID.getAttribute("data-view") !== "line") return;
+      if (e.target.closest("a, button")) return;
+      toggleOpen();
+    });
+    card.addEventListener("keydown", function (e) {
+      if (GRID.getAttribute("data-view") !== "line" || e.target !== card) return;
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      toggleOpen();
+    });
     return card;
   }
 
@@ -225,6 +251,15 @@
 
   var VIEWS = [{ key: "full", label: "Full" }, { key: "small", label: "Small" }, { key: "line", label: "Line" }];
 
+  /* Small view is desktop-only — horizontal cards don't fit a phone. The
+     persisted choice is untouched; on a narrow viewport the grid just
+     renders Full (and the View popover hides the Small chip) until the
+     viewport grows back. */
+  var SMALL_MIN_MQ = window.matchMedia("(max-width: 41rem)");
+  function effectiveView() {
+    return SMALL_MIN_MQ.matches && state.view === "small" ? "full" : state.view;
+  }
+
   // ── Pipeline: gate -> filter -> search -> sort -> render ──────
   var ALL = [], TOTAL = 0, UPDATED = "";
   function visible() {
@@ -254,7 +289,7 @@
   }
   function refresh() {
     var list = sortSongs(visible(), sortByKey(state.sortKey), state.sortDir);
-    GRID.setAttribute("data-view", state.view);
+    GRID.setAttribute("data-view", effectiveView());
     GRID.textContent = "";
     if (!list.length) {
       GRID.appendChild(el("p", "sotd__empty",
@@ -365,10 +400,14 @@
 
   function buildViewPill() {
     var pop;
+    // Marks against the EFFECTIVE view (so a persisted Small shows Full as
+    // active while mobile) and hides the Small chip on narrow viewports.
     function mark() {
+      var eff = effectiveView();
       pop.querySelectorAll(".tb-pop__opt").forEach(function (b) {
-        var on = b.dataset.key === state.view;
+        var on = b.dataset.key === eff;
         b.classList.toggle("is-active", on); b.setAttribute("aria-checked", String(on));
+        if (b.dataset.key === "small") b.hidden = SMALL_MIN_MQ.matches;
       });
     }
     makePill("View", function (p) {
@@ -378,7 +417,11 @@
           state.view = v.key; saveState(); mark(); refresh();
         }));
       });
+      mark();
     });
+    if (SMALL_MIN_MQ.addEventListener) {
+      SMALL_MIN_MQ.addEventListener("change", function () { mark(); refresh(); });
+    }
   }
 
   // ── Filter (vanity gate + uploader / genre / month facets) ────

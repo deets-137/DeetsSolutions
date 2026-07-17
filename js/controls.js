@@ -202,12 +202,14 @@
   }
 
   /* Mobile nav menu: on narrow viewports the inline nav links don't fit, so
-     the "Deets" wordmark itself becomes the trigger for a dropdown of every
-     destination (Home + the page's own links). Desktop is untouched — the
-     wordmark stays a plain home link and the inline nav shows; the media
-     query in main.css hides this menu and the mobile-only affordances there.
-     Links are CLONED from the live .site-nav so the destinations (and each
-     page's aria-current) stay defined in one place: the page's markup. */
+     the "Deets" wordmark itself becomes the trigger for a dropdown. Desktop
+     is untouched — the wordmark stays a plain home link and the inline nav
+     shows; the media query in main.css hides this menu and the mobile-only
+     affordances there. Links are CLONED from the live .site-nav so the
+     destinations (and each page's aria-current) stay defined in one place:
+     the page's markup. The menu carries only the links marked
+     data-nav-core (Home + the essentials — the deep-cut tabs are
+     desktop-only by design); a page with nothing marked gets them all. */
   function buildNavMenu() {
     var brand = document.querySelector(".site-brand");
     var wordmark = brand && brand.querySelector(".wordmark");
@@ -226,15 +228,21 @@
     home.textContent = "Home";
     menu.appendChild(home);
 
-    nav.querySelectorAll("a").forEach(function (link) {
+    var links = nav.querySelectorAll("a[data-nav-core]");
+    if (!links.length) links = nav.querySelectorAll("a");
+    links.forEach(function (link) {
       var item = link.cloneNode(true);
       item.className = "nav-menu__item";
       item.setAttribute("role", "menuitem");
+      item.removeAttribute("data-nav-core");
       menu.appendChild(item);
     });
     brand.appendChild(menu);
 
-    function mobile() { return window.matchMedia("(max-width: 41rem)").matches; }
+    // Mirrors the CSS nav-collapse breakpoint (56rem) — deliberately wider
+    // than isMobile()'s 41rem skin-default check: six inline links + the
+    // Vibe button overflow tablet widths long before phone widths.
+    function mobile() { return window.matchMedia("(max-width: 56rem)").matches; }
     function open() {
       menu.hidden = false;
       wordmark.setAttribute("aria-expanded", "true");

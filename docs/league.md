@@ -97,7 +97,7 @@ Routes (all GET, JSON, CORS locked to deets.solutions + localhost):
 | Route | Returns |
 |---|---|
 | `/player/:name/:tag` | profile + rank + mastery merged; **enqueues new players** for backfill (open enrollment, soft cap 300). **Temporarily gated by `PLAYER_ALLOWLIST`** (see below) — a non-listed lookup is refused `403` before any Riot call. Degrades + self-heals a stale puuid — see [Resilience](#resilience-degradation--puuid-re-keying) |
-| `/players` | tracked players — feeds the combo box |
+| `/players` | tracked players — feeds the combo box and the home page's League card. Each row carries `rank` (the trimmed league-v4 entries `handlePlayer` last persisted to `players.rank_json`, plus `rankUpdatedAt`) so cheap pages can show rank from D1 alone — zero Riot calls; a degraded (stale) profile never clobbers the stored snapshot |
 | `/stats/:puuid?queue=&mode=&patch=` | per-champion aggregates from D1, zero Riot calls |
 | `/augments/:puuid?champion=` | Arena augment win% / avg placement |
 | `/matches/:puuid?count=&champion=` | recent matches from D1 (all-time when champion-filtered); on visit, tops up everything since the last visit (pages until a known game, capped at `TOPUP_MAX`) |

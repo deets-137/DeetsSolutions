@@ -76,7 +76,8 @@ right gutter (`.flyout__item::after`).
 `localStorage` under `deets-theme` / `deets-skin`. A saved choice wins;
 otherwise the theme follows the OS light/dark preference (**Fairy** light /
 **Moonlight** dark) and the skin defaults to **CyberStorm** on desktop,
-**Ocean** on mobile (≤ 41rem, the same breakpoint the nav collapses at).
+**Ocean** on mobile (≤ 41rem; note the nav collapses earlier, at 56rem —
+the two breakpoints are deliberately different).
 
 That default logic lives in **two places on purpose**: the `AXES[...].def`
 fields in `controls.js`, and the inline pre-paint `<script>` in every page's
@@ -120,8 +121,10 @@ Glass's `blur(16px) saturate(1.4)`). Shape comes from `--radius-panel` /
 
 ## The mobile nav menu
 
-Below the 41rem breakpoint the six inline nav links plus the Vibe button
-don't fit a phone, so the nav collapses: the inline `.site-nav` is hidden and
+Below the 56rem breakpoint the six inline nav links plus the Vibe button
+don't fit (they overflow tablet widths, not just phones — which is why this
+sits wider than the 41rem skin-default breakpoint), so the nav collapses:
+the inline `.site-nav` is hidden and
 the **"Deets" wordmark itself becomes the trigger** for a `.nav-menu`
 dropdown of every destination (Home + the page's links, with a `▾` caret).
 Desktop is untouched — the wordmark stays a plain home link and the inline
@@ -133,16 +136,19 @@ wordmark's `position: relative` anchor). Two decisions keep it honest:
 - **Links are cloned from the live `.site-nav`**, so the destinations and each
   page's `aria-current` stay defined in one place — the page's own markup —
   rather than re-listed in JS. A "Home" link is prepended (the wordmark no
-  longer navigates on mobile).
+  longer navigates on mobile). Only links marked **`data-nav-core`** are
+  cloned (currently SOTD + Cool Stuff, on every page's nav): the deep-cut
+  tabs — Movies, DeetsRadio, League, Resume — are desktop-only by design.
+  A page with no marked links falls back to cloning them all.
 - **The wordmark serves both roles from one element.** Its click handler
-  checks `matchMedia("(max-width: 41rem)")`: on mobile it opens the menu
+  checks `matchMedia("(max-width: 56rem)")`: when narrow it opens the menu
   (`preventDefault`), on desktop it follows the `/` link. `syncMode()` (run on
   load and `resize`) adds/removes `aria-haspopup` / `aria-expanded` as the
   viewport crosses the breakpoint, and closes an open menu on the way up.
 
 Dismissal mirrors the Vibe menu: Escape (refocusing the wordmark) and
 outside-click, both scoped to `.site-brand`. CSS hides `.nav-menu` outright
-at ≥ 41rem so it can never show on desktop.
+at ≥ 56rem so it can never show on desktop.
 
 ## The home Vibe panel
 

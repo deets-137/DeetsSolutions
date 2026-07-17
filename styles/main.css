@@ -346,13 +346,16 @@ body::before {
 .nav-menu__item:hover { background: var(--surface-hover); color: var(--title); }
 .nav-menu__item[aria-current="page"] { color: var(--title); }
 
-/* Desktop keeps the inline nav; the wordmark's dropdown stays inert. */
-@media (min-width: 41rem) {
+/* Desktop keeps the inline nav; the wordmark's dropdown stays inert.
+   NOTE: the nav collapses at 56rem — wider than the 41rem skin-default
+   breakpoint — because six inline links + the Vibe button overflow
+   anything narrower (controls.js `mobile()` mirrors this value). */
+@media (min-width: 56rem) {
   .nav-menu { display: none; }
 }
-/* Mobile: hide the inline links, keep the Vibe button pinned right on its
+/* Narrow: hide the inline links, keep the Vibe button pinned right on its
    own, and flag the wordmark as a menu with a caret. */
-@media (max-width: 41rem) {
+@media (max-width: 56rem) {
   .site-nav { display: none; }
   .settings { margin-left: auto; }
   .wordmark[aria-haspopup]::after {
@@ -862,6 +865,58 @@ body::before {
 .sotd__grid[data-view="line"] .song__uploader  { width: 8rem;  text-align: right; color: var(--text); font-size: 0.8rem; }
 .sotd__grid[data-view="line"] .song__date      { width: 9.5rem; text-align: right; color: var(--subtext); font-size: 0.8rem; }
 
+/* line + open — clicking a row (it's a button while the grid renders as
+   lines; sotd.js/movies.js set the affordances) expands it IN PLACE into
+   a horizontal detail card: cover left, the full meta stack right, with
+   everything the line dropped (album, chips, links, play, review)
+   restored. Click again to fold it back. */
+.sotd__grid[data-view="line"] .song { cursor: pointer; }
+.sotd__grid[data-view="line"] .song--open {
+  align-items: flex-start;
+  padding: var(--space-4);
+}
+.sotd__grid[data-view="line"] .song--open .song__cover { width: 9rem; }
+.sotd__grid[data-view="line"] .song--open .song__mono { font-size: 2rem; }
+.sotd__grid[data-view="line"] .song--open .song__play { display: inline-flex; }
+.sotd__grid[data-view="line"] .song--open .song__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 0;                    /* the open row's own padding frames it */
+}
+.sotd__grid[data-view="line"] .song--open .song__head { flex: none; }
+.sotd__grid[data-view="line"] .song--open .song__track,
+.sotd__grid[data-view="line"] .song--open .song__artist,
+.sotd__grid[data-view="line"] .song--open .song__genre {
+  white-space: normal;
+  overflow: visible;
+}
+.sotd__grid[data-view="line"] .song--open .song__album { display: block; }
+.sotd__grid[data-view="line"] .song--open .song__tags { display: flex; }
+/* genre + length dress back up as chips */
+.sotd__grid[data-view="line"] .song--open .song__genre,
+.sotd__grid[data-view="line"] .song--open .song__len {
+  width: auto;
+  flex: none;
+  color: var(--title);
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 2px var(--space-2);
+  font-size: 0.75rem;
+  text-align: left;
+}
+.sotd__grid[data-view="line"] .song--open .song__chip--soft { color: var(--subtext); }
+.sotd__grid[data-view="line"] .song--open .song__links { display: flex; }
+.sotd__grid[data-view="line"] .song--open .song__foot { display: flex; }
+.sotd__grid[data-view="line"] .song--open .song__uploader,
+.sotd__grid[data-view="line"] .song--open .song__date {
+  width: auto;
+  text-align: left;
+}
+
 /* ── Toolbar pills + popovers ────────────────────────────────────
    Each control is a pill that toggles a popover anchored below it.
    Colours are theme roles; shape/material are skin tokens, so the
@@ -1006,6 +1061,9 @@ body::before {
 .tb-pop__opt:hover { background: var(--surface-hover); }
 .tb-pop__opt.is-active { color: var(--title); }
 .tb-pop__opt.is-active::after { content: "•"; color: var(--title); }
+/* [hidden] must beat the flex display above — the View popover hides its
+   Small chip on mobile (sotd.js/movies.js set the attribute). */
+.tb-pop__opt[hidden] { display: none; }
 
 /* Two-column popover: the option stack, a vertical hairline, then a slim
    rail of icon toggles (the journals' sort-direction arrows, League's
@@ -1219,6 +1277,9 @@ body::before {
 .sotd__grid--movies[data-view="line"] .song__chip:not(.song__genre):not(.song__len) { display: none; }
 /* "♥ Liked" needs a touch more room than a song length does. */
 .sotd__grid--movies[data-view="line"] .song__len { width: 4.5rem; }
+/* line + open (movies): the loose chips and the review come back. */
+.sotd__grid--movies[data-view="line"] .song--open .song__chip { display: inline-block; }
+.sotd__grid--movies[data-view="line"] .song--open .movie__review { display: -webkit-box; }
 
 /* A film still on the watchlist is a placeholder, not a memory. */
 .movie--watchlist { opacity: 0.72; }
@@ -1347,32 +1408,26 @@ body::before {
 .home__cta--soft { color: var(--text); background: none; }
 .home__cta--soft:hover { color: var(--title); }
 
-/* Section cards — whole card is the link. Single column when narrow; at
-   width it becomes a bento: the portfolio leads full-width, then SOTD and
-   Movies stack down the left while the Vibe panel rides the right column,
-   spanning that whole stack. */
+/* The grid — single column when narrow (SOTD hub first, then the side
+   stack); at width, two columns: the hub showcases SOTD on the left
+   while Cool Stuff, Movies, League, and the Vibe panel stack down the
+   right. The columns stretch to one shared height: the Vibe panel's
+   row is the side stack's 1fr, so it absorbs the difference (its
+   stage was built to fill whatever box it's given — the chip lists
+   scroll when short, breathe when tall). */
 .home__grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-5);
 }
-@media (min-width: 41rem) {
-  .home__grid {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "lead   lead"
-      "sotd   vibe"
-      "movies vibe";
-  }
-  .home-card--lead   { grid-area: lead; }
-  .home-card--sotd   { grid-area: sotd; }
-  .home-card--movies { grid-area: movies; }
-  .vibe              { grid-area: vibe; position: relative; }
-  /* Float the panel's content out of flow so it contributes NOTHING to the
-     shared rows: the SOTD + Movies stack alone sizes them, and the panel
-     fills the spanned area no matter how tall its pending skin's type runs.
-     (In-flow at narrow widths, below, so the stacked tile keeps its height.) */
-  .vibe .vibe__stage { position: absolute; inset: 0; height: auto; }
+.home__side {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+@media (min-width: 60rem) {
+  .home__grid { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
+  .home__side { grid-template-rows: auto auto auto minmax(0, 1fr); }
 }
 .home-card {
   display: flex;
@@ -1408,6 +1463,283 @@ body::before {
 }
 .home-card:hover .home-card__live { color: var(--title); }
 
+/* ── League card profile row ────────────────────────────────────
+   A little identity plate: profile icon (Data Dragon, with a monogram
+   fallback underneath — same contract as album art), Riot ID, and a
+   live level/games line filled by home.js. */
+.home-card__profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.home-card__pfp {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.home-card__pfp img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.home-card__pfp-mono {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  color: var(--subtext);
+  user-select: none;
+}
+.home-card__who { display: grid; gap: 0.15rem; min-width: 0; }
+.home-card__riotid {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 0.95rem;
+  color: var(--title);
+}
+.home-card__riotid-tag { color: var(--subtext); }
+.home-card__sub { color: var(--subtext); font-size: 0.8rem; }
+/* Live rank snapshot (from the worker's D1 — filled by home.js). */
+.home-card__rank { color: var(--text); font-size: 0.9rem; }
+.home-card__rank[hidden] { display: none; }
+
+/* ── SOTD hub ────────────────────────────────────────────────────
+   The showcase column: card material around a hero (reusing the
+   journal's song__cover / chips / links species), stat chips, and the
+   cover calendar. Hidden until home.js confirms songs.json loaded. */
+.sotd-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  min-width: 0;
+}
+.sotd-hub[hidden] { display: none; }
+.sotd-hub__head {
+  display: flex;
+  flex-wrap: wrap;             /* narrow screens: link drops under the title
+                                  instead of squeezing it into a word stack */
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Hero — art beside details; art stacks on top when narrow. */
+.sotd-hub__hero {
+  display: grid;
+  grid-template-columns: minmax(7rem, 12rem) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.sotd-hub__hero .song__cover {
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.sotd-hub__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.sotd-hub__when {
+  color: var(--subtext);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sotd-hub__track {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.9);
+  line-height: 1.2;
+  color: var(--title);
+}
+.sotd-hub__artist { color: var(--text); font-size: 1rem; }
+.sotd-hub__album  { color: var(--subtext); font-size: 0.85rem; }
+@media (max-width: 30rem) {
+  .sotd-hub__hero { grid-template-columns: 1fr; }
+}
+
+.sotd-hub__stats { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* ── Cover calendar ──────────────────────────────────────────────
+   A month of thumbnails: days with a pick are buttons (art + day
+   number) that load that song into the hero; empty days are inert
+   numerals. Today wears a dashed hem; the hero's day a solid ring. */
+.sotd-cal { position: relative; display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Hover card — one shared element home.js fills and floats over the
+   hovered/focused day. Popover material, same species as .tb-pop. */
+.sotd-cal__tip {
+  position: absolute;
+  z-index: 20;
+  width: max-content;
+  max-width: 16rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: var(--space-2) var(--space-3);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  pointer-events: none;
+}
+.sotd-cal__tip[hidden] { display: none; }
+.sotd-cal__tip-date {
+  color: var(--subtext);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sotd-cal__tip-track {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 0.9rem;
+  line-height: 1.25;
+  color: var(--title);
+}
+.sotd-cal__tip-artist { color: var(--text); font-size: 0.8rem; }
+.sotd-cal__tip-meta { color: var(--subtext); font-size: 0.75rem; }
+.sotd-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.sotd-cal__label {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
+  color: var(--title);
+}
+.sotd-cal__nav {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--title);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui);
+}
+.sotd-cal__nav:hover:enabled { background: var(--surface-hover); border-color: var(--title); }
+.sotd-cal__nav:disabled { opacity: 0.4; cursor: default; }
+
+.sotd-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+.sotd-cal__dow {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sotd-cal__day {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: var(--surface);
+  overflow: hidden;
+  color: var(--subtext);
+  font-size: 0.75rem;
+}
+.sotd-cal__day--blank { background: none; }
+button.sotd-cal__day {
+  padding: 0;
+  border-color: var(--border);
+  background: var(--surface-hover);
+  font: inherit;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui);
+}
+button.sotd-cal__day:hover { transform: var(--hover-lift); border-color: var(--title); }
+.sotd-cal__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sotd-cal__num {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  z-index: 1;
+  font-size: 0.65rem;
+  color: var(--subtext);
+}
+button.sotd-cal__day .sotd-cal__num {
+  top: 0;
+  left: 0;
+  padding: 1px 5px 2px 4px;
+  color: var(--title);
+  background: var(--surface);
+  border-bottom-right-radius: var(--radius-control);
+}
+.sotd-cal__day.is-selected {
+  border-color: var(--title);
+  outline: 1px solid var(--title);
+  outline-offset: -2px;
+}
+
+/* ── Liner notes ─────────────────────────────────────────────────
+   Journal-wide fun stats under the calendar: a responsive grid of
+   label / value / note stacks in the hub's type system, set off from
+   the calendar by a hairline. */
+.sotd-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-4);
+}
+.sotd-facts[hidden] { display: none; }
+.sotd-fact { display: grid; gap: 0.15rem; min-width: 0; }
+.sotd-fact__label {
+  color: var(--subtext);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sotd-fact__value {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
+  line-height: 1.25;
+  color: var(--title);
+}
+.sotd-fact__note { color: var(--subtext); font-size: 0.8rem; }
+span.sotd-cal__day.is-today { border-color: var(--border); border-style: dashed; }
+button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border); border-top: 0; border-left: 0; }
+
 /* ── Vibe panel ──────────────────────────────────────────────────
    The home appearance previewer: a square bento tile whose interior
    is a live "canvas window" into the PENDING theme×skin. home.js sets
@@ -1423,13 +1755,8 @@ body::before {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  /* Fills its grid area: down the right column (matching the SOTD + Movies
-     stack) at width; a natural-height tile when the grid is single-column.
-     min-height:0 keeps the panel from feeding its own content height back
-     into the shared rows — otherwise a taller-typed pending skin would grow
-     the tracks and drag the SOTD/Movies column up with it. The left stack
-     alone sizes the rows; the panel just fills to match and its lists scroll
-     if a skin ever needs more room. */
+  /* A natural-height tile in the side stack: the chip columns size it,
+     and the lists scroll if a pending skin's type ever needs more room. */
   min-height: 0;
 }
 .vibe[hidden] { display: none; }
