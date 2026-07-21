@@ -67,6 +67,17 @@ on the existing zone). Expected load: 1–2 tables at a time.
   use a fixed game palette that does not vary by theme. All surrounding
   chrome — bar, tiles, pills, popovers, toasts — stays on the
   themes.css/skin.css token system and must survive all 30 combos.
+- **All art ships as geometric placeholders until Aditya draws it**
+  (the radio blank-cover convention, applied to everything). Resource
+  cards are flat **rectangles**, number tokens and resource icons are
+  flat **circles**, each in its resource's palette color; hexes are
+  flat color fills; pieces are simple shapes. No illustrated art, no
+  attempts to draw sprites — Aditya hand-draws the real sprites/PNGs
+  later. Anything that will become a drawn asset renders from a
+  swappable path under `assets/sprites/cities/` (stable filenames, so
+  his art drops in without code changes); pure-CSS/SVG shapes are fine
+  where a file would be overkill, as long as the swap point is one
+  rule or one function.
 - **The rules engine is one shared file.** `cities/engine.js` is a pure,
   environment-agnostic module (state + action → new state + events, no
   DOM, no I/O, no `Date.now()` — the caller passes time and randomness
@@ -438,6 +449,11 @@ seat colors (red, blue, green, orange, purple, teal — chosen to stay
 distinct for common color-vision deficiencies), number-token ink (red
 for 6/8). Everything else on the page uses semantic tokens and must
 survive all 30 combos.
+
+Until Aditya's hand-drawn sprites land, every art surface is a
+geometric placeholder in these palette colors — rectangles for cards,
+circles for tokens/icons, flat hex fills (see the placeholder-art
+decision above).
 
 ## Worker details
 
