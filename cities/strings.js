@@ -10,22 +10,23 @@
    Radio convention, verbatim: Claude may ADD a string when wiring new UI, but
    every Claude-authored value must be prefixed "[ph]" — a placeholder Aditya
    rewrites, deleting the prefix as he goes. Claude never edits an un-prefixed
-   (handwritten) value, and nothing still carrying "[ph]" may ship. This whole
-   file is scaffolding right now: it is ALL [ph] until Aditya's copy pass.
+   (handwritten) value, and nothing still carrying "[ph]" may ship. Aditya's
+   copy pass is UNDERWAY: un-prefixed values are his (some dictated in chat,
+   marked by section comments); [ph] entries still await him.
 
    {curly} tokens are filled by cities.js (fmt()). */
 window.CITIES_STRINGS = {
   /* ── bar ─────────────────────────────────────────────────────── */
   tableCodePlaceholder: "[ph]Table Code",
-  yourTables:           "[ph]Your tables",
+  yourTables:           "Recents",
   metaSetup:            "[ph]Setup — place your first pieces.",
 
-  /* ── peek / create gate (below the bar, pre-join) ────────────── */
-  peekLobby:    "[ph]Lobby open · {seated}/{capacity} seated · {spectators} watching",
-  peekRunning:  "[ph]Game in progress · {seated} players · {spectators} watching",
-  peekFull:     "[ph]Table full · {spectators} watching",
-  sitButton:    "[ph]Sit down",
-  watchButton:  "[ph]Watch",
+  /* ── peek / create gate (below the bar, pre-join) — peek lines +
+     both pills are Aditya's wording (chat), no [ph] */
+  peekFull:     "Table full | {spectators} spectating",
+  peekPlayers:  "{seated} players | {spectators} spectating",
+  sitButton:    "Sit down",
+  watchButton:  "Spectate",
   createLine:   "The '{code}' Table doesn't exist yet. Open it?",
   createButton: "Open the Table",
   nameLabel:    "[ph]Your name",
@@ -37,9 +38,9 @@ window.CITIES_STRINGS = {
   invitePill:   "Invite",
   settingsPill: "View Settings",
   shareToast:   "Invite link copied!",
-  sitPill:      "[ph]Sit down",
+  sitPill:      "Sit down",
   watchPill:    "[ph]Watch",
-  leavePill:    "[ph]Leave",
+  leavePill:    "Leave",
   closePill:    "Close Table",
   closeConfirm: "[ph]Close it?",
   tableClosed:  "[ph]The host closed the table.",
@@ -62,6 +63,19 @@ window.CITIES_STRINGS = {
   hostBadge:       "Host",
   standButton:     "Stand up",
   kickSeatAria:    "Remove {name}",
+  /* seat-color picker (dot → slide-open expand) — "Your color",
+     "{name}'s color", "Become...", "Custom:" and the six-digit help
+     line are Aditya's wording (chat), no [ph] */
+  colorYours:      "Your color",
+  colorTheirs:     "{name}'s color",
+  colorBecome:     "Become...",
+  colorDotAria:    "[ph]Change color for {name}",
+  colorSwatchAria: "[ph]Claim this color",
+  colorCustomAria: "[ph]Your custom color",
+  colorTakenBy:    "[ph]{name} has this one",
+  colorHexLabel:   "Custom:",
+  colorBadHex:     "Six hex digits, like #1fb0aa",
+  colorClashWith:  "[ph]Too close to {name}",
 
   /* ── resource + piece display names (the carve-out's labels) ─── */
   resWood:  "Wood",
@@ -90,6 +104,17 @@ window.CITIES_STRINGS = {
   /* ── board: number-token hover — Aditya's wording (chat), no [ph] ─
      {roll} arrives article-composed ("an 8", "a 9") from cities.js */
   tokenOdds: "{ways}/{total} ({pct}%) possible rolls lead to {roll}",
+
+  /* ── board: Odds popover — button + bar-hover line are Aditya's
+     wording (chat), no [ph]; {x} = expected count, {y} = seen count */
+  oddsButton: "Odds",
+  oddsRolls:  "{n} rolls",
+  oddsHover:  "{x} rolls were expected, {y} rolls have been seen",
+
+  /* ── board: Resources popover + its lobby toggle — Aditya's
+     wording (chat), no [ph] */
+  resButton:    "Resources",
+  resViewLabel: "In-Game Resources View",
 
   /* ── dice tile ───────────────────────────────────────────────── */
   diceWaiting: "[ph]{name} to roll",
@@ -131,7 +156,7 @@ window.CITIES_STRINGS = {
   buildPrompt:     "[ph]Pick a spot on the board.",
 
   /* ── role tile (spectator) ───────────────────────────────────── */
-  spectatingNote: "[ph]You're watching. Sit down at the next lobby to play.",
+  spectatingNote: "You're spectating. Sit down if there's space and you'd like to play!",
   bettingSoon:    "[ph]Spectator betting lands in a later build.",
   chipsLabel:     "[ph]{n} chips",
 
@@ -197,6 +222,8 @@ window.CITIES_STRINGS = {
   errFull:  "[ph]Table's full.",
   errEmpty: "[ph]The bank's out.",
   errSupply: "[ph]No pieces left.",
+  errColor:      "[ph]That's not a hex color.",
+  errColorTaken: "[ph]Too close to another player's color.",
 
   /* ── desktop-only guard ──────────────────────────────────────── */
   desktopOnly: "[ph]DeetsCities is a desktop game — open it on a wider screen."

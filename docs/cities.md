@@ -121,6 +121,8 @@ Files, following the radio anatomy:
 cities/index.html        page shell (bar + bento mounts)
 cities/cities.js         UI: gate, lobby, board render, panels
 cities/engine.js         rules engine (pure; vendored into the worker)
+cities/colors.js         seat-color contract (pure; vendored into the
+                         worker): presets, hex normalize, clash check
 cities/board-data.js     static board definitions (hex layouts, harbor
                          positions, token/harbor/deck counts, per board)
 cities/transport.js      real WebSocket client (reconnect, v-gap)
@@ -130,7 +132,7 @@ cities/transport-mock.js in-page fake table speaking the protocol
 cities/strings.js        all flavor copy — Aditya's, [ph] convention
 docs/cities.md           this file
 ../DeetsCities/          worker repo: worker.js + vendored engine.js +
-                         board-data.js + wrangler config
+                         colors.js + board-data.js + wrangler config
 ```
 
 `transport.js` / `transport-mock.js` follow radio's interface (connect,
@@ -283,7 +285,9 @@ table:    { code, createdAt, hostToken, phase,
             settings: { capacity: 3..6, timerSec: 0|45|60|90|120,
                         betting: bool } }
 seats:    [ { token, name, color, connected } ]   (order = turn order,
-            fixed at Start by seating order)
+            fixed at Start by seating order; color is a "#rrggbb" hex —
+            auto-assigned from the six presets, changeable in the lobby
+            via `recolor`, LOCKED at Start)
 game:     engine.js state — board (hexes, tokens, harbors, robber),
             pieces (per vertex/edge), hands, devDeck + per-player dev
             cards, bank, turn {seat, rolled, devPlayed, pendingInterrupt},
@@ -300,7 +304,8 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `join` | `{name, token, create?}` | anyone; `create:true` initializes (radio's ghost-room guard verbatim). Reply: personalized `snapshot`. Refusals: `no-table`, `name-taken` |
 | `sit` | `{seat?}` | lobby; binds seat to token. Refused `full` |
 | `stand` | — | lobby; frees own seat |
-| `setSettings` | `{capacity?, timerSec?, betting?}` | host, lobby only. Capacity below current seated count refused |
+| `recolor` | `{seat?, color}` | lobby only (colors lock at Start). Own seat, or host recoloring a bot seat. `color` is any `#rrggbb` hex; validated by `colors.js` (the shared contract module): malformed → `color`, too close to another seat's color (redmean distance < `MIN_DIST`) → `color-taken`. Board-proximity is deliberately unchecked — hand-drawn tile texture + road borders carry legibility, the pick is at the player's own risk |
+| `setSettings` | `{capacity?, timerSec?, betting?, resView?}` | host, lobby only. Capacity below current seated count refused. `resView` = the In-Game Resources View toggle (default on) |
 | `start` | — | host, ≥3 seated. Deals the board, enters `setup` |
 | `roll` | — | current player, once per turn |
 | `place` | `{kind: "settlement"\|"city"\|"road", loc}` | setup + main; engine validates cost, legality, piece supply |
@@ -320,7 +325,8 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `bet` | `{type, params, stake}` | v1.1, spectators only |
 
 Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
-`cost`, `loc`, `rate`, `full`, `name-taken`, `no-table`.
+`cost`, `loc`, `rate`, `full`, `name-taken`, `no-table`, `color`,
+`color-taken`.
 
 ### Table → clients
 
@@ -345,6 +351,20 @@ mid-game joins, where a client can't count turns it never saw),
 `{t:"win", seat}`.
 The client renders them into the plain log; display names for resources
 and pieces come from `strings.js`.
+
+Views also carry `dice` — the running roll histogram
+(`{sum: count}`, `stats.dice`) — as a **public** section: every roll is
+seen by all, so mid-game exposure breaks no hidden-info invariant, and
+sending it (rather than clients counting `roll` events) keeps the Odds
+chart correct across reconnects and mid-game joins, the `turn.n`
+precedent again. Same treatment for `gained` — per-seat **raw**
+gained-card totals (an array by seat, summed across `stats.seats[i]
+.gained`'s sources and resources): with no resource identities in it,
+every count is publicly derivable (even a steal moves one visibly
+counted card), so it too is public — but it is **host-toggleable**
+(the "In-Game Resources View" table setting, `settings.resView`,
+default on; when off the section is omitted and the client shows no
+Resources button).
 
 **Hidden-information rules (hard invariants):**
 
@@ -412,9 +432,13 @@ like the chips).
 
 Doorway: the `.sotd__bar` combobox idiom verbatim (League/radio) — the
 table code IS the title, slug preview, recents popover
-(`localStorage`, "Your tables"), peek-below-the-bar, create-confirm so
-a typo never mints a table. Peek renders the right verb: **Sit down**
-(lobby with room), **Watch** (running/full). Toolbar pills: Invite
+(`localStorage`, "Recents"), peek-below-the-bar, create-confirm so
+a typo never mints a table. An existing table's peek always shows
+**both pills** — **Sit down** + **Spectate** — with Sit down grayed
+(disabled) when there's no seat to take (full lobby, or a running
+game); the peek line is "Table full | {n} spectating" when a lobby is
+full, else "{seated} players | {n} spectating" (`strings.js
+peekFull/peekPlayers`, Aditya's wording). Toolbar pills: Invite
 (copy link) · **View Settings** (final copy, Aditya's; a popover showing
 players/timer/betting, available in any phase so the rules are always
 one hover away — hover is a transient peek, **click pins it open**
@@ -455,7 +479,19 @@ change contents, never places:
   placement-strength badge — the adjacent hexes' pips pooled onto one
   token-styled pill — so candidate spots compare at a glance (SVG
   overlay, nothing reflows; skipped when the corner has no tokened
-  hex). Over: the stats reveal. The tile's
+  hex). A pill row sits bottom-left of the board (absolute overlay,
+  themed chrome) — **Odds**, and **Resources** when the table's
+  In-Game Resources View setting is on: hovering a pill shows — and
+  clicking pins — its fixed-size popover (shared kit: one dock, hover
+  outranks pin, 150ms grace to cross into the panel, pinned closes on
+  outside click or Escape; panels never resize — bars normalize to the
+  max). Odds charts the public `dice` histogram, bars 2–12 in token
+  cream with 6/8 hot; hovering a bar fills a reserved line with
+  "{x} rolls were expected, {y} rolls have been seen" (`strings.js
+  oddsButton/oddsRolls/oddsHover`). Resources charts the public
+  `gained` totals, one bar per seat in its player color, name under
+  each — raw cards gained, deliberately no per-resource breakdown
+  (`strings.js resButton`). Over: the stats reveal. The tile's
   height is **fixed in CSS** (`clamp(30rem, 100vh − 16rem, 42rem)`), not
   content-driven: the board SVG meet-fits inside it and over-length
   stats scroll internally, so Start swaps contents without moving the
@@ -612,10 +648,24 @@ one-line desktop-only note (copy from `strings.js`).
 Fixed literals scoped to the board and cards only, defined once in a
 `/* cities game palette — deliberate token carve-out (docs/cities.md) */`
 block: terrain fills (wood/brick/wheat/sheep/ore/desert/sea), the six
-seat colors (red, blue, green, orange, purple, teal — chosen to stay
-distinct for common color-vision deficiencies), number-token ink (red
-for 6/8). Everything else on the page uses semantic tokens and must
-survive all 30 combos.
+**preset** seat colors (red, blue, green, orange, purple, teal — chosen
+to stay distinct for common color-vision deficiencies), number-token
+ink (red for 6/8). Everything else on the page uses semantic tokens and
+must survive all 30 combos.
+
+**Seat colors are player-pickable** (this pass): the presets are the
+auto-assigned defaults, but in the lobby a seated player's dot (and,
+for the host, a bot's) is a button that slides open a picker — the six
+preset swatches, a seventh device-local slot holding the last custom
+hex you Become'd (localStorage; empty = a dashed ring that focuses the
+field), and the exact-hex field itself. `cities.js` writes the chosen
+hexes over the `--cseat-N` slots on the `.cities` root, so every
+index-keyed render site follows along; the CSS carve-out block keeps
+the presets as fallbacks. Validation (seat-vs-seat distance only, by
+decision) lives in `cities/colors.js` — pure and vendored into the
+worker verbatim, same contract rule as `engine.js`. Custom picks are
+outside the CVD guarantee: the presets promise distinctness, a custom
+hex is the player's own eyes' responsibility.
 
 Until Aditya's hand-drawn sprites land, every art surface is a
 geometric placeholder in these palette colors — rectangles for cards,

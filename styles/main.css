@@ -3432,11 +3432,13 @@ button:focus-visible {
 
 /* cities game palette — deliberate token carve-out (docs/cities.md).
    Fixed literals scoped to the board + cards only: terrain fills, the six
-   seat colors (chosen to stay distinct for common color-vision
-   deficiencies), and number-token ink. These do NOT vary by theme. Until
-   Aditya's hand-drawn sprites land every art surface is a flat geometric
-   placeholder in these colors (rectangles for cards, circles for
-   tokens/pieces, flat hex fills). */
+   PRESET seat colors (chosen to stay distinct for common color-vision
+   deficiencies), and number-token ink. These do NOT vary by theme. The
+   --cseat-N values here are fallbacks: cities.js overrides the slots on
+   this root with each seat's actual (possibly custom-hex) pick from the
+   lobby color picker. Until Aditya's hand-drawn sprites land every art
+   surface is a flat geometric placeholder in these colors (rectangles for
+   cards, circles for tokens/pieces, flat hex fills). */
 .cities {
   --cterr-wood:   #3f7d3a;
   --cterr-brick:  #c06b3e;
@@ -3504,6 +3506,7 @@ button:focus-visible {
   border-radius: var(--radius-control);
 }
 .cities-gate__go { cursor: pointer; }
+.cities-gate__go:disabled { opacity: 0.4; cursor: default; }
 
 /* ── the bento ────────────────────────────────────────────────── */
 .cities-bento {
@@ -3556,6 +3559,37 @@ button:focus-visible {
 .cities-vhint { pointer-events: none; }
 .cities-vhint__bg { fill: var(--ctoken-bg); stroke: rgba(0, 0, 0, 0.25); stroke-width: 1; }
 .cities-vhint__pips { fill: var(--ctoken-hot); font: 700 8px/1 var(--font-body); letter-spacing: -0.5px; }
+/* ── board popovers (bottom-left of the board tile): Odds + Resources ──
+   The pill row + popovers are absolute, above the SVG — the tile never
+   reflows. Popovers share one dock and are fixed-size (bars normalize to
+   the max; the odds hover line is a reserved row), themed chrome around
+   game-palette / seat-color bars. */
+.cities-boardbtns { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 3; display: flex; gap: var(--space-2); }
+.cities-bpop {
+  position: absolute; left: var(--space-3); bottom: 3.6rem; z-index: 3;
+  width: 24rem; max-width: calc(100% - var(--space-3) * 2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  visibility: hidden; opacity: 0;
+}
+.cities-bpop.is-open { visibility: visible; opacity: 1; }
+.cities-odds__count { font-size: 0.75rem; color: var(--subtext); margin-bottom: var(--space-2); }
+/* hard-fixed height + matching line-height: the ghost row is exactly the
+   same size empty or filled, so bar-hover can never nudge the panel */
+.cities-odds__hint { font-size: 0.75rem; color: var(--text); height: 1.2rem; line-height: 1.2rem; margin-top: var(--space-1); white-space: nowrap; overflow: hidden; }
+.cities-odds__chart { display: block; width: 100%; }
+.cities-odds__bar { fill: var(--ctoken-bg); }
+.cities-odds__bar.is-hot { fill: var(--ctoken-hot); }
+.cities-odds__n { fill: var(--text); font: 700 11px/1 var(--font-body); pointer-events: none; }
+.cities-odds__x { fill: var(--subtext); font: 700 11px/1 var(--font-body); pointer-events: none; }
+.cities-odds__x.is-hot { fill: var(--ctoken-hot); }
+.cities-odds__axis { stroke: var(--border); pointer-events: none; }
+.cities-odds__hit { fill: transparent; }
 .cities-robber { fill: #1a1a1a; stroke: #fff; stroke-width: 1.5; opacity: 0.9; }
 .cities-road { stroke-width: 6; stroke-linecap: round; }
 .cities-road--target { stroke: var(--title); stroke-dasharray: 3 4; opacity: 0.6; cursor: pointer; }
@@ -3613,6 +3647,70 @@ button:focus-visible {
 .cities-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
 .cities-seat__kick:hover { color: var(--stop); }
 .cities-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
+
+/* ── seat-color picker (lobby): the dot is the button, the panel slides
+   open under the row with the game-over superlatives' 0fr→1fr slide ── */
+.cities-seat__dotbtn {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; margin: -0.35rem;   /* bigger target, same layout as the bare dot */
+  padding: 0; background: none; border: none; border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui);
+}
+.cities-seat__dotbtn:hover,
+.cities-seat__dotbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--border); }
+.cities-seat__dotbtn:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+/* collapsed it must occupy ZERO height AND swallow one roster flex gap
+   (the negative top margin), so a picker's presence never shifts the rows
+   below — the bento's universal layout rule. Border/padding live on the
+   inner-inner body, never on the overflow-hidden track (they'd leak at 0fr,
+   the same reason the superlatives keep their inner bare). */
+.cities-colorpick {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease;
+  margin: calc(-1 * var(--space-2)) var(--space-2) 0;
+}
+.cities-colorpick.is-open { grid-template-rows: 1fr; }
+.cities-colorpick__inner { overflow: hidden; min-height: 0; }
+.cities-colorpick__body {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  background: var(--surface);
+}
+.cities-colorpick__label {
+  color: var(--subtext); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.cities-colorpick__swatches { display: flex; gap: var(--space-2); }
+.cities-colorpick__swatch {
+  width: 1.5rem; height: 1.5rem; flex: none;
+  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+}
+.cities-colorpick__swatch:hover:not(:disabled) { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
+.cities-colorpick__swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.cities-colorpick__swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
+.cities-colorpick__swatch:disabled { opacity: 0.35; cursor: default; }
+/* the 7th (custom) slot before a hex was ever Become'd: an empty dashed
+   ring that just focuses the field — chrome, so tokens, not the palette */
+.cities-colorpick__swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
+.cities-colorpick__custom { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cities-colorpick__hexlabel { color: var(--subtext); font-size: 0.85rem; }
+.cities-colorpick__hexinput {
+  width: 6.5rem;
+  font: inherit;                      /* match the Become... chip's height */
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.cities-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
+.cities-colorpick__go { cursor: pointer; }
+.cities-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
 .cities-lobby__start { align-self: flex-start; cursor: pointer; }
 .cities-lobby__start:disabled { opacity: 0.5; cursor: default; }
 .cities-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }

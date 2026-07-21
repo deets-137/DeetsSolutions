@@ -47,13 +47,16 @@ is Phase 2).
   `assets/sprites/radio/cover-blank.svg` — keep the path, never redraw it.
 - **DeetsCities copy is `[ph]`-convention too** — every user-facing string
   lives in `cities/strings.js`; Claude adds only `[ph]`-prefixed
-  placeholders, never inline copy in `cities.js`. `strings.js` is still
-  fully scaffolded — every entry carries `[ph]`, awaiting Aditya's copy
-  pass. **The rules engine is contract:** `cities/engine.js` is a pure, DOM-free module and
-  `cities/board-data.js` its data; the Phase-2 worker (sibling repo
-  `../DeetsCities`, `cities-api.deets.solutions`) will vendor both
-  **verbatim**, exactly like the radio protocol — the mock and worker must
-  run byte-identical copies. The board + card art is a token carve-out
+  placeholders, never inline copy in `cities.js`. Aditya's copy pass is
+  underway: un-prefixed entries are his (some dictated in chat — section
+  comments mark those); `[ph]` entries still await him. **The rules engine
+  and seat-color contract are shared code:** `cities/engine.js` is a pure,
+  DOM-free module, `cities/board-data.js` its data, and `cities/colors.js`
+  the seat-color contract (presets, hex validation, seat-vs-seat clash
+  check); the Phase-2 worker (sibling repo `../DeetsCities`,
+  `cities-api.deets.solutions`) will vendor all three **verbatim**, exactly
+  like the radio protocol — the mock and worker must run byte-identical
+  copies. The board + card art is a token carve-out
   (fixed game palette, ignores theme/skin); everything else survives all
   30 combos. Art ships as geometric placeholders until Aditya draws it,
   swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).

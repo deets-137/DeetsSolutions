@@ -22,6 +22,7 @@
   var T = window.CitiesTransport;
   var S = window.CITIES_STRINGS || {};
   var Engine = window.CitiesEngine;
+  var Colors = window.CitiesColors;
   var RES = Engine.RES;
 
   /* ── DOM handles ──────────────────────────────────────────────── */
@@ -57,6 +58,7 @@
   function reduceMotion() { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
 
   var TOKEN_KEY = "deets-cities-token", NAME_KEY = "deets-cities-name", RECENTS_KEY = "deets-cities-recents";
+  var CUSTOM_COLOR_KEY = "deets-cities-customhex";   // last custom hex Become'd — the picker's 7th swatch
   function deviceToken() {
     var t = load(TOKEN_KEY, null);
     if (t) return t;
@@ -121,7 +123,7 @@
   var logView = load(LOGVIEW_KEY, "log");   // log tile rail: "log" | "deck" — sticky across sessions
   var lastTurnSeat = null;   // players tile: scroll-to-active fires on change only
   var clockSkew = 0, timerHandle = null;   // clockSkew = Date.now() - server clock
-  var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {} };   // transient board-interaction state
+  var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {}, colorOpen: null, colorDraft: null };   // transient board-interaction state
   var acceptToasts = {};   // "offerId:seat" -> sticky accepted-toast handle
   var offerCache = {};     // last-seen offer bundles (for the decline-fade ghost)
   var fadingOffers = {};   // id -> offer snapshot, briefly rendered fading out
@@ -196,12 +198,15 @@
   function renderGate(c, p, refuseName) {
     GATE.hidden = false; GATE.textContent = "";
     TABLE.hidden = true; DESKTOP.hidden = true;
-    var line, watch = false;
+    // an existing table always offers BOTH pills — Sit down (grayed when
+    // there's no seat to take: full lobby, or a running game) + Spectate
+    var full = p.exists && p.phase === "lobby" && p.seated >= p.capacity;
+    var canSit = p.exists && p.phase === "lobby" && !full;
+    var line;
     if (refuseName) line = S.nameTaken;
     else if (!p.exists) line = fmt(S.createLine, { code: c });
-    else if (p.phase === "lobby" && p.seated < p.capacity) line = fmt(S.peekLobby, { seated: p.seated, capacity: p.capacity, spectators: p.spectators });
-    else if (p.phase === "lobby") { line = fmt(S.peekFull, { spectators: p.spectators }); watch = true; }
-    else { line = fmt(S.peekRunning, { seated: p.seated, spectators: p.spectators }); watch = true; }
+    else if (full) line = fmt(S.peekFull, { spectators: p.spectators });
+    else line = fmt(S.peekPlayers, { seated: p.seated, spectators: p.spectators });
     GATE.appendChild(el("p", "cities-gate__line", line));
 
     var form = el("div", "cities-gate__form");
@@ -213,19 +218,34 @@
       nameInput = el("input", "cities-gate__name-input"); nameInput.type = "text"; nameInput.maxLength = 24; nameInput.value = stored;
       wrap.appendChild(nameInput); form.appendChild(wrap);
     }
-    var go = el("button", "tb-pill cities-gate__go");
-    go.type = "button";
-    go.appendChild(el("span", "tb-pill__label", !p.exists ? S.createButton : watch ? S.watchButton : S.sitButton));
-    go.addEventListener("click", function () {
-      var who = nameInput ? nameInput.value.trim() : stored;
-      if (!who) { toast(S.nameNeeded, "error"); if (nameInput) nameInput.focus(); return; }
-      save(NAME_KEY, who);
-      go.disabled = true;
-      joinTable(c, who, !p.exists, watch).then(function () { if (!joined) go.disabled = false; });
-    });
-    form.appendChild(go);
+    var btns = [];
+    function goBtn(label, asWatch, enabled) {
+      var b = el("button", "tb-pill cities-gate__go");
+      b.type = "button"; b.disabled = !enabled;
+      b.appendChild(el("span", "tb-pill__label", label));
+      b.addEventListener("click", function () {
+        var who = nameInput ? nameInput.value.trim() : stored;
+        if (!who) { toast(S.nameNeeded, "error"); if (nameInput) nameInput.focus(); return; }
+        save(NAME_KEY, who);
+        btns.forEach(function (x) { x.el.disabled = true; });
+        joinTable(c, who, !p.exists, asWatch).then(function () {
+          if (!joined) btns.forEach(function (x) { x.el.disabled = !x.enabled; });
+        });
+      });
+      btns.push({ el: b, enabled: enabled });
+      form.appendChild(b);
+      return b;
+    }
+    var first;
+    if (!p.exists) first = goBtn(S.createButton, false, true);
+    else {
+      first = goBtn(S.sitButton, false, canSit);
+      goBtn(S.watchButton, true, true);
+    }
     GATE.appendChild(form);
-    if (nameInput) nameInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go.click(); } });
+    if (nameInput) nameInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); (first.disabled ? btns[btns.length - 1].el : first).click(); }
+    });
   }
 
   /* ── join / leave ─────────────────────────────────────────────── */
@@ -295,6 +315,7 @@
     // decide board-interaction mode BEFORE rendering the board
     autoSetupMode();
     syncPendingMode();
+    applySeatColors();
     GATE.hidden = true;
     render();
     // refresh AFTER handleEvent ran: the fade ghost needs the previous
@@ -357,7 +378,7 @@
     });
   }
   function errText(codeStr) {
-    var map = { cost: S.errCost, loc: S.errLoc, turn: S.errTurn, phase: S.errPhase, rate: S.errRate, perm: S.errPerm, full: S.errFull, empty: S.errEmpty, supply: S.errSupply, "no-table": S.noTable, "name-taken": S.nameTaken };
+    var map = { cost: S.errCost, loc: S.errLoc, turn: S.errTurn, phase: S.errPhase, rate: S.errRate, perm: S.errPerm, full: S.errFull, empty: S.errEmpty, supply: S.errSupply, "no-table": S.noTable, "name-taken": S.nameTaken, color: S.errColor, "color-taken": S.errColorTaken };
     return map[codeStr] || S.errPhase;
   }
 
@@ -548,6 +569,7 @@
     pop.appendChild(settingRow(S.capacityLabel, String(model.settings.capacity)));
     pop.appendChild(settingRow(S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff));
     pop.appendChild(settingRow(S.bettingLabel, model.settings.betting ? S.bettingOn : S.bettingOff));
+    pop.appendChild(settingRow(S.resViewLabel, model.settings.resView !== false ? S.bettingOn : S.bettingOff));
     wrap.appendChild(pop);
     // Hover = transient peek; click = pin open through the popover kit (so
     // Esc / outside-click dismiss it like every other popover). The pinned
@@ -625,11 +647,27 @@
     });
     bRow.appendChild(bOpts); wrap.appendChild(bRow);
 
-    // seats
+    // in-game resources view (the board's Resources popover; default on)
+    var rvOn = model.settings.resView !== false;
+    var rvRow = el("div", "cities-set");
+    rvRow.appendChild(el("span", "cities-set__label", S.resViewLabel));
+    var rvOpts = el("div", "cities-set__opts");
+    [["on", true], ["off", false]].forEach(function (o) {
+      var b = el("button", "cities-chip" + (rvOn === o[1] ? " is-active" : ""), o[1] ? S.bettingOn : S.bettingOff);
+      b.type = "button"; b.disabled = !host;
+      b.addEventListener("click", function () { send({ type: "setSettings", resView: o[1] }); });
+      rvOpts.appendChild(b);
+    });
+    rvRow.appendChild(rvOpts); wrap.appendChild(rvRow);
+
+    // seats — your own dot (and, for the host, a bot's) is a button that
+    // slides open the color picker below the row; colors lock at Start
+    // because `recolor` is a lobby command (transport enforces it too)
     var seatList = el("div", "cities-lobby__seats");
     (model.seats || []).forEach(function (s, i) {
       var row = el("div", "cities-seat" + (s.empty ? " cities-seat--empty" : ""));
-      row.appendChild(seatDot(i));
+      var editable = !s.empty && (s.seat === mySeat() || (host && s.phantom));
+      row.appendChild(editable ? dotButton(s, i) : seatDot(i));
       var label = s.empty ? S.seatOpen : (s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : s.name);
       row.appendChild(el("span", "cities-seat__name", label));
       if (model.hostSeat === i) row.appendChild(el("span", "cities-seat__badge", S.hostBadge));
@@ -640,7 +678,14 @@
         row.appendChild(kick);
       }
       seatList.appendChild(row);
+      if (editable) seatList.appendChild(colorPicker(s, i));
     });
+    if (ui.colorOpen != null) {
+      // the open picker's seat stopped being editable (kicked, stood up,
+      // capacity trim): forget it so a later rebuild doesn't reopen it
+      var stillOpen = seatList.querySelector('[data-colorpick="' + ui.colorOpen + '"]');
+      if (!stillOpen) { ui.colorOpen = null; ui.colorDraft = null; }
+    }
     wrap.appendChild(seatList);
 
     // start
@@ -657,6 +702,136 @@
     BIG.appendChild(wrap);
   }
   function seatDot(i) { var d = el("span", "cities-dot"); d.style.background = "var(--cseat-" + i + ")"; return d; }
+  // seat colors drive the --cseat-N slots (main.css game-palette carve-out
+  // holds the preset fallbacks; a custom pick simply overrides its slot, so
+  // every index-keyed render site — board, strips, log, over — follows along)
+  function applySeatColors() {
+    var root = document.querySelector(".cities");
+    if (!root || !model) return;
+    (model.seats || []).forEach(function (s, i) {
+      if (s && s.color) root.style.setProperty("--cseat-" + i, s.color);
+    });
+  }
+
+  /* ── lobby seat-color picker (dot → slide-open expand) ──────────
+     The expand animates with the game-over superlatives' slide (the same
+     grid-template-rows 0fr→1fr transition), which is why open/close flips
+     a class on the LIVE node — a re-render would insert the panel already
+     open and skip the motion. Open state + a mid-typing hex draft ride
+     `ui.colorOpen` / `ui.colorDraft` so broadcasts don't wipe them. */
+  function dotButton(s, i) {
+    var b = el("button", "cities-seat__dotbtn"); b.type = "button";
+    b.setAttribute("data-colorseat", i);
+    b.setAttribute("aria-expanded", ui.colorOpen === i ? "true" : "false");
+    b.setAttribute("aria-label", fmt(S.colorDotAria, { name: s.name }));
+    b.appendChild(seatDot(i));
+    b.addEventListener("click", function () { toggleColorPick(i); });
+    return b;
+  }
+  function toggleColorPick(i) {
+    ui.colorOpen = ui.colorOpen === i ? null : i;
+    ui.colorDraft = null;
+    Array.prototype.forEach.call(BIG.querySelectorAll("[data-colorpick]"), function (p) {
+      p.classList.toggle("is-open", +p.getAttribute("data-colorpick") === ui.colorOpen);
+    });
+    Array.prototype.forEach.call(BIG.querySelectorAll("[data-colorseat]"), function (b) {
+      b.setAttribute("aria-expanded", +b.getAttribute("data-colorseat") === ui.colorOpen ? "true" : "false");
+    });
+  }
+  function sendRecolor(i, hex) {
+    send({ type: "recolor", seat: i, color: hex });
+    if (ui.colorOpen === i) toggleColorPick(i);   // animated close; the
+    // broadcast then re-renders the roster with the new color applied
+  }
+  function colorPicker(s, i) {
+    var wrap = el("div", "cities-colorpick" + (ui.colorOpen === i ? " is-open" : ""));
+    wrap.setAttribute("data-colorpick", i);
+    var slide = el("div", "cities-colorpick__inner");   // the 0fr→1fr track (bare, like the superlatives')
+    var inner = el("div", "cities-colorpick__body");
+    inner.appendChild(el("span", "cities-colorpick__label",
+      s.seat === mySeat() ? S.colorYours : fmt(S.colorTheirs, { name: s.name })));
+    // clash targets = every OTHER seat's color, positions preserved so a
+    // clash index maps straight back to a seat for the "{name} has it" line
+    var others = (model.seats || []).map(function (o) {
+      return o.empty || o.seat === i ? null : o.color;
+    });
+    var sw = el("div", "cities-colorpick__swatches");
+    Colors.PRESETS.forEach(function (hex) {
+      var b = el("button", "cities-colorpick__swatch"); b.type = "button";
+      b.style.background = hex;
+      if (hex === s.color) b.classList.add("is-current");
+      var ci = Colors.clash(hex, others);
+      if (ci >= 0) {
+        b.disabled = true;
+        b.title = fmt(S.colorTakenBy, { name: seatName(ci) });
+        b.setAttribute("aria-label", fmt(S.colorTakenBy, { name: seatName(ci) }));
+      } else {
+        b.setAttribute("aria-label", S.colorSwatchAria);
+        b.addEventListener("click", function () { sendRecolor(i, hex); });
+      }
+      sw.appendChild(b);
+    });
+    // 7th swatch: YOUR custom color (device-local, saved when a hex is
+    // Become'd) — select it again here, or the empty slot focuses the field
+    var savedCustom = Colors.norm(load(CUSTOM_COLOR_KEY, null));
+    var cb = el("button", "cities-colorpick__swatch cities-colorpick__swatch--custom");
+    cb.type = "button";
+    if (savedCustom) {
+      cb.style.background = savedCustom;
+      if (savedCustom === s.color) cb.classList.add("is-current");
+      var cci = Colors.clash(savedCustom, others);
+      if (cci >= 0 && savedCustom !== s.color) {
+        cb.disabled = true;
+        cb.title = fmt(S.colorTakenBy, { name: seatName(cci) });
+        cb.setAttribute("aria-label", fmt(S.colorTakenBy, { name: seatName(cci) }));
+      } else {
+        cb.setAttribute("aria-label", S.colorCustomAria);
+        cb.addEventListener("click", function () { sendRecolor(i, savedCustom); });
+      }
+    } else {
+      cb.classList.add("is-empty");
+      cb.setAttribute("aria-label", S.colorCustomAria);
+      cb.addEventListener("click", function () { input.focus(); });   // var-hoisted; assigned below
+    }
+    sw.appendChild(cb);
+    inner.appendChild(sw);
+    // exact-hex row: seeded with the current color, validated as you type
+    // (colors.js — the same check the transport re-runs), submit = Become...
+    var row = el("div", "cities-colorpick__custom");
+    row.appendChild(el("span", "cities-colorpick__hexlabel", S.colorHexLabel));
+    var input = el("input", "cities-colorpick__hexinput");
+    input.type = "text"; input.spellcheck = false; input.maxLength = 8;
+    input.value = ui.colorDraft != null ? ui.colorDraft : s.color;
+    var become = el("button", "cities-chip cities-colorpick__go", S.colorBecome);
+    become.type = "button";
+    var note = el("span", "cities-colorpick__msg");
+    function validate() {
+      var hex = Colors.norm(input.value);
+      var ci = hex ? Colors.clash(hex, others) : -1;
+      var bad = !hex ? (input.value.trim() ? S.colorBadHex : "")
+              : ci >= 0 ? fmt(S.colorClashWith, { name: seatName(ci) }) : "";
+      note.textContent = bad;
+      become.disabled = !hex || ci >= 0;
+      return become.disabled ? null : hex;
+    }
+    function becomeCustom() {
+      var hex = validate();
+      if (!hex) return;
+      save(CUSTOM_COLOR_KEY, hex);   // remembers the 7th swatch across sessions
+      sendRecolor(i, hex);
+    }
+    input.addEventListener("input", function () { ui.colorDraft = input.value; validate(); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") becomeCustom();
+    });
+    become.addEventListener("click", becomeCustom);
+    validate();
+    row.appendChild(input); row.appendChild(become); row.appendChild(note);
+    inner.appendChild(row);
+    slide.appendChild(inner);
+    wrap.appendChild(slide);
+    return wrap;
+  }
 
   /* ── the SVG board ────────────────────────────────────────────── */
   function renderBoard() {
@@ -762,8 +937,145 @@
     // steal targets sit on the robber hex — handled in role tile prompt
 
     BIG.appendChild(svg);
+    buildBoardPops();
   }
   function pips(tok) { var n = 6 - Math.abs(7 - tok); return new Array(n + 1).join("•"); }
+
+  /* ── board popovers, bottom-left: Odds + Resources ──────────────
+     A shared kit: each popover is an absolute overlay (z above the SVG)
+     paired with a pill in the button row, so nothing touches board
+     layout. Hovering a button shows its popover transiently; clicking
+     pins it (ui.boardPop — cleared with the rest of ui on leave); a
+     hover always outranks a pin so mousing between buttons previews
+     either. A 150ms grace timer lets the cursor cross the gap from
+     button to popover without it closing. Rebuilt every render like the
+     rest of the tile, so new data appears live; panels are fixed-size
+     and bars normalize against the current max, so nothing ever
+     resizes. Odds reads model.dice; Resources reads model.gained (only
+     sent while the table's In-Game Resources View setting is on — no
+     data, no button). */
+  var popHover = null, popTimer = null;
+  function popOpenName() { return popHover || ui.boardPop || null; }
+  function popSync() {
+    var open = popOpenName();
+    ["odds", "res"].forEach(function (name) {
+      var p = BIG.querySelector('[data-pop="' + name + '"]');
+      var b = BIG.querySelector('[data-popbtn="' + name + '"]');
+      if (p) p.classList.toggle("is-open", open === name);
+      if (b) b.setAttribute("aria-expanded", open === name ? "true" : "false");
+    });
+  }
+  function popHoverIn(name) { return function () { clearTimeout(popTimer); popHover = name; popSync(); }; }
+  function popDelayClose() {
+    clearTimeout(popTimer);
+    popTimer = setTimeout(function () { popHover = null; popSync(); }, 150);
+  }
+  function popButton(name, label) {
+    var b = el("button", "tb-pill"); b.type = "button";
+    b.setAttribute("data-popbtn", name);
+    b.appendChild(el("span", "tb-pill__label", label));
+    b.setAttribute("aria-expanded", popOpenName() === name ? "true" : "false");
+    b.addEventListener("click", function () { ui.boardPop = ui.boardPop === name ? null : name; popSync(); });
+    b.addEventListener("mouseenter", popHoverIn(name));
+    b.addEventListener("mouseleave", popDelayClose);
+    return b;
+  }
+  function popPanel(name) {
+    var p = el("div", "cities-bpop" + (popOpenName() === name ? " is-open" : ""));
+    p.setAttribute("data-pop", name);
+    p.addEventListener("mouseenter", popHoverIn(name));
+    p.addEventListener("mouseleave", popDelayClose);
+    return p;
+  }
+  function buildBoardPops() {
+    var row = el("div", "cities-boardbtns");
+    var oddsPop = popPanel("odds");
+    var dice = model.dice || {};
+    var total = 0; for (var k in dice) total += dice[k];
+    oddsPop.appendChild(el("div", "cities-odds__count", fmt(S.oddsRolls, { n: total })));
+    var hint = el("div", "cities-odds__hint");   // reserved line — fills on bar hover
+    oddsPop.appendChild(oddsChart(dice, total, hint));
+    oddsPop.appendChild(hint);
+    BIG.appendChild(oddsPop);
+    row.appendChild(popButton("odds", S.oddsButton));
+    if (model.gained) {
+      var resPop = popPanel("res");
+      resPop.appendChild(resChart(model.gained));
+      BIG.appendChild(resPop);
+      row.appendChild(popButton("res", S.resButton));
+    }
+    BIG.appendChild(row);
+  }
+  // Resources: one bar per seat in its player color — raw cards gained,
+  // no resource breakdown, no captions (the numbers and names are it)
+  function resChart(gained) {
+    var svg = svgEl("svg", { class: "cities-odds__chart", viewBox: "0 0 356 150" });
+    var n = gained.length, gap = 10, x0 = 6;
+    var bw = (344 - (n - 1) * gap) / n;
+    var base = 126, maxH = 100, maxC = 1, i;
+    for (i = 0; i < n; i++) maxC = Math.max(maxC, gained[i]);
+    for (i = 0; i < n; i++) {
+      var x = x0 + i * (bw + gap);
+      var h = Math.max(Math.round(gained[i] / maxC * maxH), 2);
+      var r = svgEl("rect", { x: x.toFixed(1), y: base - h, width: bw.toFixed(1), height: h, rx: 3 });
+      r.style.fill = "var(--cseat-" + i + ")";
+      svg.appendChild(r);
+      var ct = svgEl("text", { x: (x + bw / 2).toFixed(1), y: base - h - 5, "text-anchor": "middle", class: "cities-odds__n" });
+      ct.textContent = gained[i];
+      svg.appendChild(ct);
+      var nm = svgEl("text", { x: (x + bw / 2).toFixed(1), y: 144, "text-anchor": "middle", class: "cities-odds__x" });
+      var full = seatName(i), maxCh = Math.max(3, Math.floor(bw / 6.5));
+      nm.textContent = full.length > maxCh ? full.slice(0, maxCh - 1) + "…" : full;
+      svg.appendChild(nm);
+    }
+    svg.appendChild(svgEl("line", { x1: 4, y1: base, x2: 352, y2: base, class: "cities-odds__axis" }));
+    return svg;
+  }
+  function oddsChart(dice, total, hint) {
+    // 11 bars: x 6..350 — the 356 viewBox leaves 6px each side, centered
+    var svg = svgEl("svg", { class: "cities-odds__chart", viewBox: "0 0 356 150" });
+    var maxC = 1, s;
+    for (s = 2; s <= 12; s++) maxC = Math.max(maxC, dice[s] || 0);
+    var base = 126, maxH = 100, bw = 24, gap = 8, x0 = 6;
+    for (s = 2; s <= 12; s++) {
+      var x = x0 + (s - 2) * (bw + gap), c = dice[s] || 0;
+      var hot = s === 6 || s === 8;
+      var h = Math.max(Math.round(c / maxC * maxH), 2);
+      var col = svgEl("g", { class: "cities-odds__col" });
+      col.appendChild(svgEl("rect", { x: x, y: base - h, width: bw, height: h, rx: 3, class: "cities-odds__bar" + (hot ? " is-hot" : "") }));
+      if (c > 0) {
+        var ct = svgEl("text", { x: x + bw / 2, y: base - h - 5, "text-anchor": "middle", class: "cities-odds__n" });
+        ct.textContent = c;
+        col.appendChild(ct);
+      }
+      var xl = svgEl("text", { x: x + bw / 2, y: 144, "text-anchor": "middle", class: "cities-odds__x" + (hot ? " is-hot" : "") });
+      xl.textContent = s;
+      col.appendChild(xl);
+      // invisible full-height column target so the whole lane hovers
+      var hit = svgEl("rect", { x: x - gap / 2, y: 0, width: bw + gap, height: 150, class: "cities-odds__hit" });
+      (function (sum, count) {
+        hit.addEventListener("mouseenter", function () {
+          var ways = 6 - Math.abs(7 - sum);
+          var exp = (total * ways / 36).toFixed(1).replace(/\.0$/, "");
+          hint.textContent = fmt(S.oddsHover, { x: exp, y: count });
+        });
+        hit.addEventListener("mouseleave", function () { hint.textContent = ""; });
+      })(s, c);
+      col.appendChild(hit);
+      svg.appendChild(col);
+    }
+    svg.appendChild(svgEl("line", { x1: 4, y1: base, x2: 352, y2: base, class: "cities-odds__axis" }));
+    return svg;
+  }
+  // pinned popovers: the usual popover-kit exits (outside click, Escape)
+  document.addEventListener("click", function (e) {
+    if (!ui.boardPop) return;
+    if (e.target.closest && (e.target.closest(".cities-bpop") || e.target.closest("[data-popbtn]"))) return;
+    ui.boardPop = null; popSync();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && ui.boardPop) { ui.boardPop = null; popSync(); }
+  });
   // placement-strength badge: total pips of the hovered vertex's adjacent
   // tokened hexes, floated above the target (SVG overlay — nothing reflows).
   // One badge at a time; any re-render simply drops it with the old SVG.

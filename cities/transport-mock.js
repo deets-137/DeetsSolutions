@@ -22,11 +22,11 @@
 
   var Engine = window.CitiesEngine;
   var Boards = window.CITIES_BOARDS;
+  var Colors = window.CitiesColors;
   var RES = Engine.RES;
 
   var LATENCY = 110;                 // fake round-trip
   var STORE_KEY = "deets-cities-mock-v1";
-  var COLORS = ["red", "blue", "green", "orange", "purple", "teal"];
   var PHANTOM_NAMES = ["Rook", "Vala", "Ozan", "Mira", "Deca"];
   var PHANTOM_STEP = 650;            // ms between phantom actions (watchable)
   var LOG_MAX = 200;
@@ -74,6 +74,10 @@
         v: s.v || 1, touched: s.touched || 0,
         conns: [], timer: null, driving: false
       };
+      // legacy saves carried color NAMES ("red"); seats are hex now
+      TABLES[code].seats.forEach(function (st) {
+        if (st && st.color && Colors.LEGACY[st.color]) st.color = Colors.LEGACY[st.color];
+      });
     });
   })();
 
@@ -129,8 +133,15 @@
       used[name] = 1;
       t.seats[j] = { token: "phantom-" + uid(), name: name, color: null, connected: true, phantom: true };
     }
-    // assign colors by seat order
-    t.seats.forEach(function (s, i) { if (s) s.color = COLORS[i]; });
+    // colors are STICKY (a pick survives phantom churn); only seats without
+    // a valid hex get the next clash-free preset (colors.js, the contract)
+    t.seats.forEach(function (s) {
+      if (s && !Colors.norm(s.color)) s.color = Colors.freePreset(otherColors(t, s));
+    });
+  }
+  // every other seat's color (null holes for empties + the excluded seat)
+  function otherColors(t, except) {
+    return t.seats.map(function (s) { return s && s !== except ? s.color : null; });
   }
 
   /* ── views (hidden-info enforced) ─────────────────────────────── */
@@ -148,7 +159,7 @@
       hostSeat: seatOfToken(t, hostToken(t)),
       seats: t.seats.map(function (s, i) {
         return s ? { seat: i, name: s.name, color: s.color, connected: s.phantom ? true : tokenConnected(t, s.token), phantom: !!s.phantom }
-                 : { seat: i, name: null, color: COLORS[i], connected: false, empty: true };
+                 : { seat: i, name: null, color: Colors.PRESETS[i], connected: false, empty: true };
       }),
       spectators: t.conns.filter(function (c) { return !c.closed && seatOfToken(t, c.token) == null; }).length,
       you: { seat: seat, host: isHost(t, token) }
@@ -161,6 +172,19 @@
     view.buildings = g.buildings;                 // public: piece positions (vid -> {seat,kind})
     view.roads = g.roads;                         // public: road positions (eid -> seat)
     view.bank = g.bank;                           // public counts
+    view.dice = g.stats.dice;                     // public: roll histogram (every roll is seen by all)
+    // raw per-seat gained-card totals (no resource identities — those counts
+    // are all publicly derivable, even a steal moves a visibly-counted card).
+    // Host-toggleable: the "In-Game Resources View" setting omits it entirely.
+    if (t.settings.resView !== false) {
+      view.gained = g.stats.seats.map(function (s) {
+        var tot = 0;
+        ["rolls", "steals", "trades", "dev"].forEach(function (src) {
+          for (var r in s.gained[src]) tot += s.gained[src][r];
+        });
+        return tot;
+      });
+    }
     view.turn = g.turn;                           // public (pending counts are public)
     view.setup = g.setup;
     view.awards = g.awards;
@@ -435,7 +459,7 @@
   }
 
   /* ── command handlers (client → table) ────────────────────────── */
-  var LOBBY_CMDS = { sit: 1, stand: 1, setSettings: 1, start: 1 };
+  var LOBBY_CMDS = { sit: 1, stand: 1, recolor: 1, setSettings: 1, start: 1 };
   var GAME_CMDS = { roll: 1, place: 1, buyDev: 1, playDev: 1, discard: 1, moveRobber: 1,
                     steal: 1, bankTrade: 1, offer: 1, respond: 1, close: 1, cancel: 1, endTurn: 1 };
 
@@ -484,7 +508,8 @@
         // the lobby is filled to capacity with phantoms — a human bumps one
         if (idx < 0) for (var pi = t.seats.length - 1; pi >= 0; pi--) if (t.seats[pi] && t.seats[pi].phantom) { idx = pi; break; }
         if (idx < 0) return errTo(conn, "full");
-        t.seats[idx] = { token: token, name: conn.name, color: COLORS[idx], connected: true, phantom: false };
+        var occupied = t.seats.map(function (s, si) { return s && si !== idx ? s.color : null; });
+        t.seats[idx] = { token: token, name: conn.name, color: Colors.freePreset(occupied), connected: true, phantom: false };
         syncPhantoms(t);                                   // top the rest back up
         return broadcast(t, []);
       }
@@ -492,6 +517,21 @@
         var mi = seatOfToken(t, token);
         if (mi != null) { t.seats[mi] = null; syncPhantoms(t); broadcast(t, []); }
         return;
+      }
+      // lobby-only by registration (colors LOCK at Start, by decision):
+      // your own seat, or the host recoloring a bot. Validation is the
+      // colors.js contract — the DO must run this branch byte-identically.
+      if (type === "recolor") {
+        var target = msg.seat != null ? msg.seat : seatOfToken(t, token);
+        var ts = target != null ? t.seats[target] : null;
+        if (!ts) return errTo(conn, "perm");
+        var own = seatOfToken(t, token) === target;
+        if (!own && !(ts.phantom && isHost(t, token))) return errTo(conn, "perm");
+        var hex = Colors.norm(msg.color);
+        if (!hex) return errTo(conn, "color");
+        if (Colors.clash(hex, otherColors(t, ts)) >= 0) return errTo(conn, "color-taken");
+        ts.color = hex;
+        return broadcast(t, []);
       }
       if (type === "setSettings") {
         if (!isHost(t, token)) return errTo(conn, "perm");
@@ -506,6 +546,7 @@
           if (allowed.indexOf(msg.timerSec) >= 0) t.settings.timerSec = msg.timerSec;
         }
         if (msg.betting != null) t.settings.betting = !!msg.betting;
+        if (msg.resView != null) t.settings.resView = !!msg.resView;
         syncPhantoms(t);
         return broadcast(t, []);
       }
@@ -569,7 +610,7 @@
           if (!t) {
             t = TABLES[code] = {
               code: code, createdAt: now(), creatorToken: token,
-              settings: { capacity: 3, timerSec: 0, betting: false },
+              settings: { capacity: 3, timerSec: 0, betting: false, resView: true },
               seats: [], game: null, chips: {}, book: [], log: [],
               v: 1, touched: now(), conns: [], timer: null, driving: false
             };
