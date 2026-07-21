@@ -264,13 +264,24 @@ in the dice tile (see Page layout). Expiry auto-resolves the pending
 obligation and ends the turn: unrolled → auto-roll; discard interrupt →
 random discard for stragglers (its own shorter 30 s window); robber
 pending → random legal hex, no steal; otherwise → end turn. Timer
-suspends while the current player is disconnected (see below).
+suspends while the current player is inside their disconnect grace
+window (see below); once a seat goes to a bot the timer no longer
+applies to it — bots act on their own.
 
-**Disconnects.** A dropped seat stays reserved for its token. If it's
-the *current* player, the game pauses (banner + suspended timer). The
-host may **kick a seat**: in lobby it just opens the seat; in a running
-game it **ends the game** (`over`, no winner, stats still shown) — no
-bots, by decision.
+**Disconnects → grace → bot takeover.** A dropped seat stays reserved
+for its token — a reconnect with the same token reclaims it, always.
+When a seated player drops **mid-game** a **30 s grace window** opens:
+the seat carries a `graceUntil` timestamp in every view, a `leaving`
+event fires, and the client shows a **red countdown toast to everyone**
+(rendered locally off `serverNow` + `graceUntil`, like the turn box).
+If it was that player's turn, the turn pauses for the window. Return in
+time (`returned` event) and play resumes untouched. If the window
+expires the seat **converts to a bot** — the ported phantom AI drives
+it (`takeover` event, `seat.bot` set) so the game never stalls; the
+human may still reclaim by reconnecting, and the bot hands the seat
+back. An all-bot game simply resolves quickly, no special-casing. The
+host may **kick a seat**: in lobby it opens the seat; in a running game
+the seat **converts to a bot the same way** (a kick is a forced leave).
 
 ## State & wire protocol
 
@@ -284,8 +295,12 @@ reconnects for a fresh snapshot (radio's rule).
 table:    { code, createdAt, hostToken, phase,
             settings: { capacity: 3..6, timerSec: 0|45|60|90|120,
                         betting: bool } }
-seats:    [ { token, name, color, connected } ]   (order = turn order,
-            fixed at Start by seating order; color is a "#rrggbb" hex —
+seats:    [ { token, name, color, connected, bot?, graceUntil? } ]
+            (order = turn order, fixed at Start by seating order; `bot`
+            set once a mid-game leaver's grace expires and the AI takes
+            over, cleared when the human reclaims; `graceUntil` = the
+            live disconnect-grace deadline the red toast counts down to;
+            color is a "#rrggbb" hex —
             auto-assigned from the six presets, changeable in the lobby
             via `recolor`, LOCKED at Start)
 game:     engine.js state — board (hexes, tokens, harbors, robber),
@@ -326,7 +341,7 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 
 Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
 `cost`, `loc`, `rate`, `full`, `name-taken`, `no-table`, `color`,
-`color-taken`.
+`color-taken`, `flood` (the worker's per-socket flood-guard soft drop).
 
 ### Table → clients
 
@@ -348,7 +363,13 @@ Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
 `{t:"turn", seat, n}` (`n` = the 1-based running turn counter,
 `stats.turns` — the log's "Turn {n}" dividers need it to survive
 mid-game joins, where a client can't count turns it never saw),
-`{t:"win", seat}`.
+`{t:"win", seat}`. The disconnect-grace trio drives the red takeover
+toast: `{t:"leaving", seat, until}` (grace opened — show the countdown),
+`{t:"returned", seat}` (human reconnected in time or reclaimed a botted
+seat — dismiss), `{t:"takeover", seat}` (grace expired, the AI has the
+seat). The authoritative state is the seat's `graceUntil`/`bot` in the
+view; the events are just the toast triggers, so a client that joined
+mid-grace still sees the toast from the snapshot.
 The client renders them into the plain log; display names for resources
 and pieces come from `strings.js`.
 
@@ -676,15 +697,32 @@ decision above).
 
 - **DO per table**, SQLite-backed, hibernatable WebSockets,
   `setWebSocketAutoResponse` for ping/pong. One batched `storage.put`
-  per mutation; presence persists nothing.
-- **Alarms**: turn-timer expiry and the 1 h idle+empty wipe share the
-  alarm (store the nearer deadline + its kind).
+  per mutation; presence persists nothing. Broadcasts are
+  **personalized** — unlike radio's one-message fan-out, each socket
+  gets its own view (hidden hands), so a mutation re-runs `buildView`
+  per connected socket.
+- **Alarms** (one slot, nearest-deadline wins, store the kind): the
+  **turn-timer** expiry, the **disconnect-grace** deadlines (a seat's
+  30 s window → bot takeover), the **bot-step** cadence (~700 ms
+  between a bot's actions, so a takeover turn is watchable, not an
+  instant event flood), and the **1 h idle+empty** wipe. Re-arm to the
+  minimum after every fire; a join/command/reconnect recomputes it.
 - **Randomness**: `crypto.getRandomValues` for dice, shuffles, steal
-  targets — always in the DO, passed into `engine.js` via `ctx.rand`.
-- **Abuse guards** (radio's numbers): per-socket command cap 20 msgs /
-  10 s riding the WS attachment; IP-keyed peek limit 30 / 60 s via a
-  rate-limit binding; connection cap per table — 6 seats + 24
-  spectators = 30 sockets, `error:"full"` beyond.
+  targets — always in the DO, passed into `engine.js` via `ctx.rand`
+  (the mock threads the same `ctx` seam with `Math.random`).
+- **Bot takeover**: the mock's phantom AI ports verbatim, minus the
+  dev-only lobby auto-fill — in the worker a bot only ever drives a
+  seat whose human left mid-game (grace expired) or was kicked. Same
+  `driveStep` loop, now paced by the alarm.
+- **Abuse guards**: per-socket command cap **30 msgs / 10 s** riding
+  the WS attachment — a **soft drop** (one `error:"flood"` as it first
+  trips, then silence till the window rolls; never a socket close, so a
+  false positive on a fast build-flurry costs a retry, not a
+  disconnect; `flood` is its own code — `rate` is already the engine's
+  bad-trade denial). 30 (not radio's 20) buys headroom for a dense turn;
+  ping/pong is auto-answered and never counted. Plus an IP-keyed peek
+  limit 30 / 60 s via a rate-limit binding, and a connection cap per
+  table — 6 seats + 24 spectators = 30 sockets, `error:"full"` beyond.
 - **Message hygiene**: 16 KB cap, every payload rebuilt field-by-field
   (never trust a client blob), locations validated against the board's
   derived adjacency before touching state.
@@ -705,8 +743,9 @@ decision above).
    placeholders — all ~100 entries still carry the prefix, awaiting
    Aditya's copy pass. Look-and-feel + copy remain Aditya's passes.
 2. **Worker + DO** in `../DeetsCities`: vendor `engine.js` +
-   `board-data.js` verbatim, port the mock's command dispatch, peek,
-   reconnect, timers-as-alarms, abuse guards. Deploy, then a real
+   `board-data.js` + `colors.js` verbatim, port the mock's command
+   dispatch, peek, reconnect, per-socket views, timers-as-alarms,
+   bot takeover (grace → AI), abuse guards. Deploy, then a real
    two-browser game.
 3. **Spectator polish + betting v1.1**: the betting panel, winner bets,
    settlement at `over`.
