@@ -1,8 +1,16 @@
-# DeetsCities — design (nothing built)
+# DeetsCities — design + build log
 
-**Status (2026-07-20):** spec only. This document is the implementation
-contract — it is written to be built from directly, the way
-[radio.md](radio.md) was for DeetsRadio.
+**Status (2026-07-21):** **Phase 1 is built.** The full mock-playable
+game runs at `cities/?mock` — `engine.js` (rules), `board-data.js`,
+`transport-mock.js` (phantom seats running the real engine), and the
+whole bento UI in `cities.js`; a solo-vs-phantoms game plays start to
+finish, hidden-info holds, winner + stats present. This document is both
+the original implementation contract and a running record of what
+shipped: where the built UI refined the spec, the prose below is updated
+to match (the **Page layout** section carries the *current* layout).
+Still ahead: Phase 2 (the worker), Phase 3 (betting), Phase 4 (Aditya's
+copy + art) — see **Build order**. All Phase-1 work is on branch
+`DeetsCities`, uncommitted at time of writing.
 
 Design for the **DeetsCities** tab (`cities/`, nav label "DeetsCities"):
 a playable, real-time hex-settlement board game in the spirit of the
@@ -190,8 +198,11 @@ lobby → setup → main → over
 
 - **setup — snake draft.** In seat order: each player places 1
   settlement + 1 adjoining road; then in *reverse* order a second
-  settlement + road. The second settlement pays out one resource per
-  adjacent non-desert hex. Then `main` begins with the first seat.
+  settlement + road. A setup settlement is refused on a vertex whose
+  edges all carry roads already — the mandatory adjoining road must have
+  a free edge, or the draft softlocks (bit us in 6-player games, where
+  first-pass roads cluster). The second settlement pays out one resource
+  per adjacent non-desert hex. Then `main` begins with the first seat.
 - **main — turns.** A turn is `roll → act → end`:
   1. **Roll** (mandatory, once). Sum 7 → *discard interrupt* (every
      player over 7 cards discards `floor(n/2)`, simultaneously) →
@@ -236,11 +247,14 @@ player closes it with one accepter (both sides re-validated at close —
 hands may have changed). A non-current player may also post a
 **proposal** aimed at the current player, who can accept it directly.
 One open offer per proposer at a time; all offers die at end of turn,
-robber interrupts, or explicit cancel. No trading away from the table
-(no gifts — every trade needs both sides non-empty; official rules).
+robber interrupts, or explicit cancel. An offer that every eligible
+responder has **declined** dies on the spot — the engine removes it and
+emits `offerGone {id, declined: true}`; the client fades the card out.
+No trading away from the table (no gifts — every trade needs both sides
+non-empty; official rules).
 
-**Timers** (when enabled). One timer per turn, visible as a drain bar
-on the active player's strip. Expiry auto-resolves the pending
+**Timers** (when enabled). One timer per turn, shown as a countdown box
+in the dice tile (see Page layout). Expiry auto-resolves the pending
 obligation and ends the turn: unrolled → auto-roll; discard interrupt →
 random discard for stragglers (its own shorter 30 s window); robber
 pending → random legal hex, no steal; otherwise → end turn. Timer
@@ -291,10 +305,10 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `discard` | `{cards}` | any player, during a discard interrupt |
 | `moveRobber` | `{hex}` | current player, when pending |
 | `steal` | `{seat}` | current player, when pending and targets exist |
-| `bankTrade` | `{give, get}` | current player; harbor rates applied server-side |
+| `bankTrade` | `{give, get, n?}` | current player; harbor rates applied server-side; `n` (default 1) trades that many units in one action |
 | `offer` | `{give, get}` | any seated player (non-current = a proposal to the current player) |
 | `respond` | `{offerId, action: "accept"\|"decline"\|"counter", give?, get?}` | seated, not the proposer |
-| `close` | `{offerId, seat}` | current player; executes the trade |
+| `close` | `{offerId, accepter}` | current player; executes the trade with `accepter`'s seat (`seat` can't carry it — the transport injects the actor's seat there) |
 | `cancel` | `{offerId}` | the proposer |
 | `endTurn` | — | current player, after rolling |
 | `kickSeat` | `{seat}` | host (lobby: opens seat; running: ends game) |
@@ -379,8 +393,16 @@ table code IS the title, slug preview, recents popover
 (`localStorage`, "Your tables"), peek-below-the-bar, create-confirm so
 a typo never mints a table. Peek renders the right verb: **Sit down**
 (lobby with room), **Watch** (running/full). Toolbar pills: Invite
-(copy link) · Watch/Sit toggle where legal · Leave · host-only Close.
-Deep links `cities/#code`. The meta line carries table status copy.
+(copy link) · **View Settings** (final copy, Aditya's; a popover showing
+players/timer/betting, available in any phase so the rules are always
+one hover away — hover is a transient peek, **click pins it open**
+through the shared popover kit, so Esc/outside-click dismiss it and the
+pin survives toolbar re-renders) · Watch/Sit toggle where legal · Leave
+· host-only
+Close. Deep links `cities/#code`. **No meta line** under the bar (a
+departure from the journals, Aditya's call): the game state already says
+everything a status line would, so the bento sits flush under the bar
+and transient notices (join refusals, reconnects) ride the toast host.
 
 The content is one bento grid, **stable across all phases** — tiles
 change contents, never places:
@@ -395,8 +417,8 @@ change contents, never places:
 │                               ├──────────────┤
 │                               │  LOG         │
 ├───────────────────────────────┴──────────────┤
-│  ROLE TILE — player: hand + action pills     │
-│              spectator: betting panel        │
+│  ROLE TILE — play area:  hand │ controls+tray │
+│              spectator:  betting panel        │
 └──────────────────────────────────────────────┘
 ```
 
@@ -404,35 +426,126 @@ change contents, never places:
   live) + the Start button (enabled at 3+ seated; shows "board deals on
   press"). Game: the SVG board — hexes, tokens, harbors, pieces,
   robber; legal placement targets glow on hover during a placement
-  action; illegal ones are inert. Over: the stats reveal.
+  action; illegal ones are inert. Over: the stats reveal. The tile's
+  height is **fixed in CSS** (`clamp(30rem, 100vh − 16rem, 42rem)`), not
+  content-driven: the board SVG meet-fits inside it and over-length
+  stats scroll internally, so Start swaps contents without moving the
+  page — this also anchors `fitLog`'s measurement across phases.
 - **Dice tile** (right rail, top). The two dice; on `roll` the faces
   spin — numbers cycling for ~600 ms before settling on the result
   (CSS-driven, honors `prefers-reduced-motion` by cutting straight to
   the result). Between rolls it shows the last result and whose roll it
-  was.
+  was; the caption line's height is always reserved (radio's meta idiom)
+  so its appearance at Start doesn't grow the tile. **When the table has
+  a turn timer**, a countdown box sits to the
+  right of the two dice (dice shift left); it rides along **from the
+  lobby on** — static configured duration until the clock arms in main —
+  so Start doesn't shift the dice; it ticks from
+  `turnEndsAt`/`serverNow` (client captures the clock skew per message),
+  glows on the acting **human's** turn, turns urgent (red, pulsing)
+  under 10 s, and shows the configured duration statically while a bot
+  is thinking. (Design note: the spec first put the timer as a drain bar
+  on the active player's strip; the dice-tile box is where it landed.)
 - **Players tile.** One strip per seat: color dot, name, public VP,
   hand count, dev count, award badges. The **active player wears an
-  accent ring** (`--accent` border, token-system side of the carve-out
-  line); the timer (when on) drains as a thin bar along the strip's
-  bottom edge (the toast countdown anatomy). Disconnected seats dim.
+  accent ring**. Disconnected seats dim. In the **lobby** the occupied
+  seats already render as strips with the stat column ghosted at its
+  in-game size, so Start fills numbers in instead of reflowing the tile.
+  The tile is a **fixed-height scroller** (sized to exactly 4 strips —
+  the base-board table): 5–6 player tables scroll inside on the themed
+  scrollbar instead of expanding the panel and pushing the log down.
+  Re-renders preserve the scroll position, and a turn change scrolls the
+  active player's strip into view (minimal-scroll, never the page).
 - **Log tile.** The typed-event log, newest last, auto-scrolled, plain
-  text. Bounded render (radio's "+N more" idiom).
-- **Role tile** (bottom, full width). Player: hand as resource chips ×
-  count, then the action pills — Roll · Build · Trade · Dev · End —
-  enabled strictly by engine phase (the strip doubles as the
-  what-can-I-do indicator). Spectator: chip stack + the betting panel
-  (v1.1; until then, a quiet spectating note).
-- **Trade overlay.** Offers dock **over the right quarter of the board
-  tile** — a panel sliding in from the board's right edge, listing live
-  offers with give/get chips and accept/decline/counter/close controls.
-  It appears whenever ≥1 offer is live and leaves when none are. The
-  board stays visible and interactive to its left. A toast announces an
-  incoming offer; the overlay is the durable surface (offers are state,
-  not notifications).
-- **Forced interrupts** (discard, robber placement, free roads): the
-  board tile itself hosts them — board dims, the prompt rides on top
-  (discard: your hand rendered with tap-to-select; robber: hexes become
-  the targets). Never a modal outside the bento.
+  text, bounded render. Its height is **locked** to fit the bento —
+  `cities.js` (`fitLog`) measures the space down to the board tile's
+  bottom and sets the tile to exactly that, so the tile is a **constant
+  full size regardless of line count** and the right column always
+  bottom-aligns with the board; overflow scrolls inside on the themed
+  scrollbar. (CSS grid alone can't do this: a `1fr` track sizes to
+  max-content under an indefinite-height container, so it's measured in
+  JS — called *synchronously* at the end of `render()`, since `rAF` is
+  throttled when the tab is backgrounded.)
+- **Role tile** (bottom, full width) — the **play area**. For a seated
+  player it's **always the same two-column layout, in every phase**: the
+  **hand** top-left (a "Your hand" title, the resource cards, then the
+  dev-card row — the row is always rendered, a ghost card holding its
+  height while empty, so the first dev card bought doesn't grow the
+  tile) and the **controls** top-right. The controls column grid-stacks
+  the full **pills + tray gauge** (`buildGauge`) under whatever the
+  phase shows instead — the setup prompt, a robber/roads/steal prompt,
+  nothing in lobby/over — ghosting the gauge when covered, so the tile
+  holds one size from the lobby all the way to game over. **Build**
+  opens an **in-panel option tray** under the pills (Roll · Build ·
+  Trade · End, tops aligned with the hand title) — no floating dropdown,
+  and the tray's space is **permanently reserved** (the build tray + the
+  cancel link sit grid-stacked in one always-present slot,
+  visibility-hidden when closed) so toggling never resizes the tile. The
+  tray is a **right-aligned 2×2 grid of four identical boxes** — Road |
+  Settlement over Dev card | City (equal column widths via
+  `width: max-content` + `1fr` tracks, equal rows via `1fr` auto-rows),
+  flush with the pills' right edge — costs spelled out ("1x Wood,
+  1x Brick"), disabled when unaffordable. **Trade** instead toggles the
+  **trade hub** in the board overlay (see Trade overlay below) — the pill
+  stays enabled off-turn while offers are open so a dismissed hub can be
+  re-opened to respond.
+  **Dev cards render in the hand, not as a pill** — each playable card
+  (Knight, …) is a live button, a Victory Point is an inert marker, and
+  hovering any shows what it does. Spectator: chip stack + the
+  betting panel (v1.1; until then, a quiet spectating note).
+- **Trade overlay — the hub.** One floating column docks **over the
+  board tile's right edge, spanning its full height** (scrolls
+  internally). It is a **trade hub** ("Trade Hub" titles the panel): the
+  **Bank** / **Players** initiate buttons split the top row half-and-half
+  (only while the viewer can act), then the live-offers list — no empty
+  state when there are none. Each initiate button is a **toggle** that
+  discloses its builder **inline underneath the row** (not a separate
+  panel page); the built section is kept across the steady state
+  re-renders so in-progress picks survive, rebuilt only on toggle. The Trade pill toggles the hub; an
+  **incoming offer opens it automatically** so accept/decline is right
+  there; it falls closed when there is nothing to show or start. Only
+  the dev-card pickers (monopoly / plenty) still take over the column as
+  dedicated panels. Live offers show offer/receive chips; on your own
+  offer each participant renders as a players-tile-style accent strip
+  with their verdict (✓ / ✕ / …) — an accepted strip is itself the
+  close-the-deal button — plus a Withdraw control; an offer awaiting
+  *your* response pulses. Offers are state,
+  not notifications — they persist until accepted, declined, or
+  cancelled (they clear at end of turn). In the mock, phantom seats
+  **respond** to offers (accept a fair-or-better deal they can afford,
+  else decline) so the full flow is exercisable solo.
+  **Embargoes** are a client-side preference (localStorage, per table +
+  seat): right-click a player strip in the players tile for the embargo
+  menu. An embargoed seat's incoming offers are auto-declined (no toast,
+  no hub pop), their responses to your offers read as declined (🚫 on
+  their strip, never closeable, no accept toast), and a 🚫 badge marks
+  them in the players tile. The server knows nothing about embargoes. Toasts: an
+  incoming offer is announced; an **accept on your own offer raises a
+  sticky success toast** whose action button closes the deal with that
+  accepter (it retires itself if the offer dies or the response
+  changes); posting an offer you can't cover is refused client-side
+  with an error toast (the engine re-validates regardless).
+- **Forced interrupts.** Robber placement uses the **board** (hexes
+  become click targets, then a steal-target prompt). Discard and steal
+  render in the **role tile**: a 7-discard shows the hand as a sideways
+  row of tap-to-select cards with a **square Discard button** to their
+  right, enabled once the exact count is picked. Never a modal outside
+  the bento.
+
+A **universal layout rule** governs the bento (Aditya's, this pass): no
+UI piece may change size or offset another — **including across phase
+transitions** (creating a table, Start, game over). Tiles hold constant
+size and scroll internally (the locked log, the fixed-height big tile,
+the 4-strip players scroller),
+overlays float rather than push (the trade column), and every
+contents-swap point pre-reserves its space: the role tile's ghosted
+pills+tray gauge, the ghost dev-card row, the lobby players' ghosted
+stat columns, the dice caption line, and the from-the-lobby timer box.
+`fitRole` additionally locks the role tile's measured play-area height
+as a min-height (cleared on window resize) as a belt-and-suspenders
+against anything the reservations miss. Ghosts share one idiom: the
+element is laid out at full size with `visibility: hidden`
+(`.cities .is-ghost`).
 - **Game over:** the big tile flips to stats; a Rematch pill (host)
   re-enters the lobby with the same seats and settings.
 
@@ -474,15 +587,19 @@ decision above).
 
 ## Build order (mock first, radio's playbook)
 
-1. **Board + engine on the mock.** `board-data.js`, `engine.js` with
-   full rules + unit-style self-checks (a `?test` harness page or plain
-   assertions run under `node --test` — engine.js is pure, so it's
-   testable without any DOM), `transport-mock.js` running the engine
-   locally with phantom seats, and the page: gate, lobby bento, SVG
-   board, placement interactions, dice tile, trade overlay, log,
-   interrupts, game over + stats. **A full hot-seat game must be
-   playable against phantoms on `?mock` before any worker code
-   exists.** Strings scaffolded `[ph]`.
+1. **Board + engine on the mock. — ✅ DONE (2026-07).** `board-data.js`,
+   `engine.js` with full rules + an inline `selfTest()` (61 assertions,
+   green in node and in-browser; runs fuzzed games with a
+   resource-conservation invariant), `transport-mock.js` running the
+   engine locally with phantom seats (which also auto-play *and* answer
+   trade offers), and the page: gate, lobby bento, SVG board, placement,
+   dice tile + turn-timer box, the two-column play area with in-panel
+   build/trade trays and in-hand dev cards, the full-height trade
+   overlay, the locked log, discard/robber/steal interrupts, game over +
+   stats, and the View-settings hover pill. A full solo-vs-phantoms game
+   plays to a winner on `?mock`. Strings scaffolded `[ph]` (a first pass
+   de-`[ph]`'d the entries that mirror DeetsRadio's approved copy,
+   room→table). Look-and-feel + copy remain Aditya's passes.
 2. **Worker + DO** in `../DeetsCities`: vendor `engine.js` +
    `board-data.js` verbatim, port the mock's command dispatch, peek,
    reconnect, timers-as-alarms, abuse guards. Deploy, then a real

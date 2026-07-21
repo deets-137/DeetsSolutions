@@ -12,6 +12,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8788"],
       "port": 8788
+    },
+    {
+      "name": "deets-site-alt2",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8789"],
+      "port": 8789
     }
   ]
 }

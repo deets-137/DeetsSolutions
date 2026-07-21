@@ -160,6 +160,28 @@ user-facing copy lives in `radio/strings.js`** and is handwritten by Aditya
 inline), and the blank album cover is the hand-drawn sprite at
 `assets/sprites/radio/cover-blank.svg` (keep the path, replace the art).
 
+### DeetsCities (`cities/`)
+
+A real-time hex-settlement board game (no trademarks — resources/pieces
+are generic in code, named in `cities/strings.js`). Full design in
+[cities.md](cities.md); currently **phase 1**, mock-playable at
+`cities/?mock`. Anatomy mirrors radio: a `.sotd__bar` table-code combobox,
+a stable **bento** (board · dice · players · log · role tiles), and the
+same transport interface — but the rules live in `cities/engine.js`, a
+**pure, DOM-free module** (`applyAction(game, action, ctx) → {game,
+events}`) that the in-page mock (`transport-mock.js`, phantom seats that
+also auto-play and answer trades) runs directly, and that the Phase-2
+worker will vendor verbatim. Page-specific rules: **copy lives in
+`cities/strings.js`** under the `[ph]` convention (a first pass adopted
+DeetsRadio's approved wording where it maps, room→table); the **board and
+cards are a token carve-out** (a fixed game palette that ignores
+theme/skin, like League's champion art), while every other surface stays
+on the token system and must survive all 30 combos; and the bento obeys a
+**no-reflow rule** — the log is JS-locked to a constant height and scrolls
+internally, the trade panel floats full-height over the board rather than
+pushing tiles, and the play area's build/trade tray opens in-panel. Tab is
+**not** `data-nav-core` and is **desktop-only** below 56rem.
+
 ### Cool Stuff I Did (`cool-stuff/`)
 
 The project portfolio. **No data pipeline** — unlike the journal tabs, the
