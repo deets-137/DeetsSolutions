@@ -10,7 +10,11 @@ shipped: where the built UI refined the spec, the prose below is updated
 to match (the **Page layout** section carries the *current* layout).
 Still ahead: Phase 2 (the worker), Phase 3 (betting), Phase 4 (Aditya's
 copy + art) — see **Build order**. All Phase-1 work is on branch
-`DeetsCities`, uncommitted at time of writing.
+`DeetsCities`: the supporting scaffolding landed in `f13c042` (this doc,
+`styles/main.css`, the nav links, `.claude/launch.json`), and the
+`cities/` app code (`engine.js`, `cities.js`, `board-data.js`, the two
+transports, `strings.js`, `index.html`) plus the `assets/sprites/cities/`
+placeholders are now committed as well — the branch checks out and runs.
 
 Design for the **DeetsCities** tab (`cities/`, nav label "DeetsCities"):
 a playable, real-time hex-settlement board game in the spirit of the
@@ -57,8 +61,8 @@ on the existing zone). Expected load: 1–2 tables at a time.
   live in `cities/strings.js` under the radio convention: Claude may
   only add `[ph]`-prefixed placeholders; Aditya handwrites the rest.
 - **Stats are tracked all game, revealed at the end.** Per-player
-  resource ledgers, dice histogram, superlatives ("most wood", "most
-  robbed") on the game-over screen. Ephemeral — they die with the table.
+  resource ledgers, dice histogram, superlatives ("most resources",
+  "most robbed") on the game-over screen. Ephemeral — they die with the table.
 - **Seats bind to the device token** (radio's identity layer verbatim:
   32-hex `localStorage` token, sent on every `join`, never broadcast).
   Reconnect = new socket + `join` + fresh personalized snapshot back
@@ -334,7 +338,11 @@ Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
 `{t:"build", seat, kind, loc}`, `{t:"robber", seat, hex}`,
 `{t:"stealHidden", from, to}` (the resource rides only the two parties'
 `you`), `{t:"devBought", seat}`, `{t:"devPlayed", seat, card}`,
-`{t:"award", kind, seat|null}`, `{t:"offer"...}`, `{t:"win", seat}`.
+`{t:"award", kind, seat|null}`, `{t:"offer"...}`,
+`{t:"turn", seat, n}` (`n` = the 1-based running turn counter,
+`stats.turns` — the log's "Turn {n}" dividers need it to survive
+mid-game joins, where a client can't count turns it never saw),
+`{t:"win", seat}`.
 The client renders them into the plain log; display names for resources
 and pieces come from `strings.js`.
 
@@ -366,9 +374,21 @@ robber:  times moved it, cards stolen, times victimized
 ```
 
 Plus table-wide: overall dice histogram, turn count, game duration.
-The game-over screen leads with superlatives — most wood, most total
-resources, most robbed, biggest single haul — over the full table.
-Everything dies with the table (ephemeral, like the chips).
+The game-over screen leads with four superlatives over the full table,
+in order — most resources, biggest single haul, most knights, most
+robbed — each card naming the seat **and the value they topped with**
+(`[{n}x]`, right-aligned). Each card is a **button that slides open on
+click** (a `grid-template-rows: 0fr → 1fr` transition — no height
+measurement, caret flips) to reveal **the whole field ranked** for that
+category, so you can see where everyone else fell. The grid is
+`align-items: start` and the big tile scrolls internally, so an open card
+grows on its own and **never resizes the panel or its row-mates**; open
+state rides `ui.overExpanded[key]` so a re-render doesn't collapse it.
+Below them the VP reveal lists every seat
+**winner-first, ties adjacent** (stable sort on total VP), with the
+winner's row drawn in a **glowing accent box** (which replaces the old
+"{name} wins" subtitle line). Everything dies with the table (ephemeral,
+like the chips).
 
 ## Betting (v1.1 — designed, deferred)
 
@@ -426,7 +446,14 @@ change contents, never places:
   live) + the Start button (enabled at 3+ seated; shows "board deals on
   press"). Game: the SVG board — hexes, tokens, harbors, pieces,
   robber; legal placement targets glow on hover during a placement
-  action; illegal ones are inert. Over: the stats reveal. The tile's
+  action; illegal ones are inert. Two board hovers teach the odds:
+  a number token carries a native `<title>` tooltip with its roll odds
+  ("{ways}/36 ({pct}%) possible rolls lead to a {n}", `strings.js
+  tokenOdds`), and hovering a settlement target floats a
+  placement-strength badge — the adjacent hexes' pips pooled onto one
+  token-styled pill — so candidate spots compare at a glance (SVG
+  overlay, nothing reflows; skipped when the corner has no tokened
+  hex). Over: the stats reveal. The tile's
   height is **fixed in CSS** (`clamp(30rem, 100vh − 16rem, 42rem)`), not
   content-driven: the board SVG meet-fits inside it and over-length
   stats scroll internally, so Start swaps contents without moving the
@@ -446,18 +473,43 @@ change contents, never places:
   under 10 s, and shows the configured duration statically while a bot
   is thinking. (Design note: the spec first put the timer as a drain bar
   on the active player's strip; the dice-tile box is where it landed.)
-- **Players tile.** One strip per seat: color dot, name, public VP,
-  hand count, dev count, award badges. The **active player wears an
+- **Players tile.** One strip per seat, laid out as three regions: the
+  **seat dot + name top-left**, the **VP / cards / dev stat column
+  top-right** (right-aligned, 3 lines — it governs the strip height), and
+  the **two award pills bottom-left** (Longest Road over Largest Army),
+  compact and stacked. Each pill is a **progress-or-held meter**: while
+  the seat does *not* hold the award it shows their count toward it —
+  "{n}x Roads" / "{n}x Knights", a quiet neutral chip; when the seat
+  *holds* it the pill flips to the award name with the count as the bar to
+  beat — "Longest Road [{n}x]" / "Largest Army [{n}x]" — in the accent
+  color with a glow (`.is-held`). Both counts are the true award metric:
+  **Roads is the longest contiguous path** (the same DFS the award uses —
+  `engine.js` stores it per seat in `game.roadLens`, recomputed on every
+  road/settlement placement *and through the setup draft*, exposed on each
+  player's public view), and Knights is knights played.
+  **Both pills are always laid out** (ghosted in the lobby), so the strip
+  reserves their space from the start and **never resizes** — the strip is
+  the same height whether a seat holds zero, one, or both awards (the
+  bento's no-resize rule; verified 0 px jitter). An embargoed seat still
+  shows the 🚫 badge inline by the name. The **active player wears an
   accent ring**. Disconnected seats dim. In the **lobby** the occupied
-  seats already render as strips with the stat column ghosted at its
-  in-game size, so Start fills numbers in instead of reflowing the tile.
+  seats already render as strips with the stat column and both award pills
+  ghosted at in-game size, so Start fills the numbers in instead of
+  reflowing the tile.
   The tile is a **fixed-height scroller** (sized to exactly 4 strips —
   the base-board table): 5–6 player tables scroll inside on the themed
   scrollbar instead of expanding the panel and pushing the log down.
   Re-renders preserve the scroll position, and a turn change scrolls the
   active player's strip into view (minimal-scroll, never the page).
-- **Log tile.** The typed-event log, newest last, auto-scrolled, plain
-  text, bounded render. Its height is **locked** to fit the bento —
+- **Log tile.** The typed-event log, newest last, auto-scrolled,
+  bounded render. A narrow **left rail** toggles two panes — **Log**
+  (the list) and **Deck** (the bank's public resource counts as mini
+  hand-style cards in a centered 3-2 grid); the choice is sticky
+  (localStorage), the rail a constant width so switching never moves
+  anything. Log lines are structured: turn changes render as a
+  full-width **"Turn {n}: {name}"** divider (`n` rides the `turn`
+  event), and resource words are tinted with their fixed game-palette
+  color. Its height is **locked** to fit the bento —
   `cities.js` (`fitLog`) measures the space down to the board tile's
   bottom and sets the tile to exactly that, so the tile is a **constant
   full size regardless of line count** and the right column always
@@ -588,7 +640,7 @@ decision above).
 ## Build order (mock first, radio's playbook)
 
 1. **Board + engine on the mock. — ✅ DONE (2026-07).** `board-data.js`,
-   `engine.js` with full rules + an inline `selfTest()` (61 assertions,
+   `engine.js` with full rules + an inline `selfTest()` (69 assertions,
    green in node and in-browser; runs fuzzed games with a
    resource-conservation invariant), `transport-mock.js` running the
    engine locally with phantom seats (which also auto-play *and* answer
@@ -597,9 +649,9 @@ decision above).
    build/trade trays and in-hand dev cards, the full-height trade
    overlay, the locked log, discard/robber/steal interrupts, game over +
    stats, and the View-settings hover pill. A full solo-vs-phantoms game
-   plays to a winner on `?mock`. Strings scaffolded `[ph]` (a first pass
-   de-`[ph]`'d the entries that mirror DeetsRadio's approved copy,
-   room→table). Look-and-feel + copy remain Aditya's passes.
+   plays to a winner on `?mock`. Strings are fully scaffolded as `[ph]`
+   placeholders — all ~100 entries still carry the prefix, awaiting
+   Aditya's copy pass. Look-and-feel + copy remain Aditya's passes.
 2. **Worker + DO** in `../DeetsCities`: vendor `engine.js` +
    `board-data.js` verbatim, port the mock's command dispatch, peek,
    reconnect, timers-as-alarms, abuse guards. Deploy, then a real

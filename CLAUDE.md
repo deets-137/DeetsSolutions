@@ -47,9 +47,9 @@ is Phase 2).
   `assets/sprites/radio/cover-blank.svg` — keep the path, never redraw it.
 - **DeetsCities copy is `[ph]`-convention too** — every user-facing string
   lives in `cities/strings.js`; Claude adds only `[ph]`-prefixed
-  placeholders, never inline copy in `cities.js` (a first pass adopted
-  DeetsRadio's approved wording where it maps, room→table). **The rules
-  engine is contract:** `cities/engine.js` is a pure, DOM-free module and
+  placeholders, never inline copy in `cities.js`. `strings.js` is still
+  fully scaffolded — every entry carries `[ph]`, awaiting Aditya's copy
+  pass. **The rules engine is contract:** `cities/engine.js` is a pure, DOM-free module and
   `cities/board-data.js` its data; the Phase-2 worker (sibling repo
   `../DeetsCities`, `cities-api.deets.solutions`) will vendor both
   **verbatim**, exactly like the radio protocol — the mock and worker must
