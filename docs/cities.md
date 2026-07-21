@@ -374,9 +374,11 @@ robber:  times moved it, cards stolen, times victimized
 ```
 
 Plus table-wide: overall dice histogram, turn count, game duration.
-The game-over screen leads with four superlatives over the full table,
-in order — most resources, biggest single haul, most knights, most
-robbed — each card naming the seat **and the value they topped with**
+The game-over screen's header is **"Game Over"** with the **turn count
+right-aligned on the same baseline** (`{n} turns`). Below it, four
+superlatives over the full table, in order — most resources, biggest
+single haul, most knights, most robbed — each card naming the seat **and
+the value they topped with**
 (`[{n}x]`, right-aligned). Each card is a **button that slides open on
 click** (a `grid-template-rows: 0fr → 1fr` transition — no height
 measurement, caret flips) to reveal **the whole field ranked** for that

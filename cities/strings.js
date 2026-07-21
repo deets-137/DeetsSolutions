@@ -167,12 +167,10 @@ window.CITIES_STRINGS = {
   monopolyPrompt: "[ph]Name a resource to monopolize.",
 
   /* ── game over ───────────────────────────────────────────────── */
-  gameOver:    "Game over",
-  winnerLine:  "[ph]{name} wins with {vp} points.",
+  gameOver:    "Game Over",
+  turnCount:   "{n} turns",   // top-right of the Game Over header
   abandoned:   "Game abandoned — no winner.",
   rematchButton: "Rematch",
-  statsTitle:  "[ph]Final tally",
-  superMostWood:      "[ph]Most wood",
   superMostResources: "Most resources",
   superMostRobbed:    "Most robbed",
   superBiggestHaul:   "Biggest single haul",

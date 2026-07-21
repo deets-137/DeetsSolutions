@@ -805,7 +805,11 @@
   function renderOver() {
     var o = model.over || {};
     var wrap = el("div", "cities-over");
-    wrap.appendChild(el("h2", "cities-over__title", S.gameOver));
+    // header: "Game Over" left, turn count right-aligned on the same line
+    var head = el("div", "cities-over__head");
+    head.appendChild(el("h2", "cities-over__title", S.gameOver));
+    head.appendChild(el("span", "cities-over__turns", fmt(S.turnCount, { n: (o.stats && o.stats.turns) || 0 })));
+    wrap.appendChild(head);
     // the winner is shown by the glowing row in the reveal table below, so no
     // subtitle line — only the abandoned (no-winner) case still needs prose.
     if (o.winner == null) wrap.appendChild(el("p", "cities-over__winner", S.abandoned));

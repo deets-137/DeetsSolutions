@@ -3980,7 +3980,10 @@ button:focus-visible {
 
 /* ── game over ────────────────────────────────────────────────── */
 .cities-over { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+/* header: title left, turn count right, sharing one baseline */
+.cities-over__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .cities-over__title { margin: 0; color: var(--title); font-family: var(--font-title); }
+.cities-over__turns { flex: none; color: var(--subtext); font-size: 0.9rem; }
 .cities-over__winner { margin: 0; color: var(--text); font-size: 1.1rem; }
 /* align-items:start so an expanding card grows on its own — it never stretches
    its row-mates (docs/cities.md: click-to-expand superlatives) */
