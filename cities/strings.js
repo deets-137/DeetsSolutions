@@ -163,6 +163,7 @@ window.CITIES_STRINGS = {
   pillDev:   "Dev card",
   pillEnd:   "End turn",
   handTitle: "Hand",
+  handCount: "[ph]{n} cards",
   buildRoad:       "Road",
   buildSettlement: "Settlement",
   buildCity:       "City",

@@ -124,6 +124,8 @@
   var logView = load(LOGVIEW_KEY, "deck");   // log tile rail: "log" | "deck" — sticky across sessions, Deck by default
   var lastTurnSeat = null;   // players tile: scroll-to-active fires on change only
   var clockSkew = 0, timerHandle = null;   // clockSkew = Date.now() - server clock
+  var tumbleHandle = null;   // face-shuffle interval while the dice spin
+  var ringHandle = null;     // the active strip's timer-ring tick (dice clock's twin)
   var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {}, colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false };   // transient board-interaction state
   var acceptToasts = {};   // "offerId:seat" -> sticky accepted-toast handle
   var graceToasts = {};    // seat -> { handle, until, timer } — red disconnect-grace countdowns
@@ -290,6 +292,7 @@
     offerCache = {}; fadingOffers = {};
     ledger = null; ledgerSeat = null; prevHand = null; lastDiscard = null;
     prevAwards = null; rollFlash = null; boardSeen = null; clearStealToasts();
+    clearFlights();
     document.removeEventListener("click", onEmbargoDocClick, true);
     document.removeEventListener("keydown", onEmbargoKey);
     ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, botEdit: null, botDraft: null, botFocus: false };
@@ -307,11 +310,14 @@
     if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
     if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
     if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
-    if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; prevAwards = (model && model.awards) || null; model = stripMeta(msg); afterModel(msg); return; }
+    if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; prevAwards = (model && model.awards) || null; prevHandCounts = (model && model.players) ? model.players.map(function (p) { return p.handCount; }) : null; prevPhase = (model && model.phase) || null; prevPendingKind = (model && model.turn && model.turn.pending) ? model.turn.pending.kind : null; model = stripMeta(msg); afterModel(msg); return; }
     if (msg.type === "state") {
       if (!model) model = {};
       prevHand = (model.you && model.you.hand) || null;   // pre-merge hand; safe to hold — every delivery is a fresh clone
       prevAwards = model.awards || null;                  // pre-merge award holders, same idiom
+      prevHandCounts = model.players ? model.players.map(function (p) { return p.handCount; }) : null;   // fly-ins' monopoly attribution
+      prevPhase = model.phase || null;                     // fly-ins' paid-vs-free build inference
+      prevPendingKind = model.turn && model.turn.pending ? model.turn.pending.kind : null;
       for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") model[k] = msg[k];
       afterModel(msg);
       return;
@@ -321,6 +327,7 @@
   function afterModel(msg) {
     if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
     if (mySeat() !== ledgerSeat) { ledgerSeat = mySeat(); resetLedger(); }
+    setupBuildLoc = null; setupResCount = {};   // setup-payout attribution is per-broadcast
     (msg.ev || []).forEach(handleEvent);
     sweepAcceptToasts();
     syncGraceToasts();
@@ -335,6 +342,7 @@
     applySeatColors();
     GATE.hidden = true;
     render();
+    flushFlights();   // chips launch AFTER render: their targets exist now
     // refresh AFTER handleEvent ran: the fade ghost needs the previous
     // broadcast's copy of an offer this broadcast just removed
     offerCache = {};
@@ -412,6 +420,7 @@
         setTimeout(function () { delete fadingOffers[id]; if (model) render(); }, 600);
       })(e.id);
     }
+    collectFlight(e);   // before ledgerEvent — the discard branch reads lastDiscard, which the ledger consumes
     ledgerEvent(e);
     var line = logLine(e);
     if (line) { logLines.push(line); if (logLines.length > 120) logLines.shift(); }
@@ -1104,6 +1113,8 @@
     // wear a one-shot gold wash + token pop (fresh SVG nodes each render, so
     // the class alone restarts the animation); a 7 glows the robber instead
     var partying = rollFlash && Date.now() < rollFlash.until;
+    // setup-payout twin: hexes that just paid a second settlement glow too
+    var setupFlash = flashHexes && Date.now() < flashHexes.until ? flashHexes.keys : null;
 
     // hex fills + tokens
     model.board.hexes.forEach(function (h) {
@@ -1111,7 +1122,7 @@
       var poly = svgEl("polygon", { points: hexCorners(h.q, h.r), class: "cities-hex", fill: "var(--cterr-" + h.terrain + ")" });
       var robberHere = model.board.robber === hk;
       // the robber-blocked hex sits out the party — it produced nothing
-      var rollHit = partying && h.token != null && h.token === rollFlash.sum && !robberHere;
+      var rollHit = (partying && h.token != null && h.token === rollFlash.sum && !robberHere) || !!(setupFlash && setupFlash[hk]);
       if (ui.mode === "robber" && !robberHere) {
         poly.classList.add("cities-hex--target");
         poly.addEventListener("click", function () { send({ type: "moveRobber", hex: hk }); ui.mode = null; });
@@ -1185,6 +1196,20 @@
       var vs = g.edgeVertices[e]; if (!vs) return;
       var a = vertexXY(vs[0]), b = vertexXY(vs[1]);
       var fresh = boardSeen && !boardSeen.roads[e];
+      if (fresh) {
+        // the dash grows from (x1,y1), so orient the line to start at the
+        // endpoint already touching this seat's network — the road draws
+        // outward from the piece it extends, not from arbitrary vertex order
+        var seat = model.roads[e];
+        var anchored = function (v) {
+          var bld = model.buildings[v];
+          if (bld && bld.seat === seat) return true;
+          return (g.vertexEdges[v] || []).some(function (e2) {
+            return e2 !== e && model.roads[e2] === seat && boardSeen.roads[e2];
+          });
+        };
+        if (!anchored(vs[0]) && anchored(vs[1])) { var sw = a; a = b; b = sw; }
+      }
       var attrs = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road" + (fresh ? " is-built" : ""), stroke: "var(--cseat-" + model.roads[e] + ")" };
       if (fresh) attrs.pathLength = 1;
       svg.appendChild(svgEl("line", attrs));
@@ -1229,6 +1254,8 @@
         var vs = g.edgeVertices[e], a = vertexXY(vs[0]), b = vertexXY(vs[1]);
         var t = svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road cities-road--target" });
         t.addEventListener("click", function () { send({ type: "place", kind: "road", loc: e }); if (ui.mode === "place-road") ui.mode = null; });
+        t.addEventListener("mouseenter", function () { showGhost(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road", stroke: "var(--cseat-" + mySeat() + ")" })); });
+        t.addEventListener("mouseleave", hideGhost);
         svg.appendChild(t);
       });
     }
@@ -1247,8 +1274,8 @@
         var p = vertexXY(v);
         var t = svgEl("circle", { cx: p.x, cy: p.y, r: 9, class: "cities-vtarget" });
         t.addEventListener("click", function () { send({ type: "place", kind: "settlement", loc: v }); if (model.phase !== "setup") ui.mode = null; });
-        t.addEventListener("mouseenter", function () { showVertexHint(svg, v, p); });
-        t.addEventListener("mouseleave", hideVertexHint);
+        t.addEventListener("mouseenter", function () { showVertexHint(svg, v, p); showGhost(pieceShape("settlement", p, mySeat())); });
+        t.addEventListener("mouseleave", function () { hideVertexHint(); hideGhost(); });
         svg.appendChild(t);
       });
     }
@@ -1257,6 +1284,8 @@
         var p = vertexXY(v);
         var t = svgEl("circle", { cx: p.x, cy: p.y, r: 11, class: "cities-vtarget" });
         t.addEventListener("click", function () { send({ type: "place", kind: "city", loc: v }); ui.mode = null; });
+        t.addEventListener("mouseenter", function () { showGhost(pieceShape("city", p, mySeat())); });
+        t.addEventListener("mouseleave", hideGhost);
         svg.appendChild(t);
       });
     }
@@ -1438,6 +1467,485 @@
     if (vhint && vhint.parentNode) vhint.parentNode.removeChild(vhint);
     vhint = null;
   }
+  // ghost piece preview: hovering a placement target shows the piece itself,
+  // translucent, in your seat color — same one-slot overlay idiom as vhint
+  var ghost = null;
+  function showGhost(node) {
+    hideGhost();
+    var svg = BIG.querySelector("svg"); if (!svg) return;
+    node.classList.add("cities-ghost");
+    svg.appendChild(node);
+    ghost = node;
+  }
+  function hideGhost() {
+    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    ghost = null;
+  }
+  /* longest-road trace: hovering a strip's road award pill lights that seat's
+     best contiguous path on the board. Client-side mirror of the engine's
+     longestRoadFor DFS (same adjacency, same opponent-building block) except
+     it keeps the edge list of the best walk instead of just its length —
+     pure UI, so the shared engine contract stays untouched. */
+  var roadTrace = null;
+  function longestRoadEdges(seat) {
+    var g = geo();
+    var myEdges = Object.keys(model.roads || {}).filter(function (e) { return model.roads[e] === seat; });
+    if (!myEdges.length) return [];
+    var adj = {};
+    myEdges.forEach(function (eid) {
+      var vs = g.edgeVertices[eid];
+      (adj[vs[0]] = adj[vs[0]] || []).push({ to: vs[1], eid: eid });
+      (adj[vs[1]] = adj[vs[1]] || []).push({ to: vs[0], eid: eid });
+    });
+    function blocked(v) { return model.buildings[v] && model.buildings[v].seat !== seat; }
+    var best = [];
+    function dfs(v, used, path) {
+      if (path.length > best.length) best = path.slice();
+      if (blocked(v)) return;
+      (adj[v] || []).forEach(function (nx) {
+        if (used[nx.eid]) return;
+        used[nx.eid] = 1; path.push(nx.eid);
+        dfs(nx.to, used, path);
+        path.pop(); used[nx.eid] = 0;
+      });
+    }
+    Object.keys(adj).forEach(function (v) { dfs(v, {}, []); });
+    return best;
+  }
+  function showRoadTrace(seat) {
+    hideRoadTrace();
+    var svg = BIG.querySelector("svg"); if (!svg || !model || !model.board) return;
+    var edges = longestRoadEdges(seat); if (!edges.length) return;
+    var g = geo(), grp = svgEl("g", { class: "cities-tracer" });
+    edges.forEach(function (e) {
+      var vs = g.edgeVertices[e]; if (!vs) return;
+      var a = vertexXY(vs[0]), b = vertexXY(vs[1]);
+      grp.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road--trace" }));
+    });
+    svg.appendChild(grp);
+    roadTrace = grp;
+  }
+  function hideRoadTrace() {
+    if (roadTrace && roadTrace.parentNode) roadTrace.parentNode.removeChild(roadTrace);
+    roadTrace = null;
+  }
+
+  /* ── payout fly-ins ─────────────────────────────────────────────
+     Chips that fly resource movement between the board, the player
+     strips, and the bank pane. Client-only theater: every flight is
+     derived from the same typed events the log and ledger consume, so
+     each viewer naively renders the richest data their own event copy
+     carries — res-colored when the resource is known, the neutral "any"
+     chip when it isn't (hidden steals, others' discards). The server
+     already shaped each copy, so no visibility branching here.
+     Chips live in a document-FIXED overlay (broadcast re-renders wipe
+     tile interiors, never the overlay) and STEER: every rAF re-queries
+     the destination by seat, so a strip that re-renders or scrolls
+     mid-flight is tracked, not missed. */
+  var flights = [], flyRaf = null;   // live chips on the overlay
+  var pendingFlights = [];           // closures collected during event replay, run after render
+  var setupBuildLoc = null;          // settlement vertex built THIS broadcast (setup-payout origins)
+  var setupResCount = {};            // per-res gain counter, maps events onto same-terrain hexes
+  var flashHexes = null;             // { keys, until } — setup-payout hex glow (rollFlash's cousin)
+  var prevHandCounts = null;         // pre-merge public hand counts (monopoly victim attribution)
+  var prevPhase = null;              // pre-merge phase — the final setup road merges to "main"
+  var prevPendingKind = null;        // pre-merge pending — Road Building's roads are free
+  var FLY_MS = 800, FLY_STEP = 90, FLY_CAP = 5, SPIN_MS = 620;   // SPIN_MS mirrors the dice spin + party-CSS delay
+  function flyLayer() {
+    var l = document.querySelector(".cities-flylayer");
+    if (!l) {
+      l = el("div", "cities-flylayer");
+      // MUST live inside <section class="cities"> — the game palette
+      // (--cterr-*, --cseat-*) is scoped there, and a body-parented layer
+      // resolved every chip color to nothing. position:fixed still
+      // anchors to the viewport from here.
+      (document.querySelector("section.cities") || document.body).appendChild(l);
+    }
+    return l;
+  }
+  // board-svg user coords → viewport px (default preserveAspectRatio:
+  // uniform "meet" scale, centered)
+  function boardPoint(x, y) {
+    var svg = BIG.querySelector("svg.cities-board"); if (!svg) return null;
+    var r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+    if (!vb || !vb.width || !r.width) return null;
+    var s = Math.min(r.width / vb.width, r.height / vb.height);
+    var ox = r.left + (r.width - vb.width * s) / 2, oy = r.top + (r.height - vb.height * s) / 2;
+    return { x: ox + (x - vb.x) * s, y: oy + (y - vb.y) * s };
+  }
+  function stripPoint(seat) {
+    var pr = PLAYERS.getBoundingClientRect();
+    var s = PLAYERS.querySelector('.cities-pstrip[data-seat="' + seat + '"]');
+    if (!s) return { x: pr.left + pr.width / 2, y: pr.top + pr.height / 2, el: null };
+    var r = s.getBoundingClientRect();
+    // clamp inside the tile: a scrolled-away strip still catches its chip
+    // at the tile edge instead of dragging it off-screen
+    return {
+      x: Math.min(Math.max(r.left + 18, pr.left + 9), pr.right - 9),
+      y: Math.min(Math.max(r.top + 16, pr.top + 9), pr.bottom - 9),
+      el: s
+    };
+  }
+  // where a seat's chips live for THIS viewer: my own resources flow
+  // through MY HAND — the role tile's res cards, the thing I actually
+  // watch — landing on (or leaving) the matching card; everyone else's
+  // flow through their strip in the players tile. Falls back to the strip
+  // whenever the hand isn't on screen (spectator, discard takeover).
+  function seatPoint(seat, res) {
+    if (seat != null && seat === mySeat()) {
+      var sel = res === "dev" ? ".cities-hand .cities-devrow"
+        : res != null ? ".cities-hand__res .cities-card:nth-child(" + (RES.indexOf(res) + 1) + ")"
+        : ".cities-hand";
+      var t = ROLE.querySelector(sel);
+      if (t) {
+        var r = t.getBoundingClientRect();
+        if (r.width) return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: t };
+      }
+    }
+    return stripPoint(seat);
+  }
+  function bankPoint(res) {
+    var sel = res != null
+      ? ".cities-deck .cities-card--mini:nth-child(" + (RES.indexOf(res) + 1) + ")"
+      : ".cities-deck .cities-card--dev";
+    var t = document.querySelector(sel) || document.querySelector(".cities-deck") || DICE;
+    var r = t.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: t };
+  }
+  function boardCenterPoint() {
+    var svg = BIG.querySelector("svg.cities-board"); if (!svg) return null;
+    var vb = svg.viewBox.baseVal;
+    return boardPoint(vb.x + vb.width / 2, vb.y + vb.height / 2);
+  }
+  // the port a 2:1/3:1 trade physically went through: the matching harbor
+  // where this seat holds a building (that ownership is what earned the
+  // rate), falling back to the first matching harbor; 4:1 → null (bank)
+  function harborXY(seat, rate, give) {
+    if (rate !== 2 && rate !== 3) return null;
+    var want = rate === 2 ? give : "any", pick = null;
+    (model.board.harbors || []).forEach(function (hb) {
+      if (hb.type !== want) return;
+      if (!pick) pick = hb;
+      var owned = hb.vertices.some(function (v) { return model.buildings[v] && model.buildings[v].seat === seat; });
+      if (owned) pick = hb;
+    });
+    if (!pick) return null;
+    var a = vertexXY(pick.vertices[0]), b = vertexXY(pick.vertices[1]);
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+  // the chip is a pocket res card: same silhouette + resource fill as the
+  // hand/deck cards (--ccard, dark card border), the res sprite riding
+  // inside once drawn — an "any" chip is the card in the harbor 3:1 sea
+  function chipEl(res) {
+    // res: a resource → its card color + sprite; "dev" → the blank
+    // parchment card (identity rightly hidden); "award" → the gold award
+    // token (Longest Road / Largest Army in transit); null → the "any" chip
+    var cls = "cities-flychip";
+    if (res === "dev") cls += " cities-flychip--dev";
+    else if (res === "award") cls += " cities-flychip--award";
+    else if (!res) cls += " cities-flychip--any";
+    var c = el("span", cls);
+    if (res === "dev") {
+      c.style.setProperty("--ccard", "var(--ctoken-bg)");
+    } else if (res && res !== "award") {
+      c.style.setProperty("--ccard", "var(--cterr-" + res + ")");
+      var img = resArt(res);
+      if (img) c.appendChild(img);
+    }
+    return c;
+  }
+  // the visible hand count lags the chips: a gain headed for MY hand is
+  // held out of the card's number until its chip lands — the landing
+  // bump and the increment are the same beat. pendingHand[res] = chips
+  // still inbound; renderHand subtracts it, landings patch in place.
+  var pendingHand = {};
+  function patchHandCount(res) {
+    if (!model || !model.you || !model.you.hand) return;
+    var card = ROLE.querySelector(".cities-hand__res .cities-card:nth-child(" + (RES.indexOf(res) + 1) + ")");
+    var n = card && card.querySelector(".cities-card__n");
+    if (!n) return;
+    var shown = Math.max(0, (model.you.hand[res] || 0) - (pendingHand[res] || 0));
+    card.classList.toggle("is-empty", !shown);
+    var t = n.lastChild;   // the count text node (the res sprite may sit before it)
+    if (t && t.nodeType === 3) t.nodeValue = String(shown);
+  }
+  function pendHand(res, d) {
+    pendingHand[res] = Math.max(0, (pendingHand[res] || 0) + d);
+    patchHandCount(res);
+  }
+  function launchChip(res, fromFn, toFn, delay, pend) {
+    // pend: this chip carries one of MY resources inward — hold it out of
+    // the hand count now (same tick as the broadcast render, pre-paint)
+    if (pend) pendHand(res, 1);
+    setTimeout(function () {
+      if (!model) { if (pend) pendHand(res, -1); return; }   // left the table while this chip waited
+      var from = fromFn(); if (!from) { if (pend) pendHand(res, -1); return; }
+      var c = chipEl(res);
+      // a pinch of jitter so a multi-chip payout tumbles like a handful,
+      // not a conveyor: launch point ±6px, flight time ±100ms
+      var sx = from.x + (Math.random() - 0.5) * 12, sy = from.y + (Math.random() - 0.5) * 12;
+      c.style.transform = "translate(" + sx.toFixed(1) + "px," + sy.toFixed(1) + "px) scale(0)";
+      flyLayer().appendChild(c);
+      flights.push({ el: c, sx: sx, sy: sy, to: toFn, t0: performance.now(), dur: FLY_MS + (Math.random() - 0.5) * 200, pend: pend ? res : null });
+      if (flyRaf == null) flyRaf = requestAnimationFrame(stepFlights);
+    }, delay || 0);
+  }
+  function stepFlights(now) {
+    flights = flights.filter(function (f) {
+      var p = Math.min(1, (now - f.t0) / f.dur);
+      var e = 1 - Math.pow(1 - p, 3);                 // ease-out cubic
+      var to = f.to() || { x: f.sx, y: f.sy };        // steer: fresh target every frame
+      // full opacity end to end — the chip is BORN (pop past 1) and CAUGHT
+      // (shrinks into the target), never evaporates mid-air
+      var s;
+      if (p < 0.12) s = (p / 0.12) * 1.2;
+      else if (p < 0.24) s = 1.2 - ((p - 0.12) / 0.12) * 0.2;
+      else if (p > 0.85) s = 1 - ((p - 0.85) / 0.15) * 0.7;
+      else s = 1;
+      f.el.style.transform = "translate(" + (f.sx + (to.x - f.sx) * e).toFixed(1) + "px," + (f.sy + (to.y - f.sy) * e).toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
+      if (p >= 1) {
+        if (f.el.parentNode) f.el.parentNode.removeChild(f.el);
+        if (f.pend) pendHand(f.pend, -1);   // the catch reveals the count
+        if (to.el) {   // the destination acknowledges the catch with a bump
+          to.el.classList.remove("cities-catch");
+          void to.el.offsetWidth;   // restart the one-shot animation
+          to.el.classList.add("cities-catch");
+        }
+        return false;
+      }
+      return true;
+    });
+    flyRaf = flights.length ? requestAnimationFrame(stepFlights) : null;
+  }
+  function clearFlights() {
+    flights.forEach(function (f) { if (f.el.parentNode) f.el.parentNode.removeChild(f.el); });
+    flights = []; pendingFlights = []; pendingHand = {};
+    flashHexes = null; setupBuildLoc = null; setupResCount = {}; prevHandCounts = null;
+    prevPhase = null; prevPendingKind = null;
+  }
+  // one closure per event, run AFTER this broadcast renders (targets exist)
+  function collectFlight(e) {
+    if (reduceMotion()) return;
+    var me = mySeat();
+    if (e.t === "build") {
+      if (e.kind === "settlement" && model.phase === "setup") {
+        setupBuildLoc = e.loc; setupResCount = {};
+        return;
+      }
+      // paid builds fly their cost to the bank. Free builds don't exist in
+      // the merged model, only in the PRE-merge snapshot: setup placements
+      // (the final setup road already merges to phase "main") and Road
+      // Building's roads (pending was "roads" when the placement landed).
+      var paid = prevPhase === "main" && !(e.kind === "road" && prevPendingKind === "roads");
+      if (!paid || !BUILD_COST[e.kind]) return;
+      (function (seat, kind) {
+        pendingFlights.push(function () {
+          var i = 0, cost = BUILD_COST[kind];
+          Object.keys(cost).forEach(function (r) {
+            for (var k = 0; k < cost[r]; k++) (function (rr, ii) {
+              launchChip(rr, function () { return seatPoint(seat, rr); },
+                function () { return bankPoint(rr); }, ii * FLY_STEP);
+            })(r, i++);
+          });
+        });
+      })(e.seat, e.kind);
+      return;
+    }
+    if (e.t === "trade") {
+      // a closed player trade: both bundles are public — two crossing
+      // streams, the give from→to and the get back to→from, each capped
+      // like every other flight (the log carries exact numbers)
+      (function (from, to) {
+        var stream = function (bundle, src, dst) {
+          var i = 0;
+          RES.forEach(function (r) {
+            for (var k = 0; k < (bundle[r] || 0) && i < FLY_CAP; k++) (function (rr, ii) {
+              pendingFlights.push(function () {
+                launchChip(rr, function () { return seatPoint(src, rr); },
+                  function () { return seatPoint(dst, rr); }, ii * FLY_STEP, dst === mySeat());
+              });
+            })(r, i++);
+          });
+        };
+        stream(e.give || {}, from, to);
+        stream(e.get || {}, to, from);
+      })(e.from, e.to);
+      return;
+    }
+    if (e.t === "bankTrade") {
+      // 4:1 exchanges with the bank pane; 2:1/3:1 route through the
+      // harbor that earned the rate — you see the port working
+      (function (seat, give, get, rate, n) {
+        pendingFlights.push(function () {
+          var port = harborXY(seat, rate, give);
+          var portFn = port ? function () { return boardPoint(port.x, port.y); } : null;
+          var out = Math.min(rate * n, FLY_CAP), inn = Math.min(n, FLY_CAP);
+          for (var i = 0; i < out; i++) (function (i2) {
+            launchChip(give, function () { return seatPoint(seat, give); },
+              portFn || function () { return bankPoint(give); }, i2 * FLY_STEP);
+          })(i);
+          for (var j = 0; j < inn; j++) (function (j2) {
+            launchChip(get, portFn || function () { return bankPoint(get); },
+              function () { return seatPoint(seat, get); }, (out + j2) * FLY_STEP, seat === mySeat());
+          })(j);
+        });
+      })(e.seat, e.give, e.get, e.rate, e.n || 1);
+      return;
+    }
+    if (e.t === "award") {
+      // Longest Road / Largest Army changing hands: the gold token flies
+      // old holder → new holder; a first claim rises out of the board, a
+      // dropped award sinks back into it. Strips for everyone — the pills
+      // live there, mine included.
+      (function (kind, seat) {
+        var was = prevAwards ? prevAwards[kind] : null;
+        if (was === seat) return;
+        pendingFlights.push(function () {
+          launchChip("award",
+            was != null ? function () { return stripPoint(was); } : boardCenterPoint,
+            seat != null ? function () { return stripPoint(seat); } : boardCenterPoint, 0);
+        });
+      })(e.kind, e.seat);
+      return;
+    }
+    if (e.t === "gain" && e.src === "roll" && setupBuildLoc != null) {
+      // second settlement's starting resources: one chip per gain event,
+      // from the adjacent hex that paid it (the per-res counter walks
+      // same-terrain twins), and that hex glows. The party CSS carries a
+      // built-in 0.62s delay, so chips wait it out to launch in sync.
+      var hks = (geo().vertexHexes[setupBuildLoc] || []).filter(function (hk) {
+        var h = hexByKey(hk); return h && h.terrain === e.res;
+      });
+      if (!hks.length) return;
+      var k = setupResCount[e.res] || 0; setupResCount[e.res] = k + 1;
+      var hk0 = hks[k % hks.length], h0 = hexByKey(hk0), c0 = hexCenter(h0.q, h0.r);
+      if (!flashHexes || Date.now() > flashHexes.until) flashHexes = { keys: {}, until: 0 };
+      flashHexes.keys[hk0] = 1;
+      flashHexes.until = Date.now() + SPIN_MS + 1700;
+      (function (res, seat, kk) {
+        pendingFlights.push(function () {
+          launchChip(res, function () { return boardPoint(c0.x, c0.y); },
+            function () { return seatPoint(seat, res); }, SPIN_MS + kk * FLY_STEP, seat === mySeat());
+        });
+      })(e.res, e.seat, k);
+      return;
+    }
+    if (e.t === "gain" && e.src === "roll") {
+      // main-phase production: chips leave the paying hexes the moment the
+      // dice settle (same beat as the gold wash + token pop)
+      var dice = model.turn && model.turn.dice; if (!dice) return;
+      var sum = dice[0] + dice[1], hxs = [];
+      model.board.hexes.forEach(function (h) {
+        if (h.token !== sum || h.terrain !== e.res) return;
+        var hk = h.q + "," + h.r;
+        if (model.board.robber === hk) return;
+        var mine = (geo().hexVertices[hk] || []).some(function (v) {
+          return model.buildings[v] && model.buildings[v].seat === e.seat;
+        });
+        if (mine) hxs.push(h);
+      });
+      if (!hxs.length) return;
+      (function (res, seat, n) {
+        pendingFlights.push(function () {
+          var wait = Math.max(0, spinUntil - Date.now());
+          for (var i = 0; i < n; i++) (function (i2) {
+            var h = hxs[i2 % hxs.length], c = hexCenter(h.q, h.r);
+            launchChip(res, function () { return boardPoint(c.x, c.y); },
+              function () { return seatPoint(seat, res); }, wait + i2 * FLY_STEP, seat === mySeat());
+          })(i);
+        });
+      })(e.res, e.seat, Math.min(e.n || 1, FLY_CAP));
+      return;
+    }
+    if (e.t === "gain" && e.src === "dev") {   // Year of Plenty: bank → seat
+      (function (res, seat, n) {
+        pendingFlights.push(function () {
+          for (var i = 0; i < n; i++) (function (i2) {
+            launchChip(res, function () { return bankPoint(res); },
+              function () { return seatPoint(seat, res); }, i2 * FLY_STEP, seat === mySeat());
+          })(i);
+        });
+      })(e.res, e.seat, Math.min(e.n || 1, FLY_CAP));
+      return;
+    }
+    if (e.t === "devBought") {
+      // a buy is two flights: the fixed PUBLIC cost (ore+sheep+wheat —
+      // rules knowledge, so res-colored for every viewer) fanning from
+      // the buyer to the bank's res cards, then the blank parchment card
+      // gliding from the dev deck into the buyer's hand (its identity is
+      // rightly hidden — the blank card IS the correct amount of truth)
+      (function (seat) {
+        pendingFlights.push(function () {
+          var cost = Object.keys(BUILD_COST.dev);
+          cost.forEach(function (r, i) {
+            launchChip(r, function () { return seatPoint(seat, r); },
+              function () { return bankPoint(r); }, i * FLY_STEP);
+          });
+          launchChip("dev", function () { return bankPoint(null); },
+            function () { return seatPoint(seat, "dev"); }, cost.length * FLY_STEP);
+        });
+      })(e.seat);
+      return;
+    }
+    if (e.t === "stealHidden") {
+      // res rides only the two parties' event copies — everyone else flies
+      // the neutral chip; what we're allowed to know decides what we show
+      (function (from, to, res) {
+        pendingFlights.push(function () {
+          launchChip(res, function () { return seatPoint(from, res); },
+            function () { return seatPoint(to, res); }, 0, res != null && to === mySeat());
+        });
+      })(e.from, e.to, e.res || null);
+      return;
+    }
+    if (e.t === "monopoly") {
+      // per-victim counts from the public handCount diff — nothing else
+      // changes hands in this action, so the delta IS the monopoly loss
+      var caster = e.seat, counts = prevHandCounts;
+      (model.players || []).forEach(function (p, s) {
+        if (s === caster) return;
+        var lost = counts && counts[s] != null ? Math.max(0, counts[s] - p.handCount) : 0;
+        lost = Math.min(lost, FLY_CAP);
+        if (!lost) return;
+        (function (res, victim, n) {
+          pendingFlights.push(function () {
+            for (var i = 0; i < n; i++) (function (i2) {
+              launchChip(res, function () { return seatPoint(victim, res); },
+                function () { return seatPoint(caster, res); }, i2 * FLY_STEP, caster === mySeat());
+            })(i);
+          });
+        })(e.res, s, lost);
+      });
+      return;
+    }
+    if (e.t === "discard") {
+      // the engine publishes the composition (discards land face-up in
+      // the bank), so every viewer flies true colors; the older fallbacks
+      // cover a cards-less broadcast (a not-yet-redeployed worker)
+      var colors = [];
+      if (e.cards) {
+        RES.forEach(function (r) { for (var i = 0; i < (e.cards[r] || 0); i++) colors.push(r); });
+      } else if (e.seat === me && lastDiscard) {
+        RES.forEach(function (r) { for (var i = 0; i < (lastDiscard[r] || 0); i++) colors.push(r); });
+      } else {
+        for (var j = 0; j < Math.min(e.n || 0, FLY_CAP); j++) colors.push(null);
+      }
+      colors = colors.slice(0, FLY_CAP);
+      if (!colors.length) return;
+      (function (seat, cs) {
+        pendingFlights.push(function () {
+          cs.forEach(function (r, i) {
+            launchChip(r, function () { return seatPoint(seat, r); },
+              function () { return bankPoint(r); }, i * FLY_STEP);
+          });
+        });
+      })(e.seat, colors);
+    }
+  }
+  function flushFlights() {
+    var fl = pendingFlights; pendingFlights = [];
+    fl.forEach(function (go) { go(); });
+  }
   function pieceShape(kind, p, seat) {
     var fill = "var(--cseat-" + seat + ")";
     if (kind === "city") return svgEl("rect", { x: p.x - 8, y: p.y - 8, width: 16, height: 16, rx: 2, class: "cities-piece cities-piece--city", fill: fill });
@@ -1550,6 +2058,7 @@
   }
   function renderDice() {
     if (timerHandle) { clearTimeout(timerHandle); timerHandle = null; }
+    if (tumbleHandle) { clearInterval(tumbleHandle); tumbleHandle = null; }
     DICE.textContent = "";
     var d = model.turn && model.turn.dice;
     var spinning = Date.now() < spinUntil;
@@ -1561,8 +2070,20 @@
     var timed = model.settings && model.settings.timerSec > 0;
     var row = el("div", "cities-dice__faces" + (spinning ? " is-spinning" : settled ? " is-settled" : "") + (timed ? " cities-dice__faces--timed" : ""));
     var dice = el("div", "cities-dice__dice");
-    dice.appendChild(dieFace(d ? d[0] : null));
-    dice.appendChild(dieFace(d ? d[1] : null));
+    // during the spin the boxes tumble through RANDOM faces — the broadcast
+    // already carries the real dice, and showing them mid-spin would leak
+    // the result 620ms before it "lands"; the settle re-render reveals it
+    var rnd = function () { return 1 + Math.floor(Math.random() * 6); };
+    dice.appendChild(dieFace(spinning ? rnd() : d ? d[0] : null));
+    dice.appendChild(dieFace(spinning ? rnd() : d ? d[1] : null));
+    if (spinning) {
+      tumbleHandle = setInterval(function () {
+        if (Date.now() >= spinUntil) { clearInterval(tumbleHandle); tumbleHandle = null; return; }
+        dice.textContent = "";
+        dice.appendChild(dieFace(rnd()));
+        dice.appendChild(dieFace(rnd()));
+      }, 70);
+    }
     row.appendChild(dice);
     if (timed) { var timer = el("div", "cities-timer"); row.appendChild(timer); tickTimer(timer); }
     DICE.appendChild(row);
@@ -1578,6 +2099,36 @@
     return Math.max(0, model.turnEndsAt - (Date.now() - clockSkew));
   }
   function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
+  // turn timer ring: when the table clock is armed, the active seat's dot
+  // wears a radial countdown — draining in the seat color (the strip's
+  // --cstrip), red for the last 10s. Same 250ms self-tick + isConnected
+  // idiom as the dice clock, on its own handle (both run at once). Reads
+  // only public broadcast fields (settings.timerSec, turnEndsAt), so
+  // players and spectators see the identical ring.
+  var RING_R = 8.5, RING_C = 2 * Math.PI * RING_R;
+  function ringDot(i) {
+    var wrap = el("span", "cities-pstrip__ringwrap");
+    var svg = svgEl("svg", { class: "cities-pstrip__ring", viewBox: "0 0 22 22", "aria-hidden": "true" });
+    svg.appendChild(svgEl("circle", { cx: 11, cy: 11, r: RING_R, class: "cities-pstrip__ringtrack" }));
+    var arc = svgEl("circle", { cx: 11, cy: 11, r: RING_R, class: "cities-pstrip__ringarc", "stroke-dasharray": RING_C.toFixed(2) });
+    svg.appendChild(arc);
+    wrap.appendChild(svg);
+    wrap.appendChild(seatDot(i));
+    tickRing(arc);
+    return wrap;
+  }
+  function tickRing(arc) {
+    var ms = timerLeftMs();
+    if (ms == null) {                       // configured but not counting (a bot is thinking)
+      arc.style.strokeDashoffset = "0";
+      arc.classList.remove("is-urgent");
+    } else {
+      arc.style.strokeDashoffset = (RING_C * (1 - ms / (model.settings.timerSec * 1000))).toFixed(2);
+      arc.classList.toggle("is-urgent", ms <= 10000);
+    }
+    if (ringHandle) clearTimeout(ringHandle);
+    ringHandle = setTimeout(function () { if (arc.isConnected) tickRing(arc); }, 250);
+  }
   function tickTimer(node) {
     var ms = timerLeftMs();
     if (ms == null) {                       // configured but not counting (e.g. a bot is thinking)
@@ -1621,8 +2172,14 @@
   // both ride along ghosted, so Start swaps text in without reflow.
   function awardRow(opts) {
     var awards = el("div", "cities-pstrip__awards");
-    awards.appendChild(awardPill(opts.ghost, opts.roadHeld,
-      fmt(S.awardRoadHeld, { n: opts.roadCount || 0 }), fmt(S.roadProgress, { n: opts.roadCount || 0 })));
+    var roadPill = awardPill(opts.ghost, opts.roadHeld,
+      fmt(S.awardRoadHeld, { n: opts.roadCount || 0 }), fmt(S.roadProgress, { n: opts.roadCount || 0 }));
+    // hovering the road pill traces that seat's longest path on the board
+    if (!opts.ghost && opts.seat != null) {
+      roadPill.addEventListener("mouseenter", function () { showRoadTrace(opts.seat); });
+      roadPill.addEventListener("mouseleave", hideRoadTrace);
+    }
+    awards.appendChild(roadPill);
     awards.appendChild(awardPill(opts.ghost, opts.armyHeld,
       fmt(S.awardArmyHeld, { n: opts.armyCount || 0 }), fmt(S.armyProgress, { n: opts.armyCount || 0 })));
     return awards;
@@ -1659,10 +2216,13 @@
     (model.players || []).forEach(function (p, i) {
       var active = model.phase === "main" && model.turn.seat === i;
       var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") + (model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
+      strip.dataset.seat = i;   // fly-in chips steer by this, re-queried per frame
       strip.style.setProperty("--cstrip", "var(--cseat-" + i + ")");
       var body = el("div", "cities-pstrip__body");
       var head = el("div", "cities-pstrip__head");
-      head.appendChild(seatDot(i));
+      // the active seat's dot carries the timer ring when the clock is armed
+      var timed = model.settings && model.settings.timerSec > 0;
+      head.appendChild(active && timed ? ringDot(i) : seatDot(i));
       // a botted seat (host-added, grace expired, or kicked mid-game) wears the tag
       var sMeta = model.seats[i];
       var nm = sMeta && (sMeta.bot || sMeta.phantom) ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
@@ -1670,6 +2230,7 @@
       if (isEmbargoed(i)) head.appendChild(el("span", "cities-badge", "🚫"));
       body.appendChild(head);
       body.appendChild(awardRow({
+        seat: i,
         roadHeld: model.awards && model.awards.longestRoad === i,
         armyHeld: model.awards && model.awards.largestArmy === i,
         roadCount: p.roadLen || 0,
@@ -1922,12 +2483,21 @@
   function renderHand(seat, parent) {
     var hand = (model.you && model.you.hand) || {};
     var wrap = el("div", "cities-hand");
-    wrap.appendChild(el("h3", "cities-hand__title", S.handTitle));
+    // header row: title left, live card count right-aligned against the ledger
+    // divider — reddens (.is-over) past 7, the at-a-glance discard-risk cue
+    var head = el("div", "cities-hand__head");
+    head.appendChild(el("h3", "cities-hand__title", S.handTitle));
+    var total = RES.reduce(function (a, r) { return a + (hand[r] || 0); }, 0);
+    head.appendChild(el("span", "cities-hand__count" + (total > 7 ? " is-over" : ""), fmt(S.handCount, { n: total })));
+    wrap.appendChild(head);
     var res = el("div", "cities-hand__res");
     RES.forEach(function (r) {
-      var chip = el("span", "cities-card");
+      // chips still flying toward this card are held out of the count —
+      // each landing patches the number back in (the catch increments)
+      var shown = Math.max(0, (hand[r] || 0) - (pendingHand[r] || 0));
+      var chip = el("span", "cities-card" + (shown ? "" : " is-empty"));
       dressResCard(chip, r);
-      chip.appendChild(withArt(el("span", "cities-card__n", String(hand[r] || 0)), r));
+      chip.appendChild(withArt(el("span", "cities-card__n", String(shown)), r));
       chip.appendChild(el("span", "cities-card__lbl", resName(r)));
       res.appendChild(chip);
     });

@@ -360,7 +360,12 @@ Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
 `{t:"gain", seat, res, n, src:"roll"|"steal"|"trade"|"dev"}`,
 `{t:"build", seat, kind, loc}`, `{t:"robber", seat, hex}`,
 `{t:"stealHidden", from, to}` (the resource rides only the two parties'
-`you`), `{t:"devBought", seat}`, `{t:"devPlayed", seat, card}`,
+`you`), `{t:"discard", seat, n, cards}` (**`cards` is the full
+composition — discards land face-up in the bank**, a deliberate
+visibility call; added 2026-07, so a client tolerates its absence from
+an older worker), `{t:"devBought", seat}`, `{t:"devPlayed", seat, card}`,
+`{t:"trade", from, to, give, get}` (both bundles public),
+`{t:"bankTrade", seat, give, get, rate, n}`,
 `{t:"award", kind, seat|null}`, `{t:"offer"...}`,
 `{t:"turn", seat, n}` (`n` = the 1-based running turn counter,
 `stats.turns` — the log's "Turn {n}" dividers need it to survive
@@ -402,6 +407,9 @@ let anyone subtract and expose drawn-but-unplayed cards.
 - A steal broadcasts *that* it happened; the resource identity goes only
   to thief and victim.
 - Monopoly reveals exact amounts (official — the count is public).
+- Discards are **face-up**: the `discard` event's `cards` names the
+  composition for everyone (they land in the public bank anyway; the
+  fly-ins color them for every viewer).
 - The server never sends a spectator or opponent anything a careful
   client could mine for hidden state (no "shuffled deck array" in
   public state — the dev deck lives server-side, draws are singular).
@@ -510,7 +518,15 @@ change contents, never places:
   (bot)") and reuse the existing kick ✕ and host recolor. Game: the SVG
   board — hexes, tokens, harbors, pieces,
   robber; legal placement targets glow on hover during a placement
-  action; illegal ones are inert. Two board hovers teach the odds:
+  action; illegal ones are inert — and hovering one shows a **ghost
+  piece preview**: the actual piece (via `pieceShape`, so drawn sprites
+  ride along free), translucent in your seat color — a full-width road
+  on edge targets, the settlement circle beside the pips badge, the
+  city square on upgrades (one-slot overlay, the vhint idiom). A fresh
+  road **draws itself outward from the network it extends** — the
+  dash-draw's start end is oriented to the endpoint already touching
+  your pieces (pre-existing roads/buildings decide, so a Road Building
+  pair chains: the second anchors off the first's shared vertex). Two board hovers teach the odds:
   a number token carries a native `<title>` tooltip with its roll odds
   ("{ways}/36 ({pct}%) possible rolls lead to a {n}", `strings.js
   tokenOdds`), and hovering a settlement target floats a
@@ -537,9 +553,12 @@ change contents, never places:
   stats scroll internally, so Start swaps contents without moving the
   page — this also anchors `fitLog`'s measurement across phases.
 - **Dice tile** (right rail, top). The two dice; on `roll` the faces
-  spin — numbers cycling for ~600 ms before settling on the result
-  (CSS-driven, honors `prefers-reduced-motion` by cutting straight to
-  the result). Between rolls it shows the last result and whose roll it
+  **tumble through random faces** (~70 ms shuffle for ~600 ms, the CSS
+  jiggle on top) before the settle re-render reveals the result with a
+  landing bounce — random deliberately: the broadcast carries the real
+  dice up front, and spinning the *final* faces would leak the result
+  early (honors `prefers-reduced-motion` by cutting straight to the
+  result). Between rolls it shows the last result and whose roll it
   was; the caption line's height is always reserved (radio's meta idiom)
   so its appearance at Start doesn't grow the tile. **When the table has
   a turn timer**, a countdown box sits to the
@@ -550,7 +569,8 @@ change contents, never places:
   glows on the acting **human's** turn, turns urgent (red, pulsing)
   under 10 s, and shows the configured duration statically while a bot
   is thinking. (Design note: the spec first put the timer as a drain bar
-  on the active player's strip; the dice-tile box is where it landed.)
+  on the active player's strip; the dice-tile box is where it landed —
+  and the strip idea returned later as the **timer ring**, below.)
 - **Players tile.** One strip per seat, laid out as three regions: the
   **seat dot + name top-left**, the **VP / cards / dev stat column
   top-right** (right-aligned, 3 lines — it governs the strip height), and
@@ -570,7 +590,18 @@ change contents, never places:
   the same height whether a seat holds zero, one, or both awards (the
   bento's no-resize rule; verified 0 px jitter). An embargoed seat still
   shows the 🚫 badge inline by the name. The **active player wears an
-  accent ring**. Disconnected seats dim. In the **lobby** the occupied
+  accent ring**. Disconnected seats dim.
+  **Hovering a seat's road pill traces their longest path on the board**
+  (`longestRoadEdges`, a client-side mirror of the engine's DFS that
+  keeps the winning edge list instead of just its length — pure UI, so
+  the shared engine contract stays untouched): a pulsing white overlay
+  in the board SVG, one at a time, dropped by any re-render (the vhint
+  idiom). When the table clock is armed the **active seat's dot wears
+  the timer ring** (`ringDot`) — a radial countdown draining in the seat
+  color, red under 10 s, the dice clock's 250 ms tick idiom on its own
+  handle; it reads only public fields (`settings.timerSec`,
+  `turnEndsAt`), so spectators see the identical ring. Inactive seats
+  keep the plain dot — nothing shifts on turn change. In the **lobby** the occupied
   seats already render as strips with the stat column and both award pills
   ghosted at in-game size, so Start fills the numbers in instead of
   reflowing the tile.
@@ -605,10 +636,16 @@ change contents, never places:
   throttled when the tab is backgrounded.)
 - **Role tile** (bottom, full width) — the **play area**. For a seated
   player it's **always the same two-column layout, in every phase**: the
-  **hand** top-left (a "Your hand" title, the resource cards, then the
-  dev-card row — the row is always rendered, a ghost card holding its
-  height while empty, so the first dev card bought doesn't grow the
-  tile) and the **controls** top-right. The controls column grid-stacks
+  **hand** top-left (a "Hand" title with a live **`{n} cards`** count
+  right-aligned on its baseline, hugging the ledger divider — the header
+  row `align-self: stretch`es to the resource-row width so the count
+  pins to that edge, `tabular-nums` so it can't jitter; it **reddens**
+  (`--stop`, `.is-over`) past 7, the persistent at-a-glance companion to
+  the transient `robber7` discard toast — then the resource cards, a
+  card at 0 **dimmed** (`.is-empty`, opacity only — no size change) so
+  held resources pop, then the dev-card row — the row is always
+  rendered, a ghost card holding its height while empty, so the first
+  dev card bought doesn't grow the tile) and the **controls** top-right. The controls column grid-stacks
   the full **pills + tray gauge** (`buildGauge`) under whatever the
   phase shows instead — the setup prompt, a robber/roads/steal prompt,
   nothing in lobby/over — ghosting the gauge when covered, so the tile
@@ -756,6 +793,81 @@ cards now wear their resource color head to toe (`.cities-card--res`,
 fixed white ink — part of this carve-out); sprites ride inline inside
 the count span, so **a card with art is byte-identical in size to one
 without** (the universal layout rule holds, art or no art).
+
+### Fly-ins (the chip layer)
+
+Every resource movement in the rules animates as **chips** — pocket res
+cards (22×28, the hand cards' silhouette, `--ccard` fill, the res
+sprite riding inside; class `cities-flychip`, because `.cities-chip`
+is the toolbar pill) flying between the board, the strips, the hand,
+and the bank pane. Client-only theater, all of it derived from the same
+typed events the log and ledger consume.
+
+- **The layer.** One `position:fixed`, pointer-transparent overlay at
+  z 45 — **inside `<section class="cities">`** (the game palette is
+  scoped there; a body-parented layer resolves every chip color to
+  nothing). Broadcast re-renders wipe tile interiors, never the layer.
+- **Steering.** Flights are rAF-driven, not CSS transitions: every
+  frame re-queries the destination (strips carry `data-seat`; my hand
+  cards by `:nth-child` in `RES` order), so a strip that re-renders or
+  scrolls mid-flight is tracked, not missed, and a scrolled-away strip
+  catches its chip clamped at the tile edge. Ease-out cubic ~800 ms,
+  ±100 ms and ±6 px launch jitter (a handful, not a conveyor), 90 ms
+  stagger, **capped at 5 chips per flight** (the log carries exact
+  numbers).
+- **Born and caught, never evaporating.** Full opacity end to end: pop
+  in past 1 (scale 0 → 1.2 → 1), cruise, shrink *into* the target; the
+  catcher plays a one-shot bump (`cities-catch`, 1.07×) — except the
+  bank pane's minis, which **flash** (brightness) instead: six boxes in
+  a tight grid taking size bumps reads as jitter.
+- **Viewer routing.** *My* resources flow through *my hand* — gains
+  land on the matching res card, losses lift out of it (`seatPoint`,
+  falling back to the strip when the hand isn't on screen); everyone
+  else's flow through their strip. Each viewer naively renders the
+  richest data their own event copy carries — res-colored when the
+  resource is known, the neutral **"any" chip** (the harbor 3:1 sea)
+  when it isn't. The server already shaped each copy, so there is no
+  visibility branching client-side, and spectators need no special
+  casing.
+- **The count lags the chip.** A gain inbound to my hand is held out of
+  the card's number (`pendingHand`, registered pre-paint in the same
+  tick as the broadcast render) until its chip lands — the landing
+  bump and the increment are one beat; `renderHand` subtracts holds
+  (and keeps `.is-empty` consistent), landings patch in place. Only the
+  *display* lags: affordability and the trade tool read the true hand.
+- **Coverage** (event → flight): `gain src:"roll"` in main — chips off
+  the paying hexes (token match, robber excluded, builder adjacency) at
+  the moment the dice settle, the gold-wash beat; setup's second
+  settlement — one chip per gain event from the specific adjacent hex
+  that paid it (a per-res counter walks same-terrain twins), and those
+  hexes **glow** (`flashHexes`, rollFlash's cousin, same party CSS with
+  its built-in 0.62 s delay, which the chips wait out); `stealHidden` —
+  strip↔strip, res-colored for the two parties, "any" for the rest;
+  `monopoly` — per-victim counts from the public `handCount` diff
+  (pre-merge snapshot), converging on the caster; `gain src:"dev"` —
+  bank → seat; `devBought` — the fixed public cost (from `BUILD_COST`)
+  fans to the bank's res cards, then a **blank parchment card**
+  (`--ctoken-bg`; its identity is rightly hidden) glides from the dev
+  deck into the buyer's dev row; `discard` — true colors for every
+  viewer from the event's `cards` (fallbacks: my `lastDiscard`, then
+  neutral count chips, for an old worker); `build` — the cost fans to
+  the bank **only when paid**, inferred from the *pre-merge* snapshot
+  (`prevPhase`/`prevPendingKind`): setup placements and Road Building's
+  roads are free, and the final setup road merges to `"main"` so the
+  post-merge phase can't be trusted; `trade` — two crossing streams,
+  give and get, both bundles public; `bankTrade` — 4:1 exchanges with
+  the bank pane, **2:1/3:1 route through the harbor that earned the
+  rate** (`harborXY`: the matching-type harbor where the seat holds a
+  building); `award` — a round gold token (`--cglow`, a glow halo, not
+  a card) flies old holder → new holder, rises from the board center on
+  a first claim, sinks back on unclaim, only when the holder actually
+  changed (`prevAwards`).
+- **Lifecycle.** Flights collect as closures during event replay and
+  launch **after** `render()` (targets exist; same synchronous tick, so
+  count-holds register pre-paint). `prefers-reduced-motion` skips all
+  flights at collection (counts simply update). Leaving the table
+  clears chips, pending flights, and holds; a delay-scheduled chip
+  firing after departure aborts on the `model` guard.
 
 ## Worker details
 

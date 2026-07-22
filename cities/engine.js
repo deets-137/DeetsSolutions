@@ -661,12 +661,15 @@
       var r = RES[i], c = cards[r] || 0;
       if (c < 0 || hand[r] < c) return err("cost");
     }
+    var disc = {};
     RES.forEach(function (r) {
       var c = cards[r] || 0;
       hand[r] -= c; g.bank[r] += c;
+      if (c) disc[r] = c;
     });
     g.stats.seats[seat].lost.discards += need;
-    events.push({ t: "discard", seat: seat, n: need });
+    // composition is public: discards land face-up in the bank
+    events.push({ t: "discard", seat: seat, n: need, cards: disc });
     delete p.owed[seat];
     if (!Object.keys(p.owed).length) g.turn.pending = { kind: "robber", viaKnight: p.viaKnight };
     return null;
@@ -925,14 +928,15 @@
     if (p && p.kind === "discard") {
       // random discard for every straggler (its own shorter window upstream)
       Object.keys(p.owed).forEach(function (sk) {
-        var seat = +sk, need = p.owed[seat], hand = g.players[seat].hand, pool = [];
+        var seat = +sk, need = p.owed[seat], hand = g.players[seat].hand, pool = [], disc = {};
         RES.forEach(function (r) { for (var i = 0; i < hand[r]; i++) pool.push(r); });
         for (var k = 0; k < need && pool.length; k++) {
           var j = randInt(ctx, pool.length), r2 = pool.splice(j, 1)[0];
           hand[r2]--; g.bank[r2]++;
+          disc[r2] = (disc[r2] || 0) + 1;
         }
         g.stats.seats[seat].lost.discards += need;
-        events.push({ t: "discard", seat: seat, n: need });
+        events.push({ t: "discard", seat: seat, n: need, cards: disc });
       });
       g.turn.pending = { kind: "robber", viaKnight: p.viaKnight };
       p = g.turn.pending;
