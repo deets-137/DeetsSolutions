@@ -686,7 +686,10 @@ change contents, never places:
   render in the **role tile**: a 7-discard shows the hand as a sideways
   row of tap-to-select cards with a **square Discard button** to their
   right, enabled once the exact count is picked. Never a modal outside
-  the bento.
+  the bento. A 7 that puts *me* over the limit also fires a timed **red
+  error toast** (`strings.js` `discardToast`: hand size + owed count),
+  hooked on the `robber7` event — which only fires on the roll-of-7
+  path, never a knight's robber move.
 
 A **universal layout rule** governs the bento (Aditya's, this pass): no
 UI piece may change size or offset another — **including across phase
@@ -736,7 +739,21 @@ hex is the player's own eyes' responsibility.
 Until Aditya's hand-drawn sprites land, every art surface is a
 geometric placeholder in these palette colors — rectangles for cards,
 circles for tokens/icons, flat hex fills (see the placeholder-art
-decision above).
+decision above). **Live PNG swap points** (2026-07-22, branch
+`cities-art-polish`; the full contract lives in
+`assets/sprites/cities/README.md`): every sprite is probed once at
+load and replaces its placeholder the moment the file exists —
+`robber.png` (the robber circle), `res-{resource}.png` (inline at text
+height in every resource card's count, a 20×20 icon between a
+producing hex's number token and its top point, and a 12×12 flag on a
+backing disc pushed off-map along the coast edge's normal at each 2:1
+port), and `hex-{terrain}.png` (the hex fill — drawn **full-bleed**,
+the board clips it with the vector hexagon so the silhouette never
+stair-steps). Committed starters are pixel-editable in place. Resource
+cards now wear their resource color head to toe (`.cities-card--res`,
+fixed white ink — part of this carve-out); sprites ride inline inside
+the count span, so **a card with art is byte-identical in size to one
+without** (the universal layout rule holds, art or no art).
 
 ## Worker details
 

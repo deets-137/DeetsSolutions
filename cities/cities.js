@@ -356,6 +356,18 @@
       else { ui.tradeHub = true; toast(fmt(S.offerIncoming, { name: seatName(e.from) }), "info"); }
     }
     if (e.t === "respond" && e.action === "accept") acceptToast(e);
+    // a 7 that puts ME over the hand limit: red toast alongside the
+    // renderDiscard takeover (the model merged before events replay, so
+    // pending.owed and my hand are already this broadcast's)
+    if (e.t === "robber7") {
+      var meDisc = mySeat();
+      var pDisc = model.turn && model.turn.pending;
+      if (meDisc != null && pDisc && pDisc.kind === "discard" && pDisc.owed[meDisc] != null && model.you && model.you.hand) {
+        var held = 0;
+        RES.forEach(function (r) { held += (model.you.hand[r] || 0); });
+        toast(fmt(S.discardToast, { x: held, n: pDisc.owed[meDisc] }), "error");
+      }
+    }
     // a fully-declined offer fades out: snapshot it (the model has already
     // dropped it) and render the ghost briefly
     if (e.t === "offerGone" && e.declined && offerCache[e.id]) {
@@ -499,17 +511,45 @@
   }
   function awardName(k) { return k === "longestRoad" ? S.awardRoad : S.awardArmy; }
 
-  /* ── robber sprite swap point (assets/sprites/cities/README.md) ──
-     Aditya's hand-drawn robber.png replaces the placeholder circle the
-     moment the file exists — probed ONCE at load (a missing sprite costs
-     one quiet 404, and rendering never re-fetches a broken image). */
-  var ROBBER_SRC = "../assets/sprites/cities/robber.png";
-  var robberSprite = false;
-  (function () {
-    var probe = new Image();
-    probe.onload = function () { robberSprite = true; if (model) render(); };
-    probe.src = ROBBER_SRC;
-  })();
+  /* ── sprite swap points (assets/sprites/cities/README.md) ──
+     Aditya's hand-drawn PNGs replace the geometric placeholders the
+     moment the files exist — each probed ONCE at load (a missing sprite
+     costs one quiet 404, and rendering never re-fetches a broken image).
+     robber.png swaps the robber circle; res-{r}.png dresses every
+     resource card and floats above the number token on producing hexes;
+     hex-{t}.png replaces a terrain's flat polygon fill. */
+  var SPRITE_DIR = "../assets/sprites/cities/";
+  var ROBBER_SRC = SPRITE_DIR + "robber.png";
+  var sprites = {};   // filename stem -> true once its PNG loaded
+  ["robber"]
+    .concat(RES.map(function (r) { return "res-" + r; }))
+    .concat(RES.concat(["desert"]).map(function (t) { return "hex-" + t; }))
+    .forEach(function (name) {
+      var probe = new Image();
+      probe.onload = function () { sprites[name] = true; if (model) render(); };
+      probe.src = SPRITE_DIR + name + ".png";
+    });
+  // A resource card wears its resource color head to toe (hand, deck,
+  // discard, monopoly/plenty pickers — trade chips keep their accent
+  // edges). The sprite, once drawn, rides inline inside the first text
+  // span at 1em — so a card never changes size, art or no art.
+  function dressResCard(chip, r) {
+    chip.classList.add("cities-card--res");
+    chip.style.setProperty("--ccard", "var(--cterr-" + r + ")");
+  }
+  function resArt(r) {
+    if (!sprites["res-" + r]) return null;
+    var img = document.createElement("img");
+    img.className = "cities-card__art";
+    img.src = SPRITE_DIR + "res-" + r + ".png";
+    img.alt = "";
+    return img;
+  }
+  function withArt(span, r) {
+    var img = resArt(r);
+    if (img) span.insertBefore(img, span.firstChild);
+    return span;
+  }
 
   /* ═══ GEOMETRY (render) ════════════════════════════════════════ */
   var SIZE = 42;
@@ -1015,6 +1055,8 @@
     // the click lands on the target hex under them — the disc sits dead
     // center, exactly where people aim (odds hover resumes after the pick)
     var svg = svgEl("svg", { class: "cities-board" + (ui.mode === "robber" ? " is-picking" : ""), viewBox: vb, role: "img", "aria-label": "Board" });
+    var defs = svg.appendChild(svgEl("defs", {}));   // per-hex clipPaths for the terrain art
+    var cx0 = (minX + maxX) / 2, cy0 = (minY + maxY) / 2;   // board centroid — the harbor flag's "off-map" compass
 
     // hex fills + tokens
     model.board.hexes.forEach(function (h) {
@@ -1025,7 +1067,31 @@
         poly.classList.add("cities-hex--target");
         poly.addEventListener("click", function () { send({ type: "moveRobber", hex: hk }); ui.mode = null; });
       }
+      // hand-drawn hex art paints UNDER the polygon, which goes transparent
+      // (not none — it stays the hit/hover/stroke surface at the same size).
+      // The VECTOR polygon clips the image, so the silhouette is always
+      // crisp — the PNG is full-bleed texture and never draws its own edges.
+      if (sprites["hex-" + h.terrain]) {
+        var clipId = "cities-hexclip-" + hk.replace(/,/g, "_").replace(/-/g, "m");
+        var cp = defs.appendChild(svgEl("clipPath", { id: clipId }));
+        cp.appendChild(svgEl("polygon", { points: hexCorners(h.q, h.r) }));
+        svg.appendChild(svgEl("image", {
+          href: SPRITE_DIR + "hex-" + h.terrain + ".png", class: "cities-hex--sprite",
+          x: (c.x - SIZE * Math.sqrt(3) / 2).toFixed(1), y: c.y - SIZE,
+          width: (SIZE * Math.sqrt(3)).toFixed(1), height: SIZE * 2,
+          preserveAspectRatio: "none", "clip-path": "url(#" + clipId + ")"
+        }));
+        poly.setAttribute("fill", "transparent");
+      }
       svg.appendChild(poly);
+      // one big resource sprite in the band between the number token (r15)
+      // and the hex's top point — same fixed-box idiom as the robber
+      if (h.token != null && sprites["res-" + h.terrain]) {
+        svg.appendChild(svgEl("image", {
+          href: SPRITE_DIR + "res-" + h.terrain + ".png", class: "cities-resicon",
+          x: c.x - 10, y: c.y - 37, width: 20, height: 20
+        }));
+      }
       if (h.token != null) {
         // grouped so the native <title> tooltip (the odds line) covers the
         // whole disc — circle, number, and pips
@@ -1049,7 +1115,7 @@
         svg.appendChild(tg);
       }
       if (robberHere) {
-        if (robberSprite) {
+        if (sprites.robber) {
           svg.appendChild(svgEl("image", { href: ROBBER_SRC, x: c.x - 14, y: c.y - 16, width: 28, height: 28, class: "cities-robber--sprite" }));
         } else {
           svg.appendChild(svgEl("circle", { cx: c.x, cy: c.y - 2, r: 11, class: "cities-robber" }));
@@ -1082,6 +1148,17 @@
       var t = svgEl("text", { x: mx, y: my + 3, class: "cities-harbor__label", "text-anchor": "middle" });
       t.textContent = hb.type === "any" ? "3:1" : "2:1";
       grp.appendChild(t);
+      // sprite flag: the resource glyph on a small backing disc, pushed out
+      // along the edge's off-map normal (away from the board centroid) so it
+      // always floats over the sea — dot, rate, and tooltip untouched
+      if (hb.type !== "any" && sprites["res-" + hb.type]) {
+        var hdx = b.x - a.x, hdy = b.y - a.y, hlen = Math.sqrt(hdx * hdx + hdy * hdy) || 1;
+        var nx = -hdy / hlen, ny = hdx / hlen;
+        if ((mx - cx0) * nx + (my - cy0) * ny < 0) { nx = -nx; ny = -ny; }
+        var fx = mx + nx * 21, fy = my + ny * 21;
+        grp.appendChild(svgEl("circle", { cx: fx.toFixed(1), cy: fy.toFixed(1), r: 8, class: "cities-harbor__flag", fill: "var(--cterr-" + hb.type + ")" }));
+        grp.appendChild(svgEl("image", { href: SPRITE_DIR + "res-" + hb.type + ".png", class: "cities-resicon", x: (fx - 6).toFixed(1), y: (fy - 6).toFixed(1), width: 12, height: 12 }));
+      }
       svg.appendChild(grp);
     });
 
@@ -1623,8 +1700,8 @@
     var wrap = el("div", "cities-deck");
     RES.forEach(function (r) {
       var chip = el("span", "cities-card cities-card--mini");
-      chip.style.setProperty("--ccard", "var(--cterr-" + r + ")");
-      chip.appendChild(el("span", "cities-card__n", bank && bank[r] != null ? String(bank[r]) : "—"));
+      dressResCard(chip, r);
+      chip.appendChild(withArt(el("span", "cities-card__n", bank && bank[r] != null ? String(bank[r]) : "—"), r));
       chip.appendChild(el("span", "cities-card__lbl", resName(r)));
       wrap.appendChild(chip);
     });
@@ -1760,8 +1837,8 @@
     var res = el("div", "cities-hand__res");
     RES.forEach(function (r) {
       var chip = el("span", "cities-card");
-      chip.style.setProperty("--ccard", "var(--cterr-" + r + ")");
-      chip.appendChild(el("span", "cities-card__n", String(hand[r] || 0)));
+      dressResCard(chip, r);
+      chip.appendChild(withArt(el("span", "cities-card__n", String(hand[r] || 0)), r));
       chip.appendChild(el("span", "cities-card__lbl", resName(r)));
       res.appendChild(chip);
     });
@@ -1831,13 +1908,16 @@
     var row = el("div", "cities-discard__cards");
     RES.forEach(function (r) {
       var chip = el("button", "cities-card cities-card--btn"); chip.type = "button";
-      chip.style.setProperty("--ccard", "var(--cterr-" + r + ")");
-      var nEl = el("span", "cities-card__n", "0/" + (hand[r] || 0));
-      chip.appendChild(nEl); chip.appendChild(el("span", "cities-card__lbl", resName(r)));
+      dressResCard(chip, r);
+      // the count lives in its own text node so ticking it can't wipe the art
+      var nEl = el("span", "cities-card__n");
+      var cnt = document.createTextNode("0/" + (hand[r] || 0));
+      nEl.appendChild(cnt);
+      chip.appendChild(withArt(nEl, r)); chip.appendChild(el("span", "cities-card__lbl", resName(r)));
       chip.addEventListener("click", function () {
         var picked = Object.keys(sel).reduce(function (a, k) { return a + sel[k]; }, 0);
         if (sel[r] < (hand[r] || 0) && picked < need) sel[r]++; else if (sel[r] > 0) sel[r]--;
-        nEl.textContent = sel[r] + "/" + (hand[r] || 0);
+        cnt.nodeValue = sel[r] + "/" + (hand[r] || 0);
         chip.classList.toggle("is-sel", sel[r] > 0);
         confirm.disabled = Object.keys(sel).reduce(function (a, k) { return a + sel[k]; }, 0) !== need;
       });
@@ -1899,8 +1979,8 @@
   }
   function resButton(r) {
     var b = el("button", "cities-card cities-card--btn"); b.type = "button";
-    b.style.setProperty("--ccard", "var(--cterr-" + r + ")");
-    b.appendChild(el("span", "cities-card__lbl", resName(r)));
+    dressResCard(b, r);
+    b.appendChild(withArt(el("span", "cities-card__lbl", resName(r)), r));
     return b;
   }
   function addClose(panel) {

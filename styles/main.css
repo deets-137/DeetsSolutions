@@ -3597,6 +3597,10 @@ button:focus-visible {
 .cities-odds__hit { fill: transparent; }
 .cities-robber { fill: #1a1a1a; stroke: #fff; stroke-width: 1.5; opacity: 0.9; }
 .cities-robber--sprite { image-rendering: pixelated; }   /* Aditya's pixel-art robber.png scales crisp */
+/* hand-drawn terrain art + the per-hex resource icon (above the number
+   token) — never hit targets; the transparent-filled polygon on top keeps
+   the click/hover/stroke surface exactly where it always was */
+.cities-hex--sprite, .cities-resicon { image-rendering: pixelated; pointer-events: none; }
 /* robber placement: the number-token discs sit dead center on the hexes —
    exactly where people click — so while picking they pass clicks through
    to the target polygon (odds hover resumes after the pick) */
@@ -3612,6 +3616,7 @@ button:focus-visible {
 .cities-vtarget:hover { opacity: 0.85; }
 .cities-harbor__link { stroke: rgba(0, 0, 0, 0.3); stroke-width: 1.5; stroke-dasharray: 2 2; }
 .cities-harbor__dot { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
+.cities-harbor__flag { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }   /* the sprite's backing disc, off-map of the dot */
 .cities-harbor__label { fill: #fff; font: 700 8px/1 var(--font-body); }
 
 /* ── View-settings hover pill (toolbar) ───────────────────────── */
@@ -3932,6 +3937,19 @@ button:focus-visible {
 .cities-card--btn { cursor: pointer; }
 .cities-card--btn:hover { background: var(--surface-hover); }
 .cities-card.is-sel { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+/* resource cards wear their resource color head to toe — part of the game
+   palette carve-out (docs/cities.md), so the ink is fixed, not themed.
+   The sprite rides INLINE inside the first text span at text height, so a
+   card with art is byte-identical in size to a card without. */
+.cities-card--res { background: var(--ccard); border-color: rgba(0, 0, 0, 0.28); }
+.cities-card--res .cities-card__n { color: #fff; }
+.cities-card--res .cities-card__lbl { color: rgba(255, 255, 255, 0.88); }
+.cities-card--res.cities-card--btn:hover { background: var(--ccard); filter: brightness(1.12); }
+.cities-card--res.is-sel { border-color: #fff; box-shadow: 0 0 0 1px #fff; }
+.cities-card__art {
+  height: 1.05em; width: auto; image-rendering: pixelated;
+  vertical-align: -0.15em; margin-right: 4px;
+}
 /* dev cards under the resources — playable ones are live buttons */
 .cities-devcard {
   font: inherit; font-size: 0.78rem;

@@ -211,6 +211,7 @@ window.CITIES_STRINGS = {
 
   /* ── forced interrupts (on the board tile) ───────────────────── */
   discardPrompt: "Roll of 7 — discard {n} cards.",
+  discardToast:  "You have {x} cards. Please discard {n}.",   // Aditya's wording (chat 2026-07-22), no [ph] — red toast when a 7 makes me discard
   discardGo:     "Discard",
   discardWaiting: "Waiting on others to discard…",
   robberPrompt:  "Move the robber to a hex.",
