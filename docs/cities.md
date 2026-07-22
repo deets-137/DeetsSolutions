@@ -321,6 +321,7 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `stand` | — | lobby; frees own seat |
 | `addBot` | `{seat, name}` | host, lobby only; seats a named bot at an open seat (the phantom AI drives it from Start). Re-sending at a seat already holding a bot **renames** it (names lock at Start, like colors). Removal is `kickSeat`. Bots count toward the ≥3 start minimum — host + 2 bots is a legal game. Refusals: `perm` (not host / blank name), `full` (human-held or out-of-capacity seat), `name-taken` (vs seats *and* live connections; `join` symmetrically refuses a human name that clashes with a bot seat) |
 | `recolor` | `{seat?, color}` | lobby only (colors lock at Start). Own seat, or host recoloring a bot seat. `color` is any `#rrggbb` hex; validated by `colors.js` (the shared contract module): malformed → `color`, too close to another seat's color (redmean distance < `MIN_DIST`) → `color-taken`. Board-proximity is deliberately unchecked — hand-drawn tile texture + road borders carry legibility, the pick is at the player's own risk |
+| `shuffle` | — | host, lobby only; Fisher-Yates over the **occupied** seats, reassigned into the same slots (empties stay put; names/colors travel with their players). Crypto rand in the DO |
 | `setSettings` | `{capacity?, timerSec?, betting?, resView?}` | host, lobby only. Capacity below current seated count, or with any occupied seat beyond it, refused. `resView` = the In-Game Resources View toggle (default on) |
 | `start` | — | host, ≥3 seated. Deals the board, enters `setup` |
 | `roll` | — | current player, once per turn |
@@ -496,7 +497,9 @@ change contents, never places:
 
 - **Big tile.** Lobby: the settings panel (host edits, everyone watches
   live) + the Start button (enabled at 3+ seated — bots count; shows
-  "board deals on press"). The seat roster carries the **host-added
+  "board deals on press") with a **Shuffle** pill to its right (host,
+  2+ seated) that randomizes the seated players' order — turn order at
+  Start follows seat order, so this is the "who goes first" lever. The seat roster carries the **host-added
   bots** UI: an open-seat row shows the host a "+ Bot" button that swaps
   the row for a same-height inline editor (name input prefilled from a
   suggestion pool — Rook, Vala, … a mechanical constant in `cities.js`,

@@ -14,18 +14,20 @@ asset drops in without a code rewrite:
 - **Number tokens / resource cards** — flat circles / rectangles drawn inline
   (`renderBoard`, `renderHand`). Each reads a palette color; replace with a
   sprite when the art exists.
-- **Robber** — **LIVE swap point**: drop `robber.png` (pixel art) in this
-  directory and it replaces the placeholder circle automatically —
-  `cities.js` probes the path once at load and renders it into a 28×28
-  SVG box at the robber hex (`image-rendering: pixelated`, so any small
-  pixel grid — 14×14, 28×28 — scales crisp). No code change needed; the
-  circle stays the fallback while the file is absent.
+- **Robber** — **LIVE swap point**: `robber.png` here replaces the
+  placeholder circle automatically — `cities.js` probes the path once at
+  load and renders it into a 28×28 SVG box at the robber hex
+  (`image-rendering: pixelated`, so any small pixel grid scales crisp;
+  non-square images letterbox, preserving aspect). A **starter file is
+  committed**: a 16×24 solid `#1a1a1a` vertical rectangle for Aditya to
+  pixel-edit directly — reshape it, keep the filename. If the file is
+  ever deleted, the circle returns as the fallback.
 
 Stable filenames to target when the art is ready (only `robber.png` is
 referenced so far):
 
 ```
-robber.png                    ← live: auto-detected by cities.js
+robber.png                    ← live: starter 16×24 rect, edit in place
 settlement-{red,blue,green,orange,purple,teal}.svg
 city-{red,blue,green,orange,purple,teal}.svg
 hex-{wood,brick,wheat,sheep,ore,desert}.svg

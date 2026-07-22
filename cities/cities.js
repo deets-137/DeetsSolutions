@@ -802,15 +802,23 @@
     }
     wrap.appendChild(seatList);
 
-    // start
+    // start (+ Shuffle: host randomizes the seated players' order)
     if (host) {
+      var startRow = el("div", "cities-lobby__startrow");
       var start = el("button", "tb-pill cities-lobby__start");
       start.type = "button";
       start.appendChild(el("span", "tb-pill__label", S.startButton));
       var ready = seatedCount() >= 3;
       start.disabled = !ready;
       start.addEventListener("click", function () { send({ type: "start" }); });
-      wrap.appendChild(start);
+      startRow.appendChild(start);
+      var shuf = el("button", "tb-pill cities-lobby__start");
+      shuf.type = "button";
+      shuf.appendChild(el("span", "tb-pill__label", S.shufflePill));
+      shuf.disabled = seatedCount() < 2;
+      shuf.addEventListener("click", function () { send({ type: "shuffle" }); });
+      startRow.appendChild(shuf);
+      wrap.appendChild(startRow);
       wrap.appendChild(el("p", "cities-lobby__hint", ready ? S.startHint : S.startNeedsThree));
     }
     BIG.appendChild(wrap);
@@ -1049,7 +1057,16 @@
       }
     });
 
-    // harbors (marker at edge midpoint)
+    // roads
+    Object.keys(model.roads).forEach(function (e) {
+      var vs = g.edgeVertices[e]; if (!vs) return;
+      var a = vertexXY(vs[0]), b = vertexXY(vs[1]);
+      svg.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road", stroke: "var(--cseat-" + model.roads[e] + ")" }));
+    });
+
+    // harbors (marker at edge midpoint) — painted AFTER built roads so a
+    // coastal road never buries the port token, but BEFORE the placement
+    // targets so a target on that edge stays clickable above the dot
     (model.board.harbors || []).forEach(function (hb) {
       var a = vertexXY(hb.vertices[0]), b = vertexXY(hb.vertices[1]);
       var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -1068,12 +1085,6 @@
       svg.appendChild(grp);
     });
 
-    // roads
-    Object.keys(model.roads).forEach(function (e) {
-      var vs = g.edgeVertices[e]; if (!vs) return;
-      var a = vertexXY(vs[0]), b = vertexXY(vs[1]);
-      svg.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road", stroke: "var(--cseat-" + model.roads[e] + ")" }));
-    });
     // road placement targets
     if (ui.mode === "place-road" || ui.mode === "roads") {
       var setupRoad = model.phase === "setup";

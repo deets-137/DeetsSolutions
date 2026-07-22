@@ -55,6 +55,7 @@ window.CITIES_STRINGS = {
   bettingOn:       "On",
   bettingOff:      "Off",
   startButton:     "Start game",
+  shufflePill:     "Shuffle",   // Aditya's wording (chat 2026-07-22), no [ph] — randomizes seated player order
   startHint:       "Board deals on press.",
   startNeedsThree: "Need at least 3 seated.",
   seatOpen:        "Open seat",

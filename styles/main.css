@@ -3748,6 +3748,7 @@ button:focus-visible {
 .cities-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
 .cities-colorpick__go { cursor: pointer; }
 .cities-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
+.cities-lobby__startrow { display: flex; gap: var(--space-2); align-self: flex-start; }   /* Start game · Shuffle */
 .cities-lobby__start { align-self: flex-start; cursor: pointer; }
 .cities-lobby__start:disabled { opacity: 0.5; cursor: default; }
 .cities-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }

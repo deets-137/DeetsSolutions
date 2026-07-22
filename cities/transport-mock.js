@@ -437,7 +437,7 @@
   }
 
   /* ── command handlers (client → table) ────────────────────────── */
-  var LOBBY_CMDS = { sit: 1, stand: 1, addBot: 1, recolor: 1, setSettings: 1, start: 1 };
+  var LOBBY_CMDS = { sit: 1, stand: 1, addBot: 1, shuffle: 1, recolor: 1, setSettings: 1, start: 1 };
   var GAME_CMDS = { roll: 1, place: 1, buyDev: 1, playDev: 1, discard: 1, moveRobber: 1,
                     steal: 1, bankTrade: 1, offer: 1, respond: 1, close: 1, cancel: 1, endTurn: 1 };
 
@@ -514,6 +514,23 @@
           t.seats[bi] = { token: "phantom-" + uid(), name: bname, color: Colors.freePreset(bocc), connected: true, phantom: true };
         }
         resizeSeats(t);
+        return broadcast(t, []);
+      }
+      // host shuffles the seated players' order — Fisher-Yates over the
+      // occupied entries, reassigned into the same slots (empty seats stay
+      // put; colors and names travel with their players)
+      if (type === "shuffle") {
+        if (!isHost(t, token)) return errTo(conn, "perm");
+        var occ = [];
+        t.seats.forEach(function (s, si) { if (s) occ.push(si); });
+        if (occ.length >= 2) {
+          var pool = occ.map(function (si) { return t.seats[si]; });
+          for (var fi = pool.length - 1; fi > 0; fi--) {
+            var fj = Math.floor(Math.random() * (fi + 1));
+            var ftmp = pool[fi]; pool[fi] = pool[fj]; pool[fj] = ftmp;
+          }
+          occ.forEach(function (slot, k) { t.seats[slot] = pool[k]; });
+        }
         return broadcast(t, []);
       }
       // lobby-only by registration (colors LOCK at Start, by decision):
