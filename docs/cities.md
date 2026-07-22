@@ -742,11 +742,15 @@ decision above).
    plays to a winner on `?mock`. Strings are fully scaffolded as `[ph]`
    placeholders — all ~100 entries still carry the prefix, awaiting
    Aditya's copy pass. Look-and-feel + copy remain Aditya's passes.
-2. **Worker + DO** in `../DeetsCities`: vendor `engine.js` +
-   `board-data.js` + `colors.js` verbatim, port the mock's command
-   dispatch, peek, reconnect, per-socket views, timers-as-alarms,
-   bot takeover (grace → AI), abuse guards. Deploy, then a real
-   two-browser game.
+2. **Worker + DO** in `../DeetsCities` — ✅ DONE + DEPLOYED (2026-07-21,
+   `cities-api.deets.solutions`): vendored `engine.js` + `board-data.js` +
+   `colors.js` verbatim (`scripts/vendor.mjs --check` green), the mock's
+   command dispatch, peek, reconnect, per-socket views, timers-as-alarms,
+   bot takeover (grace → AI), abuse guards. Client wiring for the
+   grace trio (red countdown toast off `graceUntil`, `(bot)` strip tag,
+   `flood` in errText) is in `cities.js`; a 13-assertion WS integration
+   test (grace → returned → takeover → reclaim → flood) passed against
+   `wrangler dev` and prod. Remaining: a real two-browser game (Aditya's).
 3. **Spectator polish + betting v1.1**: the betting panel, winner bets,
    settlement at `over`.
 4. **Site wiring**: nav link (not core) added to every page's header,

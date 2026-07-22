@@ -125,6 +125,7 @@
   var clockSkew = 0, timerHandle = null;   // clockSkew = Date.now() - server clock
   var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {}, colorOpen: null, colorDraft: null };   // transient board-interaction state
   var acceptToasts = {};   // "offerId:seat" -> sticky accepted-toast handle
+  var graceToasts = {};    // seat -> { handle, until, timer } — red disconnect-grace countdowns
   var offerCache = {};     // last-seen offer bundles (for the decline-fade ghost)
   var fadingOffers = {};   // id -> offer snapshot, briefly rendered fading out
 
@@ -276,6 +277,7 @@
     if (connToast) { connToast.dismiss(); connToast = null; }
     Object.keys(acceptToasts).forEach(function (k) { acceptToasts[k].dismiss(); });
     acceptToasts = {};
+    clearGraceToasts();
     offerCache = {}; fadingOffers = {};
     document.removeEventListener("click", onEmbargoDocClick, true);
     document.removeEventListener("keydown", onEmbargoKey);
@@ -307,6 +309,7 @@
     if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
     (msg.ev || []).forEach(handleEvent);
     sweepAcceptToasts();
+    syncGraceToasts();
     // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator in
     // the lobby; take a seat once (the toolbar's Sit/Stand governs after)
     if (ui.wantSit && model.phase === "lobby" && mySeat() == null) { ui.wantSit = false; send({ type: "sit" }); }
@@ -334,6 +337,11 @@
   }
   function handleEvent(e) {
     if (e.t === "roll") spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
+    // disconnect-grace trio (worker only; the mock never emits these). The
+    // sticky countdown itself is model-driven — syncGraceToasts reads
+    // seat.graceUntil — so these are just the one-shot resolution lines.
+    if (e.t === "returned") toast(fmt(S.returnedToast, { name: seatName(e.seat) }), "success");
+    if (e.t === "takeover") toast(fmt(S.takeoverToast, { name: seatName(e.seat) }), "warn");
     // an incoming offer pops the trade hub so the accept/decline is right
     // there — unless the sender is embargoed: then it's declined on sight
     if (e.t === "offer" && e.from !== mySeat()) {
@@ -378,8 +386,40 @@
     });
   }
   function errText(codeStr) {
-    var map = { cost: S.errCost, loc: S.errLoc, turn: S.errTurn, phase: S.errPhase, rate: S.errRate, perm: S.errPerm, full: S.errFull, empty: S.errEmpty, supply: S.errSupply, "no-table": S.noTable, "name-taken": S.nameTaken, color: S.errColor, "color-taken": S.errColorTaken };
+    var map = { cost: S.errCost, loc: S.errLoc, turn: S.errTurn, phase: S.errPhase, rate: S.errRate, perm: S.errPerm, full: S.errFull, empty: S.errEmpty, supply: S.errSupply, "no-table": S.noTable, "name-taken": S.nameTaken, color: S.errColor, "color-taken": S.errColorTaken, flood: S.errFlood };
     return map[codeStr] || S.errPhase;
+  }
+
+  /* ── disconnect-grace countdown (the red toast) ─────────────────
+     Authoritative state is the seat's graceUntil in every broadcast
+     (docs/cities.md, "Disconnects → grace → bot takeover"), so the sticky
+     toast is reconciled from the model — a spectator joining mid-grace
+     sees it from their first snapshot, no `leaving` event needed. Ticks
+     locally off serverNow's clockSkew, like the turn box. */
+  function graceSecs(until) { return Math.max(0, Math.ceil((until - (Date.now() - clockSkew)) / 1000)); }
+  function syncGraceToasts() {
+    var live = {};
+    (model.seats || []).forEach(function (s, i) { if (s && !s.empty && s.graceUntil && !s.bot) live[i] = s.graceUntil; });
+    Object.keys(graceToasts).forEach(function (k) {
+      if (live[k] == null) {
+        clearInterval(graceToasts[k].timer);
+        graceToasts[k].handle.dismiss();
+        delete graceToasts[k];
+      }
+    });
+    Object.keys(live).forEach(function (k) {
+      if (graceToasts[k]) { graceToasts[k].until = live[k]; return; }
+      var seat = +k;
+      var entry = { until: live[k], handle: null, timer: null };
+      var line = function () { return fmt(S.leavingToast, { name: seatName(seat), secs: graceSecs(entry.until) }); };
+      entry.handle = toast(line(), "error", { sticky: true });
+      entry.timer = setInterval(function () { entry.handle.update(line()); }, 250);
+      graceToasts[k] = entry;
+    });
+  }
+  function clearGraceToasts() {
+    Object.keys(graceToasts).forEach(function (k) { clearInterval(graceToasts[k].timer); graceToasts[k].handle.dismiss(); });
+    graceToasts = {};
   }
 
   /* ── typed events → terse mechanical log lines (Claude-authored) ─
@@ -1313,7 +1353,9 @@
       var body = el("div", "cities-pstrip__body");
       var head = el("div", "cities-pstrip__head");
       head.appendChild(seatDot(i));
-      head.appendChild(el("span", "cities-pstrip__name", seatName(i) + (i === mySeat() ? " ·" : "")));
+      // a botted seat (grace expired / kicked mid-game) wears the tag
+      var nm = model.seats[i] && model.seats[i].bot ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
+      head.appendChild(el("span", "cities-pstrip__name", nm + (i === mySeat() ? " ·" : "")));
       if (isEmbargoed(i)) head.appendChild(el("span", "cities-badge", "🚫"));
       body.appendChild(head);
       body.appendChild(awardRow({

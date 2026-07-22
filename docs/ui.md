@@ -243,7 +243,9 @@ repeated here; this doc is the appearance-picker reference.
 Shared chrome like `controls.js` — loaded on every page, deliberately NOT
 part of the duplicated toolbar kit (a toast has no page-specific logic).
 `window.DeetsToast.push({ kind, text, sticky, timeout, actions })` →
-`{ dismiss }`; the API contract is documented in the file's header.
+`{ dismiss, update }`; the API contract is documented in the file's
+header (`update(text)` rewrites the toast in place — the cities page's
+disconnect-grace countdown ticks through it).
 
 - **Host**: a fixed top-right column under the header (`.toast-host`,
   z 50 — above the radio site-shell (35) and row menus (40), so the room
