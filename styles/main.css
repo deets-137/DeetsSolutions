@@ -3422,3 +3422,695 @@ button:focus-visible {
   outline: var(--focus-ring-w) solid var(--title);
   outline-offset: var(--focus-ring-off);
 }
+
+/* ============================================================
+   DeetsCities — the hex-settlement game tab (docs/cities.md).
+   Chrome (bar, tiles, pills, popovers, overlay) rides the semantic
+   theme/skin tokens and must survive all 30 combos. The BOARD + CARDS
+   are the one deliberate carve-out below.
+   ============================================================ */
+
+/* cities game palette — deliberate token carve-out (docs/cities.md).
+   Fixed literals scoped to the board + cards only: terrain fills, the six
+   PRESET seat colors (chosen to stay distinct for common color-vision
+   deficiencies), and number-token ink. These do NOT vary by theme. The
+   --cseat-N values here are fallbacks: cities.js overrides the slots on
+   this root with each seat's actual (possibly custom-hex) pick from the
+   lobby color picker. Until Aditya's hand-drawn sprites land every art
+   surface is a flat geometric placeholder in these colors (rectangles for
+   cards, circles for tokens/pieces, flat hex fills). */
+.cities {
+  --cterr-wood:   #3f7d3a;
+  --cterr-brick:  #c06b3e;
+  --cterr-wheat:  #e0b23c;
+  --cterr-sheep:  #8fc15a;
+  --cterr-ore:    #8a8f98;
+  --cterr-desert: #d8c89a;
+  --cterr-sea:    #3b6ea5;
+  --cseat-0: #d94141;  /* red    */
+  --cseat-1: #3b7dd8;  /* blue   */
+  --cseat-2: #2fae66;  /* green  */
+  --cseat-3: #e08a2e;  /* orange */
+  --cseat-4: #9457c9;  /* purple */
+  --cseat-5: #22b0b0;  /* teal   */
+  --ctoken-bg:  #f2ead4;
+  --ctoken-ink: #23303f;
+  --ctoken-hot: #c0271f;   /* 6 / 8 ink */
+}
+
+/* ── code combobox (the table code IS the title, League/radio idiom) ── */
+.cities-code { flex: 1 1 auto; min-width: 0; max-width: 22rem; }
+.cities-code__input {
+  width: 100%;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.1);
+  color: var(--title);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  padding: var(--space-1) 0;
+  outline: none;
+}
+.cities-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
+.cities-code__input:focus { border-bottom-color: var(--title); }
+.cities-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; }
+.tb-pop__head, .tb-pop__empty {
+  padding: var(--space-2) var(--space-3);
+  color: var(--subtext);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── gate (peek → sit / watch / open) ─────────────────────────── */
+.cities-gate {
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.cities-gate__line { margin: 0 0 var(--space-4); color: var(--text); font-size: 1.05rem; }
+.cities-gate__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.cities-gate__name { display: flex; flex-direction: column; gap: var(--space-1); }
+.cities-gate__name-label { color: var(--subtext); font-size: 0.8rem; }
+.cities-gate__name-input {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.cities-gate__go { cursor: pointer; }
+.cities-gate__go:disabled { opacity: 0.4; cursor: default; }
+
+/* ── the bento ────────────────────────────────────────────────── */
+.cities-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-rows: auto auto minmax(6rem, 1fr) auto;
+  grid-template-areas:
+    "big dice"
+    "big players"
+    "big log"
+    "role role";
+  gap: var(--space-3);
+  position: relative;
+  align-items: start;
+}
+.cities-tile {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+}
+/* Fixed height (not content-driven): the lobby settings, the board, and the
+   game-over stats all live in the same box, so Start never moves the page.
+   The board SVG meet-fits inside; over-length stats scroll internally. */
+.cities-tile--big { grid-area: big; height: clamp(30rem, calc(100vh - 16rem), 42rem); position: relative; display: flex; overflow-y: auto; }
+.cities-tile--dice { grid-area: dice; }
+/* Fixed height sized to exactly 4 strips (the base-board table): 5-6
+   player tables scroll inside on the themed scrollbar instead of
+   expanding the panel and pushing the log down. cities.js keeps the
+   scroll position across re-renders and scrolls the active player's
+   strip into view on turn change. */
+.cities-tile--players { grid-area: players; height: 21.25rem; overflow-y: auto; position: relative; }
+.cities-tile--log { grid-area: log; min-height: 0; display: flex; overflow: hidden; }
+.cities-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* ── board SVG ────────────────────────────────────────────────── */
+.cities-board { width: 100%; height: 100%; margin: auto; }
+.cities-hex { stroke: rgba(0, 0, 0, 0.28); stroke-width: 1.5; }
+.cities-hex--target { cursor: pointer; stroke: var(--title); stroke-width: 3; }
+.cities-hex--target:hover { filter: brightness(1.12); }
+.cities-token { fill: var(--ctoken-bg); stroke: rgba(0, 0, 0, 0.25); stroke-width: 1; }
+.cities-token__num { fill: var(--ctoken-ink); font: 700 13px/1 var(--font-body); }
+.cities-token__num.is-hot { fill: var(--ctoken-hot); }
+.cities-token__pips { fill: var(--ctoken-hot); font: 700 7px/1 var(--font-body); letter-spacing: -0.5px; opacity: 0.85; }
+/* placement-strength badge (hover a settlement target): pooled pips of the
+   adjacent hexes on a token-styled pill — the game palette, like the tokens */
+.cities-vhint { pointer-events: none; }
+.cities-vhint__bg { fill: var(--ctoken-bg); stroke: rgba(0, 0, 0, 0.25); stroke-width: 1; }
+.cities-vhint__pips { fill: var(--ctoken-hot); font: 700 8px/1 var(--font-body); letter-spacing: -0.5px; }
+/* ── board popovers (bottom-left of the board tile): Odds + Resources ──
+   The pill row + popovers are absolute, above the SVG — the tile never
+   reflows. Popovers share one dock and are fixed-size (bars normalize to
+   the max; the odds hover line is a reserved row), themed chrome around
+   game-palette / seat-color bars. */
+.cities-boardbtns { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 3; display: flex; gap: var(--space-2); }
+.cities-bpop {
+  position: absolute; left: var(--space-3); bottom: 3.6rem; z-index: 3;
+  width: 24rem; max-width: calc(100% - var(--space-3) * 2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  visibility: hidden; opacity: 0;
+}
+.cities-bpop.is-open { visibility: visible; opacity: 1; }
+.cities-odds__count { font-size: 0.75rem; color: var(--subtext); margin-bottom: var(--space-2); }
+/* hard-fixed height + matching line-height: the ghost row is exactly the
+   same size empty or filled, so bar-hover can never nudge the panel */
+.cities-odds__hint { font-size: 0.75rem; color: var(--text); height: 1.2rem; line-height: 1.2rem; margin-top: var(--space-1); white-space: nowrap; overflow: hidden; }
+.cities-odds__chart { display: block; width: 100%; }
+.cities-odds__bar { fill: var(--ctoken-bg); }
+.cities-odds__bar.is-hot { fill: var(--ctoken-hot); }
+.cities-odds__n { fill: var(--text); font: 700 11px/1 var(--font-body); pointer-events: none; }
+.cities-odds__x { fill: var(--subtext); font: 700 11px/1 var(--font-body); pointer-events: none; }
+.cities-odds__x.is-hot { fill: var(--ctoken-hot); }
+.cities-odds__axis { stroke: var(--border); pointer-events: none; }
+.cities-odds__hit { fill: transparent; }
+.cities-robber { fill: #1a1a1a; stroke: #fff; stroke-width: 1.5; opacity: 0.9; }
+.cities-road { stroke-width: 6; stroke-linecap: round; }
+.cities-road--target { stroke: var(--title); stroke-dasharray: 3 4; opacity: 0.6; cursor: pointer; }
+.cities-road--target:hover { opacity: 1; stroke-width: 8; }
+.cities-piece { stroke: rgba(0, 0, 0, 0.4); stroke-width: 1.5; }
+.cities-piece--city { stroke-width: 2; }
+.cities-vtarget { fill: var(--title); opacity: 0.45; cursor: pointer; }
+.cities-vtarget:hover { opacity: 0.85; }
+.cities-harbor__link { stroke: rgba(0, 0, 0, 0.3); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.cities-harbor__dot { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
+.cities-harbor__label { fill: #fff; font: 700 8px/1 var(--font-body); }
+
+/* ── View-settings hover pill (toolbar) ───────────────────────── */
+.cities-setth { position: relative; display: inline-flex; }
+.cities-setth__pop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 12rem; padding: var(--space-2); }
+.cities-setth__row { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-1) var(--space-2); font-size: 0.85rem; }
+.cities-setth__k { color: var(--subtext); }
+.cities-setth__v { color: var(--title); font-weight: 700; }
+
+/* ── lobby (settings + seats) ─────────────────────────────────── */
+.cities-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.cities-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.cities-set { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.cities-set__label { color: var(--subtext); min-width: 8rem; font-size: 0.9rem; }
+.cities-set__opts { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.cities-chip {
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.cities-chip:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
+.cities-chip:disabled { opacity: 0.55; cursor: default; }
+.cities-chip.is-active { border-color: var(--title); color: var(--title); }
+.cities-lobby__seats { display: flex; flex-direction: column; gap: var(--space-2); }
+.cities-seat {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.cities-seat--empty { opacity: 0.6; border-style: dashed; }
+.cities-seat__name { flex: 1 1 auto; color: var(--text); }
+.cities-seat__badge {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+}
+.cities-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
+.cities-seat__kick:hover { color: var(--stop); }
+.cities-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
+
+/* ── seat-color picker (lobby): the dot is the button, the panel slides
+   open under the row with the game-over superlatives' 0fr→1fr slide ── */
+.cities-seat__dotbtn {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; margin: -0.35rem;   /* bigger target, same layout as the bare dot */
+  padding: 0; background: none; border: none; border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui);
+}
+.cities-seat__dotbtn:hover,
+.cities-seat__dotbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--border); }
+.cities-seat__dotbtn:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+/* collapsed it must occupy ZERO height AND swallow one roster flex gap
+   (the negative top margin), so a picker's presence never shifts the rows
+   below — the bento's universal layout rule. Border/padding live on the
+   inner-inner body, never on the overflow-hidden track (they'd leak at 0fr,
+   the same reason the superlatives keep their inner bare). */
+.cities-colorpick {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease;
+  margin: calc(-1 * var(--space-2)) var(--space-2) 0;
+}
+.cities-colorpick.is-open { grid-template-rows: 1fr; }
+.cities-colorpick__inner { overflow: hidden; min-height: 0; }
+.cities-colorpick__body {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  background: var(--surface);
+}
+.cities-colorpick__label {
+  color: var(--subtext); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.cities-colorpick__swatches { display: flex; gap: var(--space-2); }
+.cities-colorpick__swatch {
+  width: 1.5rem; height: 1.5rem; flex: none;
+  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+}
+.cities-colorpick__swatch:hover:not(:disabled) { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
+.cities-colorpick__swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.cities-colorpick__swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
+.cities-colorpick__swatch:disabled { opacity: 0.35; cursor: default; }
+/* the 7th (custom) slot before a hex was ever Become'd: an empty dashed
+   ring that just focuses the field — chrome, so tokens, not the palette */
+.cities-colorpick__swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
+.cities-colorpick__custom { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cities-colorpick__hexlabel { color: var(--subtext); font-size: 0.85rem; }
+.cities-colorpick__hexinput {
+  width: 6.5rem;
+  font: inherit;                      /* match the Become... chip's height */
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.cities-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
+.cities-colorpick__go { cursor: pointer; }
+.cities-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
+.cities-lobby__start { align-self: flex-start; cursor: pointer; }
+.cities-lobby__start:disabled { opacity: 0.5; cursor: default; }
+.cities-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }
+
+/* ── dice tile ────────────────────────────────────────────────── */
+.cities-dice__faces { display: flex; gap: var(--space-3); justify-content: center; align-items: center; padding: var(--space-2) 0; }
+.cities-dice__dice { display: flex; gap: var(--space-3); }
+/* with a turn timer, the dice sit left and the countdown takes the right */
+.cities-dice__faces--timed { justify-content: space-between; }
+.cities-timer {
+  min-width: 3.6rem; height: 2.6rem; padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  font: 700 1.2rem/1 var(--font-body); font-variant-numeric: tabular-nums;
+}
+.cities-timer.is-live { color: var(--title); border-color: var(--title); }
+.cities-timer.is-urgent { color: var(--stop); border-color: var(--stop); animation: cities-timerpulse 1s var(--ease-ui) infinite; }
+@keyframes cities-timerpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .cities-timer.is-urgent { animation: none; } }
+.cities-die {
+  width: 2.6rem; height: 2.6rem; display: grid; place-items: center;
+  background: var(--ctoken-bg); color: var(--ctoken-ink);
+  border-radius: var(--radius-control); font: 700 1.4rem/1 var(--font-body);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.cities-dice__faces.is-spinning .cities-die { animation: cities-diespin 0.14s steps(2) infinite; }
+@keyframes cities-diespin { to { transform: translateY(-2px) rotate(8deg); } }
+/* one line is always reserved (radio's meta idiom) so the caption appearing
+   at game start doesn't grow the tile */
+.cities-dice__cap { margin: var(--space-2) 0 0; text-align: center; color: var(--subtext); font-size: 0.85rem; min-height: 1.5em; min-height: 1lh; }
+@media (prefers-reduced-motion: reduce) { .cities-dice__faces.is-spinning .cities-die { animation: none; } }
+
+/* ── players tile ─────────────────────────────────────────────── */
+.cities-pstrip {
+  display: flex; align-items: stretch; gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cstrip, var(--border));
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-2);
+  position: relative;
+}
+.cities-pstrip.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.cities-pstrip.is-away { opacity: 0.5; }
+.cities-pstrip__head > .cities-dot { flex: none; }
+/* body: name (with the seat dot) pinned top-left, award pills pinned
+   bottom-left. The 3-line stat column governs the strip height; the pills are
+   compact and stacked so name + two pills stay within that height — a strip
+   never changes size when a player gains an award (docs/cities.md: no UI piece
+   resizes another). */
+.cities-pstrip__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.cities-pstrip__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.cities-pstrip__name { color: var(--text); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cities-pstrip__badges { display: inline-flex; gap: 2px; }
+.cities-pstrip__awards { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+/* progress state (award not yet held): a quiet neutral chip showing the seat's
+   count toward the award — "{n}x Roads" / "{n}x Knights". */
+.cities-pstrip__award {
+  font-size: 0.6rem; line-height: 1.1; white-space: nowrap;
+  padding: 0 var(--space-2);
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+/* held state: the award is this seat's — accent color + glow so it stands out. */
+.cities-pstrip__award.is-held {
+  color: var(--title); font-weight: 700;
+  border-color: var(--title);
+  box-shadow: 0 0 0 1px var(--title), 0 0 8px -1px var(--title);
+}
+.cities-pstrip__stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: 0.72rem; color: var(--subtext); }
+.cities-pstrip__vp { color: var(--title); font-weight: 700; }
+
+/* ── log tile ─────────────────────────────────────────────────── */
+/* height is locked to fit the bento by cities.js (fitLog); 14rem is the
+   pre-measurement fallback. Scrolls with the themed bar (same recipe as
+   .vibe__list / .radio-col__body). A narrow left rail toggles between the
+   Log list and the Deck pane (bank counts); the rail is a constant width so
+   switching panes never moves anything. */
+.cities-logwrap { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; gap: var(--space-2); }
+.cities-lograil { flex: none; display: flex; flex-direction: column; gap: var(--space-1); }
+/* sideways labels reading bottom-to-top (vertical-rl flipped 180°), each
+   button stretching to fill its half of the rail */
+.cities-lograil__btn {
+  flex: 1 1 0; min-height: 0;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  font: inherit; font-size: 0.7rem; line-height: 1.2;
+  padding: var(--space-2) var(--space-1);
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.cities-lograil__btn:hover { background: var(--surface-hover); color: var(--text); }
+.cities-lograil__btn.is-active { color: var(--title); border-color: var(--title); }
+.cities-log__pane { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.cities-log__list {
+  flex: 1 1 auto; width: 100%; min-height: 0; overflow-y: auto;
+  font-size: 0.82rem; color: var(--text); display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.cities-log__list::-webkit-scrollbar, .cities-tile--players::-webkit-scrollbar { width: var(--space-2); }
+.cities-log__list::-webkit-scrollbar-track, .cities-tile--players::-webkit-scrollbar-track { background: transparent; }
+.cities-log__list::-webkit-scrollbar-thumb, .cities-tile--players::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.cities-log__list::-webkit-scrollbar-thumb:hover, .cities-tile--players::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
+.cities-log__line { color: var(--text); opacity: 0.9; line-height: 1.4; }
+.cities-log__line:last-child { color: var(--title); opacity: 1; }
+/* resource words tinted with the fixed game palette (the carve-out — these
+   words ARE palette references, so they ride --cterr-*, not theme tokens) */
+.cities-log__res { color: var(--cres, inherit); font-weight: 600; }
+/* full-width turn divider */
+.cities-log__turn {
+  margin: var(--space-1) 0;
+  padding: 1px var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--title); font-size: 0.75rem; font-weight: 600;
+}
+/* deck pane: 5 mini cards in a centered 3-2 grid (6 tracks, each card spans
+   2; row two starts at track 2). Cards keep the hand-card recipe at reduced
+   scale; counts up to two digits fit without resizing. */
+.cities-deck {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2); align-content: start;
+  overflow-y: auto; min-height: 0;
+}
+.cities-deck > .cities-card { grid-column: span 2; }
+.cities-deck > .cities-card:nth-child(4) { grid-column: 2 / span 2; }
+.cities-deck > .cities-card:nth-child(5) { grid-column: 4 / span 2; }
+.cities-card--mini { min-width: 0; padding: var(--space-1); }
+.cities-card--mini .cities-card__n { font-size: 0.95rem; }
+.cities-card--mini .cities-card__lbl { font-size: 0.62rem; }
+
+/* ── role tile (hand + actions) ───────────────────────────────── */
+.cities-role__note { margin: 0 0 var(--space-2); color: var(--text); }
+.cities-role__betting { color: var(--subtext); font-size: 0.85rem; }
+.cities-role__chips { color: var(--title); font-weight: 700; }
+/* the play area: hand on the left, controls (buttons + option tray) on the
+   right, tops aligned — the tray stays inside the right half */
+.cities-play { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: start; }
+.cities-play__hand { min-width: 0; }
+/* the controls column grid-stacks the pills+tray gauge under any prompt that
+   replaces it (cities.js buildGauge) — the ghosted gauge keeps the size */
+.cities-play__ctrl { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.cities-play__ctrl > * { grid-area: 1 / 1; }
+.cities-gauge { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.cities-ctrlnote { min-width: 0; }
+/* the hand is a stacked play area: title · resources · dev cards */
+.cities-hand { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.cities-hand__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1rem; }
+.cities-hand__res { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.cities-devrow { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.cities-card {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 3rem; padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--ccard, var(--border));
+  border-radius: var(--radius-control);
+  font: inherit;  /* button-variant cards must not fall back to the UA font */
+}
+.cities-card__n { font-weight: 700; color: var(--title); font-size: 1.1rem; }
+.cities-card__lbl { font-size: 0.68rem; color: var(--subtext); }
+.cities-card--btn { cursor: pointer; }
+.cities-card--btn:hover { background: var(--surface-hover); }
+.cities-card.is-sel { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+/* dev cards under the resources — playable ones are live buttons */
+.cities-devcard {
+  font: inherit; font-size: 0.78rem;
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--title);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.cities-devcard:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--title); }
+.cities-devcard:disabled { cursor: default; }
+.cities-devcard.is-locked { opacity: 0.5; border-top-color: var(--border); }
+.cities-devcard.is-vp { opacity: 0.9; border-top-color: var(--subtext); cursor: help; }
+
+/* in-panel build/trade option tray. The slot is permanently reserved:
+   cities.js grid-stacks both trays + the cancel link in this one cell and
+   visibility-hides the closed ones, so toggling Build/Trade never resizes
+   the role tile (the universal layout rule — no piece may change size or
+   push another). */
+.cities-tray { display: grid; grid-template-columns: minmax(0, 1fr); }
+.cities-tray > * { grid-area: 1 / 1; }
+/* size-keeping ghosts (trays, the gauge, lobby stat columns, the empty dev
+   row): laid out at full size, just not visible */
+.cities .is-ghost { visibility: hidden; }
+/* a clean right-aligned 2x2 grid: Road | Settlement / Dev | City.
+   width:max-content + 1fr tracks sizes BOTH columns to the widest cell, and
+   1fr auto-rows equalize the rows — four identical boxes, flush right */
+.cities-buildopts { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: var(--space-2); width: max-content; max-width: 100%; justify-self: end; align-content: start; }
+.cities-opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-width: 8.5rem; padding: var(--space-2) var(--space-3);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  cursor: pointer; font: inherit; text-align: left;
+}
+.cities-opt:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
+.cities-opt:disabled { opacity: 0.45; cursor: default; }
+.cities-opt__title { color: var(--title); font-weight: 700; font-size: 0.9rem; }
+.cities-opt__cost { color: var(--subtext); font-size: 0.72rem; }
+
+.cities-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+.cities-act { cursor: pointer; }
+.cities-act:disabled { opacity: 0.4; cursor: default; }
+/* Roll pill: glows while a roll is due, sits grayed (via :disabled) otherwise */
+.cities-act--roll.is-glow {
+  color: var(--title); border-color: var(--title);
+  box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title);
+  animation: cities-rollglow 1.6s var(--ease-ui) infinite;
+}
+@keyframes cities-rollglow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--title), 0 0 10px -3px var(--title); }
+  50%      { box-shadow: 0 0 0 1px var(--title), 0 0 18px 1px var(--title); }
+}
+@media (prefers-reduced-motion: reduce) { .cities-act--roll.is-glow { animation: none; } }
+.cities-cancel { margin-top: var(--space-2); background: none; border: none; color: var(--subtext); cursor: pointer; text-decoration: underline; }
+.cities-discard { display: flex; flex-direction: column; gap: var(--space-2); }
+.cities-discard__box { display: flex; align-items: stretch; gap: var(--space-2); }
+.cities-discard__cards { display: flex; flex-wrap: wrap; gap: var(--space-2); flex: 1 1 auto; }
+/* the confirm sits as a square to the right of the sideways card row */
+.cities-discard__go {
+  flex: 0 0 auto; align-self: stretch; aspect-ratio: 1;
+  display: grid; place-items: center; text-align: center; padding: var(--space-1);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-panel);
+  cursor: pointer; font: inherit; font-weight: 700; font-size: 0.8rem; line-height: 1.1;
+}
+.cities-discard__go:not(:disabled) { color: var(--title); border-color: var(--title); }
+.cities-discard__go:hover:not(:disabled) { background: var(--surface-hover); }
+.cities-discard__go:disabled { opacity: 0.45; cursor: default; }
+.cities-steal { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.cities-menu {
+  position: absolute; z-index: 40; min-width: 12rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+/* ── trade overlay (docks over the board's right quarter) ─────── */
+/* docks over the board's right edge, spanning its full height. Absolutely
+   positioned into the bento's `big` grid area (the bento is position:
+   relative), so however tall the hub's content gets it can NEVER size the
+   grid row — the column stays fixed and over-length content scrolls inside */
+.cities-trade {
+  grid-area: big;
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 16rem;
+  max-width: 42%;
+  margin: var(--space-3);
+  z-index: 20;
+  pointer-events: none;
+}
+.cities-trade:not([hidden]) { display: flex; flex-direction: column; min-height: 0; }
+.cities-trade > * { pointer-events: auto; flex: 1 1 auto; min-height: 0; }
+.cities-tpanel, .cities-offers {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+/* primary trade button pins to the bottom of the full-height builder panel */
+.cities-tpanel > .tb-pill { margin-top: auto; align-self: stretch; justify-content: center; }
+.cities-tpanel__title, .cities-offers__title { margin: 0 0 var(--space-2); color: var(--title); font-size: 0.95rem; }
+.cities-tpanel__lbl { display: block; color: var(--subtext); font-size: 0.75rem; margin: var(--space-2) 0 var(--space-1); }
+.cities-tpanel__res { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.cities-tpanel__close { position: absolute; top: var(--space-2); right: var(--space-2); background: none; border: none; color: var(--subtext); cursor: pointer; }
+/* offer steppers: 2 per row, the 5th centered on row 3 */
+.cities-steps { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-top: var(--space-1); }
+.cities-steps > .cities-step:nth-child(5):last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - var(--space-2) / 2); }
+/* horizontal resource card — colored left edge echoes the hand cards */
+.cities-step {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ccard, var(--border));
+  border-radius: var(--radius-control);
+  padding: var(--space-1);
+  font: inherit;
+}
+.cities-step__body { display: flex; flex-direction: column; align-items: center; line-height: 1.05; min-width: 0; }
+.cities-step__n { font-weight: 700; color: var(--title); font-size: 1.05rem; }
+.cities-step__lbl { font-size: 0.62rem; color: var(--subtext); white-space: nowrap; }
+.cities-step__b {
+  width: 1.7rem; height: 1.7rem; display: grid; place-items: center;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  cursor: pointer; color: var(--text); font: inherit; line-height: 1;
+}
+.cities-step__b:hover { background: var(--surface-hover); border-color: var(--title); color: var(--title); }
+.cities-offers { max-height: none; }
+.cities-offers__title { display: flex; align-items: center; gap: var(--space-2); }
+.cities-offers__count { font-size: 0.7rem; font-weight: 700; color: var(--surface); background: var(--title); border-radius: 999px; padding: 0 var(--space-2); }
+/* hub initiate row (Bank / Players) above the live offers — half / half.
+   Each is a toggle disclosing its builder inline underneath. */
+.cities-offers__init { display: flex; gap: var(--space-2); margin-bottom: var(--space-2); }
+.cities-offers__init > .cities-opt { flex: 1 1 0; min-width: 0; align-items: center; justify-content: center; }
+.cities-offers__init > .cities-opt.is-active { border-color: var(--title); background: var(--surface-hover); }
+.cities-offers__tool {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: var(--space-2); margin-bottom: var(--space-2); flex: none;
+}
+.cities-offers__tool > .tb-pill { margin-top: var(--space-2); align-self: stretch; justify-content: center; }
+/* bank give row: five cards on a 3 + 2 grid, second row centered */
+.cities-offers__tool .cities-tpanel__res {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-1);
+}
+.cities-offers__tool .cities-tpanel__res > * { grid-column: span 2; }
+.cities-offers__tool .cities-tpanel__res > :nth-child(4) { grid-column: 2 / span 2; }
+.cities-offer { border: 1px solid var(--border); border-radius: var(--radius-control); padding: var(--space-2); margin-bottom: var(--space-2); flex: none; }
+/* an offer awaiting MY response draws the eye until I act on it */
+.cities-offer.is-incoming { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); animation: cities-offerpulse 1.8s var(--ease-ui) infinite; }
+@keyframes cities-offerpulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--title); }
+  50%      { box-shadow: 0 0 0 1px var(--title), 0 0 14px -3px var(--title); }
+}
+@media (prefers-reduced-motion: reduce) { .cities-offer.is-incoming { animation: none; } }
+.cities-offer.is-mine { border-left: 3px solid var(--cstrip, var(--title)); }
+.cities-offer__head { color: var(--text); font-size: 0.85rem; margin-bottom: var(--space-1); }
+.cities-offer__row { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; font-size: 0.78rem; }
+.cities-offer__lbl { color: var(--subtext); }
+.cities-minichip { border-top: 2px solid var(--ccard, var(--border)); border: 1px solid var(--border); border-radius: 4px; padding: 0 var(--space-1); display: inline-flex; gap: 2px; }
+.cities-offer__btns { display: flex; gap: var(--space-1); flex-wrap: wrap; margin-top: var(--space-2); }
+/* participants on my open offer — the players-tile strip idiom; an accepted
+   strip is live: clicking it closes the trade with that seat */
+.cities-offer__seats { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+.cities-offer__seat {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cstrip, var(--border));
+  border-radius: var(--radius-control);
+  font: inherit; text-align: left; cursor: default;
+}
+.cities-offer__seatname { flex: 1 1 auto; min-width: 0; color: var(--text); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cities-offer__verdict { font-size: 0.85rem; }
+.cities-offer__seat.is-accept { cursor: pointer; }
+.cities-offer__seat.is-accept .cities-offer__verdict { color: var(--go, var(--title)); font-weight: 700; }
+.cities-offer__seat.is-accept:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
+.cities-offer__seat.is-decline { opacity: 0.55; }
+.cities-offer__seat.is-decline .cities-offer__verdict { color: var(--stop); }
+/* a fully-declined offer fades out before leaving the hub */
+.cities-offer--fading { animation: cities-offerfade 0.5s var(--ease-ui) forwards; pointer-events: none; }
+@keyframes cities-offerfade { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cities-offer--fading { animation: none; opacity: 0.35; } }
+/* embargo context menu, anchored inside the (position:relative) strip */
+.cities-embargo__pop { position: absolute; top: calc(100% - var(--space-1)); right: var(--space-2); z-index: 30; }
+
+/* ── game over ────────────────────────────────────────────────── */
+.cities-over { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+/* header: title left, turn count right, sharing one baseline */
+.cities-over__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.cities-over__title { margin: 0; color: var(--title); font-family: var(--font-title); }
+.cities-over__turns { flex: none; color: var(--subtext); font-size: 0.9rem; }
+.cities-over__winner { margin: 0; color: var(--text); font-size: 1.1rem; }
+/* align-items:start so an expanding card grows on its own — it never stretches
+   its row-mates (docs/cities.md: click-to-expand superlatives) */
+.cities-over__supers { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: var(--space-2); align-items: start; }
+.cities-super { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; padding: var(--space-2); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-control); }
+.cities-super:hover { background: var(--surface-hover); }
+.cities-super__label { display: block; color: var(--subtext); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.cities-super__who { display: flex; align-items: center; gap: var(--space-1); color: var(--text); margin-top: var(--space-1); }
+.cities-super__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cities-super__val { margin-left: auto; flex: none; color: var(--title); font-weight: 700; }
+/* caret: a small triangle that flips up when the card is open */
+.cities-super__caret { flex: none; width: 0; height: 0; margin-left: var(--space-1); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--subtext); transition: transform 200ms ease; }
+.cities-super[aria-expanded="true"] .cities-super__caret { transform: rotate(180deg); }
+/* slide-open field — grid-template-rows 0fr→1fr animates height with no JS measure */
+.cities-super__more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 240ms ease; }
+.cities-super[aria-expanded="true"] .cities-super__more { grid-template-rows: 1fr; }
+.cities-super__more-inner { overflow: hidden; min-height: 0; }
+.cities-super__rank-list { margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-1); }
+.cities-super__rank { display: flex; align-items: center; gap: var(--space-1); font-size: 0.9em; color: var(--subtext); }
+.cities-super__rank .cities-super__val { color: var(--text); font-weight: 600; }
+.cities-over__reveal { display: flex; flex-direction: column; gap: var(--space-1); }
+/* every row reserves the border box so the winner's glow doesn't shift the others */
+.cities-over__row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-control); }
+.cities-over__row.is-winner { border-color: var(--title); box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title); }
+.cities-over__name { flex: 1 1 auto; color: var(--text); }
+.cities-over__vp { color: var(--title); font-weight: 700; }
+
+/* ── desktop-only guard (below the 56rem nav breakpoint) ──────── */
+.cities-desktop-note { color: var(--subtext); padding: var(--space-6) 0; font-size: 1rem; }
+@media (max-width: 56rem) {
+  .cities-bento { display: none; }
+}

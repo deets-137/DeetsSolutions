@@ -4,9 +4,12 @@ Personal static site (deets.solutions). Start with [README.md](README.md);
 deep dives in [docs/architecture.md](docs/architecture.md),
 [docs/ui.md](docs/ui.md) (the appearance picker + interactive chrome),
 [docs/data.md](docs/data.md), [docs/league.md](docs/league.md) (the
-League tab + its Cloudflare Worker backend), and
+League tab + its Cloudflare Worker backend),
 [docs/radio.md](docs/radio.md) (DeetsRadio — shared listening rooms:
-protocol, sync design, build phases).
+protocol, sync design, build phases), and
+[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game:
+rules engine, wire protocol, bento layout; Phase 1 mock-playable, worker
+is Phase 2).
 
 ## Working conventions
 
@@ -29,10 +32,11 @@ protocol, sync design, build phases).
 - **The page-bar is shared.** Home, Resume, and Cool Stuff open with
   `.page-bar`, which mirrors the journals' `.sotd__bar` panel geometry —
   keep the two visually in sync if either changes.
-- **sotd.js, movies.js, league/league.js, and radio/radio.js deliberately
-  duplicate the toolbar/popover kit** (pills, facets, state persistence)
-  to keep each page self-contained. A fix to that machinery in one file
-  must be mirrored in the others. The toast host (`js/toast.js`) is the
+- **sotd.js, movies.js, league/league.js, radio/radio.js, and
+  cities/cities.js deliberately duplicate the toolbar/popover kit** (pills,
+  facets, state persistence) to keep each page self-contained (cities is
+  the fifth copy). A fix to that machinery in one file must be mirrored in
+  the others. The toast host (`js/toast.js`) is the
   exception by design: shared chrome like `controls.js`, one copy on
   every page ([docs/ui.md](docs/ui.md), "Toasts").
 - **DeetsRadio copy is handwritten.** Every user-facing string on the
@@ -41,6 +45,21 @@ protocol, sync design, build phases).
   entry without the prefix or put copy inline in `radio/radio.js`. The
   blank album cover is his hand-drawn sprite at
   `assets/sprites/radio/cover-blank.svg` — keep the path, never redraw it.
+- **DeetsCities copy is `[ph]`-convention too** — every user-facing string
+  lives in `cities/strings.js`; Claude adds only `[ph]`-prefixed
+  placeholders, never inline copy in `cities.js`. Aditya's copy pass is
+  underway: un-prefixed entries are his (some dictated in chat — section
+  comments mark those); `[ph]` entries still await him. **The rules engine
+  and seat-color contract are shared code:** `cities/engine.js` is a pure,
+  DOM-free module, `cities/board-data.js` its data, and `cities/colors.js`
+  the seat-color contract (presets, hex validation, seat-vs-seat clash
+  check); the Phase-2 worker (sibling repo `../DeetsCities`,
+  `cities-api.deets.solutions`) will vendor all three **verbatim**, exactly
+  like the radio protocol — the mock and worker must run byte-identical
+  copies. The board + card art is a token carve-out
+  (fixed game palette, ignores theme/skin); everything else survives all
+  30 combos. Art ships as geometric placeholders until Aditya draws it,
+  swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
 - **Two tabs have runtime backends, each a sibling Cloudflare Worker repo
   deployed with `npx wrangler deploy`.** League:
   [DeetsLeague](https://github.com/deets-137/DeetsLeague) (`api.deets.solutions`) proxies Riot

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsCities — Deets</title>
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("deets-theme");
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
+          document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/main.css" />
+    <script src="../js/controls.js" defer></script>
+    <script src="../js/toast.js" defer></script>
+    <script src="./strings.js" defer></script>
+    <script src="./colors.js" defer></script>
+    <script src="./board-data.js" defer></script>
+    <script src="./engine.js" defer></script>
+    <script src="./transport-mock.js" defer></script>
+    <script src="./transport.js" defer></script>
+    <script src="./cities.js" defer></script>
+    <script src="../js/walkers.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/sotd/" data-nav-core>SOTD</a>
+        <a href="/movies/">Movies</a>
+        <a href="/radio/">DeetsRadio</a>
+        <a href="/league/">League</a>
+        <a href="/cities/" aria-current="page">DeetsCities</a>
+        <a href="/cool-stuff/" data-nav-core>Cool Stuff I Did</a>
+        <a href="/resume/">Resume</a>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <!-- DeetsCities — a real-time hex-settlement board game (docs/cities.md).
+           Phase 1: the mock transport (transport-mock.js) runs the real rules
+           engine (engine.js) in-page so a full hot-seat game is playable against
+           phantom seats; ?mock selects it (the default until the ../DeetsCities
+           worker at cities-api.deets.solutions lands in Phase 2). Like League and
+           radio, the bar carries a combo box where the journals put an <h1>: the
+           table code IS the title. All flavor copy comes from strings.js.
+           NO trademarks — resources/pieces are generic in code, named in copy. -->
+      <section class="cities">
+        <div class="sotd__bar">
+          <div class="tb-ctrl cities-code">
+            <!-- aria-label comes from strings.js (cities.js boot) -->
+            <input class="cities-code__input" data-cities-code type="text"
+                   autocomplete="off" spellcheck="false" />
+            <div class="tb-pop cities-code__pop" data-cities-code-pop hidden></div>
+          </div>
+          <div class="sotd-toolbar" data-cities-toolbar aria-label="Table controls"></div>
+        </div>
+        <!-- no meta line under the bar (unlike the journals): the game state
+             already says everything it would, so the bento sits flush under
+             the bar. Transient notices (join refusals, reconnects) ride the
+             toast host instead. -->
+
+        <!-- pre-join gate: peek result → sit / watch / open-this-table -->
+        <div class="cities-gate" data-cities-gate hidden></div>
+
+        <!-- the bento — stable across all phases; tiles change contents, not
+             places (docs/cities.md, "Page layout — the bento") -->
+        <div class="cities-table" data-cities-table hidden>
+          <div class="cities-bento">
+            <section class="cities-tile cities-tile--big" data-cities-big aria-label="Board"></section>
+            <section class="cities-tile cities-tile--dice" data-cities-dice aria-label="Dice"></section>
+            <section class="cities-tile cities-tile--players" data-cities-players aria-label="Players"></section>
+            <section class="cities-tile cities-tile--log" data-cities-log aria-label="Log"></section>
+            <section class="cities-tile cities-tile--role" data-cities-role aria-label="Your controls"></section>
+            <!-- trade overlay docks over the board's right quarter -->
+            <div class="cities-trade" data-cities-trade hidden></div>
+          </div>
+        </div>
+
+        <!-- desktop-only: below the nav breakpoint the game is swapped for a
+             one-line note (docs/cities.md, "Desktop only") -->
+        <p class="cities-desktop-note" data-cities-desktop hidden></p>
+      </section>
+    </main>
+  </body>
+</html>

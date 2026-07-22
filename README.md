@@ -22,6 +22,12 @@ tab's count and latest entry.
   the [DeetsLeague](https://github.com/deets-137/DeetsLeague) Cloudflare Worker (Riot API proxy +
   match database). The only tab that calls an API at runtime; champion and
   augment art comes from Riot's public CDNs.
+- **DeetsCities** — a real-time hex-settlement board game in the spirit of
+  the classic (no trademarks anywhere), 3–6 players around a shared table
+  plus spectators. Phase 1 is a full mock-playable build (`cities/?mock`
+  runs the real rules engine in-page against bot seats); the multiplayer
+  Cloudflare Worker is Phase 2. Desktop only. See
+  [docs/cities.md](docs/cities.md).
 - **Cool Stuff I Did** — a portfolio of projects, hand-written cards.
 - **Resume** — the resume rendered in the site's design system, with a
   downloadable one-page PDF that is printed from the page itself.
@@ -49,6 +55,7 @@ sotd/                 Song of the Day (page + generated songs.json)
 movies/               Movie log (page + generated movies.json)
 radio/                DeetsRadio listening rooms (talks to the DeetsRadio worker)
 league/               League of Legends stats (talks to the DeetsLeague worker)
+cities/               DeetsCities board game (mock playable; DeetsCities worker is Phase 2)
 cool-stuff/           project portfolio
 resume/               resume page + downloadable PDF (generated, see below)
 styles/               palette → themes → skin → main (the token tiers)
@@ -81,6 +88,9 @@ by TMDB).
 - [docs/league.md](docs/league.md) — the League tab: worker architecture,
   data model, rate-limit guardrails, and what the Riot API can and can't
   reveal.
+- [docs/cities.md](docs/cities.md) — the DeetsCities board game: rules
+  engine, board data, wire protocol, the bento layout, and the mock-first
+  build order (Phase 1 built; worker is Phase 2).
 
 ## Run locally
 

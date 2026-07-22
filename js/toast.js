@@ -13,8 +13,9 @@
      timeout  ms for timed toasts (default 3200; hover pauses the clock)
      actions  [{ label, onPick }] — buttons; any press dismisses after
               its onPick runs (a bare { label } is a plain Dismiss)
-   returns { dismiss } so a caller can retire its own toast (the radio
-   page's disconnected toast dies on reconnect). */
+   returns { dismiss, update } so a caller can retire its own toast (the
+   radio page's disconnected toast dies on reconnect) or rewrite its text
+   in place (the cities page's disconnect-grace countdown ticks). */
 (function () {
   "use strict";
 
@@ -119,7 +120,10 @@
     }
     host.insertBefore(el, host.firstChild);
 
-    return { dismiss: dismiss };
+    return {
+      dismiss: dismiss,
+      update: function (t) { text.textContent = t == null ? "" : String(t); }
+    };
   }
 
   window.DeetsToast = { push: push };
