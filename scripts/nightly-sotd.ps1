@@ -67,11 +67,24 @@ if ($after -eq $before) {
     exit 0
 }
 
-# Commit ONLY songs.json. The working tree may hold other unrelated edits,
-# so never `git add -A` here.
+# New songs arrived: rebuild the link-preview card (sotd/og.jpg + the
+# stamped <meta> block in sotd/index.html) so shared links embed the
+# newest song. A failure here (e.g. artwork CDN down) must not block the
+# songs.json commit - log and commit the JSON alone.
+$ogFiles = @()
+$ogOut = & $python (Join-Path $PSScriptRoot "build-sotd-og.py") 2>&1
+foreach ($l in $ogOut) { Log "og: $l" }
+if ($LASTEXITCODE -eq 0) {
+    $ogFiles = @("sotd/og.jpg", "sotd/index.html")
+} else {
+    Log "WARN: build-sotd-og.py exited $LASTEXITCODE - committing songs.json only"
+}
+
+# Commit ONLY songs.json (+ the regenerated preview card). The working
+# tree may hold other unrelated edits, so never `git add -A` here.
 Push-Location $repo
 try {
-    & git add -- "sotd/songs.json"
+    & git add -- "sotd/songs.json" $ogFiles
     $count = & $python -c "import json,io;print(json.load(io.open(r'$songs',encoding='utf-8'))['count'])"
     $today = Get-Date -Format "yyyy-MM-dd"
     & git commit -m "SOTD: nightly refresh $today ($count songs)" | ForEach-Object { Log "git: $_" }
