@@ -337,7 +337,7 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `close` | `{offerId, accepter}` | current player; executes the trade with `accepter`'s seat (`seat` can't carry it — the transport injects the actor's seat there) |
 | `cancel` | `{offerId}` | the proposer |
 | `endTurn` | — | current player, after rolling |
-| `kickSeat` | `{seat}` | host (lobby: opens seat; running: ends game) |
+| `kickSeat` | `{seat}` | host (lobby: opens the seat; running: forced leave — the seat **converts to a bot**, the takeover rule, mock and worker alike). Reachable from the lobby roster's ✕ and the player-strip right-click menu's **Kick** |
 | `close` (table) | — | host: broadcast `closed`, wipe, free the code — wire name `closeTable` to avoid the offer collision |
 | `bet` | `{type, params, stake}` | v1.1, spectators only |
 
@@ -670,8 +670,9 @@ change contents, never places:
   **respond** to offers (accept a fair-or-better deal they can afford,
   else decline) so the full flow is exercisable solo.
   **Embargoes** are a client-side preference (localStorage, per table +
-  seat): right-click a player strip in the players tile for the embargo
-  menu. An embargoed seat's incoming offers are auto-declined (no toast,
+  seat): right-click a player strip in the players tile for the strip
+  menu (the host — seated or spectating — also gets **Kick** there;
+  mid-game the kicked seat converts to a bot). An embargoed seat's incoming offers are auto-declined (no toast,
   no hub pop), their responses to your offers read as declined (🚫 on
   their strip, never closeable, no accept toast), and a 🚫 badge marks
   them in the players tile. The server knows nothing about embargoes. Toasts: an

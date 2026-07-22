@@ -141,9 +141,11 @@ window.CITIES_STRINGS = {
   awardRoadHeld: "Longest Road [{n}x]",  // award pill when held — [{n}x] is the bar to beat
   awardArmyHeld: "Largest Army [{n}x]",
   disconnected: "Away",
-  /* right-click embargo menu on a player strip */
+  /* right-click menu on a player strip — all Aditya's wording (chat),
+     no [ph]. Kick is host-only (mid-game the seat converts to a bot) */
   embargoSet:  "I hate you",
   embargoLift: "It's chill now",
+  kickOption:  "Kick",
 
   /* ── log tile rail (Log | Deck toggle) — Aditya OK'd, no [ph] ── */
   logTab:  "Log",

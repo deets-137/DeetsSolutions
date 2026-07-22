@@ -7,7 +7,7 @@
    tell this apart from the WebSocket client beyond `CitiesTransport.kind`.
 
    DEV-ONLY (all replaced by the worker later):
-   - phantom seats fill the lobby to capacity and auto-play their turns
+   - host-added phantom seats (the addBot verb) auto-play their turns
      (a lightweight AI that proposes actions and lets the engine validate)
    - tables persist in localStorage, so a running game survives a reload
    - fake command→broadcast latency keeps the async surface honest
@@ -454,16 +454,21 @@
       if (!isHost(t, token)) return errTo(conn, "perm");
       var s = msg.seat;
       if (s == null || !t.seats[s]) return;
-      if (!t.game) {                                   // lobby: just open the seat
+      if (!t.game || t.game.phase === "over") {        // lobby: just open the seat
         var kickedTok = t.seats[s].token;
         t.seats[s] = null; resizeSeats(t);
         var kc = t.conns.filter(function (c) { return c.token === kickedTok; })[0];
         if (kc) deliver(kc, { type: "kicked", serverNow: now() });
         return broadcast(t, []);
       }
-      // running game: kicking a seat ends the game (no bots, by decision)
-      t.game.phase = "over"; t.game.winner = null; disarmTimer(t);
-      return broadcast(t, [{ t: "abandon", seat: s }]);
+      // running game: a kick is a forced leave — the seat converts to a bot
+      // (the worker's takeover rule; kick-ends-game is gone). phantom:true
+      // is what the mock's drive keys on; bot:true is the client's tag.
+      t.seats[s].bot = true; t.seats[s].phantom = true;
+      var kcg = t.conns.filter(function (c) { return c.token === t.seats[s].token; })[0];
+      if (kcg) deliver(kcg, { type: "kicked", serverNow: now() });
+      broadcast(t, [{ t: "takeover", seat: s }]);
+      return postApply(t);                             // the phantom drive picks the seat up
     }
     if (type === "bet") {
       if (seatOfToken(t, token) != null) return errTo(conn, "perm");   // seated tokens can't bet

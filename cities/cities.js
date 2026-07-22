@@ -1522,12 +1522,16 @@
       PLAYERS.appendChild(strip);
     });
   }
-  /* ── embargo context menu (right-click a player strip) ──────────
+  /* ── strip context menu (right-click a player strip) ────────────
+     Embargo (any seated viewer) + Kick (host, incl. a spectating host —
+     mid-game the seat converts to a bot, the takeover rule).
      Not the popover kit: strips are wiped by every broadcast (~650ms in the
      mock), so the menu's open/closed state lives in ui.embargoPop and the
      strip re-renders it open — a kit popover would vanish mid-click. */
   function attachEmbargoMenu(strip, i) {
-    if (mySeat() == null || i === mySeat()) return;
+    var canEmbargo = mySeat() != null && i !== mySeat();
+    var canKick = model.host && i !== mySeat() && model.seats[i] && !model.seats[i].empty;
+    if (!canEmbargo && !canKick) return;
     strip.addEventListener("contextmenu", function (ev) {
       ev.preventDefault();
       if (ui.embargoPop === i) return closeEmbargoPop();
@@ -1538,6 +1542,13 @@
     });
     if (ui.embargoPop !== i) return;
     var pop = el("div", "tb-pop cities-embargo__pop");
+    if (canKick) {
+      var kb = el("button", "tb-pop__opt", S.kickOption);
+      kb.type = "button";
+      kb.addEventListener("click", function () { send({ type: "kickSeat", seat: i }); closeEmbargoPop(); });
+      pop.appendChild(kb);
+    }
+    if (!canEmbargo) { strip.appendChild(pop); return; }
     var b = el("button", "tb-pop__opt", isEmbargoed(i) ? S.embargoLift : S.embargoSet);
     b.type = "button";
     b.addEventListener("click", function () {
