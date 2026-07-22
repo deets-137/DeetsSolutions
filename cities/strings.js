@@ -63,6 +63,13 @@ window.CITIES_STRINGS = {
   hostBadge:       "Host",
   standButton:     "Stand up",
   kickSeatAria:    "Remove {name}",
+  /* host-added bots (the addBot verb): "+ Bot" on an open seat opens an
+     inline name editor; clicking a bot's name renames (lobby-only) */
+  addBotButton:     "[ph]+ Bot",
+  addBotGo:         "[ph]Add",
+  addBotNameAria:   "[ph]Bot name",
+  addBotCancelAria: "[ph]Cancel adding a bot",
+  renameBotAria:    "[ph]Rename {name}",
   /* seat-color picker (dot → slide-open expand) — "Your color",
      "{name}'s color", "Become...", "Custom:" and the six-digit help
      line are Aditya's wording (chat), no [ph] */
@@ -84,6 +91,7 @@ window.CITIES_STRINGS = {
   resSheep: "Sheep",
   resOre:   "Ore",
   resDesert: "Desert",
+  harborAny: "[ph]Any",   // 3:1 harbor hover label (resource harbors reuse res* names)
   pieceSettlement: "Settlement",
   pieceCity:       "City",
   pieceRoad:       "Road",
@@ -139,6 +147,11 @@ window.CITIES_STRINGS = {
   /* ── log tile rail (Log | Deck toggle) — Aditya OK'd, no [ph] ── */
   logTab:  "Log",
   deckTab: "Deck",
+  /* deck pane: the dev deck's remainder card. {list} = the frame's fixed
+     shuffle mix ("14x Knight, 5x Victory Point, …") — total only varies,
+     the mix never does (per-type counts would leak what was drawn) */
+  deckDevLabel: "[ph]Dev cards",
+  devDeckTitle: "[ph]{n} of {total} left — shuffled in: {list}",
 
   /* ── role tile (player) — action pills ───────────────────────── */
   pillRoll:  "Roll",
@@ -154,6 +167,19 @@ window.CITIES_STRINGS = {
   buildDev:        "Dev card",
   cancelBuild:     "Cancel",
   buildPrompt:     "Pick a spot on the board to build.",
+
+  /* ── role tile: the "since your last turn" hand ledger ────────────
+     Title is Aditya's wording (chat 2026-07-21), no [ph]; the hover
+     source fragments below still await his pass. {name} = the other
+     party. A row's hover reads "<ledgerTitle>: +2 <ledgerRoll> · …" */
+  ledgerTitle:        "Since your last turn",
+  ledgerRoll:         "[ph]from rolls",
+  ledgerDev:          "[ph]from a dev card",
+  ledgerStole:        "[ph]stolen from {name}",
+  ledgerRobbed:       "[ph]robbed by {name}",
+  ledgerMonopolyGain: "[ph]monopoly",
+  ledgerMonopoly:     "[ph]monopoly ({name})",
+  ledgerDiscard:      "[ph]discarded",
 
   /* ── role tile (spectator) ───────────────────────────────────── */
   spectatingNote: "You're spectating. Sit down if there's space and you'd like to play!",

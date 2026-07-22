@@ -2,8 +2,8 @@
 
 **Status (2026-07-21):** **Phase 1 is built.** The full mock-playable
 game runs at `cities/?mock` — `engine.js` (rules), `board-data.js`,
-`transport-mock.js` (phantom seats running the real engine), and the
-whole bento UI in `cities.js`; a solo-vs-phantoms game plays start to
+`transport-mock.js` (host-added bots running the real engine), and the
+whole bento UI in `cities.js`; a solo-vs-bots game plays start to
 finish, hidden-info holds, winner + stats present. This document is both
 the original implementation contract and a running record of what
 shipped: where the built UI refined the spec, the prose below is updated
@@ -128,7 +128,7 @@ cities/board-data.js     static board definitions (hex layouts, harbor
 cities/transport.js      real WebSocket client (reconnect, v-gap)
 cities/transport-mock.js in-page fake table speaking the protocol
                          verbatim (?mock selects it); runs engine.js
-                         locally, simulates phantom players
+                         locally, drives host-added bots (addBot)
 cities/strings.js        all flavor copy — Aditya's, [ph] convention
 docs/cities.md           this file
 ../DeetsCities/          worker repo: worker.js + vendored engine.js +
@@ -319,8 +319,9 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `join` | `{name, token, create?}` | anyone; `create:true` initializes (radio's ghost-room guard verbatim). Reply: personalized `snapshot`. Refusals: `no-table`, `name-taken` |
 | `sit` | `{seat?}` | lobby; binds seat to token. Refused `full` |
 | `stand` | — | lobby; frees own seat |
+| `addBot` | `{seat, name}` | host, lobby only; seats a named bot at an open seat (the phantom AI drives it from Start). Re-sending at a seat already holding a bot **renames** it (names lock at Start, like colors). Removal is `kickSeat`. Bots count toward the ≥3 start minimum — host + 2 bots is a legal game. Refusals: `perm` (not host / blank name), `full` (human-held or out-of-capacity seat), `name-taken` (vs seats *and* live connections; `join` symmetrically refuses a human name that clashes with a bot seat) |
 | `recolor` | `{seat?, color}` | lobby only (colors lock at Start). Own seat, or host recoloring a bot seat. `color` is any `#rrggbb` hex; validated by `colors.js` (the shared contract module): malformed → `color`, too close to another seat's color (redmean distance < `MIN_DIST`) → `color-taken`. Board-proximity is deliberately unchecked — hand-drawn tile texture + road borders carry legibility, the pick is at the player's own risk |
-| `setSettings` | `{capacity?, timerSec?, betting?, resView?}` | host, lobby only. Capacity below current seated count refused. `resView` = the In-Game Resources View toggle (default on) |
+| `setSettings` | `{capacity?, timerSec?, betting?, resView?}` | host, lobby only. Capacity below current seated count, or with any occupied seat beyond it, refused. `resView` = the In-Game Resources View toggle (default on) |
 | `start` | — | host, ≥3 seated. Deals the board, enters `setup` |
 | `roll` | — | current player, once per turn |
 | `place` | `{kind: "settlement"\|"city"\|"road", loc}` | setup + main; engine validates cost, legality, piece supply |
@@ -385,7 +386,11 @@ every count is publicly derivable (even a steal moves one visibly
 counted card), so it too is public — but it is **host-toggleable**
 (the "In-Game Resources View" table setting, `settings.resView`,
 default on; when off the section is omitted and the client shows no
-Resources button).
+Resources button). And `devLeft` — the dev deck's remaining **total**
+(feeds the Deck pane's sixth card): public because every `devBought` is
+seen by all, but **never broken down by type** — the deck's shuffle mix
+is fixed per frame (`board-data.js dev`), so per-type remainders would
+let anyone subtract and expose drawn-but-unplayed cards.
 
 **Hidden-information rules (hard invariants):**
 
@@ -490,8 +495,17 @@ change contents, never places:
 ```
 
 - **Big tile.** Lobby: the settings panel (host edits, everyone watches
-  live) + the Start button (enabled at 3+ seated; shows "board deals on
-  press"). Game: the SVG board — hexes, tokens, harbors, pieces,
+  live) + the Start button (enabled at 3+ seated — bots count; shows
+  "board deals on press"). The seat roster carries the **host-added
+  bots** UI: an open-seat row shows the host a "+ Bot" button that swaps
+  the row for a same-height inline editor (name input prefilled from a
+  suggestion pool — Rook, Vala, … a mechanical constant in `cities.js`,
+  free text wins — plus Add / ✕), and a seated bot's name is the
+  lobby-only rename affordance (names lock at Start, like colors; the
+  in-flight draft rides `ui.botDraft` so broadcasts don't wipe typing,
+  the color picker's idiom). Bot rows wear `botSeatTag` ("{name}
+  (bot)") and reuse the existing kick ✕ and host recolor. Game: the SVG
+  board — hexes, tokens, harbors, pieces,
   robber; legal placement targets glow on hover during a placement
   action; illegal ones are inert. Two board hovers teach the odds:
   a number token carries a native `<title>` tooltip with its roll odds
@@ -500,7 +514,9 @@ change contents, never places:
   placement-strength badge — the adjacent hexes' pips pooled onto one
   token-styled pill — so candidate spots compare at a glance (SVG
   overlay, nothing reflows; skipped when the corner has no tokened
-  hex). A pill row sits bottom-left of the board (absolute overlay,
+  hex). Harbors carry a native `<title>` too: the marker shows the rate
+  (3:1 / 2:1) and hover names the traded resource (`strings.js` res\*
+  names, or `harborAny` for a 3:1). A pill row sits bottom-left of the board (absolute overlay,
   themed chrome) — **Odds**, and **Resources** when the table's
   In-Game Resources View setting is on: hovering a pill shows — and
   clicking pins — its fixed-size popover (shared kit: one dock, hover
@@ -562,10 +578,17 @@ change contents, never places:
   active player's strip into view (minimal-scroll, never the page).
 - **Log tile.** The typed-event log, newest last, auto-scrolled,
   bounded render. A narrow **left rail** toggles two panes — **Log**
-  (the list) and **Deck** (the bank's public resource counts as mini
-  hand-style cards in a centered 3-2 grid); the choice is sticky
-  (localStorage), the rail a constant width so switching never moves
-  anything. Log lines are structured: turn changes render as a
+  (the list) and **Deck** (the bank's public resource counts plus the
+  **dev deck's remainder** as mini hand-style cards in an even 3-3
+  grid; the dev card wears the in-hand dev idiom's `--title` top bar so
+  it doesn't read as a sixth resource). The dev count is the **total
+  only** — per-type would leak drawn-but-unplayed cards — and its hover
+  `title` teaches the frame's *fixed* shuffle mix ("14x Knight, 5x
+  Victory Point, …" from `board-data.js`), which never varies. Backed
+  by a new public broadcast field **`view.devLeft`** (mock + worker,
+  mirrored). **Deck is the default pane**; the choice is sticky
+  (localStorage — a browser that ever picked Log keeps Log), the rail a
+  constant width so switching never moves anything. Log lines are structured: turn changes render as a
   full-width **"Turn {n}: {name}"** divider (`n` rides the `turn`
   event), and resource words are tinted with their fixed game-palette
   color. Its height is **locked** to fit the bento —
@@ -602,7 +625,25 @@ change contents, never places:
   re-opened to respond.
   **Dev cards render in the hand, not as a pill** — each playable card
   (Knight, …) is a live button, a Victory Point is an inert marker, and
-  hovering any shows what it does. Spectator: chip stack + the
+  hovering any shows what it does.
+  **The since-your-last-turn ledger** fills the hand column's slack (the
+  dead middle between hand and controls): a "Since your last turn"
+  caption over **five fixed rows in hand order** — resource name +
+  signed net delta, success/stop tinted, a dim dash when quiet — so
+  gains and losses that happen off-turn (rolls, steals in both
+  directions, monopoly, Year of Plenty, my own 7-discards; deliberately
+  *not* my own builds/buys/trades) stop being visually silent. The
+  per-source breakdown ("+2 from rolls · −1 robbed by …") rides the
+  row's native `title`, the dev-card hover idiom. It is **client-only
+  memory** (`cities.js` folds broadcast events into it; nothing in the
+  engine or wire protocol) — it resets when **my** turn starts, at game
+  start, and on seat change, and a mid-window refresh starts it blank,
+  the log tile's tradeoff. Steal identities ride only the two parties'
+  events, which is exactly who ledgers them; a monopoly victim's loss is
+  derived from the previous broadcast's hand snapshot. Rows never
+  add/remove/reorder and the value cell reserves width (no jitter);
+  under 62rem the ledger hides entirely (essentials-only — the bento
+  itself dies at 56rem). Spectator: chip stack + the
   betting panel (v1.1; until then, a quiet spectating note).
 - **Trade overlay — the hub.** One floating column docks **over the
   board tile's right edge, spanning its full height** (scrolls
@@ -710,10 +751,10 @@ decision above).
 - **Randomness**: `crypto.getRandomValues` for dice, shuffles, steal
   targets — always in the DO, passed into `engine.js` via `ctx.rand`
   (the mock threads the same `ctx` seam with `Math.random`).
-- **Bot takeover**: the mock's phantom AI ports verbatim, minus the
-  dev-only lobby auto-fill — in the worker a bot only ever drives a
-  seat whose human left mid-game (grace expired) or was kicked. Same
-  `driveStep` loop, now paced by the alarm.
+- **Bot takeover**: the mock's phantom AI ports verbatim. The old
+  lobby auto-fill is gone on BOTH sides (2026-07-21) — a bot drives a
+  seat the host added via `addBot`, or whose human left mid-game (grace
+  expired) or was kicked. Same `driveStep` loop, now paced by the alarm.
 - **Abuse guards**: per-socket command cap **30 msgs / 10 s** riding
   the WS attachment — a **soft drop** (one `error:"flood"` as it first
   trips, then silence till the window rolls; never a socket close, so a

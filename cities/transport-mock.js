@@ -27,7 +27,6 @@
 
   var LATENCY = 110;                 // fake round-trip
   var STORE_KEY = "deets-cities-mock-v1";
-  var PHANTOM_NAMES = ["Rook", "Vala", "Ozan", "Mira", "Deca"];
   var PHANTOM_STEP = 650;            // ms between phantom actions (watchable)
   var LOG_MAX = 200;
 
@@ -107,37 +106,15 @@
 
   /* fill / trim phantom seats so the lobby holds exactly `capacity` seats
      (dev-only: lets one human start and play a full game solo) */
-  function syncPhantoms(t) {
+  // grow/shrink the lobby seat array to capacity with nulls, trimming only
+  // trailing empties — the worker's resize, verbatim. The old auto-fill
+  // (every open seat became a phantom) is GONE: bots are now host-added
+  // via the `addBot` verb, in the mock and the worker alike.
+  function resizeSeats(t) {
     if (t.game) return;
     var cap = t.settings.capacity;
     while (t.seats.length < cap) t.seats.push(null);
-    if (t.seats.length > cap) {
-      // drop trailing empty / phantom seats down to capacity
-      for (var i = t.seats.length - 1; i >= cap; i--) t.seats.pop();
-    }
-    // fill remaining nulls with phantoms
-    var used = {};
-    t.seats.forEach(function (s) { if (s) used[s.name] = 1; });
-    var pi = 0;
-    for (var j = 0; j < t.seats.length; j++) {
-      if (t.seats[j]) continue;
-      var name;
-      // numbered fallback ("Rook 2 (bot)") once the base list is exhausted —
-      // at capacity 6 a human standing up needs a 6th unique name, and the
-      // old loop spun forever on the 5 base names (froze the page)
-      do {
-        var gen = Math.floor(pi / PHANTOM_NAMES.length);
-        name = PHANTOM_NAMES[pi % PHANTOM_NAMES.length] + (gen ? " " + (gen + 1) : "") + " (bot)";
-        pi++;
-      } while (used[name]);
-      used[name] = 1;
-      t.seats[j] = { token: "phantom-" + uid(), name: name, color: null, connected: true, phantom: true };
-    }
-    // colors are STICKY (a pick survives phantom churn); only seats without
-    // a valid hex get the next clash-free preset (colors.js, the contract)
-    t.seats.forEach(function (s) {
-      if (s && !Colors.norm(s.color)) s.color = Colors.freePreset(otherColors(t, s));
-    });
+    while (t.seats.length > cap && !t.seats[t.seats.length - 1]) t.seats.pop();
   }
   // every other seat's color (null holes for empties + the excluded seat)
   function otherColors(t, except) {
@@ -172,6 +149,7 @@
     view.buildings = g.buildings;                 // public: piece positions (vid -> {seat,kind})
     view.roads = g.roads;                         // public: road positions (eid -> seat)
     view.bank = g.bank;                           // public counts
+    view.devLeft = g.devDeck.length;              // public: TOTAL only (the mix is fixed per frame; per-type would leak draws)
     view.dice = g.stats.dice;                     // public: roll histogram (every roll is seen by all)
     // raw per-seat gained-card totals (no resource identities — those counts
     // are all publicly derivable, even a steal moves a visibly-counted card).
@@ -459,7 +437,7 @@
   }
 
   /* ── command handlers (client → table) ────────────────────────── */
-  var LOBBY_CMDS = { sit: 1, stand: 1, recolor: 1, setSettings: 1, start: 1 };
+  var LOBBY_CMDS = { sit: 1, stand: 1, addBot: 1, recolor: 1, setSettings: 1, start: 1 };
   var GAME_CMDS = { roll: 1, place: 1, buyDev: 1, playDev: 1, discard: 1, moveRobber: 1,
                     steal: 1, bankTrade: 1, offer: 1, respond: 1, close: 1, cancel: 1, endTurn: 1 };
 
@@ -478,7 +456,7 @@
       if (s == null || !t.seats[s]) return;
       if (!t.game) {                                   // lobby: just open the seat
         var kickedTok = t.seats[s].token;
-        t.seats[s] = null; syncPhantoms(t);
+        t.seats[s] = null; resizeSeats(t);
         var kc = t.conns.filter(function (c) { return c.token === kickedTok; })[0];
         if (kc) deliver(kc, { type: "kicked", serverNow: now() });
         return broadcast(t, []);
@@ -503,20 +481,40 @@
       if (type === "sit") {
         if (seatOfToken(t, token) != null) return;         // already seated
         var idx = -1;
-        if (msg.seat != null && (!t.seats[msg.seat] || t.seats[msg.seat].phantom)) idx = msg.seat;
+        if (msg.seat != null && !t.seats[msg.seat]) idx = msg.seat;
         else idx = openSeatIndex(t);
-        // the lobby is filled to capacity with phantoms — a human bumps one
-        if (idx < 0) for (var pi = t.seats.length - 1; pi >= 0; pi--) if (t.seats[pi] && t.seats[pi].phantom) { idx = pi; break; }
         if (idx < 0) return errTo(conn, "full");
         var occupied = t.seats.map(function (s, si) { return s && si !== idx ? s.color : null; });
         t.seats[idx] = { token: token, name: conn.name, color: Colors.freePreset(occupied), connected: true, phantom: false };
-        syncPhantoms(t);                                   // top the rest back up
+        resizeSeats(t);
         return broadcast(t, []);
       }
       if (type === "stand") {
         var mi = seatOfToken(t, token);
-        if (mi != null) { t.seats[mi] = null; syncPhantoms(t); broadcast(t, []); }
+        if (mi != null) { t.seats[mi] = null; resizeSeats(t); broadcast(t, []); }
         return;
+      }
+      // host adds (or renames — re-adding at a bot's seat) a named bot in
+      // the lobby; the phantom AI drives it from Start. Removal is kickSeat.
+      if (type === "addBot") {
+        if (!isHost(t, token)) return errTo(conn, "perm");
+        var bi = msg.seat | 0;
+        var bname = String(msg.name || "").trim().slice(0, 24);
+        if (!bname) return errTo(conn, "perm");
+        if (bi < 0 || bi >= t.settings.capacity) return errTo(conn, "full");
+        var bs = t.seats[bi];
+        if (bs && !bs.phantom) return errTo(conn, "full");   // a human holds it
+        var blower = bname.toLowerCase();
+        var taken = t.seats.some(function (s, si) { return s && si !== bi && s.name.toLowerCase() === blower; }) ||
+                    t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === blower; });
+        if (taken) return errTo(conn, "name-taken");
+        if (bs) bs.name = bname;
+        else {
+          var bocc = t.seats.map(function (s, si) { return s && si !== bi ? s.color : null; });
+          t.seats[bi] = { token: "phantom-" + uid(), name: bname, color: Colors.freePreset(bocc), connected: true, phantom: true };
+        }
+        resizeSeats(t);
+        return broadcast(t, []);
       }
       // lobby-only by registration (colors LOCK at Start, by decision):
       // your own seat, or the host recoloring a bot. Validation is the
@@ -537,8 +535,8 @@
         if (!isHost(t, token)) return errTo(conn, "perm");
         if (msg.capacity != null) {
           var cap = Math.max(3, Math.min(6, msg.capacity | 0));
-          var humans = t.seats.filter(function (s) { return s && !s.phantom; }).length;
-          if (cap < humans) return errTo(conn, "full");
+          var occupiedBeyond = t.seats.some(function (s, si) { return s && si >= cap; });
+          if (cap < seatedCount(t) || occupiedBeyond) return errTo(conn, "full");
           t.settings.capacity = cap;
         }
         if (msg.timerSec != null) {
@@ -547,14 +545,15 @@
         }
         if (msg.betting != null) t.settings.betting = !!msg.betting;
         if (msg.resView != null) t.settings.resView = !!msg.resView;
-        syncPhantoms(t);
+        resizeSeats(t);
         return broadcast(t, []);
       }
       if (type === "start") {
         if (!isHost(t, token)) return errTo(conn, "perm");
-        syncPhantoms(t);
+        resizeSeats(t);
         var seated = t.seats.filter(function (s) { return !!s; });
         if (seated.length < 3) return errTo(conn, "phase");
+        t.seats = seated;   // COMPACT: seat index now === engine player index (the worker's rule — open-seat holes are possible now that bots are host-added)
         var game = Engine.createGame({
           seats: seated.map(function (s, i) { return { name: s.name, color: s.color }; }),
           settings: { timerSec: t.settings.timerSec, betting: t.settings.betting }
@@ -614,15 +613,17 @@
               seats: [], game: null, chips: {}, book: [], log: [],
               v: 1, touched: now(), conns: [], timer: null, driving: false
             };
-            syncPhantoms(t);
+            resizeSeats(t);
             save();
           }
           // reap our own lingering connection (reconnect supersedes)
           t.conns.slice().forEach(function (c) {
             if (token && c.token === token) { c.closed = true; t.conns.splice(t.conns.indexOf(c), 1); }
           });
-          // unique display names among live connections
-          var clash = t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === name.toLowerCase() && c.token !== token; });
+          // unique display names among live connections AND host-added bot
+          // seats (a returning token's own seat doesn't block its reclaim)
+          var clash = t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === name.toLowerCase() && c.token !== token; }) ||
+                      t.seats.some(function (s) { return s && s.token !== token && s.name.toLowerCase() === name.toLowerCase(); });
           if (clash) return reject({ code: "name-taken" });
           var total = t.conns.filter(function (c) { return !c.closed; }).length;
           if (total >= 30) return reject({ code: "full" });

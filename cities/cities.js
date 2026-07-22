@@ -23,6 +23,7 @@
   var S = window.CITIES_STRINGS || {};
   var Engine = window.CitiesEngine;
   var Colors = window.CitiesColors;
+  var Boards = window.CITIES_BOARDS.BOARDS;
   var RES = Engine.RES;
 
   /* ── DOM handles ──────────────────────────────────────────────── */
@@ -120,14 +121,17 @@
   var joined = false, joining = false, peekSeq = 0;
   var logLines = [], connToast = null, spinUntil = 0;
   var LOGVIEW_KEY = "deets-cities-logview";
-  var logView = load(LOGVIEW_KEY, "log");   // log tile rail: "log" | "deck" — sticky across sessions
+  var logView = load(LOGVIEW_KEY, "deck");   // log tile rail: "log" | "deck" — sticky across sessions, Deck by default
   var lastTurnSeat = null;   // players tile: scroll-to-active fires on change only
   var clockSkew = 0, timerHandle = null;   // clockSkew = Date.now() - server clock
-  var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {}, colorOpen: null, colorDraft: null };   // transient board-interaction state
+  var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {}, colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false };   // transient board-interaction state
   var acceptToasts = {};   // "offerId:seat" -> sticky accepted-toast handle
   var graceToasts = {};    // seat -> { handle, until, timer } — red disconnect-grace countdowns
   var offerCache = {};     // last-seen offer bundles (for the decline-fade ghost)
   var fadingOffers = {};   // id -> offer snapshot, briefly rendered fading out
+  var ledger = null, ledgerSeat = null;   // "since your last turn" hand ledger (client-only; resets when my turn starts)
+  var prevHand = null;     // my hand as of the PREVIOUS broadcast (monopoly-loss attribution)
+  var lastDiscard = null;  // composition of my in-flight 7-discard (the event carries only the count)
 
   /* ── embargoes ("I hate you") — a CLIENT-side preference, per table ──
      Stored in localStorage keyed by table code + seat index. An embargoed
@@ -279,9 +283,10 @@
     acceptToasts = {};
     clearGraceToasts();
     offerCache = {}; fadingOffers = {};
+    ledger = null; ledgerSeat = null; prevHand = null; lastDiscard = null;
     document.removeEventListener("click", onEmbargoDocClick, true);
     document.removeEventListener("keydown", onEmbargoKey);
-    ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null };
+    ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, botEdit: null, botDraft: null, botFocus: false };
     tradeToolEl = null;
     lastTurnSeat = null;
     GATE.hidden = true; TABLE.hidden = true; DESKTOP.hidden = true;
@@ -296,9 +301,10 @@
     if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
     if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
     if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
-    if (msg.type === "snapshot") { model = stripMeta(msg); afterModel(msg); return; }
+    if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; model = stripMeta(msg); afterModel(msg); return; }
     if (msg.type === "state") {
       if (!model) model = {};
+      prevHand = (model.you && model.you.hand) || null;   // pre-merge hand; safe to hold — every delivery is a fresh clone
       for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") model[k] = msg[k];
       afterModel(msg);
       return;
@@ -307,6 +313,7 @@
   function stripMeta(msg) { var m = {}; for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") m[k] = msg[k]; return m; }
   function afterModel(msg) {
     if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
+    if (mySeat() !== ledgerSeat) { ledgerSeat = mySeat(); resetLedger(); }
     (msg.ev || []).forEach(handleEvent);
     sweepAcceptToasts();
     syncGraceToasts();
@@ -357,8 +364,47 @@
         setTimeout(function () { delete fadingOffers[id]; if (model) render(); }, 600);
       })(e.id);
     }
+    ledgerEvent(e);
     var line = logLine(e);
     if (line) { logLines.push(line); if (logLines.length > 120) logLines.shift(); }
+  }
+
+  /* ── the "since your last turn" hand ledger (client-only) ───────
+     Accumulates EXTERNAL hand changes — rolls, steals both directions,
+     monopoly, Year of Plenty, my 7-discards — per resource, with
+     per-source counts feeding the row's hover title. Deliberately
+     excludes my own builds/buys/trades (I clicked those; they aren't
+     "visually quiet"). Resets when MY turn starts, on game start, and
+     on seat change; lives only in session memory, so a mid-window
+     refresh starts blank — same tradeoff as the log tile. */
+  function resetLedger() {
+    ledger = {};
+    RES.forEach(function (r) { ledger[r] = { net: 0, parts: {}, order: [] }; });
+  }
+  function ledgerAdd(res, n, label) {
+    if (!ledger || !ledger[res] || !n) return;
+    var g = ledger[res];
+    g.net += n;
+    if (!(label in g.parts)) { g.parts[label] = 0; g.order.push(label); }
+    g.parts[label] += n;
+  }
+  function ledgerEvent(e) {
+    var me = mySeat();
+    if (me == null || !ledger) return;
+    if (e.t === "start" || (e.t === "turn" && e.seat === me)) { resetLedger(); return; }
+    if (e.t === "gain" && e.seat === me) ledgerAdd(e.res, e.n, e.src === "dev" ? S.ledgerDev : S.ledgerRoll);
+    if (e.t === "stealHidden" && e.res != null) {   // res rides the event only for the two parties
+      if (e.to === me) ledgerAdd(e.res, 1, fmt(S.ledgerStole, { name: seatName(e.from) }));
+      if (e.from === me) ledgerAdd(e.res, -1, fmt(S.ledgerRobbed, { name: seatName(e.to) }));
+    }
+    if (e.t === "monopoly") {
+      if (e.seat === me) ledgerAdd(e.res, e.n, S.ledgerMonopolyGain);
+      else if (prevHand) ledgerAdd(e.res, -(prevHand[e.res] || 0), fmt(S.ledgerMonopoly, { name: seatName(e.seat) }));
+    }
+    if (e.t === "discard" && e.seat === me && lastDiscard) {
+      RES.forEach(function (r) { if (lastDiscard[r]) ledgerAdd(r, -lastDiscard[r], S.ledgerDiscard); });
+      lastDiscard = null;
+    }
   }
   // someone accepted MY open offer: a sticky success toast whose action closes
   // the deal (only the current player can close, so gate on my live turn)
@@ -452,6 +498,18 @@
     }
   }
   function awardName(k) { return k === "longestRoad" ? S.awardRoad : S.awardArmy; }
+
+  /* ── robber sprite swap point (assets/sprites/cities/README.md) ──
+     Aditya's hand-drawn robber.png replaces the placeholder circle the
+     moment the file exists — probed ONCE at load (a missing sprite costs
+     one quiet 404, and rendering never re-fetches a broken image). */
+  var ROBBER_SRC = "../assets/sprites/cities/robber.png";
+  var robberSprite = false;
+  (function () {
+    var probe = new Image();
+    probe.onload = function () { robberSprite = true; if (model) render(); };
+    probe.src = ROBBER_SRC;
+  })();
 
   /* ═══ GEOMETRY (render) ════════════════════════════════════════ */
   var SIZE = 42;
@@ -705,12 +763,28 @@
     // because `recolor` is a lobby command (transport enforces it too)
     var seatList = el("div", "cities-lobby__seats");
     (model.seats || []).forEach(function (s, i) {
+      var isBot = !s.empty && s.phantom;
+      // host-only inline bot editor takes over the row (same height); a seat
+      // a human claimed mid-edit drops the editor, like the color picker
+      if (ui.botEdit === i && !(host && (s.empty || isBot))) { ui.botEdit = null; ui.botDraft = null; }
+      if (ui.botEdit === i) { seatList.appendChild(botEditorRow(i)); return; }
       var row = el("div", "cities-seat" + (s.empty ? " cities-seat--empty" : ""));
       var editable = !s.empty && (s.seat === mySeat() || (host && s.phantom));
       row.appendChild(editable ? dotButton(s, i) : seatDot(i));
-      var label = s.empty ? S.seatOpen : (s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : s.name);
-      row.appendChild(el("span", "cities-seat__name", label));
+      var label = s.empty ? S.seatOpen : s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
+      if (host && isBot) {
+        // the bot's name is the rename affordance (lobby-only — names lock at Start like colors)
+        var nameBtn = el("button", "cities-seat__name cities-seat__namebtn", label); nameBtn.type = "button";
+        nameBtn.setAttribute("aria-label", fmt(S.renameBotAria, { name: s.name }));
+        nameBtn.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = s.name; ui.botFocus = true; render(); });
+        row.appendChild(nameBtn);
+      } else row.appendChild(el("span", "cities-seat__name", label));
       if (model.hostSeat === i) row.appendChild(el("span", "cities-seat__badge", S.hostBadge));
+      if (host && s.empty) {
+        var add = el("button", "cities-seat__addbot", S.addBotButton); add.type = "button";
+        add.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = null; ui.botFocus = true; render(); });
+        row.appendChild(add);
+      }
       if (host && !s.empty && s.seat !== mySeat()) {
         var kick = el("button", "cities-seat__kick", "✕"); kick.type = "button";
         kick.setAttribute("aria-label", fmt(S.kickSeatAria, { name: s.name || "" }));
@@ -742,6 +816,54 @@
     BIG.appendChild(wrap);
   }
   function seatDot(i) { var d = el("span", "cities-dot"); d.style.background = "var(--cseat-" + i + ")"; return d; }
+
+  /* ── lobby: host-added bots (the addBot verb) ───────────────────
+     "+ Bot" on an open seat (or the bot's own name, to rename) swaps the
+     row for an inline editor at the same height: name input prefilled
+     from the suggestion pool, Add sends addBot (re-adding at a bot's
+     seat = rename), ✕ cancels. The draft rides ui.botDraft so
+     broadcasts don't wipe mid-typing (the color picker's idiom). */
+  var BOT_NAMES = ["Rook", "Vala", "Ozan", "Mira", "Deca"];   // prefill suggestions only — free text wins
+  function nextBotName() {
+    var used = {};
+    (model.seats || []).forEach(function (s) { if (s && !s.empty && s.name) used[s.name.toLowerCase()] = 1; });
+    for (var pi = 0; ; pi++) {
+      var gen = Math.floor(pi / BOT_NAMES.length);
+      var name = BOT_NAMES[pi % BOT_NAMES.length] + (gen ? " " + (gen + 1) : "");
+      if (!used[name.toLowerCase()]) return name;
+    }
+  }
+  function botEditorRow(i) {
+    var row = el("div", "cities-seat cities-seat--edit");
+    row.appendChild(seatDot(i));
+    var input = el("input", "cities-seat__nameinput");
+    input.type = "text"; input.maxLength = 24;
+    input.value = ui.botDraft != null ? ui.botDraft : nextBotName();
+    input.setAttribute("aria-label", S.addBotNameAria);
+    input.addEventListener("input", function () { ui.botDraft = input.value; });
+    var go = function () {
+      var name = input.value.trim();
+      if (!name) { input.focus(); return; }
+      send({ type: "addBot", seat: i, name: name });
+      ui.botEdit = null; ui.botDraft = null; render();
+    };
+    var cancel = function () { ui.botEdit = null; ui.botDraft = null; render(); };
+    input.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") go();
+      else if (ev.key === "Escape") cancel();
+    });
+    row.appendChild(input);
+    var ok = el("button", "cities-seat__addgo", S.addBotGo); ok.type = "button";
+    ok.addEventListener("click", go);
+    row.appendChild(ok);
+    var x = el("button", "cities-seat__kick", "✕"); x.type = "button";
+    x.setAttribute("aria-label", S.addBotCancelAria);
+    x.addEventListener("click", cancel);
+    row.appendChild(x);
+    // focus only when the editor OPENS — broadcast re-renders must not steal it
+    if (ui.botFocus) { ui.botFocus = false; setTimeout(function () { if (input.isConnected) { input.focus(); input.select(); } }, 0); }
+    return row;
+  }
   // seat colors drive the --cseat-N slots (main.css game-palette carve-out
   // holds the preset fallbacks; a custom pick simply overrides its slot, so
   // every index-keyed render site — board, strips, log, over — follows along)
@@ -881,7 +1003,10 @@
     Object.keys(g.vertexHexes).forEach(function (v) { var p = vertexXY(v); minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
     var pad = 34;
     var vb = [(minX - pad).toFixed(1), (minY - pad).toFixed(1), (maxX - minX + pad * 2).toFixed(1), (maxY - minY + pad * 2).toFixed(1)].join(" ");
-    var svg = svgEl("svg", { class: "cities-board", viewBox: vb, role: "img", "aria-label": "Board" });
+    // robber mode: tokens (and the robber marker) go pointer-transparent so
+    // the click lands on the target hex under them — the disc sits dead
+    // center, exactly where people aim (odds hover resumes after the pick)
+    var svg = svgEl("svg", { class: "cities-board" + (ui.mode === "robber" ? " is-picking" : ""), viewBox: vb, role: "img", "aria-label": "Board" });
 
     // hex fills + tokens
     model.board.hexes.forEach(function (h) {
@@ -915,7 +1040,13 @@
         tg.appendChild(tip);
         svg.appendChild(tg);
       }
-      if (robberHere) svg.appendChild(svgEl("circle", { cx: c.x, cy: c.y - 2, r: 11, class: "cities-robber" }));
+      if (robberHere) {
+        if (robberSprite) {
+          svg.appendChild(svgEl("image", { href: ROBBER_SRC, x: c.x - 14, y: c.y - 16, width: 28, height: 28, class: "cities-robber--sprite" }));
+        } else {
+          svg.appendChild(svgEl("circle", { cx: c.x, cy: c.y - 2, r: 11, class: "cities-robber" }));
+        }
+      }
     });
 
     // harbors (marker at edge midpoint)
@@ -923,6 +1054,11 @@
       var a = vertexXY(hb.vertices[0]), b = vertexXY(hb.vertices[1]);
       var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       var grp = svgEl("g", { class: "cities-harbor" });
+      // native tooltip: the visible label shows the rate (3:1 / 2:1), hover
+      // reveals the traded resource ("Any" for a 3:1)
+      var tip = svgEl("title", {});
+      tip.textContent = hb.type === "any" ? S.harborAny : resName(hb.type);
+      grp.appendChild(tip);
       grp.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: mx, y2: my, class: "cities-harbor__link" }));
       grp.appendChild(svgEl("line", { x1: b.x, y1: b.y, x2: mx, y2: my, class: "cities-harbor__link" }));
       grp.appendChild(svgEl("circle", { cx: mx, cy: my, r: 10, class: "cities-harbor__dot", fill: hb.type === "any" ? "var(--cterr-sea)" : "var(--cterr-" + hb.type + ")" }));
@@ -1353,8 +1489,9 @@
       var body = el("div", "cities-pstrip__body");
       var head = el("div", "cities-pstrip__head");
       head.appendChild(seatDot(i));
-      // a botted seat (grace expired / kicked mid-game) wears the tag
-      var nm = model.seats[i] && model.seats[i].bot ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
+      // a botted seat (host-added, grace expired, or kicked mid-game) wears the tag
+      var sMeta = model.seats[i];
+      var nm = sMeta && (sMeta.bot || sMeta.phantom) ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
       head.appendChild(el("span", "cities-pstrip__name", nm + (i === mySeat() ? " ·" : "")));
       if (isEmbargoed(i)) head.appendChild(el("span", "cities-badge", "🚫"));
       body.appendChild(head);
@@ -1456,9 +1593,9 @@
     });
     return line;
   }
-  // Deck pane: the bank's public counts as mini hand-style cards, a centered
-  // 3-2 grid. Pre-game (no bank yet) shows em dashes at the same card size —
-  // the pane never changes shape.
+  // Deck pane: the bank's public counts as mini hand-style cards + the dev
+  // deck's remainder, an even 3-3 grid. Pre-game (no bank yet) shows em
+  // dashes at the same card size — the pane never changes shape.
   function buildDeck() {
     var bank = (model && model.bank) || null;
     var wrap = el("div", "cities-deck");
@@ -1469,6 +1606,20 @@
       chip.appendChild(el("span", "cities-card__lbl", resName(r)));
       wrap.appendChild(chip);
     });
+    // dev deck: TOTAL remaining only (per-type would leak drawn-but-unplayed
+    // cards); the hover teaches the frame's FIXED shuffle mix instead
+    var dev = el("span", "cities-card cities-card--mini");
+    dev.style.setProperty("--ccard", "var(--title)");   // the in-hand dev-card idiom, not a sixth resource
+    var left = model && model.devLeft != null ? String(model.devLeft) : "—";
+    dev.appendChild(el("span", "cities-card__n", left));
+    dev.appendChild(el("span", "cities-card__lbl", S.deckDevLabel));
+    var spec = model && model.frame && Boards[model.frame] && Boards[model.frame].dev;
+    if (spec && model.devLeft != null) {
+      var total = 0;
+      var list = Object.keys(spec).map(function (k) { total += spec[k]; return spec[k] + "x " + (DEV_NAME[k] || k); }).join(", ");
+      dev.title = fmt(S.devDeckTitle, { n: left, total: total, list: list });
+    }
+    wrap.appendChild(dev);
     return wrap;
   }
 
@@ -1511,6 +1662,7 @@
     ctrlCol.appendChild(gauge);
     if (note) ctrlCol.appendChild(note);
     renderHand(seat, handCol);
+    renderLedger(handCol);
     play.appendChild(handCol);
     play.appendChild(ctrlCol);
     ROLE.appendChild(play);
@@ -1602,6 +1754,32 @@
     wrap.appendChild(renderDevRow(dev));
     (parent || ROLE).appendChild(wrap);
   }
+  /* The since-your-last-turn ledger, filling the hand column's slack.
+     ALWAYS five rows in hand order (name + net delta) — rows never add,
+     remove, or reorder, and the value cell reserves width, so nothing
+     can jitter. Quiet resources show a dim dash; active rows carry the
+     per-source breakdown on the native title (the dev-card hover idiom).
+     Hidden entirely under 62rem (essentials-only; main.css). */
+  function renderLedger(parent) {
+    var wrap = el("div", "cities-ledger");
+    wrap.appendChild(el("p", "cities-ledger__title", S.ledgerTitle));
+    var rows = el("div", "cities-ledger__rows");
+    RES.forEach(function (r) {
+      var g = (ledger && ledger[r]) || { net: 0, parts: {}, order: [] };
+      var quiet = !g.order.length;
+      var name = el("span", "cities-ledger__res" + (quiet ? " is-quiet" : ""), resName(r));
+      var val = el("span", "cities-ledger__n" + (quiet ? " is-quiet" : g.net < 0 ? " is-loss" : g.net > 0 ? " is-gain" : ""), quiet ? "—" : fmtNet(g.net));
+      if (!quiet) {
+        name.style.setProperty("--cres", "var(--cterr-" + r + ")");
+        var tip = S.ledgerTitle + ": " + g.order.map(function (l) { return fmtNet(g.parts[l]) + " " + l; }).join(" · ");
+        name.title = tip; val.title = tip;
+      }
+      rows.appendChild(name); rows.appendChild(val);
+    });
+    wrap.appendChild(rows);
+    parent.appendChild(wrap);
+  }
+  function fmtNet(n) { return n > 0 ? "+" + n : n < 0 ? "−" + (-n) : "0"; }
   function renderDevRow(dev) {
     var row = el("div", "cities-devrow");
     if (!dev.length) {
@@ -1648,7 +1826,10 @@
     box.appendChild(row);
     var confirm = el("button", "cities-discard__go"); confirm.type = "button"; confirm.disabled = true;
     confirm.appendChild(el("span", null, S.discardGo));
-    confirm.addEventListener("click", function () { send({ type: "discard", cards: sel }); });
+    confirm.addEventListener("click", function () {
+      lastDiscard = {}; RES.forEach(function (r) { lastDiscard[r] = sel[r]; });   // the ledger needs the composition; the event only carries the count
+      send({ type: "discard", cards: sel });
+    });
     box.appendChild(confirm);
     wrap.appendChild(box);
     ROLE.appendChild(wrap);

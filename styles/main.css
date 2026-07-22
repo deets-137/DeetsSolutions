@@ -3533,8 +3533,13 @@ button:focus-visible {
 }
 /* Fixed height (not content-driven): the lobby settings, the board, and the
    game-over stats all live in the same box, so Start never moves the page.
-   The board SVG meet-fits inside; over-length stats scroll internally. */
-.cities-tile--big { grid-area: big; height: clamp(30rem, calc(100vh - 16rem), 42rem); position: relative; display: flex; overflow-y: auto; }
+   The board SVG meet-fits inside; over-length stats scroll internally.
+   Height is a flat 42rem — never viewport-coupled: a short window scrolls the
+   page rather than compressing the board. The big tile pins rows 1-3, so a
+   viewport term here would drag the log's 1fr row down with it (the deck pane,
+   being intrinsically-sized cards, would stay put — hence the lopsided squeeze
+   this replaced). Everything in the bento now holds full size in lockstep. */
+.cities-tile--big { grid-area: big; height: 42rem; position: relative; display: flex; overflow-y: auto; }
 .cities-tile--dice { grid-area: dice; }
 /* Fixed height sized to exactly 4 strips (the base-board table): 5-6
    player tables scroll inside on the themed scrollbar instead of
@@ -3591,6 +3596,13 @@ button:focus-visible {
 .cities-odds__axis { stroke: var(--border); pointer-events: none; }
 .cities-odds__hit { fill: transparent; }
 .cities-robber { fill: #1a1a1a; stroke: #fff; stroke-width: 1.5; opacity: 0.9; }
+.cities-robber--sprite { image-rendering: pixelated; }   /* Aditya's pixel-art robber.png scales crisp */
+/* robber placement: the number-token discs sit dead center on the hexes —
+   exactly where people click — so while picking they pass clicks through
+   to the target polygon (odds hover resumes after the pick) */
+.cities-board.is-picking .cities-tokeng,
+.cities-board.is-picking .cities-robber,
+.cities-board.is-picking .cities-robber--sprite { pointer-events: none; }
 .cities-road { stroke-width: 6; stroke-linecap: round; }
 .cities-road--target { stroke: var(--title); stroke-dasharray: 3 4; opacity: 0.6; cursor: pointer; }
 .cities-road--target:hover { opacity: 1; stroke-width: 8; }
@@ -3646,6 +3658,31 @@ button:focus-visible {
 }
 .cities-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
 .cities-seat__kick:hover { color: var(--stop); }
+/* host-added bots: "+ Bot" on open seats, and the inline add/rename editor —
+   the editor swaps into the row at the SAME height (input capped to the text
+   line), so toggling it never resizes the roster (the universal layout rule) */
+.cities-seat__addbot,
+.cities-seat__addgo {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius-control);
+  color: var(--subtext); font: inherit; font-size: 0.78rem;
+  padding: 0 var(--space-2); line-height: 1.4; cursor: pointer;
+}
+.cities-seat__addbot:hover { color: var(--title); border-color: var(--title); }
+.cities-seat__addgo { color: var(--go); }
+.cities-seat__addgo:hover { border-color: var(--go); }
+.cities-seat__namebtn {
+  background: none; border: none; padding: 0; font: inherit; color: var(--text);
+  text-align: left; cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 0.15em;
+}
+.cities-seat__namebtn:hover { color: var(--title); }
+.cities-seat__nameinput {
+  flex: 1 1 auto; min-width: 0; height: 1.6em;
+  font: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+}
+.cities-seat__nameinput:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
 .cities-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
 
 /* ── seat-color picker (lobby): the dot is the button, the panel slides
@@ -3839,9 +3876,7 @@ button:focus-visible {
   gap: var(--space-2); align-content: start;
   overflow-y: auto; min-height: 0;
 }
-.cities-deck > .cities-card { grid-column: span 2; }
-.cities-deck > .cities-card:nth-child(4) { grid-column: 2 / span 2; }
-.cities-deck > .cities-card:nth-child(5) { grid-column: 4 / span 2; }
+.cities-deck > .cities-card { grid-column: span 2; }   /* six cards → an even 3-3 grid (5 resources + the dev deck) */
 .cities-card--mini { min-width: 0; padding: var(--space-1); }
 .cities-card--mini .cities-card__n { font-size: 0.95rem; }
 .cities-card--mini .cities-card__lbl { font-size: 0.62rem; }
@@ -3853,7 +3888,24 @@ button:focus-visible {
 /* the play area: hand on the left, controls (buttons + option tray) on the
    right, tops aligned — the tray stays inside the right half */
 .cities-play { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: start; }
-.cities-play__hand { min-width: 0; }
+/* the hand column is a row: the hand stack at natural size, then the
+   since-your-last-turn ledger filling the column's slack */
+.cities-play__hand { min-width: 0; display: flex; gap: var(--space-4); }
+.cities-hand { flex: 0 0 auto; }
+/* the ledger: five FIXED rows in hand order (name + net delta), details on
+   the native title — rows never add/remove/reorder and the value cell
+   reserves width, so nothing can jitter (the universal layout rule) */
+.cities-ledger { flex: 1 1 auto; min-width: 0; overflow: hidden; border-left: 1px solid var(--border); padding-left: var(--space-3); }
+.cities-ledger__title { margin: 0 0 var(--space-1); color: var(--subtext); font-size: 0.75rem; white-space: nowrap; }
+.cities-ledger__rows { display: grid; grid-template-columns: max-content max-content; column-gap: var(--space-3); font-size: 0.8rem; line-height: 1.55; }
+.cities-ledger__res { color: var(--cres, var(--text)); }
+.cities-ledger__n { min-width: 2.2rem; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cities-ledger__n.is-gain { color: var(--go); }
+.cities-ledger__n.is-loss { color: var(--stop); }
+.cities-ledger .is-quiet { color: var(--subtext); opacity: 0.6; font-weight: 400; }
+/* essentials-only when narrow: the ledger bows out before it can cramp
+   the hand (the bento itself dies at 56rem, so this is a thin band) */
+@media (max-width: 62rem) { .cities-ledger { display: none; } }
 /* the controls column grid-stacks the pills+tray gauge under any prompt that
    replaces it (cities.js buildGauge) — the ghosted gauge keeps the size */
 .cities-play__ctrl { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
