@@ -17,9 +17,9 @@
    {curly} tokens are filled by cities.js (fmt()). */
 window.CITIES_STRINGS = {
   /* ── bar ─────────────────────────────────────────────────────── */
-  tableCodePlaceholder: "[ph]Table Code",
+  tableCodePlaceholder: "Table Code",
   yourTables:           "Recents",
-  metaSetup:            "[ph]Setup — place your first pieces.",
+  metaSetup:            "Setup — place your first pieces.",
 
   /* ── peek / create gate (below the bar, pre-join) — peek lines +
      both pills are Aditya's wording (chat), no [ph] */
@@ -29,8 +29,8 @@ window.CITIES_STRINGS = {
   watchButton:  "Spectate",
   createLine:   "The '{code}' Table doesn't exist yet. Open it?",
   createButton: "Open the Table",
-  nameLabel:    "[ph]Your name",
-  nameNeeded:   "[ph]Enter a name first.",
+  nameLabel:    "Your name",
+  nameNeeded:   "Enter a name first.",
   joinRefused:  "Table no longer exists.",
   peekFailed:   "Couldn't join the table. Try again soon!",
 
@@ -39,11 +39,11 @@ window.CITIES_STRINGS = {
   settingsPill: "View Settings",
   shareToast:   "Invite link copied!",
   sitPill:      "Sit down",
-  watchPill:    "[ph]Watch",
+  watchPill:    "Watch",
   leavePill:    "Leave",
   closePill:    "Close Table",
-  closeConfirm: "[ph]Close it?",
-  tableClosed:  "[ph]The host closed the table.",
+  closeConfirm: "Confirm?",
+  tableClosed:  "The host closed the table.",
 
   /* ── lobby (big tile: settings) ──────────────────────────────── */
   lobbyTitle:      "Table settings",
@@ -69,13 +69,13 @@ window.CITIES_STRINGS = {
   colorYours:      "Your color",
   colorTheirs:     "{name}'s color",
   colorBecome:     "Become...",
-  colorDotAria:    "[ph]Change color for {name}",
-  colorSwatchAria: "[ph]Claim this color",
-  colorCustomAria: "[ph]Your custom color",
-  colorTakenBy:    "[ph]{name} has this one",
+  colorDotAria:    "Change color for {name}",
+  colorSwatchAria: "Claim this color",
+  colorCustomAria: "Your custom color",
+  colorTakenBy:    "{name} has this one",
   colorHexLabel:   "Custom:",
   colorBadHex:     "Six hex digits, like #1fb0aa",
-  colorClashWith:  "[ph]Too close to {name}",
+  colorClashWith:  "Too close to {name}",
 
   /* ── resource + piece display names (the carve-out's labels) ─── */
   resWood:  "Wood",
@@ -83,23 +83,23 @@ window.CITIES_STRINGS = {
   resWheat: "Wheat",
   resSheep: "Sheep",
   resOre:   "Ore",
-  resDesert: "[ph]Desert",
-  pieceSettlement: "[ph]Settlement",
-  pieceCity:       "[ph]City",
-  pieceRoad:       "[ph]Road",
+  resDesert: "Desert",
+  pieceSettlement: "Settlement",
+  pieceCity:       "City",
+  pieceRoad:       "Road",
 
   /* ── dev cards ───────────────────────────────────────────────── */
-  devKnight:   "[ph]Knight",
-  devRoad:     "[ph]Road Building",
-  devPlenty:   "[ph]Year of Plenty",
-  devMonopoly: "[ph]Monopoly",
-  devVp:       "[ph]Victory Point",
+  devKnight:   "Knight",
+  devRoad:     "Road Building",
+  devPlenty:   "Year of Plenty",
+  devMonopoly: "Monopoly",
+  devVp:       "Victory Point",
   /* hover blurbs on the dev-card buttons in your hand */
-  devKnightDesc:   "[ph]Move the robber, then steal a card from a player on that hex.",
-  devRoadDesc:     "[ph]Place 2 roads at no cost.",
-  devPlentyDesc:   "[ph]Take any 2 resources from the bank.",
-  devMonopolyDesc: "[ph]Name a resource — every player hands you all of theirs.",
-  devVpDesc:       "[ph]A hidden victory point. It counts toward your total.",
+  devKnightDesc:   "Move the robber, then steal a card from a player on that hex.",
+  devRoadDesc:     "Place 2 roads for free.",
+  devPlentyDesc:   "Take any 2 resources from the bank.",
+  devMonopolyDesc: "Every player hands you all of their selected resource.",
+  devVpDesc:       "A secret victory point towards your total.",
 
   /* ── board: number-token hover — Aditya's wording (chat), no [ph] ─
      {roll} arrives article-composed ("an 8", "a 9") from cities.js */
@@ -117,9 +117,9 @@ window.CITIES_STRINGS = {
   resViewLabel: "In-Game Resources View",
 
   /* ── dice tile ───────────────────────────────────────────────── */
-  diceWaiting: "[ph]{name} to roll",
-  diceRolling: "[ph]Rolling…",
-  diceLast:    "[ph]{name} rolled {sum}",
+  diceWaiting: "{name} to roll",
+  diceRolling: "Rolling…",
+  diceLast:    "{name} rolled {sum}",
 
   /* ── players tile ────────────────────────────────────────────── */
   vpShort:     "{n} VP",
@@ -131,65 +131,65 @@ window.CITIES_STRINGS = {
   armyProgress: "{n}x Knights",   // award pill, progress toward Largest Army (knights played)
   awardRoadHeld: "Longest Road [{n}x]",  // award pill when held — [{n}x] is the bar to beat
   awardArmyHeld: "Largest Army [{n}x]",
-  disconnected: "[ph]away",
+  disconnected: "Away",
   /* right-click embargo menu on a player strip */
   embargoSet:  "I hate you",
-  embargoLift: "[ph]We're cool",
+  embargoLift: "It's chill now",
 
   /* ── log tile rail (Log | Deck toggle) — Aditya OK'd, no [ph] ── */
   logTab:  "Log",
   deckTab: "Deck",
 
   /* ── role tile (player) — action pills ───────────────────────── */
-  pillRoll:  "[ph]Roll",
-  pillBuild: "[ph]Build",
-  pillTrade: "[ph]Trade",
-  pillDev:   "[ph]Dev card",
-  pillEnd:   "[ph]End turn",
-  handTitle: "[ph]Your hand",
-  buildRoad:       "[ph]Road",
-  buildSettlement: "[ph]Settlement",
-  buildCity:       "[ph]City",
-  buyDev:          "[ph]Buy dev card",
-  buildDev:        "[ph]Dev card",
-  cancelBuild:     "[ph]Cancel",
-  buildPrompt:     "[ph]Pick a spot on the board.",
+  pillRoll:  "Roll",
+  pillBuild: "Build",
+  pillTrade: "Trade Hub",
+  pillDev:   "Dev card",
+  pillEnd:   "End turn",
+  handTitle: "Hand",
+  buildRoad:       "Road",
+  buildSettlement: "Settlement",
+  buildCity:       "City",
+  buyDev:          "Buy dev card",
+  buildDev:        "Dev card",
+  cancelBuild:     "Cancel",
+  buildPrompt:     "Pick a spot on the board to build.",
 
   /* ── role tile (spectator) ───────────────────────────────────── */
   spectatingNote: "You're spectating. Sit down if there's space and you'd like to play!",
-  bettingSoon:    "[ph]Spectator betting lands in a later build.",
-  chipsLabel:     "[ph]{n} chips",
+  bettingSoon:    "Spectator betting lands in a later build.",
+  chipsLabel:     "{n} chips",
 
   /* ── trade overlay ───────────────────────────────────────────── */
   tradeTitle:   "Trade Hub",
   tradeGive:    "Offer",
   tradeGet:     "Receive",
   tradeSend:    "Offer to Players",
-  tradeAccept:  "[ph]Accept",
-  tradeDecline: "[ph]Decline",
-  tradeCounter: "[ph]Counter",
+  tradeAccept:  "Accept",
+  tradeDecline: "Decline",
+  tradeCounter: "Counter",
   tradeClose:   "Trade",
   tradeCancel:  "Withdraw",
-  tradeBankTitle: "[ph]Trade with the bank",
+  tradeBankTitle: "Trade with the bank",
   tradeWithBank:    "Bank",
   tradeWithPlayers: "Players",
-  tradeRate:    "[ph]{rate}:1",
+  tradeRate:    "{rate}:1",
   offerFrom:    "{name} offers",
-  offerToYou:   "[ph]{name} wants to trade",
-  offerIncoming: "[ph]{name} sent a trade offer.",
+  offerToYou:   "{name} wants to trade",
+  offerIncoming: "{name} sent a trade offer.",
   offerAccepted: "{name} accepted your trade.",
   offerShort:   "You don't have those resources to offer!",
 
   /* ── forced interrupts (on the board tile) ───────────────────── */
-  discardPrompt: "[ph]Roll of 7 — discard {n} cards.",
-  discardGo:     "[ph]Discard",
-  discardWaiting: "[ph]Waiting on others to discard…",
-  robberPrompt:  "[ph]Move the robber to a hex.",
-  stealPrompt:   "[ph]Steal from a player on that hex.",
-  stealSkip:     "[ph]No one to steal from.",
-  roadsPrompt:   "[ph]Place {n} free roads.",
-  plentyPrompt:  "[ph]Take any 2 from the bank.",
-  monopolyPrompt: "[ph]Name a resource to monopolize.",
+  discardPrompt: "Roll of 7 — discard {n} cards.",
+  discardGo:     "Discard",
+  discardWaiting: "Waiting on others to discard…",
+  robberPrompt:  "Move the robber to a hex.",
+  stealPrompt:   "Steal from a player on that hex.",
+  stealSkip:     "No one to steal from here.",
+  roadsPrompt:   "Place {n} free roads.",
+  plentyPrompt:  "Take any 2 resources from the bank.",
+  monopolyPrompt: "Pick a resource to monopolize.",
 
   /* ── game over ───────────────────────────────────────────────── */
   gameOver:    "Game Over",
@@ -204,27 +204,36 @@ window.CITIES_STRINGS = {
   statHidden:  "—",
 
   /* ── connection / refusals ───────────────────────────────────── */
-  connDown:    "[ph]Reconnecting…",
+  connDown:    "Reconnecting…",
   connUp:      "Back!",
-  kickedMeta:  "[ph]The host removed you from the table.",
+  kickedMeta:  "The host removed you from the table.",
   tableFull:   "Table is full.",
-  nameTaken:   "[ph]That name is taken here.",
-  noTable:     "[ph]No such table.",
+  nameTaken:   "That name is taken at the table.",
+  noTable:     "No such table.",
   toastDismiss: "Dismiss",
 
   /* ── error codes → friendly lines (engine denials) ───────────── */
-  errCost:  "[ph]Not enough resources.",
-  errLoc:   "[ph]Can't build there.",
-  errTurn:  "[ph]Not your turn.",
-  errPhase: "[ph]Can't do that right now.",
-  errRate:  "[ph]That trade doesn't work.",
-  errPerm:  "[ph]You can't do that.",
-  errFull:  "[ph]Table's full.",
-  errEmpty: "[ph]The bank's out.",
-  errSupply: "[ph]No pieces left.",
+  errCost:  "Not enough resources.",
+  errLoc:   "Can't build there.",
+  errTurn:  "Not your turn.",
+  errPhase: "Can't do that right now.",
+  errRate:  "That trade doesn't work.",
+  errPerm:  "You can't do that.",
+  errFull:  "Table's full.",
+  errEmpty: "The bank's out of that resource.",
+  errSupply: "No pieces left in the supply.",
   errColor:      "[ph]That's not a hex color.",
-  errColorTaken: "[ph]Too close to another player's color.",
+  errColorTaken: "Too close to another player's color.",
+  errFlood:      "Slow down a moment. Limited to 30 server actions in 10s.",
+
+  /* ── disconnect grace + bot takeover (the red countdown toast) ───
+     {name} = the dropped player, {secs} = the live countdown cities.js
+     ticks down from the seat's graceUntil */
+  leavingToast:  "{name} disconnected — a bot takes over in {secs}s",
+  returnedToast: "{name} is back.",
+  takeoverToast: "A bot is now playing {name}'s seat.",
+  botSeatTag:    "{name} (bot)",
 
   /* ── desktop-only guard ──────────────────────────────────────── */
-  desktopOnly: "[ph]DeetsCities is a desktop game — open it on a wider screen."
+  desktopOnly: "DeetsCities needs a wider screen to work rip."
 };
