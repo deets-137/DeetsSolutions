@@ -51,7 +51,7 @@ window.CITIES_STRINGS = {
   timerLabel:      "Turn timer",
   timerOff:        "Off",
   timerSecs:       "{n}s",
-  bettingLabel:    "[ph]Spectator betting",
+  bettingLabel:    "[ph]Spectator betting",   // [ph] OK to ship — betting is unbuilt (v1.1); Aditya's call (chat 2026-07-21)
   bettingOn:       "On",
   bettingOff:      "Off",
   startButton:     "Start game",
@@ -222,7 +222,7 @@ window.CITIES_STRINGS = {
   errFull:  "Table's full.",
   errEmpty: "The bank's out of that resource.",
   errSupply: "No pieces left in the supply.",
-  errColor:      "[ph]That's not a hex color.",
+  errColor:      "That's not a hex color.",   // placeholder wording approved as-is (chat 2026-07-21)
   errColorTaken: "Too close to another player's color.",
   errFlood:      "Slow down a moment. Limited to 30 server actions in 10s.",
 
