@@ -1626,9 +1626,7 @@
     dev.appendChild(el("span", "cities-card__lbl", S.deckDevLabel));
     var spec = model && model.frame && Boards[model.frame] && Boards[model.frame].dev;
     if (spec && model.devLeft != null) {
-      var total = 0;
-      var list = Object.keys(spec).map(function (k) { total += spec[k]; return spec[k] + "x " + (DEV_NAME[k] || k); }).join(", ");
-      dev.title = fmt(S.devDeckTitle, { n: left, total: total, list: list });
+      dev.title = fmt(S.devDeckTitle, { list: Object.keys(spec).map(function (k) { return spec[k] + "x " + (DEV_NAME[k] || k); }).join(", ") });
     }
     wrap.appendChild(dev);
     return wrap;
