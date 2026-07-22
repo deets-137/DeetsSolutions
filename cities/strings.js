@@ -226,12 +226,25 @@ window.CITIES_STRINGS = {
   turnCount:   "{n} turns",   // top-right of the Game Over header
   abandoned:   "Game abandoned — no winner.",
   rematchButton: "Rematch",
+  rematchSoon:   "[ph]Rematch lands with the worker — reopen the table for now.",   // moved from inline cities.js copy (convention fix)
   superMostResources: "Most resources",
   superMostRobbed:    "Most robbed",
   superBiggestHaul:   "Biggest single haul",
   superMostKnights:   "Most knights",
   superValue:  "[{n}x]",   // appended to a superlative winner — the value they topped
   statHidden:  "—",
+
+  /* ── in-game attention toasts ────────────────────────────────────
+     stolenFromYou is Aditya's wording (chat 2026-07-22), no [ph] — the
+     sticky red victim toast; {res} arrives as a display name ("Wheat").
+     awardWon rides a green (success) toast, awardTaken/awardDropped a
+     yellow (warn) one; {award} is awardRoad/awardArmy from above. */
+  yourTurnToast: "[ph]Your turn!",
+  stolenFromYou: "{name} has stolen {res} from you!",
+  monopolyVictim: "[ph]{name} monopolized {res} — you lost {n}.",
+  awardWon:      "[ph]You took {award}!",
+  awardTaken:    "[ph]{name} took {award} from you.",
+  awardDropped:  "[ph]{award} slipped away — nobody holds it now.",
 
   /* ── connection / refusals ───────────────────────────────────── */
   connDown:    "Reconnecting…",

@@ -3456,6 +3456,7 @@ button:focus-visible {
   --ctoken-bg:  #f2ead4;
   --ctoken-ink: #23303f;
   --ctoken-hot: #c0271f;   /* 6 / 8 ink */
+  --cglow:      #ffd75e;   /* roll-celebration wash on hit hexes */
 }
 
 /* ── code combobox (the table code IS the title, League/radio idiom) ── */
@@ -3597,6 +3598,63 @@ button:focus-visible {
 .cities-odds__hit { fill: transparent; }
 .cities-robber { fill: #1a1a1a; stroke: #fff; stroke-width: 1.5; opacity: 0.9; }
 .cities-robber--sprite { image-rendering: pixelated; }   /* Aditya's pixel-art robber.png scales crisp */
+
+/* ── roll celebration — one-shot festivity on the hexes a roll just hit
+   (cities.js rollFlash). All three animations delay 0.62s so they fire the
+   moment the dice-spin settles, run twice, then revert (no fill mode — the
+   base states below are the resting look). Transforms/opacity only: the
+   universal layout rule holds, nothing reflows. */
+.cities-hex--party { fill: var(--cglow); opacity: 0; pointer-events: none; }
+.cities-hex--party { animation: cities-hexparty 0.72s var(--ease-ui) 0.62s 2; }
+@keyframes cities-hexparty { 0%, 100% { opacity: 0; } 45% { opacity: 0.42; } }
+/* the hit hex's number token pops in sympathy */
+.cities-tokeng.is-rolled {
+  transform-box: fill-box; transform-origin: center;
+  animation: cities-tokenpop 0.72s var(--ease-ui) 0.62s 2;
+}
+@keyframes cities-tokenpop { 45% { transform: scale(1.18); } }
+/* a rolled 7 celebrates the robber instead: a menacing red-glow waggle */
+.cities-robber.is-heist, .cities-robber--sprite.is-heist {
+  transform-box: fill-box; transform-origin: center;
+  animation: cities-heist 0.72s var(--ease-ui) 0.62s 2;
+}
+@keyframes cities-heist {
+  0%, 100% { transform: none; filter: none; }
+  25% { transform: rotate(-8deg) scale(1.12); filter: drop-shadow(0 0 4px var(--ctoken-hot)); }
+  75% { transform: rotate(8deg) scale(1.12); filter: drop-shadow(0 0 4px var(--ctoken-hot)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cities-hex--party, .cities-tokeng.is-rolled,
+  .cities-robber.is-heist, .cities-robber--sprite.is-heist { animation: none; }
+}
+
+/* ── piece arrivals — one-shot entrances on nodes the last render didn't
+   have (cities.js boardSeen diff). The first render after connect seeds
+   the diff silently, so a mid-game joiner sees a calm board. */
+/* the robber drops onto his new hex and lands with a squash */
+.cities-robber.is-arrived, .cities-robber--sprite.is-arrived {
+  transform-box: fill-box; transform-origin: center;
+  animation: cities-robberdrop 0.5s var(--ease-ui);
+}
+@keyframes cities-robberdrop {
+  0% { transform: translateY(-30px); opacity: 0; }
+  55% { transform: translateY(0); opacity: 1; }
+  70% { transform: scale(1.25, 0.75); }
+  100% { transform: none; }
+}
+/* a fresh road draws itself in end to end (pathLength=1 normalizes) */
+.cities-road.is-built { stroke-dasharray: 1; animation: cities-roaddraw 0.4s var(--ease-ui); }
+@keyframes cities-roaddraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+/* a fresh settlement/city (or an upgrade) pops at its vertex */
+.cities-piece.is-built {
+  transform-box: fill-box; transform-origin: center;
+  animation: cities-piecepop 0.38s var(--ease-ui);
+}
+@keyframes cities-piecepop { 0% { transform: scale(0); } 65% { transform: scale(1.25); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cities-robber.is-arrived, .cities-robber--sprite.is-arrived,
+  .cities-road.is-built, .cities-piece.is-built { animation: none; }
+}
 /* hand-drawn terrain art + the per-hex resource icon (above the number
    token) — never hit targets; the transparent-filled polygon on top keeps
    the click/hover/stroke surface exactly where it always was */
@@ -3787,10 +3845,17 @@ button:focus-visible {
 .cities-die__art { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .cities-dice__faces.is-spinning .cities-die { animation: cities-diespin 0.14s steps(2) infinite; }
 @keyframes cities-diespin { to { transform: translateY(-2px) rotate(8deg); } }
+/* the spin's end re-render wears a one-shot settle bounce — the dice land */
+.cities-dice__faces.is-settled .cities-die { animation: cities-diesettle 0.34s var(--ease-ui); }
+@keyframes cities-diesettle {
+  0% { transform: translateY(-5px) scale(1.06); }
+  60% { transform: translateY(1px) scale(0.98); }
+  100% { transform: none; }
+}
 /* one line is always reserved (radio's meta idiom) so the caption appearing
    at game start doesn't grow the tile */
 .cities-dice__cap { margin: var(--space-2) 0 0; text-align: center; color: var(--subtext); font-size: 0.85rem; min-height: 1.5em; min-height: 1lh; }
-@media (prefers-reduced-motion: reduce) { .cities-dice__faces.is-spinning .cities-die { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cities-dice__faces.is-spinning .cities-die, .cities-dice__faces.is-settled .cities-die { animation: none; } }
 
 /* ── players tile ─────────────────────────────────────────────── */
 .cities-pstrip {
@@ -4162,7 +4227,8 @@ button:focus-visible {
 .cities-embargo__pop { position: absolute; top: calc(100% - var(--space-1)); right: var(--space-2); z-index: 30; }
 
 /* ── game over ────────────────────────────────────────────────── */
-.cities-over { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.cities-over { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; animation: cities-overin 0.45s var(--ease-ui); }
+@keyframes cities-overin { from { opacity: 0; transform: translateY(10px); } }
 /* header: title left, turn count right, sharing one baseline */
 .cities-over__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .cities-over__title { margin: 0; color: var(--title); font-family: var(--font-title); }
@@ -4191,6 +4257,10 @@ button:focus-visible {
 /* every row reserves the border box so the winner's glow doesn't shift the others */
 .cities-over__row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-control); }
 .cities-over__row.is-winner { border-color: var(--title); box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title); }
+/* three victory pulses on arrival, then the row rests at its static glow */
+.cities-over__row.is-winner { animation: cities-winnerpulse 1.4s var(--ease-ui) 0.45s 3; }
+@keyframes cities-winnerpulse { 50% { box-shadow: 0 0 0 1px var(--title), 0 0 22px 2px var(--title); } }
+@media (prefers-reduced-motion: reduce) { .cities-over { animation: none; } .cities-over__row.is-winner { animation: none; } }
 .cities-over__name { flex: 1 1 auto; color: var(--text); }
 .cities-over__vp { color: var(--title); font-weight: 700; }
 

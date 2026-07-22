@@ -131,6 +131,11 @@
   var fadingOffers = {};   // id -> offer snapshot, briefly rendered fading out
   var ledger = null, ledgerSeat = null;   // "since your last turn" hand ledger (client-only; resets when my turn starts)
   var prevHand = null;     // my hand as of the PREVIOUS broadcast (monopoly-loss attribution)
+  var prevAwards = null;   // awards as of the PREVIOUS broadcast (award-lost toast attribution)
+  var stealToasts = [];    // sticky stolen-from-you toasts; retired when my next turn starts
+  var rollFlash = null;    // { sum, until } — roll celebration window for the board's hex glow
+  var boardSeen = null;    // previous render's board pieces { robber, roads, blds } — new ones
+                           // animate in; null = seed silently (a joiner sees a calm board)
   var lastDiscard = null;  // composition of my in-flight 7-discard (the event carries only the count)
 
   /* ── embargoes ("I hate you") — a CLIENT-side preference, per table ──
@@ -284,6 +289,7 @@
     clearGraceToasts();
     offerCache = {}; fadingOffers = {};
     ledger = null; ledgerSeat = null; prevHand = null; lastDiscard = null;
+    prevAwards = null; rollFlash = null; boardSeen = null; clearStealToasts();
     document.removeEventListener("click", onEmbargoDocClick, true);
     document.removeEventListener("keydown", onEmbargoKey);
     ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, botEdit: null, botDraft: null, botFocus: false };
@@ -301,10 +307,11 @@
     if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
     if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
     if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
-    if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; model = stripMeta(msg); afterModel(msg); return; }
+    if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; prevAwards = (model && model.awards) || null; model = stripMeta(msg); afterModel(msg); return; }
     if (msg.type === "state") {
       if (!model) model = {};
       prevHand = (model.you && model.you.hand) || null;   // pre-merge hand; safe to hold — every delivery is a fresh clone
+      prevAwards = model.awards || null;                  // pre-merge award holders, same idiom
       for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") model[k] = msg[k];
       afterModel(msg);
       return;
@@ -343,7 +350,36 @@
     else if (p.kind === "steal") ui.mode = "steal";
   }
   function handleEvent(e) {
-    if (e.t === "roll") spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
+    if (e.t === "roll") {
+      spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
+      // roll celebration: hexes whose number just hit glow once the dice
+      // settle (CSS delays past the spin); a 7 aims the glow at the robber
+      rollFlash = { sum: e.d[0] + e.d[1], until: spinUntil + 1700 };
+    }
+    // my turn opens: attention cue, and the stolen-from-you stickies retire
+    // (a full turn cycle has passed — same clock as the ledger reset)
+    if (e.t === "turn" && e.seat != null && e.seat === mySeat()) { toast(S.yourTurnToast, "info"); clearStealToasts(); }
+    if (e.t === "start" || e.t === "win" || e.t === "abandon") clearStealToasts();
+    // victim-side toasts: things done TO me deserve more than a log line.
+    // stealHidden carries res only for the two parties, so the copy can name
+    // the card; the sticky red toast outlives the moment (see clear above).
+    if (e.t === "stealHidden" && e.from === mySeat() && e.from != null && e.res != null) {
+      stealToasts.push(toast(fmt(S.stolenFromYou, { name: seatName(e.to), res: resName(e.res) }), "error",
+        { sticky: true, actions: [{ label: S.toastDismiss }] }));
+    }
+    if (e.t === "monopoly" && mySeat() != null && e.seat !== mySeat() && prevHand && (prevHand[e.res] || 0) > 0) {
+      toast(fmt(S.monopolyVictim, { name: seatName(e.seat), res: resName(e.res), n: prevHand[e.res] }), "error");
+    }
+    // award swings: green when I take one, yellow when one leaves me
+    // (prevAwards is the pre-merge holder — the model has already moved on)
+    if (e.t === "award" && mySeat() != null) {
+      if (e.seat === mySeat()) toast(fmt(S.awardWon, { award: awardName(e.kind) }), "success");
+      else if (prevAwards && prevAwards[e.kind] === mySeat()) {
+        toast(e.seat != null
+          ? fmt(S.awardTaken, { name: seatName(e.seat), award: awardName(e.kind) })
+          : fmt(S.awardDropped, { award: awardName(e.kind) }), "warn");
+      }
+    }
     // disconnect-grace trio (worker only; the mock never emits these). The
     // sticky countdown itself is model-driven — syncGraceToasts reads
     // seat.graceUntil — so these are just the one-shot resolution lines.
@@ -478,6 +514,10 @@
   function clearGraceToasts() {
     Object.keys(graceToasts).forEach(function (k) { clearInterval(graceToasts[k].timer); graceToasts[k].handle.dismiss(); });
     graceToasts = {};
+  }
+  function clearStealToasts() {
+    stealToasts.forEach(function (t) { t.dismiss(); });
+    stealToasts = [];
   }
 
   /* ── typed events → terse mechanical log lines (Claude-authored) ─
@@ -1060,11 +1100,18 @@
     var defs = svg.appendChild(svgEl("defs", {}));   // per-hex clipPaths for the terrain art
     var cx0 = (minX + maxX) / 2, cy0 = (minY + maxY) / 2;   // board centroid — the harbor flag's "off-map" compass
 
+    // roll celebration window: while it's open, hexes matching the rolled sum
+    // wear a one-shot gold wash + token pop (fresh SVG nodes each render, so
+    // the class alone restarts the animation); a 7 glows the robber instead
+    var partying = rollFlash && Date.now() < rollFlash.until;
+
     // hex fills + tokens
     model.board.hexes.forEach(function (h) {
       var hk = h.q + "," + h.r, c = hexCenter(h.q, h.r);
       var poly = svgEl("polygon", { points: hexCorners(h.q, h.r), class: "cities-hex", fill: "var(--cterr-" + h.terrain + ")" });
       var robberHere = model.board.robber === hk;
+      // the robber-blocked hex sits out the party — it produced nothing
+      var rollHit = partying && h.token != null && h.token === rollFlash.sum && !robberHere;
       if (ui.mode === "robber" && !robberHere) {
         poly.classList.add("cities-hex--target");
         poly.addEventListener("click", function () { send({ type: "moveRobber", hex: hk }); ui.mode = null; });
@@ -1086,6 +1133,9 @@
         poly.setAttribute("fill", "transparent");
       }
       svg.appendChild(poly);
+      // celebration wash: a gold overlay polygon above the fill/art, under the
+      // token — pointer-events: none in CSS so robber-mode clicks pass through
+      if (rollHit) svg.appendChild(svgEl("polygon", { points: hexCorners(h.q, h.r), class: "cities-hex--party" }));
       // one big resource sprite in the band between the number token (r15)
       // and the hex's top point — same fixed-box idiom as the robber
       if (h.token != null && sprites["res-" + h.terrain]) {
@@ -1097,7 +1147,7 @@
       if (h.token != null) {
         // grouped so the native <title> tooltip (the odds line) covers the
         // whole disc — circle, number, and pips
-        var tg = svgEl("g", { class: "cities-tokeng" });
+        var tg = svgEl("g", { class: "cities-tokeng" + (rollHit ? " is-rolled" : "") });
         tg.appendChild(svgEl("circle", { cx: c.x, cy: c.y, r: 15, class: "cities-token" }));
         var hot = h.token === 6 || h.token === 8;
         // number + pip row both live INSIDE the r15 disc: number baseline
@@ -1117,19 +1167,27 @@
         svg.appendChild(tg);
       }
       if (robberHere) {
+        // a rolled 7 turns the celebration on the robber himself; a robber
+        // that MOVED since the last render drops in with a squash landing
+        var heist = partying && rollFlash.sum === 7 ? " is-heist" : "";
+        var arrived = boardSeen && boardSeen.robber !== hk ? " is-arrived" : "";
         if (sprites.robber) {
-          svg.appendChild(svgEl("image", { href: ROBBER_SRC, x: c.x - 14, y: c.y - 16, width: 28, height: 28, class: "cities-robber--sprite" }));
+          svg.appendChild(svgEl("image", { href: ROBBER_SRC, x: c.x - 14, y: c.y - 16, width: 28, height: 28, class: "cities-robber--sprite" + heist + arrived }));
         } else {
-          svg.appendChild(svgEl("circle", { cx: c.x, cy: c.y - 2, r: 11, class: "cities-robber" }));
+          svg.appendChild(svgEl("circle", { cx: c.x, cy: c.y - 2, r: 11, class: "cities-robber" + heist + arrived }));
         }
       }
     });
 
-    // roads
+    // roads — one built since the last render draws itself in (pathLength
+    // normalizes every edge to 1, so a single dash animation fits them all)
     Object.keys(model.roads).forEach(function (e) {
       var vs = g.edgeVertices[e]; if (!vs) return;
       var a = vertexXY(vs[0]), b = vertexXY(vs[1]);
-      svg.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road", stroke: "var(--cseat-" + model.roads[e] + ")" }));
+      var fresh = boardSeen && !boardSeen.roads[e];
+      var attrs = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road" + (fresh ? " is-built" : ""), stroke: "var(--cseat-" + model.roads[e] + ")" };
+      if (fresh) attrs.pathLength = 1;
+      svg.appendChild(svgEl("line", attrs));
     });
 
     // harbors (marker at edge midpoint) — painted AFTER built roads so a
@@ -1175,10 +1233,12 @@
       });
     }
 
-    // buildings
+    // buildings — new ones (and settlement→city upgrades) pop in at the vertex
     Object.keys(model.buildings).forEach(function (v) {
       var b = model.buildings[v], p = vertexXY(v);
-      svg.appendChild(pieceShape(b.kind, p, b.seat));
+      var ps = pieceShape(b.kind, p, b.seat);
+      if (boardSeen && boardSeen.blds[v] !== b.kind) ps.classList.add("is-built");
+      svg.appendChild(ps);
     });
     // settlement placement targets — hovering one shows its "strength": the
     // adjacent hexes' pips pooled into one badge, so spots compare at a glance
@@ -1204,6 +1264,12 @@
 
     BIG.appendChild(svg);
     buildBoardPops();
+    // snapshot this render's pieces — the NEXT render's diff baseline. First
+    // render after connect lands here too, seeding silently (no fireworks).
+    var seen = { robber: model.board.robber, roads: {}, blds: {} };
+    Object.keys(model.roads).forEach(function (e) { seen.roads[e] = true; });
+    Object.keys(model.buildings).forEach(function (v) { seen.blds[v] = model.buildings[v].kind; });
+    boardSeen = seen;
   }
   function pips(tok) { var n = 6 - Math.abs(7 - tok); return new Array(n + 1).join("•"); }
 
@@ -1418,7 +1484,7 @@
       // host leaves and re-opens the table.
       var rb = el("button", "tb-pill cities-over__rematch"); rb.type = "button";
       rb.appendChild(el("span", "tb-pill__label", S.rematchButton));
-      rb.addEventListener("click", function () { toast("Rematch lands with the worker — reopen the table for now.", "info"); });
+      rb.addEventListener("click", function () { toast(S.rematchSoon, "info"); });
       wrap.appendChild(rb);
     }
     BIG.appendChild(wrap);
@@ -1487,10 +1553,13 @@
     DICE.textContent = "";
     var d = model.turn && model.turn.dice;
     var spinning = Date.now() < spinUntil;
+    // the spin's scheduled re-render lands just past spinUntil: that render
+    // (and only renders in its brief window) wears the one-shot settle bounce
+    var settled = !spinning && spinUntil > 0 && Date.now() - spinUntil < 500;
     // the timer box rides along from the lobby on (static duration until the
     // clock arms in main) so game start doesn't shift the dice left
     var timed = model.settings && model.settings.timerSec > 0;
-    var row = el("div", "cities-dice__faces" + (spinning ? " is-spinning" : "") + (timed ? " cities-dice__faces--timed" : ""));
+    var row = el("div", "cities-dice__faces" + (spinning ? " is-spinning" : settled ? " is-settled" : "") + (timed ? " cities-dice__faces--timed" : ""));
     var dice = el("div", "cities-dice__dice");
     dice.appendChild(dieFace(d ? d[0] : null));
     dice.appendChild(dieFace(d ? d[1] : null));
