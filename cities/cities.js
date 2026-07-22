@@ -517,13 +517,15 @@
      costs one quiet 404, and rendering never re-fetches a broken image).
      robber.png swaps the robber circle; res-{r}.png dresses every
      resource card and floats above the number token on producing hexes;
-     hex-{t}.png replaces a terrain's flat polygon fill. */
+     hex-{t}.png replaces a terrain's flat polygon fill; die-{1..6}.png
+     replaces each rolled die face (the "–" pre-roll box stays a numeral). */
   var SPRITE_DIR = "../assets/sprites/cities/";
   var ROBBER_SRC = SPRITE_DIR + "robber.png";
   var sprites = {};   // filename stem -> true once its PNG loaded
   ["robber"]
     .concat(RES.map(function (r) { return "res-" + r; }))
     .concat(RES.concat(["desert"]).map(function (t) { return "hex-" + t; }))
+    .concat([1, 2, 3, 4, 5, 6].map(function (v) { return "die-" + v; }))
     .forEach(function (name) {
       var probe = new Image();
       probe.onload = function () { sprites[name] = true; if (model) render(); };
@@ -1465,6 +1467,21 @@
   function rankStat(arr, f) { return (arr || []).map(function (s, i) { return { seat: i, value: f(s) }; }).sort(function (a, b) { return b.value - a.value; }); }
 
   /* ── DICE tile ────────────────────────────────────────────────── */
+  // one die box: the drawn face (die-N.png) once it exists, else the numeral
+  // placeholder — same probe-once swap as res/hex/robber. v is null pre-roll
+  // ("–"); a rolled value shows its face image when that PNG has loaded.
+  function dieFace(v) {
+    if (v != null && sprites["die-" + v]) {
+      var box = el("div", "cities-die cities-die--art");
+      var img = document.createElement("img");
+      img.className = "cities-die__art";
+      img.src = SPRITE_DIR + "die-" + v + ".png";
+      img.alt = String(v);
+      box.appendChild(img);
+      return box;
+    }
+    return el("div", "cities-die", v != null ? String(v) : "–");
+  }
   function renderDice() {
     if (timerHandle) { clearTimeout(timerHandle); timerHandle = null; }
     DICE.textContent = "";
@@ -1475,8 +1492,8 @@
     var timed = model.settings && model.settings.timerSec > 0;
     var row = el("div", "cities-dice__faces" + (spinning ? " is-spinning" : "") + (timed ? " cities-dice__faces--timed" : ""));
     var dice = el("div", "cities-dice__dice");
-    dice.appendChild(el("div", "cities-die", d ? String(d[0]) : "–"));
-    dice.appendChild(el("div", "cities-die", d ? String(d[1]) : "–"));
+    dice.appendChild(dieFace(d ? d[0] : null));
+    dice.appendChild(dieFace(d ? d[1] : null));
     row.appendChild(dice);
     if (timed) { var timer = el("div", "cities-timer"); row.appendChild(timer); tickTimer(timer); }
     DICE.appendChild(row);
@@ -1707,8 +1724,11 @@
     });
     // dev deck: TOTAL remaining only (per-type would leak drawn-but-unplayed
     // cards); the hover teaches the frame's FIXED shuffle mix instead
-    var dev = el("span", "cities-card cities-card--mini");
-    dev.style.setProperty("--ccard", "var(--title)");   // the in-hand dev-card idiom, not a sixth resource
+    // a solid parchment card (the dev-deck idiom, not a sixth resource): same
+    // flat-topped silhouette as its five resource neighbors, distinct by color.
+    // --ccard rides the fill so the base card's top border blends away.
+    var dev = el("span", "cities-card cities-card--mini cities-card--dev");
+    dev.style.setProperty("--ccard", "var(--ctoken-bg)");
     var left = model && model.devLeft != null ? String(model.devLeft) : "—";
     dev.appendChild(el("span", "cities-card__n", left));
     dev.appendChild(el("span", "cities-card__lbl", S.deckDevLabel));

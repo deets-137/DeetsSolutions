@@ -747,9 +747,11 @@ load and replaces its placeholder the moment the file exists —
 height in every resource card's count, a 20×20 icon between a
 producing hex's number token and its top point, and a 12×12 flag on a
 backing disc pushed off-map along the coast edge's normal at each 2:1
-port), and `hex-{terrain}.png` (the hex fill — drawn **full-bleed**,
+port), `hex-{terrain}.png` (the hex fill — drawn **full-bleed**,
 the board clips it with the vector hexagon so the silhouette never
-stair-steps). Committed starters are pixel-editable in place. Resource
+stair-steps), and `die-{1..6}.png` (each rolled die face, the whole
+face filling the die box edge to edge; the pre-roll `–` stays a
+numeral). Committed starters are pixel-editable in place. Resource
 cards now wear their resource color head to toe (`.cities-card--res`,
 fixed white ink — part of this carve-out); sprites ride inline inside
 the count span, so **a card with art is byte-identical in size to one

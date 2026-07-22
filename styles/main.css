@@ -3779,7 +3779,12 @@ button:focus-visible {
   background: var(--ctoken-bg); color: var(--ctoken-ink);
   border-radius: var(--radius-control); font: 700 1.4rem/1 var(--font-body);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  overflow: hidden;   /* clip the drawn face to the rounded box */
 }
+/* drawn die face (die-N.png): the PNG is the whole face, so drop the cream
+   backing and let it fill; pixelated keeps Aditya's pixel grid crisp */
+.cities-die--art { background: none; }
+.cities-die__art { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .cities-dice__faces.is-spinning .cities-die { animation: cities-diespin 0.14s steps(2) infinite; }
 @keyframes cities-diespin { to { transform: translateY(-2px) rotate(8deg); } }
 /* one line is always reserved (radio's meta idiom) so the caption appearing
@@ -3932,7 +3937,10 @@ button:focus-visible {
   border-radius: var(--radius-control);
   font: inherit;  /* button-variant cards must not fall back to the UA font */
 }
-.cities-card__n { font-weight: 700; color: var(--title); font-size: 1.1rem; }
+/* nowrap: the sprite+count pair may never split across lines — a wrap here
+   would let a card's height flip with skin fonts or digit widths (16 is wider
+   than 17 in a proportional face), breaking the universal layout rule. */
+.cities-card__n { font-weight: 700; color: var(--title); font-size: 1.1rem; white-space: nowrap; }
 .cities-card__lbl { font-size: 0.68rem; color: var(--subtext); }
 .cities-card--btn { cursor: pointer; }
 .cities-card--btn:hover { background: var(--surface-hover); }
@@ -3946,6 +3954,12 @@ button:focus-visible {
 .cities-card--res .cities-card__lbl { color: rgba(255, 255, 255, 0.88); }
 .cities-card--res.cities-card--btn:hover { background: var(--ccard); filter: brightness(1.12); }
 .cities-card--res.is-sel { border-color: #fff; box-shadow: 0 0 0 1px #fff; }
+/* dev deck card: a solid parchment plate (the paper-card idiom), flat-topped
+   like the resource cards so the deck's six cells share one silhouette. Fixed
+   game-palette ink, so it never flips with the theme. */
+.cities-card--dev { background: var(--ctoken-bg); border-color: rgba(0, 0, 0, 0.28); }
+.cities-card--dev .cities-card__n { color: var(--ctoken-ink); }
+.cities-card--dev .cities-card__lbl { color: color-mix(in srgb, var(--ctoken-ink) 72%, transparent); }
 .cities-card__art {
   height: 1.05em; width: auto; image-rendering: pixelated;
   vertical-align: -0.15em; margin-right: 4px;
