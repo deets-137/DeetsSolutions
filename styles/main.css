@@ -313,6 +313,86 @@ body::before {
 .site-nav a:hover { background: var(--surface-hover); color: var(--title); transform: var(--hover-lift); }
 .site-nav a[aria-current="page"] { color: var(--title); }
 
+/* ── Grouped nav dropdowns (desktop) ──────────────────────────────
+   The primary nav groups its destinations under four hover menus
+   (Blog / Games / Utilities / About Me). Pure CSS, no desktop JS: the
+   panel reveals on hover and on :focus-within (keyboard), reusing the
+   same menu material as the Vibe + wordmark popovers. Mobile is
+   unaffected — .site-nav is display:none below the breakpoint and the
+   wordmark menu (controls.js) still clones the [data-nav-core] anchors
+   nested inside these groups. */
+.nav-group { position: relative; }
+.nav-group__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.nav-group:hover .nav-group__label,
+.nav-group:focus-within .nav-group__label {
+  background: var(--surface-hover);
+  color: var(--title);
+  transform: var(--hover-lift);
+}
+/* Active-page group stays lit even when not hovered. */
+.nav-group:has(a[aria-current="page"]) .nav-group__label { color: var(--title); }
+.nav-group__caret { font-size: 0.7em; line-height: 1; }
+
+.nav-group__menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 11rem;
+  margin: 0;
+  padding: var(--space-1);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  /* Hidden but kept in-flow + focusable so :focus-within can reveal it;
+     pointer-events:none keeps the invisible panel from grabbing hover. */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-1 * var(--space-1)));
+  transition: opacity var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.nav-group:hover .nav-group__menu,
+.nav-group:focus-within .nav-group__menu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+.nav-group__menu a {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+}
+.nav-group__menu a:hover { background: var(--surface-hover); color: var(--title); }
+.nav-group__menu a[aria-current="page"] { color: var(--title); }
+
 /* ── Mobile nav menu ──────────────────────────────────────────────
    Below the breakpoint the inline nav can't fit, so the wordmark becomes a
    dropdown trigger (wired in controls.js) and the destinations live in this

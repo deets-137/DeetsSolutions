@@ -49,13 +49,33 @@
         <a class="wordmark" href="/">Deets</a>
       </div>
       <nav class="site-nav" aria-label="Primary">
-        <a href="/sotd/" aria-current="page" data-nav-core>SOTD</a>
-        <a href="/movies/">Movies</a>
-        <a href="/radio/">DeetsRadio</a>
-        <a href="/league/">League</a>
-        <a href="/cities/">DeetsCities</a>
-        <a href="/cool-stuff/" data-nav-core>Cool Stuff I Did</a>
-        <a href="/resume/">Resume</a>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" aria-current="page" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
       </nav>
       <span class="settings" data-settings></span>
     </header>
