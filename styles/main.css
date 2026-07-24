@@ -4527,7 +4527,10 @@ button:focus-visible {
   box-shadow: var(--shadow-panel);
   padding: var(--space-3);
 }
-.mj-tile--big { grid-area: big; height: 42rem; position: relative; display: flex; overflow-y: auto; }
+/* scrollbar-gutter: stable reserves the scrollbar's width whether or not one is
+   showing, so a scrollbar appearing (e.g. a tall meld pile) can't narrow the
+   board and slide the fixed-size felt sideways */
+.mj-tile--big { grid-area: big; height: 42rem; position: relative; display: flex; overflow-y: auto; scrollbar-gutter: stable; }
 .mj-tile--dice { grid-area: dice; }
 .mj-tile--players { grid-area: players; height: 21.25rem; overflow-y: auto; position: relative; }
 .mj-tile--wall { grid-area: wall; display: flex; align-items: center; gap: var(--space-3); }
@@ -4638,6 +4641,11 @@ button:focus-visible {
 .mj-zone--left .mj-zone__backs .mj-tilef .mj-tilef__art, .mj-wall__side--left .mj-tilef--wall .mj-tilef__art { transform: rotate(90deg); }
 .mj-zone--right .mj-zone__backs .mj-tilef .mj-tilef__art, .mj-wall__side--right .mj-tilef--wall .mj-tilef__art { transform: rotate(-90deg); }
 .mj-zone__melds { display: flex; flex-wrap: wrap; gap: var(--space-2); min-height: 0; }
+/* top/bottom seats grow DOWNWARD, so the melds row is between the seat and the
+   felt: reserve one tile-row from the start so the first meld/flower doesn't
+   push the row taller and slide the centered felt. Side seats grow within the
+   fixed-height center row, so they don't move the felt and keep min-height:0. */
+.mj-zone--top .mj-zone__melds, .mj-zone--bottom .mj-zone__melds { min-height: var(--mjwallh); }
 .mj-meld { display: inline-flex; gap: 1px; }
 /* side seats sit AT the table: hand column on the left, melds +
    flowers running down a second column beside it, every tile sideways */
@@ -5045,7 +5053,9 @@ button:focus-visible {
 /* the freshly drawn tile stands apart from the sorted thirteen */
 .mj-racktile--drawn { margin-left: var(--space-3); }
 .mj-racktile--drawn .mj-tilef { box-shadow: 0 0 0 1px var(--mjglow), 0 0 8px -2px var(--mjglow); }
-.mj-rack__melds { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* height of one mini-tile row is reserved even while empty (the strip is
+   always rendered) so the first flower/meld of the hand doesn't grow the rack */
+.mj-rack__melds { display: flex; flex-wrap: wrap; gap: var(--space-2); min-height: 1.95rem; }
 /* prompt rides the title line beside the hand; drop its block margin so it
    sits on the baseline next to the "your hand" title, not below it */
 .mj-rack__head .mj-role__note { margin: 0; }
@@ -5123,9 +5133,6 @@ button:focus-visible {
   left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%;
   background: var(--mjglow); box-shadow: 0 0 8px var(--mjglow);
 }
-.mj-catch { animation: mj-catchbump 0.18s var(--ease-ui); }
-@keyframes mj-catchbump { 40% { transform: scale(1.04); } }
-@media (prefers-reduced-motion: reduce) { .mj-catch { animation: none; } }
 
 /* ── game over ────────────────────────────────────────────────── */
 .mj-over { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; animation: mj-overin 0.45s var(--ease-ui); }

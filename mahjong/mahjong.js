@@ -1433,18 +1433,20 @@
     }
     rack.appendChild(row);
 
-    // my melds + flowers under the hand
+    // my melds + flowers under the hand — the row is ALWAYS present (its CSS
+    // reserves one mini-tile row) so the rack doesn't grow when the first
+    // flower or meld of the hand lands
     var p = model.players && model.players[seat];
-    if (p && (p.melds.length || p.flowers.length)) {
-      var mrow = el("div", "mj-rack__melds");
+    var mrow = el("div", "mj-rack__melds");
+    if (p) {
       p.melds.forEach(function (m) { mrow.appendChild(meldEl(m, "mini")); });
       p.flowers.forEach(function (f) {
         var fe = tileEl(f, "mini");
         fe.classList.add("mj-tilef--flower");
         mrow.appendChild(fe);
       });
-      rack.appendChild(mrow);
     }
+    rack.appendChild(mrow);
     play.appendChild(rack);
 
     // controls column: action pills only — the prompt rode off to the title
@@ -1580,26 +1582,29 @@
     }, delay || 0);
   }
   function stepFlights(now) {
-    flights = flights.filter(function (f) {
+    // Two passes, deliberately: resolve every destination (each f.to() is a
+    // querySelector + getBoundingClientRect) BEFORE writing any transform, so a
+    // read can't force a sync layout in the middle of the write loop. The chips
+    // ride a position:fixed overlay, so their transforms never dirty the board.
+    var frame = flights.map(function (f) {
       var p = Math.min(1, (now - f.t0) / f.dur);
+      return { f: f, p: p, to: f.to() || { x: f.sx, y: f.sy } };
+    });
+    flights = [];
+    frame.forEach(function (o) {
+      var f = o.f, p = o.p, to = o.to;
       var e = 1 - Math.pow(1 - p, 3);
-      var to = f.to() || { x: f.sx, y: f.sy };
       var s;
       if (p < 0.12) s = (p / 0.12) * 1.2;
       else if (p < 0.24) s = 1.2 - ((p - 0.12) / 0.12) * 0.2;
       else if (p > 0.85) s = 1 - ((p - 0.85) / 0.15) * 0.7;
       else s = 1;
       f.el.style.transform = "translate(" + (f.sx + (to.x - f.sx) * e).toFixed(1) + "px," + (f.sy + (to.y - f.sy) * e).toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
-      if (p >= 1) {
-        if (f.el.parentNode) f.el.parentNode.removeChild(f.el);
-        if (to.el) {
-          to.el.classList.remove("mj-catch");
-          void to.el.offsetWidth;
-          to.el.classList.add("mj-catch");
-        }
-        return false;
-      }
-      return true;
+      // landing: the chip shrinks out (the pond's own is-fresh pop and the
+      // re-rendered zone acknowledge arrival — no bump on the container, which
+      // scaled a whole panel and read as a flinch every bot turn)
+      if (p >= 1) { if (f.el.parentNode) f.el.parentNode.removeChild(f.el); }
+      else flights.push(f);
     });
     flyRaf = flights.length ? requestAnimationFrame(stepFlights) : null;
   }
