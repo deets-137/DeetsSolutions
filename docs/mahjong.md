@@ -210,9 +210,9 @@ Bots act on their own ~700 ms cadence, timer or no timer.
 
 `strings.js`, radio/cities convention: Claude adds only `[ph]`-prefixed
 placeholders; Aditya rewrites and drops the prefix; nothing carrying
-`[ph]` ships. The copy pass hasn't started — every string is `[ph]`
-except `wallLeft` / `wallLeftTip` / `roundLine`, approved in chat
-(2026-07-23, the wall-panel redesign).
+`[ph]` ships. Aditya's copy pass landed 2026-07-23 — every string in the
+file is now handwritten, so Claude edits none of them; only newly wired
+UI arrives as `[ph]` and waits for him.
 
 ## Art
 
@@ -249,7 +249,7 @@ that fires `timerExpire`. Reconnect/backoff, `v`-gap resync, and the
 1. ✅ engine.js + selfTest (`node mahjong/engine.js`)
 2. ✅ strings/colors/transport-mock/transport
 3. ✅ bento UI + CSS + nav links
-4. Aditya: play it at `/mahjong?mock`, copy pass, art pass
+4. Aditya: play it at `/mahjong?mock`, ✅ copy pass, art pass
 5. Phase 2: the worker repo, then flip the default transport
 
 ## Open questions (deferred, not blockers)

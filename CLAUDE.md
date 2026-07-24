@@ -63,8 +63,8 @@ mock-playable, worker is Phase 2).
   30 combos. Art ships as geometric placeholders until Aditya draws it,
   swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
 - **DeetsMahjong follows every cities convention:** copy is
-  `[ph]`-convention in `mahjong/strings.js` (as of the first build ALL
-  entries are `[ph]` — Aditya's pass pending); `mahjong/engine.js` (pure,
+  `[ph]`-convention in `mahjong/strings.js` (Aditya's copy pass is done —
+  every entry is his, so edit none of them); `mahjong/engine.js` (pure,
   DOM-free, `node mahjong/engine.js` runs its self-checks) and
   `mahjong/colors.js` are shared-contract files the Phase-2 worker
   (sibling repo `../DeetsMahjong`, `mahjong-api.deets.solutions`) will
