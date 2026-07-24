@@ -26,6 +26,7 @@ games/colors.js        seat-color contract (presets, hex validation, clash)
 games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
 games/table.js         the browser table shell (gate, lobby, toolbar, frame)
 games/table-do.js      the Durable Object base every worker subclasses
+games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
 styles/table.css       the shell's chrome, under the `gt-` class prefix
 docs/games.md          this file
 ```
@@ -37,7 +38,7 @@ A game adds:
 <game>/strings.js         ALL user-facing copy ([ph] convention — see below)
 <game>/engine.js          the rules: pure, DOM-free, dual-export, self-tested
 <game>/<game>.js          the board/table UI + the shell's hooks
-<game>/transport-mock.js  the in-page fake worker (?mock, a dev tool)
+<game>/transport-mock.js  the mock's game half (a spec on table-mock.js)
 styles/main.css           one block: the game's own art + layout
 ../Deets<Game>/           the worker repo: a GameTable subclass + wrangler
 ```
@@ -183,6 +184,12 @@ host fallback, every lobby verb, personalized broadcasts, the single alarm,
 and the idle fuse. Routes are `GET /table/:code/peek` and
 `/table/:code/ws`; `tableFetch` handles CORS, the origin check on the
 upgrade, and the IP rate limit on the enumerable peek.
+
+The mock (`games/table-mock.js`) mirrors this contract **hook for hook**,
+so a game's `transport-mock.js` is the same spec in browser form and the two
+read as one design. What the mock deliberately does not model: disconnects
+(no grace window, no bot takeover, no reconnect), so rejoin behavior can only
+be tested live.
 
 **Subclass must provide:** `Engine`, `Colors`, `GAME_VERBS`,
 `defaultSettings()`, `viewGame(view, token, seat)`, `applySettings(msg)`,
