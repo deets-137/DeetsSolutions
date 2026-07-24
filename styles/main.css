@@ -5053,6 +5053,42 @@ button:focus-visible {
 /* the freshly drawn tile stands apart from the sorted thirteen */
 .mj-racktile--drawn { margin-left: var(--space-3); }
 .mj-racktile--drawn .mj-tilef { box-shadow: 0 0 0 1px var(--mjglow), 0 0 8px -2px var(--mjglow); }
+/* Auto-Arrange off: tiles are draggable (grab to reorder, drag up-and-out to
+   discard). touch-action:none keeps a touch-drag from scrolling the page. */
+.mj-rack__tiles.is-manual .mj-racktile:not(:disabled) { cursor: grab; touch-action: none; }
+.mj-rack__tiles.is-manual .mj-racktile:not(:disabled):active { cursor: grabbing; }
+.mj-rack__gap {
+  border-radius: 4px; align-self: flex-end;
+  border: 1px dashed var(--title);
+  background: color-mix(in srgb, var(--title) 10%, transparent);
+}
+/* the floating clone that follows the pointer during a drag */
+.mj-racktile--ghost { z-index: 60; margin: 0; opacity: 0.96; cursor: grabbing; transform: scale(1.06); }
+.mj-racktile--ghost .mj-tilef { box-shadow: 0 6px 14px -4px rgba(0, 0, 0, 0.45); }
+.mj-racktile--ghost.is-discard { transform: scale(1.12) translateY(-4px); }
+.mj-racktile--ghost.is-discard .mj-tilef { box-shadow: 0 0 0 2px var(--mjglow), 0 0 14px -2px var(--mjglow); }
+/* the felt lights up as the discard drop target while a tile is dragged out */
+[data-mj-center].is-discardarm { box-shadow: 0 0 0 3px var(--mjglow), 0 0 24px -2px var(--mjglow); }
+/* Auto-Arrange toggle, bottom-right of the hand */
+.mj-rack__foot { display: flex; justify-content: flex-end; margin-top: auto; padding-top: var(--space-1); }
+.mj-arrange {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 2px 2px 2px 4px; background: none; border: 0; cursor: pointer;
+  color: var(--subtext); font-family: var(--font-body); font-size: 0.78rem;
+}
+.mj-arrange:hover { color: var(--title); }
+.mj-arrange:focus-visible { outline: 2px solid var(--title); outline-offset: 2px; border-radius: var(--radius-control); }
+.mj-arrange__label { white-space: nowrap; }
+.mj-arrange__track {
+  position: relative; width: 30px; height: 16px; flex: none;
+  border-radius: 999px; background: var(--border); transition: background var(--dur-fast) var(--ease-ui);
+}
+.mj-arrange.is-on .mj-arrange__track { background: var(--title); }
+.mj-arrange__thumb {
+  position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--surface); transition: transform var(--dur-fast) var(--ease-ui);
+}
+.mj-arrange.is-on .mj-arrange__thumb { transform: translateX(14px); }
 /* height of one mini-tile row is reserved even while empty (the strip is
    always rendered) so the first flower/meld of the hand doesn't grow the rack */
 .mj-rack__melds { display: flex; flex-wrap: wrap; gap: var(--space-2); min-height: 1.95rem; }

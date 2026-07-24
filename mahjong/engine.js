@@ -78,7 +78,7 @@
       settings: {
         minFaan: settings.minFaan != null ? settings.minFaan : 3,
         capFaan: settings.capFaan != null ? settings.capFaan : 13,
-        winds: settings.winds === 4 ? 4 : 1,
+        winds: settings.winds === 4 ? 4 : (settings.winds === 0 ? 0 : 1),
         timerSec: settings.timerSec || 0
       },
       // seating: each seat rolls two dice; ranking assigns winds (highest =
@@ -455,25 +455,29 @@
     events.push({ t: "handOver", summary: clone(summary) });
   }
 
+  /* end the match: winner = top score; ties share (first in seat order reported) */
+  function finishGame(g, events) {
+    g.phase = "over";
+    g.handOver = null;
+    var best = -Infinity, who = null;
+    for (var i = 0; i < 4; i++) if (g.players[i].score > best) { best = g.players[i].score; who = i; }
+    g.winner = who;
+    events.push({ t: "gameOver", winner: who });
+    return true;
+  }
+
   /* rotate the dealership after a settled hand (nextHand applies it) */
   function advanceRound(g, events) {
     var s = g.handOver;
+    // one-hand length: the match is a single settled hand, no dealer repeat
+    if (g.settings.winds === 0) { g.round.hand++; return finishGame(g, events); }
     var repeat = s.result === "drawn" || (s.result === "win" && s.seat === dealerSeat(g));
     g.round.hand++;
     if (!repeat) {
       g.round.dealerIdx = (g.round.dealerIdx + 1) % 4;
       if (g.round.dealerIdx === 0) {
         g.round.prevailing++;
-        if (g.round.prevailing >= g.settings.winds) {
-          g.phase = "over";
-          g.handOver = null;
-          // winner = top score; ties share (first in seat order reported)
-          var best = -Infinity, who = null;
-          for (var i = 0; i < 4; i++) if (g.players[i].score > best) { best = g.players[i].score; who = i; }
-          g.winner = who;
-          events.push({ t: "gameOver", winner: who });
-          return true;
-        }
+        if (g.round.prevailing >= g.settings.winds) return finishGame(g, events);
         events.push({ t: "newWind", prevailing: g.round.prevailing });
       }
     }
