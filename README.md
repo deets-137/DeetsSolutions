@@ -28,6 +28,11 @@ tab's count and latest entry.
   runs the real rules engine in-page against bot seats); the multiplayer
   Cloudflare Worker is Phase 2. Desktop only. See
   [docs/cities.md](docs/cities.md).
+- **DeetsMahjong** — Hong Kong mahjong, locked to four seats, with
+  seating dice, a wall-break roll, claim windows, and HK half-spread
+  faan scoring. Phase 1 is mock-playable (`mahjong/?mock` runs the real
+  rules engine in-page against bot seats); the multiplayer Cloudflare
+  Worker is Phase 2. Desktop only. See [docs/mahjong.md](docs/mahjong.md).
 - **Cool Stuff I Did** — a portfolio of projects, hand-written cards.
 - **Resume** — the resume rendered in the site's design system, with a
   downloadable one-page PDF that is printed from the page itself.
@@ -56,6 +61,7 @@ movies/               Movie log (page + generated movies.json)
 radio/                DeetsRadio listening rooms (talks to the DeetsRadio worker)
 league/               League of Legends stats (talks to the DeetsLeague worker)
 cities/               DeetsCities board game (mock playable; DeetsCities worker is Phase 2)
+mahjong/              DeetsMahjong (mock playable; DeetsMahjong worker is Phase 2)
 cool-stuff/           project portfolio
 resume/               resume page + downloadable PDF (generated, see below)
 styles/               palette → themes → skin → main (the token tiers)
@@ -91,6 +97,9 @@ by TMDB).
 - [docs/cities.md](docs/cities.md) — the DeetsCities board game: rules
   engine, board data, wire protocol, the bento layout, and the mock-first
   build order (Phase 1 built; worker is Phase 2).
+- [docs/mahjong.md](docs/mahjong.md) — DeetsMahjong: the HK rules
+  engine, faan table, claim windows, hidden-info wire protocol, and the
+  mock-first build order (Phase 1 built; worker is Phase 2).
 
 ## Run locally
 

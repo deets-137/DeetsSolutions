@@ -182,6 +182,28 @@ internally, the trade panel floats full-height over the board rather than
 pushing tiles, and the play area's build/trade tray opens in-panel. Tab is
 **not** `data-nav-core` and is **desktop-only** below 56rem.
 
+### DeetsMahjong (`mahjong/`)
+
+Hong Kong mahjong, locked to four seats. Full design in
+[mahjong.md](mahjong.md); currently **phase 1**, mock-playable at
+`mahjong/?mock` against host-added bots. Built on the DeetsCities
+playbook wholesale: the same bar/bento anatomy (table · dice · players ·
+log · rack tiles, plus the claim window docked where cities' trade hub
+sits), the same transport interface, and a **pure, DOM-free
+`mahjong/engine.js`** the Phase-2 worker (`../DeetsMahjong`,
+`mahjong-api.deets.solutions`) will vendor verbatim alongside
+`mahjong/colors.js`. What's new versus cities is **hidden information**:
+hands, the drawn tile, and per-seat claim options ride only each
+connection's `you`; the transport (mock today, worker later) builds
+per-seat views and masks claim acks. Page-specific rules: **copy lives
+in `mahjong/strings.js`** under the `[ph]` convention (everything is
+still `[ph]` — Aditya's pass pending); the **tile faces, backs, dice,
+and felt are the token carve-out** (`--mj*` literals; hand-drawn sprites
+swap in at `assets/sprites/mahjong/{deck}/tile-{id}.png` + `back.png`,
+two host-picked decks — `numeral/`, `traditional/`);
+the bento keeps cities' no-reflow spirit. Tab is **not** `data-nav-core`
+and is **desktop-only** below 56rem.
+
 ### Cool Stuff I Did (`cool-stuff/`)
 
 The project portfolio. **No data pipeline** — unlike the journal tabs, the

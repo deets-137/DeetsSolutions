@@ -4416,3 +4416,795 @@ button:focus-visible {
 @media (max-width: 56rem) {
   .cities-bento { display: none; }
 }
+
+/* ============================================================
+   DeetsMahjong — the Hong Kong mahjong tab (docs/mahjong.md).
+   Chrome (bar, tiles, pills, popovers, overlay) rides the semantic
+   theme/skin tokens and must survive all 30 combos. The TILES + dice
+   are the one deliberate carve-out below (cities' board rule, verbatim).
+   ============================================================ */
+
+/* mahjong game palette — deliberate token carve-out (docs/mahjong.md).
+   Fixed literals scoped to tile faces, backs, and dice only: suit inks,
+   ivory face, the woven back, and the six PRESET seat colors (identical
+   to DeetsCities' presets — one contract, see mahjong/colors.js). The
+   --mjseat-N values are fallbacks: mahjong.js overrides the slots with
+   each seat's lobby pick. Until Aditya's hand-drawn tile sprites land
+   (assets/sprites/mahjong/tile-{id}.png, back.png) every face is a
+   glyph-on-ivory geometric placeholder in these colors. */
+.mj {
+  --mjface:    #f6efdc;   /* tile face ivory */
+  --mjface-edge: #d9cfae;
+  --mjback:    #2e6e52;   /* woven tile back */
+  --mjink-m:   #b3372e;   /* characters */
+  --mjink-p:   #2b5fa3;   /* dots */
+  --mjink-s:   #2e7d43;   /* bamboo */
+  --mjink-wind: #23303f;
+  --mjink-dr:  #c0271f;
+  --mjink-dg:  #1f7a3d;
+  --mjink-dw:  #8a8f98;
+  --mjink-flower: #c2703f;
+  --mjfelt:    #33584a;   /* the table well */
+  --mjglow:    #ffd75e;   /* celebration gold (cities' --cglow) */
+  /* the ONE board tile rectangle (short × long side): wall stacks,
+     concealed backs, melds, flowers, and pond tiles all render at
+     exactly this size — fixed, so nothing stretches with the viewport
+     and every tile on the table reads as the same physical object */
+  --mjwallw: 1.25rem;
+  --mjwallh: 1.7rem;
+  --mjseat-0: #d94141;
+  --mjseat-1: #3b7dd8;
+  --mjseat-2: #2fae66;
+  --mjseat-3: #e08a2e;
+  --mjseat-4: #9457c9;
+  --mjseat-5: #22b0b0;
+}
+
+/* ── code combobox (the table code IS the title) ──────────────── */
+.mj-code { flex: 1 1 auto; min-width: 0; max-width: 22rem; }
+.mj-code__input {
+  width: 100%;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.1);
+  color: var(--title);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  padding: var(--space-1) 0;
+  outline: none;
+}
+.mj-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
+.mj-code__input:focus { border-bottom-color: var(--title); }
+.mj-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; }
+
+/* ── gate ─────────────────────────────────────────────────────── */
+.mj-gate {
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.mj-gate__line { margin: 0 0 var(--space-4); color: var(--text); font-size: 1.05rem; }
+.mj-gate__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.mj-gate__name { display: flex; flex-direction: column; gap: var(--space-1); }
+.mj-gate__name-label { color: var(--subtext); font-size: 0.8rem; }
+.mj-gate__name-input {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.mj-gate__go { cursor: pointer; }
+.mj-gate__go:disabled { opacity: 0.4; cursor: default; }
+
+/* ── the bento (cities' grid, verbatim geometry) ──────────────── */
+.mj-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-rows: auto auto auto minmax(6rem, 1fr) auto;
+  grid-template-areas:
+    "big dice"
+    "big players"
+    "big wall"
+    "big log"
+    "role role";
+  gap: var(--space-3);
+  position: relative;
+  align-items: start;
+}
+.mj-tile {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+}
+/* scrollbar-gutter: stable reserves the scrollbar's width whether or not one is
+   showing, so a scrollbar appearing (e.g. a tall meld pile) can't narrow the
+   board and slide the fixed-size felt sideways */
+.mj-tile--big { grid-area: big; height: 42rem; position: relative; display: flex; overflow-y: auto; scrollbar-gutter: stable; }
+.mj-tile--dice { grid-area: dice; }
+.mj-tile--players { grid-area: players; height: 21.25rem; overflow-y: auto; position: relative; }
+.mj-tile--wall { grid-area: wall; display: flex; align-items: center; gap: var(--space-3); }
+.mj-tile--wall[hidden] { display: none; }   /* display:flex would beat the UA hidden rule */
+.mj-tile--log { grid-area: log; min-height: 0; display: flex; overflow: hidden; }
+/* the wall panel: a back icon + the live count, round line beneath */
+.mj-wallpanel__count { color: var(--title); font: 700 1.3rem/1 var(--font-body); font-variant-numeric: tabular-nums; }
+.mj-wallpanel__round { color: var(--subtext); font-size: 0.85rem; }
+.mj-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* ── tile faces (the carve-out) ───────────────────────────────── */
+.mj-tilef {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 2rem; height: 2.7rem; flex: none;
+  background: var(--mjface);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom: 3px solid var(--mjface-edge);
+  border-radius: 4px;
+  line-height: 1;
+  user-select: none;
+  overflow: hidden;
+}
+.mj-tilef--mini { width: 1.45rem; height: 1.95rem; border-radius: 3px; border-bottom-width: 2px; }
+.mj-tilef__num { font: 700 0.95rem/1 var(--font-body); }
+.mj-tilef__suit { font: 700 0.8rem/1 var(--font-body); margin-top: 1px; }
+.mj-tilef--mini .mj-tilef__num { font-size: 0.7rem; }
+.mj-tilef--mini .mj-tilef__suit { font-size: 0.62rem; }
+.mj-tilef__big { font: 700 1.25rem/1 var(--font-body); }
+.mj-tilef--mini .mj-tilef__big { font-size: 0.9rem; }
+/* smooth scaling, deliberately: sprites ship at 4x (256×352) and get
+   downscaled — nearest-neighbor at fractional rem sizes made identical
+   tiles drop different source pixels (shimmering strokes) */
+.mj-tilef__art { width: 100%; height: 100%; object-fit: contain; }
+.mj-ink--m { color: var(--mjink-m); }
+.mj-ink--p { color: var(--mjink-p); }
+.mj-ink--s { color: var(--mjink-s); }
+.mj-ink--wind { color: var(--mjink-wind); }
+.mj-ink--dr { color: var(--mjink-dr); }
+.mj-ink--dg { color: var(--mjink-dg); }
+.mj-ink--dw { color: var(--mjink-dw); }
+.mj-ink--flower { color: var(--mjink-flower); }
+/* the white dragon: an empty inner frame on the ivory face */
+.mj-tilef--frame::after {
+  content: ""; width: 60%; height: 62%;
+  border: 2px solid var(--mjink-dw); border-radius: 3px;
+}
+.mj-tilef--flower { box-shadow: 0 0 0 1px var(--mjink-flower); }
+.mj-tilef--back { background: var(--mjback); border-bottom-color: rgba(0, 0, 0, 0.45); position: relative; }
+.mj-tilef--back::after {
+  content: ""; position: absolute; inset: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 2px;
+}
+.mj-tilef--back.is-art::after { content: none; }   /* the sprite draws its own frame */
+
+/* ── the board: four seat zones around a center well ──────────── */
+.mj-board {
+  flex: 1 1 auto; min-width: 0;
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) 7rem;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "top top top"
+    "left center right"
+    "bottom bottom bottom";
+  gap: var(--space-2);
+}
+.mj-zone {
+  min-width: 0; min-height: 0;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--mjstrip, var(--border));
+  border-radius: var(--radius-control);
+  padding: var(--space-2);
+  display: flex; flex-direction: column; gap: var(--space-1);
+}
+.mj-zone--top { grid-area: top; }
+.mj-zone--bottom { grid-area: bottom; }
+.mj-zone--left { grid-area: left; }
+.mj-zone--right { grid-area: right; }
+.mj-zone.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.mj-zone__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.mj-zone__name { color: var(--text); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* seat-wind character chip; the dealer's glows gold (the carve-out ink) */
+.mj-zone__wind {
+  flex: none; margin-left: auto;
+  width: 1.3rem; height: 1.3rem; display: grid; place-items: center;
+  background: var(--mjface); color: var(--mjink-wind);
+  border: 1px solid rgba(0, 0, 0, 0.3); border-radius: 3px;
+  font: 700 0.8rem/1 var(--font-body);
+}
+.mj-zone__wind.is-dealer { box-shadow: 0 0 6px var(--mjglow), 0 0 0 1px var(--mjglow); }
+.mj-zone__backs { display: flex; flex-wrap: wrap; gap: 2px; }
+/* side seats: the concealed hand is a column of sideways backs — the
+   same rectangle as a wall stack, stacked straight down */
+.mj-zone--left .mj-zone__backs, .mj-zone--right .mj-zone__backs { flex-direction: column; flex-wrap: nowrap; }
+.mj-zone--left .mj-zone__backs .mj-tilef, .mj-zone--right .mj-zone__backs .mj-tilef { width: var(--mjwallh); height: var(--mjwallw); }
+/* transposed (non-rotated) sideways tiles: the 2px depth edge moves to
+   the outward side, so the visible face is an exact transpose of an
+   upright tile's — otherwise sideways tiles read thinner */
+.mj-zone--left .mj-zone__backs .mj-tilef, .mj-wall__side--left .mj-tilef--wall { border-bottom: 1px solid rgba(0, 0, 0, 0.3); border-left: 2px solid rgba(0, 0, 0, 0.45); }
+.mj-zone--right .mj-zone__backs .mj-tilef, .mj-wall__side--right .mj-tilef--wall { border-bottom: 1px solid rgba(0, 0, 0, 0.3); border-right: 2px solid rgba(0, 0, 0, 0.45); }
+/* sideways boxes swap width/height, so the portrait sprite must rotate with
+   them — otherwise object-fit letterboxes it into an upright inlay. The spin
+   direction keeps the sprite's bottom edge on the box's shaded border. */
+.mj-zone--left .mj-zone__backs .mj-tilef .mj-tilef__art, .mj-wall__side--left .mj-tilef--wall .mj-tilef__art,
+.mj-zone--right .mj-zone__backs .mj-tilef .mj-tilef__art, .mj-wall__side--right .mj-tilef--wall .mj-tilef__art {
+  width: var(--mjwallw); height: var(--mjwallh); flex: none;
+}
+.mj-zone--left .mj-zone__backs .mj-tilef .mj-tilef__art, .mj-wall__side--left .mj-tilef--wall .mj-tilef__art { transform: rotate(90deg); }
+.mj-zone--right .mj-zone__backs .mj-tilef .mj-tilef__art, .mj-wall__side--right .mj-tilef--wall .mj-tilef__art { transform: rotate(-90deg); }
+.mj-zone__melds { display: flex; flex-wrap: wrap; gap: var(--space-2); min-height: 0; }
+/* top/bottom seats grow DOWNWARD, so the melds row is between the seat and the
+   felt: reserve one tile-row from the start so the first meld/flower doesn't
+   push the row taller and slide the centered felt. Side seats grow within the
+   fixed-height center row, so they don't move the felt and keep min-height:0. */
+.mj-zone--top .mj-zone__melds, .mj-zone--bottom .mj-zone__melds { min-height: var(--mjwallh); }
+.mj-meld { display: inline-flex; gap: 1px; }
+/* side seats sit AT the table: hand column on the left, melds +
+   flowers running down a second column beside it, every tile sideways */
+.mj-zone__sidebody { display: flex; gap: var(--space-2); min-height: 0; flex: 1 1 auto; }
+.mj-zone__melds--side { flex-direction: column; flex-wrap: nowrap; align-content: flex-start; }
+.mj-zone__melds--side .mj-meld { flex-direction: column; gap: 1px; }
+/* a sideways tile: the shared rectangle transposed, face rotated inside
+   (absolutely centered so the pre-rotation box can't disturb layout) */
+.mj-rots { flex: none; position: relative; width: var(--mjwallh); height: var(--mjwallw); overflow: hidden; }
+.mj-rots .mj-tilef { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); }
+.mj-rots--r .mj-tilef { transform: translate(-50%, -50%) rotate(-90deg); }
+/* the newest discard pops in; the claimable tile pulses gold */
+.mj-tilef.is-fresh { animation: mj-tilepop 0.32s var(--ease-ui); }
+@keyframes mj-tilepop { 0% { transform: scale(0); } 65% { transform: scale(1.25); } 100% { transform: none; } }
+.mj-tilef.is-hot { box-shadow: 0 0 0 2px var(--mjglow), 0 0 10px var(--mjglow); animation: mj-tilehot 1.2s var(--ease-ui) infinite; }
+@keyframes mj-tilehot { 50% { box-shadow: 0 0 0 2px var(--mjglow), 0 0 16px 2px var(--mjglow); } }
+@media (prefers-reduced-motion: reduce) { .mj-tilef.is-fresh, .mj-tilef.is-hot { animation: none; } }
+
+/* ── the felt: pinwheel wall around the shared discard pond ─────
+   72 two-tile stacks, 18 a side, each side overhanging the next
+   corner (the classical square). Sides are flex containers; the
+   render order is screen-clockwise, so bottom/left run reversed. */
+/* the felt is a FIXED square derived from the tile rectangle — 18
+   stacks + 17 seams a side, plus the wall band and padding all round —
+   so stack shape and size never change with the viewport */
+.mj-feltwrap {
+  grid-area: center;
+  min-width: 0; min-height: 0;
+  align-self: stretch; justify-self: stretch;
+  display: grid; place-items: center;
+}
+.mj-felt {
+  --mjwallpad: var(--space-2);
+  /* each 18-stack run starts flush after its neighbor's band and runs
+     out to the felt edge — so the felt side is ONE pad + band shorter
+     than the runs are long, and every run visibly overhangs its corner */
+  /* pad BOTH sides of a wall run — one pad short and the walls hang off
+     the felt's far corner */
+  --mjfeltside: calc(18 * var(--mjwallw) + 17px + 2 * var(--mjwallpad) + var(--mjwallh));
+  position: relative;
+  width: var(--mjfeltside); height: var(--mjfeltside);
+  background: var(--mjfelt);
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-panel);
+}
+/* every board tile is the one shared rectangle (rack/claim minis elsewhere keep their own size) */
+.mj-board .mj-tilef--mini { width: var(--mjwallw); height: var(--mjwallh); }
+.mj-wall__side { position: absolute; display: flex; gap: 1px; }
+/* pinwheel, counterclockwise chirality: each run starts flush beside
+   its neighbor's band and its far end runs to the felt edge, crossing
+   the perpendicular band — top overhangs right, right overhangs
+   bottom, bottom overhangs left, left overhangs top */
+.mj-wall__side--top    { flex-direction: row;            top: var(--mjwallpad); height: var(--mjwallh); left: calc(var(--mjwallpad) + var(--mjwallh)); right: 0; }
+.mj-wall__side--right  { flex-direction: column;         right: var(--mjwallpad); width: var(--mjwallh); top: calc(var(--mjwallpad) + var(--mjwallh)); bottom: 0; }
+.mj-wall__side--bottom { flex-direction: row-reverse;    bottom: var(--mjwallpad); height: var(--mjwallh); right: calc(var(--mjwallpad) + var(--mjwallh)); left: 0; }
+.mj-wall__side--left   { flex-direction: column-reverse; left: var(--mjwallpad); width: var(--mjwallh); bottom: calc(var(--mjwallpad) + var(--mjwallh)); top: 0; }
+/* a wall stack: the shared back rectangle, upright on the top/bottom
+   runs and lying sideways on the left/right runs */
+.mj-tilef--wall { flex: none; border-radius: 2px; }
+.mj-wall__side--top .mj-tilef--wall, .mj-wall__side--bottom .mj-tilef--wall { width: var(--mjwallw); height: var(--mjwallh); }
+.mj-wall__side--left .mj-tilef--wall, .mj-wall__side--right .mj-tilef--wall { width: var(--mjwallh); height: var(--mjwallw); }
+.mj-tilef--wall::after { inset: 2px; }
+.mj-tilef--wall.is-half { opacity: 0.55; box-shadow: none; }    /* one tile left of the pair */
+.mj-tilef--wall.is-gone { visibility: hidden; }                 /* drawn away — bare felt */
+/* the pond: every discard, chronological; hover names the thrower */
+.mj-felt__pond {
+  position: absolute;
+  /* a full tile-length of bare felt between wall and pond — the wall
+     reads as an overhanging frame, not a border */
+  inset: calc(var(--mjwallpad) + var(--mjwallh) * 2);
+  display: flex; flex-wrap: wrap; gap: 2px; align-content: flex-start;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: var(--radius-control);
+  padding: var(--space-2);
+  overflow-y: auto;
+}
+.mj-felt__note {
+  position: absolute; inset: 0; margin: 0;
+  display: grid; place-items: center;
+  color: var(--mjglow); font-size: 0.85rem; text-align: center;
+}
+
+/* ── seating panel (dice pick the winds) ──────────────────────── */
+.mj-seating { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.mj-seating__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.mj-seating__note { margin: 0; color: var(--subtext); }
+.mj-seating__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.mj-seating__pad {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--mjstrip, var(--border));
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+}
+.mj-seating__pad.is-waiting { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.mj-seating__head { display: flex; align-items: center; gap: var(--space-2); }
+.mj-seating__name { color: var(--text); }
+.mj-seating__dice { display: flex; align-items: center; gap: var(--space-2); }
+.mj-seating__sum { color: var(--title); font-weight: 700; margin-left: var(--space-2); }
+
+/* ── hand-over settlement (overlays the board tile) ───────────── */
+.mj-handover {
+  position: absolute; inset: 0; z-index: 25;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--mjfelt) 30%, transparent);
+  border-radius: var(--radius-panel);
+  animation: mj-overin 0.4s var(--ease-ui);
+}
+.mj-handover__panel {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-4);
+  max-width: 34rem; max-height: 90%; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.mj-handover__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1.1rem; }
+.mj-handover__title.is-limit { text-shadow: 0 0 12px var(--mjglow); }
+.mj-handover__limit { margin: 0; color: var(--mjglow); font-weight: 700; letter-spacing: 0.08em; }
+.mj-handover__line { margin: 0; color: var(--text); }
+.mj-handover__hand { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; }
+.mj-handover__hand .mj-meld { margin-left: var(--space-2); }
+.mj-handover__parts { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; }
+.mj-handover__part { display: flex; justify-content: space-between; gap: var(--space-4); color: var(--text); }
+.mj-handover__part.is-total { border-top: 1px solid var(--border); padding-top: var(--space-1); color: var(--title); font-weight: 700; }
+.mj-handover__pname { color: inherit; }
+.mj-handover__pval { font-variant-numeric: tabular-nums; }
+.mj-handover__pays { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; color: var(--subtext); }
+.mj-handover__pay { display: flex; align-items: center; gap: var(--space-2); }
+.mj-handover__next { align-self: flex-start; cursor: pointer; }
+.mj-handover__next:disabled { opacity: 0.4; cursor: default; }
+.mj-handover__auto { margin: 0; color: var(--subtext); font-size: 0.8rem; min-height: 1.2em; }
+
+/* ── View-settings hover pill ─────────────────────────────────── */
+.mj-setth { position: relative; display: inline-flex; }
+.mj-setth__pop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 12rem; padding: var(--space-2); }
+.mj-setth__row { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-1) var(--space-2); font-size: 0.85rem; }
+.mj-setth__k { color: var(--subtext); }
+.mj-setth__v { color: var(--title); font-weight: 700; }
+
+/* deck-style chips (lobby settings): label + two live sample sprites */
+.mj-deck__chip { display: inline-flex; align-items: center; gap: var(--space-2); }
+.mj-deck__sample { width: 1.1rem; height: 1.5rem; object-fit: contain; }
+
+/* ── lobby ────────────────────────────────────────────────────── */
+.mj-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.mj-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.mj-set { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.mj-set__label { color: var(--subtext); min-width: 8rem; font-size: 0.9rem; }
+.mj-set__opts { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.mj-set__custom {
+  width: 3rem; text-align: center;
+  font: inherit; color: var(--text);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.mj-set__custom.is-active { border-color: var(--title); color: var(--title); }
+.mj-set__custom:focus { border-color: var(--title); outline: none; }
+.mj-chip {
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.mj-chip:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
+.mj-chip:disabled { opacity: 0.55; cursor: default; }
+.mj-chip.is-active { border-color: var(--title); color: var(--title); }
+.mj-lobby__seats { display: flex; flex-direction: column; gap: var(--space-2); }
+.mj-seat {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.mj-seat--empty { opacity: 0.6; border-style: dashed; }
+.mj-seat__name { flex: 1 1 auto; color: var(--text); }
+.mj-seat__badge {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+}
+.mj-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
+.mj-seat__kick:hover { color: var(--stop); }
+.mj-seat__addbot,
+.mj-seat__addgo {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius-control);
+  color: var(--subtext); font: inherit; font-size: 0.78rem;
+  padding: 0 var(--space-2); line-height: 1.4; cursor: pointer;
+}
+.mj-seat__addbot:hover { color: var(--title); border-color: var(--title); }
+.mj-seat__addgo { color: var(--go); }
+.mj-seat__addgo:hover { border-color: var(--go); }
+.mj-seat__namebtn {
+  background: none; border: none; padding: 0; font: inherit; color: var(--text);
+  text-align: left; cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 0.15em;
+}
+.mj-seat__namebtn:hover { color: var(--title); }
+.mj-seat__nameinput {
+  flex: 1 1 auto; min-width: 0; height: 1.6em;
+  font: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+}
+.mj-seat__nameinput:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.mj-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
+.mj-lobby__startrow { display: flex; gap: var(--space-2); align-self: flex-start; }
+.mj-lobby__start { align-self: flex-start; cursor: pointer; }
+.mj-lobby__start:disabled { opacity: 0.5; cursor: default; }
+.mj-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }
+
+/* ── seat-color picker (cities' slide-open, verbatim recipe) ──── */
+.mj-seat__dotbtn {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; margin: -0.35rem;
+  padding: 0; background: none; border: none; border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui);
+}
+.mj-seat__dotbtn:hover,
+.mj-seat__dotbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--border); }
+.mj-seat__dotbtn:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.mj-colorpick {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease;
+  margin: calc(-1 * var(--space-2)) var(--space-2) 0;
+}
+.mj-colorpick.is-open { grid-template-rows: 1fr; }
+.mj-colorpick__inner { overflow: hidden; min-height: 0; }
+.mj-colorpick__body {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  background: var(--surface);
+}
+.mj-colorpick__label {
+  color: var(--subtext); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.mj-colorpick__swatches { display: flex; gap: var(--space-2); }
+.mj-colorpick__swatch {
+  width: 1.5rem; height: 1.5rem; flex: none;
+  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+}
+.mj-colorpick__swatch:hover:not(:disabled) { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
+.mj-colorpick__swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.mj-colorpick__swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
+.mj-colorpick__swatch:disabled { opacity: 0.35; cursor: default; }
+.mj-colorpick__swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
+.mj-colorpick__custom { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.mj-colorpick__hexlabel { color: var(--subtext); font-size: 0.85rem; }
+.mj-colorpick__hexinput {
+  width: 6.5rem;
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.mj-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
+.mj-colorpick__go { cursor: pointer; }
+.mj-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
+
+/* ── dice tile (cities' tumble kit) ───────────────────────────── */
+.mj-dice__faces { display: flex; gap: var(--space-3); justify-content: center; align-items: center; padding: var(--space-2) 0; }
+.mj-dice__dice { display: flex; gap: var(--space-3); }
+.mj-dice__faces--timed { justify-content: space-between; }
+.mj-timer {
+  min-width: 3.6rem; height: 2.6rem; padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  font: 700 1.2rem/1 var(--font-body); font-variant-numeric: tabular-nums;
+}
+.mj-timer.is-live { color: var(--title); border-color: var(--title); }
+.mj-timer.is-urgent { color: var(--stop); border-color: var(--stop); animation: mj-timerpulse 1s var(--ease-ui) infinite; }
+@keyframes mj-timerpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .mj-timer.is-urgent { animation: none; } }
+.mj-die {
+  width: 2.6rem; height: 2.6rem; display: grid; place-items: center;
+  background: var(--mjface); color: var(--mjink-wind);
+  border-radius: var(--radius-control); font: 700 1.4rem/1 var(--font-body);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+.mj-die--small { width: 1.8rem; height: 1.8rem; font-size: 1rem; }
+.mj-dice__faces.is-spinning .mj-die { animation: mj-diespin 0.14s steps(2) infinite; }
+@keyframes mj-diespin { to { transform: translateY(-2px) rotate(8deg); } }
+.mj-dice__faces.is-settled .mj-die { animation: mj-diesettle 0.34s var(--ease-ui); }
+@keyframes mj-diesettle {
+  0% { transform: translateY(-5px) scale(1.06); }
+  60% { transform: translateY(1px) scale(0.98); }
+  100% { transform: none; }
+}
+.mj-dice__cap { margin: var(--space-2) 0 0; text-align: center; color: var(--subtext); font-size: 0.85rem; min-height: 1.5em; min-height: 1lh; }
+@media (prefers-reduced-motion: reduce) { .mj-dice__faces.is-spinning .mj-die, .mj-dice__faces.is-settled .mj-die { animation: none; } }
+
+/* ── players tile ─────────────────────────────────────────────── */
+.mj-pstrip {
+  display: flex; align-items: stretch; gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--mjstrip, var(--border));
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-2);
+  position: relative;
+}
+.mj-pstrip.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.mj-pstrip.is-away { opacity: 0.5; }
+.mj-pstrip__ringwrap {
+  position: relative; flex: none; width: 1.4rem; height: 1.4rem;
+  display: inline-grid; place-items: center;
+}
+.mj-pstrip__ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mj-pstrip__ringtrack { fill: none; stroke: var(--border); stroke-width: 2; }
+.mj-pstrip__ringarc {
+  fill: none; stroke: var(--mjstrip); stroke-width: 2; stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear, stroke 0.3s var(--ease-ui);
+}
+.mj-pstrip__ringarc.is-urgent { stroke: var(--stop); }
+@media (prefers-reduced-motion: reduce) { .mj-pstrip__ringarc { transition: none; } }
+.mj-pstrip__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.mj-pstrip__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.mj-pstrip__head > .mj-dot { flex: none; }
+.mj-pstrip__name { color: var(--text); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mj-pstrip__tags { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.mj-pstrip__tag {
+  font-size: 0.6rem; line-height: 1.1; white-space: nowrap;
+  padding: 0 var(--space-2);
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.mj-pstrip__tag.is-held {
+  color: var(--title); font-weight: 700;
+  border-color: var(--title);
+  box-shadow: 0 0 0 1px var(--title), 0 0 8px -1px var(--title);
+}
+.mj-pstrip__stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: 0.72rem; color: var(--subtext); }
+.mj-pstrip__vp { color: var(--title); font-weight: 700; }
+.mj .is-ghost { visibility: hidden; }
+
+/* ── log tile ─────────────────────────────────────────────────── */
+.mj-log__list {
+  flex: 1 1 auto; width: 100%; min-height: 0; overflow-y: auto;
+  font-size: 0.82rem; color: var(--text); display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.mj-log__list::-webkit-scrollbar, .mj-tile--players::-webkit-scrollbar { width: var(--space-2); }
+.mj-log__list::-webkit-scrollbar-track, .mj-tile--players::-webkit-scrollbar-track { background: transparent; }
+.mj-log__list::-webkit-scrollbar-thumb, .mj-tile--players::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.mj-log__list::-webkit-scrollbar-thumb:hover, .mj-tile--players::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
+.mj-log__line { color: var(--text); opacity: 0.9; line-height: 1.4; }
+.mj-log__line:last-child { color: var(--title); opacity: 1; }
+/* tile words tinted with the fixed tile palette (the carve-out) */
+.mj-log__tile { font-weight: 600; }
+.mj-log__tile--m { color: var(--mjink-m); }
+.mj-log__tile--p { color: var(--mjink-p); }
+.mj-log__tile--s { color: var(--mjink-s); }
+.mj-log__tile--wind { color: var(--mjink-wind); }
+.mj-log__tile--dr { color: var(--mjink-dr); }
+.mj-log__tile--dg { color: var(--mjink-dg); }
+.mj-log__tile--dw { color: var(--mjink-dw); }
+.mj-log__tile--flower { color: var(--mjink-flower); }
+.mj-log__turn {
+  margin: var(--space-1) 0;
+  padding: 1px var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--title); font-size: 0.75rem; font-weight: 600;
+}
+
+/* ── role tile (my rack + actions) ────────────────────────────── */
+.mj-role__note { margin: 0 0 var(--space-2); color: var(--text); }
+.mj-play { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.mj-rack { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.mj-rack__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.mj-rack__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1rem; }
+.mj-rack__tiles { display: flex; flex-wrap: wrap; gap: 3px; align-items: flex-end; }
+.mj-racktile {
+  padding: 0; background: none; border: none; font: inherit; cursor: default;
+  border-radius: 4px;
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.mj-rack__tiles.is-live .mj-racktile:not(:disabled) { cursor: pointer; }
+.mj-rack__tiles.is-live .mj-racktile:not(:disabled):hover { transform: translateY(-5px); }
+.mj-rack__tiles.is-live .mj-racktile:not(:disabled):hover .mj-tilef { box-shadow: 0 0 0 2px var(--title); }
+.mj-racktile:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+/* the freshly drawn tile stands apart from the sorted thirteen */
+.mj-racktile--drawn { margin-left: var(--space-3); }
+.mj-racktile--drawn .mj-tilef { box-shadow: 0 0 0 1px var(--mjglow), 0 0 8px -2px var(--mjglow); }
+/* Auto-Arrange off: tiles are draggable (grab to reorder, drag up-and-out to
+   discard). touch-action:none keeps a touch-drag from scrolling the page. */
+.mj-rack__tiles.is-manual .mj-racktile:not(:disabled) { cursor: grab; touch-action: none; }
+.mj-rack__tiles.is-manual .mj-racktile:not(:disabled):active { cursor: grabbing; }
+.mj-rack__gap {
+  border-radius: 4px; align-self: flex-end;
+  border: 1px dashed var(--title);
+  background: color-mix(in srgb, var(--title) 10%, transparent);
+}
+/* the floating clone that follows the pointer during a drag */
+.mj-racktile--ghost { z-index: 60; margin: 0; opacity: 0.96; cursor: grabbing; transform: scale(1.06); }
+.mj-racktile--ghost .mj-tilef { box-shadow: 0 6px 14px -4px rgba(0, 0, 0, 0.45); }
+.mj-racktile--ghost.is-discard { transform: scale(1.12) translateY(-4px); }
+.mj-racktile--ghost.is-discard .mj-tilef { box-shadow: 0 0 0 2px var(--mjglow), 0 0 14px -2px var(--mjglow); }
+/* the felt lights up as the discard drop target while a tile is dragged out */
+[data-mj-center].is-discardarm { box-shadow: 0 0 0 3px var(--mjglow), 0 0 24px -2px var(--mjglow); }
+/* Auto-Arrange toggle, bottom-right of the hand */
+.mj-rack__foot { display: flex; justify-content: flex-end; margin-top: auto; padding-top: var(--space-1); }
+.mj-arrange {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 2px 2px 2px 4px; background: none; border: 0; cursor: pointer;
+  color: var(--subtext); font-family: var(--font-body); font-size: 0.78rem;
+}
+.mj-arrange:hover { color: var(--title); }
+.mj-arrange:focus-visible { outline: 2px solid var(--title); outline-offset: 2px; border-radius: var(--radius-control); }
+.mj-arrange__label { white-space: nowrap; }
+.mj-arrange__track {
+  position: relative; width: 30px; height: 16px; flex: none;
+  border-radius: 999px; background: var(--border); transition: background var(--dur-fast) var(--ease-ui);
+}
+.mj-arrange.is-on .mj-arrange__track { background: var(--title); }
+.mj-arrange__thumb {
+  position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--surface); transition: transform var(--dur-fast) var(--ease-ui);
+}
+.mj-arrange.is-on .mj-arrange__thumb { transform: translateX(14px); }
+/* height of one mini-tile row is reserved even while empty (the strip is
+   always rendered) so the first flower/meld of the hand doesn't grow the rack */
+.mj-rack__melds { display: flex; flex-wrap: wrap; gap: var(--space-2); min-height: 1.95rem; }
+/* prompt rides the title line beside the hand; drop its block margin so it
+   sits on the baseline next to the "your hand" title, not below it */
+.mj-rack__head .mj-role__note { margin: 0; }
+/* the controls column is the right half of the hand panel: a full-height
+   hairline splits the prompt/hand from the action pills */
+.mj-play__ctrl { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2);
+  align-self: stretch; border-left: 1px solid var(--border); padding-left: var(--space-4); }
+.mj-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+.mj-act { cursor: pointer; }
+.mj-act:disabled { opacity: 0.4; cursor: default; }
+/* the glow pill: Roll while a roll is due, Mahjong! while a win waits */
+.mj-act.is-glow {
+  color: var(--title); border-color: var(--title);
+  box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title);
+  animation: mj-actglow 1.6s var(--ease-ui) infinite;
+}
+@keyframes mj-actglow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--title), 0 0 10px -3px var(--title); }
+  50%      { box-shadow: 0 0 0 1px var(--title), 0 0 18px 1px var(--title); }
+}
+@media (prefers-reduced-motion: reduce) { .mj-act.is-glow { animation: none; } }
+.mj-kongpick { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; align-items: center; }
+
+/* ── claim window (the trade-hub dock, repurposed) ────────────── */
+.mj-claim {
+  grid-area: big;
+  position: absolute;
+  top: 0; right: 0;
+  width: 16rem;
+  max-width: 42%;
+  margin: var(--space-3);
+  z-index: 20;
+  pointer-events: none;
+}
+.mj-claim:not([hidden]) { display: flex; flex-direction: column; }
+.mj-claim > * { pointer-events: auto; }
+.mj-claimbox {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+/* a window awaiting MY response draws the eye until I act (offer idiom) */
+.mj-claimbox.is-incoming { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); animation: mj-claimpulse 1.8s var(--ease-ui) infinite; }
+@keyframes mj-claimpulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--title); }
+  50%      { box-shadow: 0 0 0 1px var(--title), 0 0 14px -3px var(--title); }
+}
+@media (prefers-reduced-motion: reduce) { .mj-claimbox.is-incoming { animation: none; } }
+.mj-claimbox__title { margin: 0; color: var(--title); font-size: 0.95rem; }
+.mj-claimbox__tile { display: flex; justify-content: center; padding: var(--space-1) 0; }
+.mj-claimbox__lbl { margin: 0; color: var(--subtext); font-size: 0.78rem; }
+.mj-claimbox__btns { display: flex; flex-direction: column; gap: var(--space-1); }
+.mj-claimbox__btns > .tb-pill { justify-content: center; }
+.mj-claimbox__chows { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.mj-claimbox__chow {
+  display: inline-flex; gap: 2px; align-items: center;
+  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.mj-claimbox__chow:hover { border-color: var(--title); background: var(--surface-hover); }
+.mj-claimbox__waits { display: flex; flex-direction: column; gap: var(--space-1); }
+.mj-claimbox__wait { display: flex; align-items: center; gap: var(--space-2); color: var(--text); font-size: 0.85rem; }
+
+/* ── tile fly layer (cities' steering chips, tile edition) ────── */
+.mj-flylayer { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
+.mj-flychip { position: absolute; left: -0.75rem; top: -1rem; will-change: transform; }
+.mj-flychip--score {
+  left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--mjglow); box-shadow: 0 0 8px var(--mjglow);
+}
+
+/* ── game over ────────────────────────────────────────────────── */
+.mj-over { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; animation: mj-overin 0.45s var(--ease-ui); }
+@keyframes mj-overin { from { opacity: 0; transform: translateY(10px); } }
+.mj-over__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.mj-over__title { margin: 0; color: var(--title); font-family: var(--font-title); }
+.mj-over__turns { flex: none; color: var(--subtext); font-size: 0.9rem; }
+.mj-over__supers { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: var(--space-2); align-items: start; }
+.mj-super { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; padding: var(--space-2); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-control); }
+.mj-super:hover { background: var(--surface-hover); }
+.mj-super__label { display: block; color: var(--subtext); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.mj-super__who { display: flex; align-items: center; gap: var(--space-1); color: var(--text); margin-top: var(--space-1); }
+.mj-super__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mj-super__val { margin-left: auto; flex: none; color: var(--title); font-weight: 700; }
+.mj-super__caret { flex: none; width: 0; height: 0; margin-left: var(--space-1); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--subtext); transition: transform 200ms ease; }
+.mj-super[aria-expanded="true"] .mj-super__caret { transform: rotate(180deg); }
+.mj-super__more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 240ms ease; }
+.mj-super[aria-expanded="true"] .mj-super__more { grid-template-rows: 1fr; }
+.mj-super__more-inner { overflow: hidden; min-height: 0; }
+.mj-super__rank-list { margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-1); }
+.mj-super__rank { display: flex; align-items: center; gap: var(--space-1); font-size: 0.9em; color: var(--subtext); }
+.mj-super__rank .mj-super__val { color: var(--text); font-weight: 600; }
+.mj-over__reveal { display: flex; flex-direction: column; gap: var(--space-1); }
+.mj-over__row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-control); }
+.mj-over__row.is-winner { border-color: var(--title); box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title); }
+.mj-over__row.is-winner { animation: mj-winnerpulse 1.4s var(--ease-ui) 0.45s 3; }
+@keyframes mj-winnerpulse { 50% { box-shadow: 0 0 0 1px var(--title), 0 0 22px 2px var(--title); } }
+@media (prefers-reduced-motion: reduce) { .mj-over { animation: none; } .mj-over__row.is-winner { animation: none; } }
+.mj-over__name { flex: 1 1 auto; color: var(--text); }
+.mj-over__vp { color: var(--title); font-weight: 700; }
+.mj-over__rematch { align-self: flex-start; cursor: pointer; }
+
+/* ── desktop-only guard ───────────────────────────────────────── */
+.mj-desktop-note { color: var(--subtext); padding: var(--space-6) 0; font-size: 1rem; }
+@media (max-width: 56rem) {
+  .mj-bento { display: none; }
+}
+/* near-win hint on the rack title line (right-aligned, reserved style) */
+.mj-rack__hint { color: var(--subtext); font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
