@@ -31,7 +31,7 @@ window.CITIES_STRINGS = {
      (running game, or a full lobby). One enabled pill, because joining is one
      action: the worker hands your seat back if your token owns one, else you
      land as a spectator. */
-  rejoinButton: "[ph]Rejoin or spectate",
+  rejoinButton: "Rejoin or spectate",
   createLine:   "The '{code}' Table doesn't exist yet. Open it?",
   createButton: "Open the Table",
   nameLabel:    "Your name",
@@ -168,7 +168,7 @@ window.CITIES_STRINGS = {
   pillDev:   "Dev card",
   pillEnd:   "End turn",
   handTitle: "Hand",
-  handCount: "[ph]{n} cards",
+  handCount: "{n} cards",
   buildRoad:       "Road",
   buildSettlement: "Settlement",
   buildCity:       "City",
@@ -232,7 +232,7 @@ window.CITIES_STRINGS = {
   turnCount:   "{n} turns",   // top-right of the Game Over header
   abandoned:   "Game abandoned — no winner.",
   rematchButton: "Rematch",
-  rematchSoon:   "[ph]Rematch lands with the worker — reopen the table for now.",   // moved from inline cities.js copy (convention fix)
+  rematchSoon:   "Rematch lands with the worker — reopen the table for now.",   // moved from inline cities.js copy (convention fix)
   superMostResources: "Most resources",
   superMostRobbed:    "Most robbed",
   superBiggestHaul:   "Biggest single haul",
@@ -245,22 +245,22 @@ window.CITIES_STRINGS = {
      sticky red victim toast; {res} arrives as a display name ("Wheat").
      awardWon rides a green (success) toast, awardTaken/awardDropped a
      yellow (warn) one; {award} is awardRoad/awardArmy from above. */
-  yourTurnToast: "[ph]Your turn!",
+  yourTurnToast: "Your turn!",
   stolenFromYou: "{name} has stolen {res} from you!",
-  monopolyVictim: "[ph]{name} monopolized {res} — you lost {n}.",
-  awardWon:      "[ph]You took {award}!",
-  awardTaken:    "[ph]{name} took {award} from you.",
-  awardDropped:  "[ph]{award} slipped away — nobody holds it now.",
+  monopolyVictim: "{name} monopolized {res} — you lost {n}.",
+  awardWon:      "You took {award}!",
+  awardTaken:    "{name} took {award} from you.",
+  awardDropped:  "{award} slipped away; nobody holds it now.",
 
   /* ── connection / refusals ───────────────────────────────────── */
   /* host-only warning under Start: seats that went dark in the lobby are
      dealt in as bots (the lobby hold itself never expires — see docs). */
-  startBotWarn:  "[ph]{n} disconnected seat(s) will be played by bots.",
+  startBotWarn:  "{n} disconnected seat(s) will be played by bots.",
   connDown:    "Reconnecting…",
   connUp:      "Back!",
   /* sticky: this tab lost the table to another tab on the same device. One
      device is one player, so the fix is to close a tab, not to retry. */
-  replacedToast: "[ph]You opened this table in another tab. That tab is now playing — close this one to avoid fighting over the seat.",
+  replacedToast: "You opened this table in another tab. Multiple tabs is no bueno, close all but one",
   kickedMeta:  "The host removed you from the table.",
   tableFull:   "Table is full.",
   nameTaken:   "That name is taken at the table.",

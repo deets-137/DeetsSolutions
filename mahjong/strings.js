@@ -270,12 +270,12 @@ window.MAHJONG_STRINGS = {
    /* ── connection / refusals ───────────────────────────────────── */
    /* host-only warning under Start: seats that went dark in the lobby are
       dealt in as bots (the lobby hold itself never expires — see docs). */
-   startBotWarn: "[ph]{n} disconnected seat(s) will be played by bots.",
+   startBotWarn: "{n} disconnected seat(s) will be played by bots.",
    connDown: "Reconnecting…",
    connUp: "Back!",
    /* sticky: this tab lost the table to another tab on the same device. One
       device is one player, so the fix is to close a tab, not to retry. */
-   replacedToast: "[ph]You opened this table in another tab. That tab is now playing — close this one to avoid fighting over the seat.",
+   replacedToast: "You opened this table in another tab. Multiple tabs is no bueno, please close the other ones.",
    kickedMeta: "The host removed you from the table.",
    tableFull: "Table is full.",
    nameTaken: "That name is taken at the table.",
