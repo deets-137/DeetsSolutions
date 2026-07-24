@@ -70,7 +70,7 @@
     r.unshift(code); save(RECENTS_KEY, r.slice(0, 6));
   }
   function toast(text, kind, opts) {
-    if (!window.DeetsToast) return { dismiss: function () {} };
+    if (!window.DeetsToast) return { dismiss: function () {}, update: function () {} };
     var o = { kind: kind || "info", text: text };
     if (opts) for (var k in opts) o[k] = opts[k];
     return window.DeetsToast.push(o);
@@ -189,6 +189,7 @@
   var conn = null, model = null, code = null;
   var joined = false, joining = false, peekSeq = 0;
   var logLines = [], connToast = null, spinUntil = 0, spinDice = 2;
+  var graceToasts = {};    // seat -> { handle, until, timer } — red disconnect-grace countdowns
   var lastActor = null;
   var clockSkew = 0, timerHandle = null, ringHandle = null, tumbleHandle = null, nextHandTick = null;
   var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
@@ -276,12 +277,18 @@
       form.appendChild(b);
       return b;
     }
+    /* An open seat gets the Sit/Spectate pair. With no seat to take (running
+       game, or a full lobby) a grayed "Sit down" was the only lit path being
+       "Spectate" — misleading, because a returning player's token silently
+       repossesses their seat whichever pill they press. So offer the one
+       action that's actually available, enabled, and let the worker decide
+       whether it's a rejoin or a spectate. */
     var first;
     if (!p.exists) first = goBtn(S.createButton, false, true);
-    else {
-      first = goBtn(S.sitButton, false, canSit);
+    else if (canSit) {
+      first = goBtn(S.sitButton, false, true);
       goBtn(S.watchButton, true, true);
-    }
+    } else first = goBtn(S.rejoinButton, true, true);
     GATE.appendChild(form);
     if (nameInput) nameInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); (first.disabled ? btns[btns.length - 1].el : first).click(); }
@@ -307,6 +314,7 @@
       joining = false;
       var ec = err && err.code;
       if (ec === "name-taken") { renderGate(c, { exists: true, phase: "lobby", seated: 0, capacity: 4, spectators: 0 }, true); return; }
+      if (ec === "replaced") { toast(S.replacedToast, "error", { sticky: true }); return; }
       toast(ec === "no-table" ? S.noTable : ec === "full" ? S.tableFull : S.peekFailed, "error");
     });
   }
@@ -314,6 +322,7 @@
     if (conn) conn.close();
     conn = null; model = null; joined = false; code = null; logLines = [];
     if (connToast) { connToast.dismiss(); connToast = null; }
+    clearGraceToasts();
     clearFlights();
     seen = null; lastDice = null; lastActor = null;
     ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
@@ -331,6 +340,9 @@
   function onMessage(msg) {
     if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
     if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
+    // another tab on this device took the table — sticky, because the user has
+    // to act (close a tab); a timed toast would vanish before they read it
+    if (msg.type === "replaced") { leaveTable(); toast(S.replacedToast, "error", { sticky: true }); return; }
     if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
     if (msg.type === "snapshot") { model = stripMeta(msg); seen = null; afterModel(msg); return; }
     if (msg.type === "state") {
@@ -353,6 +365,7 @@
   function afterModel(msg) {
     if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
     (msg.ev || []).forEach(handleEvent);
+    syncGraceToasts();
     if (ui.wantSit && model.phase === "lobby" && mySeat() == null) { ui.wantSit = false; send({ type: "sit" }); }
     applySeatColors();
     GATE.hidden = true;
@@ -378,6 +391,10 @@
       if (s.seat === mySeat()) toast(fmt(S.winToast, { n: s.value }), "success");
       else if (s.discarder === mySeat()) toast(fmt(S.dealInToast, { name: seatName(s.seat) }), "error");
     }
+    // disconnect-grace trio (worker only; the mock never emits these). The
+    // sticky countdown itself is model-driven — syncGraceToasts reads
+    // seat.graceUntil — so these are just the one-shot resolution lines.
+    if (e.t === "returned") toast(fmt(S.returnedToast, { name: seatName(e.seat) }), "success");
     if (e.t === "takeover") toast(fmt(S.takeoverToast, { name: seatName(e.seat) }), "warn");
     collectFlight(e);
     var line = logLine(e);
@@ -388,6 +405,38 @@
                 "no-table": S.noTable, "name-taken": S.nameTaken, color: S.errColor,
                 "color-taken": S.errColorTaken, flood: S.errFlood };
     return map[codeStr] || S.errPhase;
+  }
+
+  /* ── disconnect-grace countdown (the red toast) ─────────────────
+     Authoritative state is the seat's graceUntil in every broadcast
+     (docs/mahjong.md, "Disconnects → grace → bot takeover"), so the sticky
+     toast is reconciled from the model — a spectator joining mid-grace
+     sees it from their first snapshot, no `leaving` event needed. Ticks
+     locally off serverNow's clockSkew, like the turn box. */
+  function graceSecs(until) { return Math.max(0, Math.ceil((until - (Date.now() - clockSkew)) / 1000)); }
+  function syncGraceToasts() {
+    var live = {};
+    (model.seats || []).forEach(function (s, i) { if (s && !s.empty && s.graceUntil && !s.bot) live[i] = s.graceUntil; });
+    Object.keys(graceToasts).forEach(function (k) {
+      if (live[k] == null) {
+        clearInterval(graceToasts[k].timer);
+        graceToasts[k].handle.dismiss();
+        delete graceToasts[k];
+      }
+    });
+    Object.keys(live).forEach(function (k) {
+      if (graceToasts[k]) { graceToasts[k].until = live[k]; return; }
+      var seat = +k;
+      var entry = { until: live[k], handle: null, timer: null };
+      var line = function () { return fmt(S.leavingToast, { name: seatName(seat), secs: graceSecs(entry.until) }); };
+      entry.handle = toast(line(), "error", { sticky: true });
+      entry.timer = setInterval(function () { entry.handle.update(line()); }, 250);
+      graceToasts[k] = entry;
+    });
+  }
+  function clearGraceToasts() {
+    Object.keys(graceToasts).forEach(function (k) { clearInterval(graceToasts[k].timer); graceToasts[k].handle.dismiss(); });
+    graceToasts = {};
   }
 
   /* ── typed events → terse mechanical log lines ────────────────── */
@@ -738,6 +787,11 @@
       startRow.appendChild(shuf);
       wrap.appendChild(startRow);
       wrap.appendChild(el("p", "mj-lobby__hint", ready ? S.startHint : S.startNeedsFour));
+      // a seat that went dark in the lobby is dealt in as a bot (the worker
+      // does the conversion at Start). Say so before the press, never after —
+      // this counts only humans, since a seat view marks bots connected.
+      var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
+      if (ready && dark) wrap.appendChild(el("p", "mj-lobby__hint", fmt(S.startBotWarn, { n: dark })));
     }
     BIG.appendChild(wrap);
   }

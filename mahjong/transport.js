@@ -100,8 +100,18 @@
         }
         deliver(msg);
       };
-      ws.onclose = function () {
+      ws.onclose = function (ev) {
         if (closed) return;
+        /* 4408 = the table replaced this socket: another tab on this device
+           joined with the same token. Reconnecting would evict that tab, which
+           would reconnect and evict us — an endless ping-pong. Stay down and
+           tell mahjong.js to say which tab won. */
+        if (ev && ev.code === 4408) {
+          closed = true;
+          clearInterval(pinger);
+          if (!settle("reject", { code: "replaced" })) deliver({ type: "replaced" });
+          return;
+        }
         if (settle("reject", { code: "socket" })) {
           closed = true;
           clearInterval(pinger);

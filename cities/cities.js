@@ -79,7 +79,7 @@
   // transient notice goes through the toast host. `opts` passes through
   // sticky / actions for the trade-accepted alert.
   function toast(text, kind, opts) {
-    if (!window.DeetsToast) return { dismiss: function () {} };
+    if (!window.DeetsToast) return { dismiss: function () {}, update: function () {} };
     var o = { kind: kind || "info", text: text };
     if (opts) for (var k in opts) o[k] = opts[k];
     return window.DeetsToast.push(o);
@@ -248,12 +248,18 @@
       form.appendChild(b);
       return b;
     }
+    /* An open seat gets the Sit/Spectate pair. With no seat to take (running
+       game, or a full lobby) a grayed "Sit down" was the only lit path being
+       "Spectate" — misleading, because a returning player's token silently
+       repossesses their seat whichever pill they press. So offer the one
+       action that's actually available, enabled, and let the worker decide
+       whether it's a rejoin or a spectate. */
     var first;
     if (!p.exists) first = goBtn(S.createButton, false, true);
-    else {
-      first = goBtn(S.sitButton, false, canSit);
+    else if (canSit) {
+      first = goBtn(S.sitButton, false, true);
       goBtn(S.watchButton, true, true);
-    }
+    } else first = goBtn(S.rejoinButton, true, true);
     GATE.appendChild(form);
     if (nameInput) nameInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); (first.disabled ? btns[btns.length - 1].el : first).click(); }
@@ -279,6 +285,7 @@
       joining = false;
       var ec = err && err.code;
       if (ec === "name-taken") { renderGate(c, { exists: true, phase: "lobby", seated: 0, capacity: 6, spectators: 0 }, true); return; }
+      if (ec === "replaced") { toast(S.replacedToast, "error", { sticky: true }); return; }
       toast(ec === "no-table" ? S.noTable : ec === "full" ? S.tableFull : S.peekFailed, "error");
     });
   }
@@ -309,6 +316,9 @@
   function onMessage(msg) {
     if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
     if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
+    // another tab on this device took the table — sticky, because the user has
+    // to act (close a tab); a timed toast would vanish before they read it
+    if (msg.type === "replaced") { leaveTable(); toast(S.replacedToast, "error", { sticky: true }); return; }
     if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
     if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; prevAwards = (model && model.awards) || null; prevHandCounts = (model && model.players) ? model.players.map(function (p) { return p.handCount; }) : null; prevPhase = (model && model.phase) || null; prevPendingKind = (model && model.turn && model.turn.pending) ? model.turn.pending.kind : null; model = stripMeta(msg); afterModel(msg); return; }
     if (msg.type === "state") {
@@ -911,6 +921,11 @@
       startRow.appendChild(shuf);
       wrap.appendChild(startRow);
       wrap.appendChild(el("p", "cities-lobby__hint", ready ? S.startHint : S.startNeedsThree));
+      // a seat that went dark in the lobby is dealt in as a bot (the worker
+      // does the conversion at Start). Say so before the press, never after —
+      // bots.length counts only humans, since a seat view marks bots connected.
+      var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
+      if (ready && dark) wrap.appendChild(el("p", "cities-lobby__hint", fmt(S.startBotWarn, { n: dark })));
     }
     BIG.appendChild(wrap);
   }

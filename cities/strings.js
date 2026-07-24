@@ -27,6 +27,11 @@ window.CITIES_STRINGS = {
   peekPlayers:  "{seated} players | {spectators} spectating",
   sitButton:    "Sit down",
   watchButton:  "Spectate",
+  /* shown instead of the Sit/Spectate pair when there's no open seat to take
+     (running game, or a full lobby). One enabled pill, because joining is one
+     action: the worker hands your seat back if your token owns one, else you
+     land as a spectator. */
+  rejoinButton: "[ph]Rejoin or spectate",
   createLine:   "The '{code}' Table doesn't exist yet. Open it?",
   createButton: "Open the Table",
   nameLabel:    "Your name",
@@ -248,8 +253,14 @@ window.CITIES_STRINGS = {
   awardDropped:  "[ph]{award} slipped away — nobody holds it now.",
 
   /* ── connection / refusals ───────────────────────────────────── */
+  /* host-only warning under Start: seats that went dark in the lobby are
+     dealt in as bots (the lobby hold itself never expires — see docs). */
+  startBotWarn:  "[ph]{n} disconnected seat(s) will be played by bots.",
   connDown:    "Reconnecting…",
   connUp:      "Back!",
+  /* sticky: this tab lost the table to another tab on the same device. One
+     device is one player, so the fix is to close a tab, not to retry. */
+  replacedToast: "[ph]You opened this table in another tab. That tab is now playing — close this one to avoid fighting over the seat.",
   kickedMeta:  "The host removed you from the table.",
   tableFull:   "Table is full.",
   nameTaken:   "That name is taken at the table.",
