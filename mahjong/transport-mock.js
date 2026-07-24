@@ -184,6 +184,30 @@
           }
         }
       }
+      // live hand value (the scoring guide's live marks): the full
+      // scoreHand result while my drawn hand is structurally complete,
+      // otherwise scoreProgress's mid-hand facts. Rides only `you` —
+      // same hidden-info budget as canWin/nearWin. The worker must
+      // mirror this field verbatim (wire contract).
+      if (g.phase === "play" && g.wall && !g.handOver) {
+        var hv = null;
+        if (g.turn && g.turn.seat === seat && g.turn.drawn != null && !g.claims) {
+          var hvTiles = p.hand.concat([g.turn.drawn]);
+          if (Engine.isWinningTiles(hvTiles, p.melds.length)) {
+            var hvSc = Engine.scoreHand(g, seat, hvTiles, {
+              seat: seat, selfDraw: true, discarder: null, robbing: false,
+              lastWall: g.wall.length === 0, replacement: !!g.turn.justKonged,
+              firstTurn: !!g.turn.firstTurn
+            });
+            if (hvSc) hv = { faan: hvSc.faan, parts: hvSc.parts, complete: true };
+          }
+        }
+        if (!hv) {
+          var pr = Engine.scoreProgress(g, seat);
+          hv = { faan: pr.faan, parts: pr.parts, complete: false };
+        }
+        view.you.handValue = hv;
+      }
     }
     if (g.handOver) {
       view.handOver = g.handOver;
@@ -397,6 +421,17 @@
       disarmTimer(t); delete TABLES[t.code]; save();
       return;
     }
+    // host rematch from the game-over reveal: the finished game clears and
+    // the table drops back to the lobby (seats, colors, bots, and settings
+    // persist; scores lived in the discarded game). Wire contract — the
+    // worker mirrors this verb verbatim.
+    if (type === "rematch") {
+      if (!isHost(t, token)) return errTo(conn, "perm");
+      if (!t.game || t.game.phase !== "over") return errTo(conn, "phase");
+      t.game = null;
+      disarmTimer(t);
+      return broadcast(t, []);
+    }
     if (type === "kickSeat") {
       if (!isHost(t, token)) return errTo(conn, "perm");
       var s = msg.seat;
@@ -489,7 +524,6 @@
         if (msg.capFaan != null && [8, 10, 13].indexOf(msg.capFaan) >= 0) t.settings.capFaan = msg.capFaan;
         if (msg.winds != null && [0, 1, 4].indexOf(msg.winds) >= 0) t.settings.winds = msg.winds;
         if (msg.timerSec != null && [0, 45, 60, 90, 120].indexOf(msg.timerSec) >= 0) t.settings.timerSec = msg.timerSec;
-        if (msg.deck != null && ["numeral", "traditional"].indexOf(msg.deck) >= 0) t.settings.deck = msg.deck;
         return broadcast(t, []);
       }
       if (type === "start") {
@@ -552,7 +586,7 @@
           if (!t) {
             t = TABLES[code] = {
               code: code, createdAt: now(), creatorToken: token,
-              settings: { minFaan: 3, capFaan: 13, winds: 1, timerSec: 0, deck: "numeral" },
+              settings: { minFaan: 3, capFaan: 13, winds: 1, timerSec: 0 },
               seats: [], game: null, log: [],
               v: 1, touched: now(), conns: [], timer: null, driving: false
             };

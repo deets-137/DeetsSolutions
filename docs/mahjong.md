@@ -118,6 +118,9 @@ broadcasts, `error {code}`, `kicked`, `closed`. Lobby commands: `sit`,
 `setSettings {minFaan, capFaan, winds, timerSec}`, `start` (needs
 exactly 4 seated; seats compact so seat index === engine player index).
 Game commands are the engine actions; the server injects `seat`.
+`rematch` (host, game `over` only) clears the finished game back to the
+lobby — seats, colors, bots, and settings persist; scores lived in the
+discarded game, so Start deals a fresh match.
 
 **Hidden information** — the mock enforces what the worker must:
 
@@ -238,11 +241,16 @@ each (`tile-{id}.png` per face, `back.png` for the woven back) — all
 generated 256×352 templates from `scripts/build-mahjong-tiles.py`, drawn
 over in LibreSprite tile by tile (`assets/sprites/mahjong/README.md`).
 Every file of both decks is probed once at load; a face with no sprite
-falls back to the CSS glyph. The deck is a host-picked TABLE setting
-(`settings.deck`, `"numeral"` default, chips in the lobby next to the
-faan/winds/timer rows) — cosmetic only, the engine never reads it, but
-the Phase-2 worker's `setSettings` whitelist must accept `deck` exactly
-like transport-mock does. Sideways boxes (walls, side racks) reuse the
+falls back to the CSS glyph. The deck is a **per-viewer** setting, not a
+table one (`deets-mahjong-deck` in localStorage, `"numeral"` default) —
+tile art is a legibility call, so no host picks it for anyone else and it
+never touches the wire. Two mirrored controls write it: the lobby chips
+(live for guests, unlike the host-only faan/winds/timer rows above them)
+and a "Tile art" toolbar pill whose popover is open in **every** phase,
+so an unreadable deck is swappable mid-hand. Neither carries a "yours
+only" caption — the pill's own value readout says which deck you're on,
+and that's enough (his call).
+Nothing server-side knows about it. Sideways boxes (walls, side racks) reuse the
 portrait art;
 `main.css` rotates `.mj-tilef__art` ±90° to match, and sprites scale
 with plain smooth filtering (`image-rendering: pixelated` shimmered at
