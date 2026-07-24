@@ -75,7 +75,7 @@
     logCap: 120,
     errExtra: { cost: S.errCost, loc: S.errLoc, rate: S.errRate, empty: S.errEmpty, supply: S.errSupply },
     els: {
-      bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".cities-code"),
+      bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
       toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
     },
     onModel: function (m) {

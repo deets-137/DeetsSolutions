@@ -63,7 +63,7 @@
     clearFields: ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn"],
     clearYouFields: ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue"],
     els: {
-      bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".mj-code"),
+      bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
       toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
     },
     onModel: function (m) { model = m; },
