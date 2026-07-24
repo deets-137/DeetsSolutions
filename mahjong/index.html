@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsMahjong — Deets</title>
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("deets-theme");
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
+          document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/main.css" />
+    <script src="../js/controls.js" defer></script>
+    <script src="../js/toast.js" defer></script>
+    <script src="./strings.js" defer></script>
+    <script src="./colors.js" defer></script>
+    <script src="./engine.js" defer></script>
+    <script src="./transport-mock.js" defer></script>
+    <script src="./transport.js" defer></script>
+    <script src="./mahjong.js" defer></script>
+    <script src="../js/walkers.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem" aria-current="page">DeetsMahjong</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <!-- DeetsMahjong — Hong Kong mahjong, four seats (docs/mahjong.md).
+           Phase 1: the mock transport (transport-mock.js) runs the real rules
+           engine (engine.js) in-page so a full game is playable against
+           host-added bots; ?mock selects it (the default until the
+           ../DeetsMahjong worker at mahjong-api.deets.solutions lands in
+           Phase 2). The bar carries the table-code combo box (League/radio/
+           cities idiom): the table code IS the title. All flavor copy comes
+           from strings.js. -->
+      <section class="mj">
+        <div class="sotd__bar">
+          <div class="tb-ctrl mj-code">
+            <!-- aria-label comes from strings.js (mahjong.js boot) -->
+            <input class="mj-code__input" data-mj-code type="text"
+                   autocomplete="off" spellcheck="false" />
+            <div class="tb-pop mj-code__pop" data-mj-code-pop hidden></div>
+          </div>
+          <div class="sotd-toolbar" data-mj-toolbar aria-label="Table controls"></div>
+        </div>
+
+        <!-- pre-join gate: peek result → sit / watch / open-this-table -->
+        <div class="mj-gate" data-mj-gate hidden></div>
+
+        <!-- the bento — stable across all phases; tiles change contents, not
+             places (docs/mahjong.md, "Page layout — the bento") -->
+        <div class="mj-table" data-mj-table hidden>
+          <div class="mj-bento">
+            <section class="mj-tile mj-tile--big" data-mj-big aria-label="Table"></section>
+            <section class="mj-tile mj-tile--dice" data-mj-dice aria-label="Dice"></section>
+            <section class="mj-tile mj-tile--players" data-mj-players aria-label="Players"></section>
+            <!-- wall count + round marker (the felt center carries no text) -->
+            <section class="mj-tile mj-tile--wall" data-mj-wall aria-label="Wall" hidden></section>
+            <section class="mj-tile mj-tile--log" data-mj-log aria-label="Log"></section>
+            <section class="mj-tile mj-tile--role" data-mj-role aria-label="Your rack"></section>
+            <!-- the claim window docks over the board's right quarter
+                 (DeetsCities' trade-hub geometry, repurposed) -->
+            <div class="mj-claim" data-mj-claim hidden></div>
+          </div>
+        </div>
+
+        <!-- desktop-only: below the nav breakpoint the game is swapped for a
+             one-line note -->
+        <p class="mj-desktop-note" data-mj-desktop hidden></p>
+      </section>
+    </main>
+  </body>
+</html>
