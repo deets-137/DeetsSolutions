@@ -393,6 +393,49 @@
     return true;
   }
 
+  /* faan FACTS an incomplete hand already holds (the scoring guide's
+     live marks): meld-locked dragon/wind pungs, banked flowers, and
+     current suit purity. Returns { faan, parts } like scoreHand, but
+     only from what the tiles show right now — win-moment bonuses
+     (self-draw, concealed, robbing, limit hands) are never counted,
+     and suit purity is a live reading, not a guaranteed floor.
+     Callable any time during play for any seat; scoring a COMPLETE
+     hand stays scoreHand's job. */
+  function scoreProgress(g, seat) {
+    var p = g.players[seat];
+    var cap = g.settings.capFaan;
+    var parts = [];
+    function add(key, n) { parts.push({ key: key, faan: n }); }
+    p.melds.forEach(function (m) {
+      if (m.kind === "chow") return;
+      if (DRAGONS.indexOf(m.tile) >= 0) add("dragonPung", 1);
+      var wi = WINDS.indexOf(m.tile);
+      if (wi >= 0) {
+        if (wi === seatWindIdx(g, seat)) add("seatWind", 1);
+        if (wi === g.round.prevailing % 4) add("prevWind", 1);
+      }
+    });
+    // suit purity across the whole hand: concealed + drawn + meld tiles
+    var tiles = p.hand.slice();
+    if (g.turn && g.turn.seat === seat && g.turn.drawn != null) tiles.push(g.turn.drawn);
+    p.melds.forEach(function (m) { tiles.push(m.tile); });
+    var suits = {}, honors = 0;
+    tiles.forEach(function (t) { if (isHonor(t)) honors++; else suits[suitOf(t)] = 1; });
+    if (Object.keys(suits).length === 1 && tiles.length) {
+      add(honors > 0 ? "halfFlush" : "fullFlush", honors > 0 ? 3 : 7);
+    }
+    var wi2 = seatWindIdx(g, seat);
+    p.flowers.forEach(function (f) { if (+f.charAt(1) === wi2 + 1) add("seatFlower", 1); });
+    ["f", "g"].forEach(function (pre) {
+      var have = p.flowers.filter(function (f) { return f.charAt(0) === pre; }).length;
+      if (have === 4) add("flowerQuad", 2);
+    });
+    var faan = 0;
+    parts.forEach(function (x) { faan += x.faan; });
+    if (faan > cap) faan = cap;
+    return { faan: faan, parts: parts };
+  }
+
   /* the 14 concealed tiles a seat would win with, given a candidate tile
      (null → the seat's own drawn tile is already in scope) */
   function winningTilesFor(g, seat, extra) {
@@ -832,7 +875,8 @@
     claimOptions: claimOptions,
     isWinningTiles: isWinningTiles,
     winCheck: winCheck,
-    scoreHand: scoreHand
+    scoreHand: scoreHand,
+    scoreProgress: scoreProgress
   };
 
   API.selfTest = selfTest;
@@ -949,6 +993,28 @@
       var t13 = ["m1","m9","p1","p9","s1","s9","we","ws","ww","wn","dr","dg","dw","dr"];
       var sc13 = scoreHand(g, 0, t13, { seat: 0, selfDraw: false, discarder: 1 });
       ok(sc13 && sc13.limit && sc13.faan === 13, "thirteen orphans is a limit hand");
+    })();
+
+    /* scoreProgress: mid-hand facts only (the guide's live marks) */
+    (function () {
+      var g = createGame({ settings: { minFaan: 0, capFaan: 13, winds: 1 } }, ctx);
+      g.phase = "play"; g.order = [0, 1, 2, 3];
+      g.round = { prevailing: 0, dealerIdx: 0, hand: 1 };   // seat 0 = East
+      g.wall = ["m1"]; g.turn = { seat: 1, drawn: null, firstTurn: false };
+      var p = g.players[0];
+      p.melds = [{ kind: "pung", tile: "dr", from: 1 }, { kind: "kong", tile: "we", from: 2 }];
+      p.flowers = ["f1", "g1"];                            // both match East's seat number
+      p.hand = ["m2", "m3", "m4", "m7", "m7", "we", "dr"]; // one suit + honors
+      var pr = scoreProgress(g, 0);
+      // dragon pung 1 + seat wind 1 + round wind 1 + mixed one suit 3 + 2 seat flowers 2
+      eq(pr.faan, 8, "progress: dragon + double wind + half flush + flowers");
+      ok(pr.parts.filter(function (x) { return x.key === "seatFlower"; }).length === 2, "progress counts each seat flower");
+      ok(!pr.parts.some(function (x) { return x.key === "selfDraw" || x.key === "concealed"; }), "progress never counts win-moment bonuses");
+      p.hand = ["m2", "m3", "m4", "m7", "m7", "m8", "m9"];
+      p.melds = [];
+      var pr2 = scoreProgress(g, 0);
+      // pure one suit 7 + the two flowers
+      eq(pr2.faan, 9, "progress: pure flush reads from concealed tiles alone");
     })();
 
     var summary = "mahjong engine selfTest: " + pass + " passed, " + fail + " failed";

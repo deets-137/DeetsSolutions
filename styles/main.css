@@ -4789,9 +4789,13 @@ button:focus-visible {
 .mj-setth__k { color: var(--subtext); }
 .mj-setth__v { color: var(--title); font-weight: 700; }
 
-/* deck-style chips (lobby settings): label + two live sample sprites */
+/* ── tile-art picker (per viewer, not a table setting) ──────────
+   The same two-face sample rides the lobby chips and the toolbar
+   pill's popover, so both readings of "which deck" look alike. */
 .mj-deck__chip { display: inline-flex; align-items: center; gap: var(--space-2); }
 .mj-deck__sample { width: 1.1rem; height: 1.5rem; object-fit: contain; }
+.mj-deck__pop { left: 0; right: auto; min-width: 13rem; }
+.mj-deck__lead { display: inline-flex; align-items: center; gap: var(--space-2); }
 
 /* ── lobby ────────────────────────────────────────────────────── */
 .mj-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
@@ -5208,3 +5212,105 @@ button:focus-visible {
 }
 /* near-win hint on the rack title line (right-aligned, reserved style) */
 .mj-rack__hint { color: var(--subtext); font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* the quiet Scoring pill: never competes with the glow; sits alone at
+   the controls column's bottom right */
+.mj-act--quiet { color: var(--subtext); }
+.mj-act--quiet:hover { color: var(--title); border-color: var(--title); }
+.mj-act--guide { margin-top: auto; align-self: flex-end; }
+
+/* ── scoring guide (handover-style overlay on the board tile) ────
+   Deliberately no entrance animation and INSTANT (transition-free)
+   section expand/collapse: the overlay re-renders on every state
+   message while open, and anything replaying would flicker. Fixed
+   panel width + internal scroll keep it perfectly still. */
+.mj-guide {
+  position: absolute; inset: 0; z-index: 30;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--mjfelt) 30%, transparent);
+  border-radius: var(--radius-panel);
+}
+.mj-guide__panel {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-4);
+  width: 27rem; max-width: 92%; max-height: 92%;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  min-height: 0;
+}
+.mj-guide__head { flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.mj-guide__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1.1rem; }
+.mj-guide__close { background: none; border: none; color: var(--subtext); cursor: pointer; font: inherit; font-size: 0.9rem; }
+.mj-guide__close:hover { color: var(--stop); }
+.mj-guide__body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 0.82rem; padding-right: var(--space-2);
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.mj-guide__intro { margin: 0 0 var(--space-2); color: var(--subtext); line-height: 1.5; }
+/* live bar: your current faan, fed by you.handValue */
+.mj-guide__live {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.mj-guide__livehead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.mj-guide__livetitle { color: var(--text); font-weight: 600; }
+.mj-guide__livefaan { color: var(--title); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mj-guide__livenote { margin: 2px 0 0; color: var(--subtext); font-size: 0.78rem; min-height: 1.2em; }
+/* collapsed-by-default section headers (buttons; caret flips open) */
+.mj-guide__sec {
+  margin: var(--space-2) 0 0; width: 100%;
+  display: flex; align-items: baseline; gap: var(--space-2);
+  background: none; border: none; padding: var(--space-1) var(--space-2);
+  font: inherit; text-align: left; cursor: pointer;
+  color: var(--subtext); font-size: 0.72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-radius: var(--radius-control);
+}
+.mj-guide__sec:hover { color: var(--title); background: var(--surface-hover); }
+.mj-guide__caret {
+  flex: none; width: 0; height: 0; align-self: center;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--subtext);
+}
+.mj-guide__sec.is-open .mj-guide__caret {
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--subtext); border-bottom: none;
+}
+.mj-guide__seclabel { flex: 1 1 auto; min-width: 0; }
+.mj-guide__heldchip {
+  flex: none; color: var(--go); border: 1px solid var(--go); border-radius: 999px;
+  padding: 0 var(--space-2); font-variant-numeric: tabular-nums;
+  text-transform: none; letter-spacing: normal;
+}
+.mj-guide__limitbadge {
+  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2); text-transform: none; letter-spacing: normal; font-weight: 600;
+}
+.mj-guide__note { margin: var(--space-1) 0 0; color: var(--subtext); font-size: 0.75rem; }
+/* rows: fixed slots always present — held-state flips class + text
+   only, so nothing reflows when a pattern lights up mid-hand */
+.mj-guide__row { display: flex; align-items: baseline; gap: var(--space-2); padding: 1px var(--space-2); border-radius: var(--radius-control); }
+.mj-guide__check { flex: none; width: 1em; color: var(--go); opacity: 0; }
+.mj-guide__name { flex: none; color: var(--text); }
+.mj-guide__desc { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--subtext); font-size: 0.75rem; }
+.mj-guide__badge {
+  flex: none; min-width: 2.4em; text-align: center;
+  color: var(--subtext); border: 1px solid var(--border); border-radius: 999px;
+  padding: 0 var(--space-2); font-variant-numeric: tabular-nums; font-size: 0.75rem;
+}
+.mj-guide__row.is-held { background: color-mix(in srgb, var(--go) 12%, transparent); }
+.mj-guide__row.is-held .mj-guide__check { opacity: 1; }
+.mj-guide__row.is-held .mj-guide__name { color: var(--title); font-weight: 600; }
+.mj-guide__badge.is-held { color: var(--go); border-color: var(--go); font-weight: 600; }
+.mj-guide__payrow { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); padding: 1px var(--space-2); }
+.mj-guide__payk { color: var(--subtext); }
+.mj-guide__payv { color: var(--text); font-variant-numeric: tabular-nums; }

@@ -53,7 +53,7 @@
   function reduceMotion() { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
 
   var TOKEN_KEY = "deets-mahjong-token", NAME_KEY = "deets-mahjong-name", RECENTS_KEY = "deets-mahjong-recents";
-  var CUSTOM_COLOR_KEY = "deets-mahjong-customhex";
+  var CUSTOM_COLOR_KEY = "deets-mahjong-customhex", DECK_KEY = "deets-mahjong-deck";
   var ARRANGE_KEY = "deets-mahjong-autoarrange";   // "Auto-Arrange" toggle (default on)
   function deviceToken() {
     var t = load(TOKEN_KEY, null);
@@ -96,15 +96,23 @@
   /* sprite swap points (assets/sprites/mahjong/{deck}/): tile-{id}.png
      replaces a face's glyphs; back.png replaces the woven tile back. Two
      deck styles ship (numeral — big number + suit glyph; traditional —
-     drawn pips, bamboo sticks, characters); the deck is a host-picked
-     TABLE setting (settings.deck), synced to everyone like minFaan. Every
-     file of every deck is probed ONCE at load — a missing sprite costs
-     one quiet 404 and that face falls back to the CSS glyph placeholder. */
+     drawn pips, bamboo sticks, characters); the deck is a PER-VIEWER
+     setting (localStorage, never on the wire) — tile art is a legibility
+     call, not a table rule, so no host picks it for you and it can flip
+     mid-hand. Every file of every deck is probed ONCE at load — a missing
+     sprite costs one quiet 404 and that face falls back to the CSS glyph. */
   var SPRITE_ROOT = "../assets/sprites/mahjong/";
   var DECKS = ["numeral", "traditional"];
-  function curDeck() {
-    var d = model && model.settings && model.settings.deck;
+  var deckPref = (function () {
+    var d = load(DECK_KEY, null);
     return DECKS.indexOf(d) >= 0 ? d : "numeral";
+  })();
+  function curDeck() { return deckPref; }
+  function deckName(d) { return d === "traditional" ? S.deckTraditional : S.deckNumeral; }
+  function setDeck(d) {
+    if (DECKS.indexOf(d) < 0 || d === deckPref) return;
+    deckPref = d; save(DECK_KEY, d);
+    if (model) render();
   }
   var sprites = {};
   DECKS.forEach(function (d) {
@@ -185,8 +193,9 @@
   var clockSkew = 0, timerHandle = null, ringHandle = null, tumbleHandle = null, nextHandTick = null;
   var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
   var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
-             settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
-             autoArrange: load(ARRANGE_KEY, true), handOrder: null };
+             settingsPinned: false, deckPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
+             autoArrange: load(ARRANGE_KEY, true), handOrder: null,
+             guideOpen: false, guideScroll: 0, guideSecOpen: {} };
   var seen = null;        // previous render's ponds/melds/flowers — new pieces animate in
   var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
 
@@ -309,7 +318,8 @@
     seen = null; lastDice = null; lastActor = null;
     ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
            settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
-           autoArrange: load(ARRANGE_KEY, true), handOrder: null };
+           autoArrange: load(ARRANGE_KEY, true), handOrder: null,
+           guideOpen: false, guideScroll: 0, guideSecOpen: {} };
     dragActive = false;
     GATE.hidden = true; TABLE.hidden = true; DESKTOP.hidden = true;
     buildToolbar();
@@ -331,7 +341,7 @@
         if (!(f in msg)) delete model[f];
       });
       if (model.you) {
-        ["claims", "canWin", "kongs", "drawn", "nearWin"].forEach(function (f) {
+        ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue"].forEach(function (f) {
           if (!(f in msg.you)) delete model.you[f];
         });
       }
@@ -445,6 +455,7 @@
     renderLog();
     renderClaim();
     renderRole();
+    renderGuide();
     fitLog();
     snapshotSeen();
   }
@@ -471,7 +482,7 @@
   }
   function seatedCount() { return (model.seats || []).filter(function (s) { return s && !s.empty; }).length; }
 
-  /* ── toolbar (Invite · View Settings · Sit/Stand · Leave · Close) ─ */
+  /* ── toolbar (Invite · Settings · Tile art · Sit/Stand · Leave · Close) ─ */
   function buildToolbar() {
     TOOLBAR.textContent = "";
     if (!joined || !model) return;
@@ -481,6 +492,7 @@
       try { navigator.clipboard.writeText(url); toast(S.shareToast, "success"); } catch (e) { toast(url, "info"); }
     }));
     if (model.settings) TOOLBAR.appendChild(viewSettingsPill());
+    TOOLBAR.appendChild(deckPill());
     if (model.phase === "lobby") {
       if (mine == null) TOOLBAR.appendChild(pill(S.sitPill, function () { send({ type: "sit" }); }));
       else TOOLBAR.appendChild(pill(S.standButton, function () { send({ type: "stand" }); }));
@@ -510,7 +522,6 @@
     pop.appendChild(settingRow(S.capFaanLabel, String(model.settings.capFaan)));
     pop.appendChild(settingRow(S.windsLabel, model.settings.winds === 4 ? S.windsFour : (model.settings.winds === 0 ? S.windsHand : S.windsOne)));
     pop.appendChild(settingRow(S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff));
-    pop.appendChild(settingRow(S.deckLabel, curDeck() === "traditional" ? S.deckTraditional : S.deckNumeral));
     wrap.appendChild(pop);
     var entry = { ctrl: wrap, pill: b, pop: pop, kind: "setth" };
     function peek() { if (openEntry !== entry) pop.hidden = false; }
@@ -532,6 +543,50 @@
     r.appendChild(el("span", "mj-setth__k", label));
     r.appendChild(el("span", "mj-setth__v", value));
     return r;
+  }
+  /* two live faces from a deck, for the chips + popover options. Only
+     sprites that actually loaded show — a bare placeholder deck reads as
+     its name alone rather than two broken frames. */
+  function deckSamples(d, node) {
+    ["tile-p5", "tile-s3"].forEach(function (name) {
+      if (!sprites[d][name]) return;
+      var img = document.createElement("img");
+      img.className = "mj-deck__sample"; img.alt = "";
+      img.src = SPRITE_ROOT + d + "/" + name + ".png";
+      node.appendChild(img);
+    });
+  }
+  /* Tile art — a per-VIEWER pill (localStorage), not a table setting, so
+     it lives in the toolbar in EVERY phase: a deck you can't read is
+     swappable mid-hand, not just from the lobby. */
+  function deckPill() {
+    var wrap = el("span", "tb-ctrl");
+    var b = el("button", "tb-pill"); b.type = "button";
+    b.setAttribute("aria-haspopup", "true"); b.setAttribute("aria-expanded", "false");
+    b.appendChild(el("span", "tb-pill__label", S.deckLabel));
+    b.appendChild(el("span", "tb-pill__value", deckName(curDeck())));
+    b.appendChild(el("span", "tb-pill__caret", "▾"));
+    wrap.appendChild(b);
+    var pop = el("div", "tb-pop mj-deck__pop"); pop.hidden = true;
+    DECKS.forEach(function (d) {
+      var o = el("button", "tb-pop__opt" + (curDeck() === d ? " is-active" : ""));
+      o.type = "button";
+      var lead = el("span", "mj-deck__lead");
+      lead.appendChild(el("span", null, deckName(d)));
+      deckSamples(d, lead);
+      o.appendChild(lead);
+      o.addEventListener("click", function () { closePop(); setDeck(d); });
+      pop.appendChild(o);
+    });
+    wrap.appendChild(pop);
+    var entry = { ctrl: wrap, pill: b, pop: pop, kind: "deck" };
+    b.addEventListener("click", function () {
+      togglePop(entry);
+      ui.deckPinned = openEntry === entry;
+    });
+    if (ui.deckPinned && openEntry && openEntry.kind === "deck") openPop(entry);
+    else ui.deckPinned = false;
+    return wrap;
   }
 
   /* ── BIG tile: lobby / seating / the table / game over ────────── */
@@ -613,23 +668,18 @@
     });
     tRow.appendChild(tOpts); wrap.appendChild(tRow);
 
-    // tile art: which sprite deck the whole table sees (cosmetic, host's
-    // call like every other setting). Chips carry live sample sprites.
+    // tile art: NOT a table setting — every viewer picks their own deck
+    // (localStorage, mirrored by the toolbar pill), so these chips are
+    // live for guests too. Chips carry live sample sprites.
     var dRow = el("div", "mj-set");
     dRow.appendChild(el("span", "mj-set__label", S.deckLabel));
     var dOpts = el("div", "mj-set__opts");
     DECKS.forEach(function (d) {
       var b = el("button", "mj-chip mj-deck__chip" + (curDeck() === d ? " is-active" : ""));
-      b.type = "button"; b.disabled = !host;
-      b.appendChild(el("span", null, d === "numeral" ? S.deckNumeral : S.deckTraditional));
-      ["tile-p5", "tile-s3"].forEach(function (name) {
-        if (!sprites[d][name]) return;
-        var img = document.createElement("img");
-        img.className = "mj-deck__sample"; img.alt = "";
-        img.src = SPRITE_ROOT + d + "/" + name + ".png";
-        b.appendChild(img);
-      });
-      b.addEventListener("click", function () { send({ type: "setSettings", deck: d }); });
+      b.type = "button";
+      b.appendChild(el("span", null, deckName(d)));
+      deckSamples(d, b);
+      b.addEventListener("click", function () { setDeck(d); });
       dOpts.appendChild(b);
     });
     dRow.appendChild(dOpts); wrap.appendChild(dRow);
@@ -1120,6 +1170,146 @@
     return S[k] || key;
   }
 
+  /* ── scoring guide (handover-style overlay on the board tile) ───
+     The quiet Scoring pill's popup: every faan pattern with its value
+     and a one-line blurb, the limit hands, and the payment rules, in
+     sections that START COLLAPSED (open state rides ui.guideSecOpen).
+     LIVE MARKS: `you.handValue` (transport-computed — scoreProgress
+     mid-hand, full scoreHand once the drawn hand completes) lights the
+     rows the viewer already holds and sums per-section chips on the
+     collapsed headers, so "where are my points from" reads without
+     expanding. Faan values restate the engine's contract
+     (scoreDecomposition); the intro reads the live table settings.
+     Anti-jitter: no entrance animation, instant (transition-free)
+     expand/collapse, scroll preserved across re-renders, and held
+     state flips classes/text only — the page rebuilds on every state
+     message while the popup is open, and it must hold still. */
+  var GUIDE_SECTIONS = [
+    { head: "guideSecShape", items: [["allChows", "1"], ["allPungs", "3"], ["halfFlush", "3"], ["fullFlush", "7"]] },
+    { head: "guideSecWinds", items: [["dragonPung", "1"], ["smallDragons", "+3"], ["seatWind", "1"], ["prevWind", "1"], ["smallWinds", "+3"]] },
+    { head: "guideSecWon", note: "guideWonNote",
+      items: [["selfDraw", "1"], ["concealed", "1"], ["robbingKong", "1"], ["kongReplacement", "1"], ["lastTileDraw", "1"], ["lastTileDiscard", "1"]] },
+    { head: "guideSecFlowers", items: [["noFlowers", "1"], ["seatFlower", "1"], ["flowerQuad", "+2"]] }
+  ];
+  var GUIDE_LIMITS = ["thirteenOrphans", "heavenly", "earthly", "allHonors", "greatDragons", "greatWinds", "allKongs", "nineGates"];
+  function guideDesc(key) {
+    var k = "guideDesc" + key.charAt(0).toUpperCase() + key.slice(1);
+    return S[k] || "";
+  }
+  function closeGuide() {
+    if (!ui.guideOpen) return;
+    ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
+    render();
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeGuide(); });
+  // base chip value of a faan total under this table's cap (2^faan)
+  function chipBase(faan) { return Math.pow(2, Math.min(faan, model.settings.capFaan)); }
+  // handValue parts → one entry per pattern key, duplicates aggregated
+  function partsByKey(parts) {
+    var byKey = {}, order = [];
+    (parts || []).forEach(function (x) {
+      if (!byKey[x.key]) { byKey[x.key] = { key: x.key, count: 0, faan: 0 }; order.push(byKey[x.key]); }
+      byKey[x.key].count++; byKey[x.key].faan += x.faan;
+    });
+    return order;
+  }
+  function guideRow(held, key, valLabel) {
+    var h = held[key];
+    var row = el("div", "mj-guide__row" + (h ? " is-held" : ""));
+    row.appendChild(el("span", "mj-guide__check", "✓"));
+    var nm = faanName(key) + (h && h.count > 1 ? " ×" + h.count : "");
+    row.appendChild(el("span", "mj-guide__name", nm));
+    row.appendChild(el("span", "mj-guide__desc", guideDesc(key)));
+    if (valLabel || h) row.appendChild(el("span", "mj-guide__badge" + (h ? " is-held" : ""), h ? "+" + h.faan : valLabel));
+    return row;
+  }
+  // a collapsed-by-default section: header button + rows; a held-sum
+  // chip on the header keeps live points visible while collapsed
+  function guideSection(body, id, labelNode, heldFaan, fill) {
+    var open = !!ui.guideSecOpen[id];
+    var btn = el("button", "mj-guide__sec" + (open ? " is-open" : ""));
+    btn.type = "button";
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.appendChild(el("span", "mj-guide__caret"));
+    btn.appendChild(labelNode);
+    if (heldFaan > 0) btn.appendChild(el("span", "mj-guide__heldchip", "+" + heldFaan));
+    btn.addEventListener("click", function () {
+      ui.guideSecOpen[id] = !open;
+      render();
+    });
+    body.appendChild(btn);
+    if (open) fill();
+  }
+  function renderGuide() {
+    if (!ui.guideOpen || !model || !model.settings) return;
+    var wrap = el("div", "mj-guide");
+    wrap.addEventListener("click", function (e) { if (e.target === wrap) closeGuide(); });
+    var panel = el("div", "mj-guide__panel");
+    var head = el("div", "mj-guide__head");
+    head.appendChild(el("h3", "mj-guide__title", S.guideTitle));
+    var x = el("button", "mj-guide__close", "✕");
+    x.type = "button";
+    x.setAttribute("aria-label", S.guideCloseAria);
+    x.addEventListener("click", closeGuide);
+    head.appendChild(x);
+    panel.appendChild(head);
+    var body = el("div", "mj-guide__body");
+    body.appendChild(el("p", "mj-guide__intro",
+      fmt(S.guideIntro, { min: model.settings.minFaan, cap: model.settings.capFaan })));
+    // live bar + held map: only when the table deals me a handValue
+    var hv = model.you && model.you.handValue;
+    var held = {};
+    if (hv) {
+      partsByKey(hv.parts).forEach(function (r) { held[r.key] = r; });
+      var live = el("div", "mj-guide__live");
+      var lh = el("div", "mj-guide__livehead");
+      lh.appendChild(el("span", "mj-guide__livetitle", S.guideLiveTitle));
+      lh.appendChild(el("span", "mj-guide__livefaan", fmt(S.faanTotal, { n: hv.faan })));
+      live.appendChild(lh);
+      var note = S.guideLiveNote;
+      if (hv.complete) {
+        note = hv.faan >= model.settings.minFaan
+          ? fmt(S.guideLivePays, { n: chipBase(hv.faan) })
+          : fmt(S.nearWinLine, { n: hv.faan, min: model.settings.minFaan });
+      }
+      live.appendChild(el("p", "mj-guide__livenote", note));
+      body.appendChild(live);
+    }
+    function heldSum(keys) {
+      var n = 0;
+      keys.forEach(function (k) { if (held[k]) n += held[k].faan; });
+      return n;
+    }
+    GUIDE_SECTIONS.forEach(function (sec) {
+      var keys = sec.items.map(function (it) { return it[0]; });
+      guideSection(body, sec.head, el("span", "mj-guide__seclabel", S[sec.head]), heldSum(keys), function () {
+        sec.items.forEach(function (it) { body.appendChild(guideRow(held, it[0], it[1])); });
+        if (sec.note) body.appendChild(el("p", "mj-guide__note", S[sec.note]));
+      });
+    });
+    var llabel = el("span", "mj-guide__seclabel");
+    llabel.appendChild(document.createTextNode(S.guideSecLimit + " "));
+    llabel.appendChild(el("span", "mj-guide__limitbadge", fmt(S.guideLimitBadge, { n: model.settings.capFaan })));
+    guideSection(body, "limits", llabel, heldSum(GUIDE_LIMITS), function () {
+      GUIDE_LIMITS.forEach(function (key) { body.appendChild(guideRow(held, key, null)); });
+    });
+    guideSection(body, "pay", el("span", "mj-guide__seclabel", S.guideSecPay), 0, function () {
+      [[S.guidePayBase, S.guidePayBaseVal], [S.guidePayDiscard, S.guidePayDiscardVal], [S.guidePaySelf, S.guidePaySelfVal]]
+        .forEach(function (p2) {
+          var row = el("div", "mj-guide__payrow");
+          row.appendChild(el("span", "mj-guide__payk", p2[0]));
+          row.appendChild(el("span", "mj-guide__payv", p2[1]));
+          body.appendChild(row);
+        });
+    });
+    panel.appendChild(body);
+    wrap.appendChild(panel);
+    BIG.appendChild(wrap);
+    // scroll position survives the wholesale re-render on every message
+    body.scrollTop = ui.guideScroll;
+    body.addEventListener("scroll", function () { ui.guideScroll = body.scrollTop; });
+  }
+
   /* ── game over ────────────────────────────────────────────────── */
   function renderOver() {
     var o = model.over || {};
@@ -1152,7 +1342,9 @@
     if (model.host) {
       var rb = el("button", "tb-pill mj-over__rematch"); rb.type = "button";
       rb.appendChild(el("span", "tb-pill__label", S.rematchButton));
-      rb.addEventListener("click", function () { toast(S.rematchSoon, "info"); });
+      // host rematch: the table drops back to the lobby settings (seats,
+      // colors, and bots persist) and Start deals a fresh match
+      rb.addEventListener("click", function () { send({ type: "rematch" }); });
       wrap.appendChild(rb);
     }
     BIG.appendChild(wrap);
@@ -1524,6 +1716,10 @@
         ctrl.appendChild(krow);
       }
       if (!canDiscard) ui.kongPick = false;
+      // the quiet Scoring pill sits alone at the column's bottom right
+      var guideP = actionPill(S.pillGuide, true, function () { ui.guideOpen = true; render(); });
+      guideP.classList.add("mj-act--quiet", "mj-act--guide");
+      ctrl.appendChild(guideP);
     }
     play.appendChild(ctrl);
     ROLE.appendChild(play);

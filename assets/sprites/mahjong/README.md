@@ -1,8 +1,9 @@
 # DeetsMahjong sprites
 
 Hand-drawn tile art for the mahjong tab (docs/mahjong.md, "Art").
-Two deck styles ship, one folder each — the host picks the table's deck
-in the lobby settings (`settings.deck`, synced to everyone):
+Two deck styles ship, one folder each — every viewer picks their own
+(toolbar "Tile art" pill + the lobby chips, remembered in localStorage;
+the deck never rides the wire):
 
 | folder | deck |
 | --- | --- |
