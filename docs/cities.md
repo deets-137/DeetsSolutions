@@ -8,7 +8,10 @@ finish, hidden-info holds, winner + stats present. This document is both
 the original implementation contract and a running record of what
 shipped: where the built UI refined the spec, the prose below is updated
 to match (the **Page layout** section carries the *current* layout).
-Still ahead: Phase 2 (the worker), Phase 3 (betting), Phase 4 (Aditya's
+**Phase 2 (the worker) is built and deployed** — `transport.js` defaults
+to prod and `?mock` is the dev opt-out; note the mock does NOT model
+disconnects (no grace, no takeover, no reconnect), so rejoin behavior is
+only testable live. Still ahead: Phase 3 (betting), Phase 4 (Aditya's
 copy + art) — see **Build order**. All Phase-1 work is on branch
 `DeetsCities`: the supporting scaffolding landed in `f13c042` (this doc,
 `styles/main.css`, the nav links, `.claude/launch.json`), and the
@@ -64,13 +67,25 @@ on the existing zone). Expected load: 1–2 tables at a time.
   resource ledgers, dice histogram, superlatives ("most resources",
   "most robbed") on the game-over screen. Ephemeral — they die with the table.
 - **Seats bind to the device token** (radio's identity layer verbatim:
-  32-hex `localStorage` token, sent on every `join`, never broadcast).
+  32-hex `localStorage` token, sent as a field on the first frame's
+  `join` — never a cookie, header, or query param, and never broadcast).
   Reconnect = new socket + `join` + fresh personalized snapshot back
-  into your seat, mid-game.
+  into your seat, mid-game. Consequences worth stating plainly: identity
+  is the **browser profile**, not the person, so two people sharing a
+  device share one seat and there's no reset-identity UI; and the token
+  is an unverified bearer secret — anyone holding it *is* that player.
+  It never rides a broadcast, so it can't be lifted off the wire.
+- **One device, one connection.** A second tab joining with the same
+  token **supersedes** the first: the older socket is closed with code
+  **4408**, and the client treats that as final rather than as a drop
+  (a sticky toast tells the user to close the tab). This matters — an
+  unconditional reconnect makes the two tabs evict each other forever,
+  since each reconnect supersedes the other in turn.
 - **Host = radio's owner idiom.** Creator's token while connected,
-  longest-seated fallback while away. Host edits lobby settings, starts
-  the game, can kick a seat (which ends a running game), can close the
-  table.
+  longest-seated fallback while away — note the last fallback is the
+  oldest-joined socket, which can be a **spectator**. Host edits lobby
+  settings, starts the game, can kick a seat (in a running game the seat
+  converts to a bot; it does *not* end the game), can close the table.
 - **Tables expire like rooms.** Idle AND empty for 1 hour → the DO wipes
   storage and the code returns to the pool. A running game with people
   connected never expires.
@@ -281,7 +296,24 @@ it (`takeover` event, `seat.bot` set) so the game never stalls; the
 human may still reclaim by reconnecting, and the bot hands the seat
 back. An all-bot game simply resolves quickly, no special-casing. The
 host may **kick a seat**: in lobby it opens the seat; in a running game
-the seat **converts to a bot the same way** (a kick is a forced leave).
+the seat **converts to a bot the same way** (a kick is a forced leave) —
+and the seat's **token is dropped with the conversion**, so the kick
+sticks. (Keeping it would have handed the seat straight back: `join`'s
+reclaim matches on exactly that token, so re-entering the code undid the
+kick. The kicked player may still rejoin the table, as a spectator.)
+
+**A lobby seat is held indefinitely** — no grace, no timeout. The grace
+window is a *mid-game* mechanism; `onGone` opens none when there's no
+game. That hold is deliberate (reserve a seat, go get a drink), but it
+left a hole: a seat that went dark in the lobby used to deal in as
+neither bot nor connected human, so no turn clock armed, no phantom
+owed an action, and the alarm was cleared — **the table hung forever**,
+recoverable only by that player returning or the host kicking the seat,
+with no countdown or toast to explain it. **Start** now converts any
+disconnected seat to a bot as it deals (`takeover` events, so every
+client says so). The host is warned before the press — a line under
+Start counts the dark seats — so the substitution is never a surprise.
+The indefinite hold itself is unchanged.
 
 ## State & wire protocol
 
@@ -323,7 +355,7 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `recolor` | `{seat?, color}` | lobby only (colors lock at Start). Own seat, or host recoloring a bot seat. `color` is any `#rrggbb` hex; validated by `colors.js` (the shared contract module): malformed → `color`, too close to another seat's color (redmean distance < `MIN_DIST`) → `color-taken`. Board-proximity is deliberately unchecked — hand-drawn tile texture + road borders carry legibility, the pick is at the player's own risk |
 | `shuffle` | — | host, lobby only; Fisher-Yates over the **occupied** seats, reassigned into the same slots (empties stay put; names/colors travel with their players). Crypto rand in the DO |
 | `setSettings` | `{capacity?, timerSec?, betting?, resView?}` | host, lobby only. Capacity below current seated count, or with any occupied seat beyond it, refused. `resView` = the In-Game Resources View toggle (default on) |
-| `start` | — | host, ≥3 seated. Deals the board, enters `setup` |
+| `start` | — | host, ≥3 seated. Deals the board, enters `setup`. Any seated player who is **disconnected at this moment converts to a bot** (a `takeover` event each) — a lobby seat has no grace window, so dealing one in as a non-bot, non-connected seat would hang the table. The host sees a count of those seats under the Start button first |
 | `roll` | — | current player, once per turn |
 | `place` | `{kind: "settlement"\|"city"\|"road", loc}` | setup + main; engine validates cost, legality, piece supply |
 | `buyDev` | — | current player |
@@ -337,7 +369,7 @@ bets:     { chips: {token: n}, book: [ {betId, token, type, params,
 | `close` | `{offerId, accepter}` | current player; executes the trade with `accepter`'s seat (`seat` can't carry it — the transport injects the actor's seat there) |
 | `cancel` | `{offerId}` | the proposer |
 | `endTurn` | — | current player, after rolling |
-| `kickSeat` | `{seat}` | host (lobby: opens the seat; running: forced leave — the seat **converts to a bot**, the takeover rule, mock and worker alike). Reachable from the lobby roster's ✕ and the player-strip right-click menu's **Kick** |
+| `kickSeat` | `{seat}` | host (lobby: opens the seat; running: forced leave — the seat **converts to a bot**, the takeover rule, mock and worker alike, and the seat's **token is dropped** so the reclaim can't undo the kick). Reachable from the lobby roster's ✕ and the player-strip right-click menu's **Kick** |
 | `close` (table) | — | host: broadcast `closed`, wipe, free the code — wire name `closeTable` to avoid the offer collision |
 | `bet` | `{type, params, stake}` | v1.1, spectators only |
 
@@ -355,6 +387,7 @@ Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
 | `interrupt` | rides `state` via `turn.pendingInterrupt` — discard (with who still owes), robber, road placement |
 | `over` | winner (or none on abandonment), full VP reveal incl. hidden cards, `stats` (below) |
 | `kicked` / `closed` | as radio: land back at the gate |
+| `replaced` | client-synthesized, not a server frame: the socket closed with **4408** because another tab on this device joined. Final — no reconnect (retrying restarts the eviction war), sticky toast, back to the gate |
 
 **Events (`ev`)** are typed records, never prose: `{t:"roll", seat, d:[3,5]}`,
 `{t:"gain", seat, res, n, src:"roll"|"steal"|"trade"|"dev"}`,
@@ -468,10 +501,18 @@ like the chips).
 Doorway: the `.sotd__bar` combobox idiom verbatim (League/radio) — the
 table code IS the title, slug preview, recents popover
 (`localStorage`, "Recents"), peek-below-the-bar, create-confirm so
-a typo never mints a table. An existing table's peek always shows
-**both pills** — **Sit down** + **Spectate** — with Sit down grayed
-(disabled) when there's no seat to take (full lobby, or a running
-game); the peek line is "Table full | {n} spectating" when a lobby is
+a typo never mints a table. An existing table's peek shows **Sit down**
++ **Spectate** when there's an open seat. When there ISN'T one (running
+game, or a full lobby) both are replaced by a **single enabled pill**:
+joining is one action there, and the worker decides what it means —
+your token repossesses your seat if you hold one, otherwise you land as
+a spectator. (The old layout grayed "Sit down" and left "Spectate" as
+the only lit path, which misread badly for someone returning to their
+own held seat — the reclaim happens whichever pill is pressed, so the
+disabled one was describing a distinction that doesn't exist. `peek` is
+deliberately tokenless — a device token is a bearer secret and has no
+business in a URL — so the pill can't say "Rejoin" specifically without
+a wire change.) The peek line is "Table full | {n} spectating" when a lobby is
 full, else "{seated} players | {n} spectating" (`strings.js
 peekFull/peekPlayers`, Aditya's wording). Toolbar pills: Invite
 (copy link) · **View Settings** (final copy, Aditya's; a popover showing

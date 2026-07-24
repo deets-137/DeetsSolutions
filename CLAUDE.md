@@ -8,10 +8,12 @@ League tab + its Cloudflare Worker backend),
 [docs/radio.md](docs/radio.md) (DeetsRadio — shared listening rooms:
 protocol, sync design, build phases), and
 [docs/cities.md](docs/cities.md) (DeetsCities — the hex board game:
-rules engine, wire protocol, bento layout; Phase 1 mock-playable, worker
-is Phase 2), and [docs/mahjong.md](docs/mahjong.md) (DeetsMahjong —
-four-seat Hong Kong mahjong on the cities playbook; Phase 1
-mock-playable, worker is Phase 2).
+rules engine, wire protocol, bento layout), and
+[docs/mahjong.md](docs/mahjong.md) (DeetsMahjong — four-seat Hong Kong
+mahjong on the cities playbook). **Both games' workers are built and
+deployed**, and both transports default to prod — `?mock` is the dev
+opt-out, and the mocks do NOT model disconnects (no grace window, no bot
+takeover, no reconnect), so rejoin behavior can only be tested live.
 
 ## Working conventions
 
@@ -55,8 +57,8 @@ mock-playable, worker is Phase 2).
   and seat-color contract are shared code:** `cities/engine.js` is a pure,
   DOM-free module, `cities/board-data.js` its data, and `cities/colors.js`
   the seat-color contract (presets, hex validation, seat-vs-seat clash
-  check); the Phase-2 worker (sibling repo `../DeetsCities`,
-  `cities-api.deets.solutions`) will vendor all three **verbatim**, exactly
+  check); the deployed worker (sibling repo `../DeetsCities`,
+  `cities-api.deets.solutions`) vendors all three **verbatim**, exactly
   like the radio protocol — the mock and worker must run byte-identical
   copies. The board + card art is a token carve-out
   (fixed game palette, ignores theme/skin); everything else survives all
@@ -66,9 +68,9 @@ mock-playable, worker is Phase 2).
   `[ph]`-convention in `mahjong/strings.js` (Aditya's copy pass is done —
   every entry is his, so edit none of them); `mahjong/engine.js` (pure,
   DOM-free, `node mahjong/engine.js` runs its self-checks) and
-  `mahjong/colors.js` are shared-contract files the Phase-2 worker
-  (sibling repo `../DeetsMahjong`, `mahjong-api.deets.solutions`) will
-  vendor **verbatim**; tile faces/backs/dice/felt are the token carve-out
+  `mahjong/colors.js` are shared-contract files the deployed worker
+  (sibling repo `../DeetsMahjong`, `mahjong-api.deets.solutions`)
+  vendors **verbatim**; tile faces/backs/dice/felt are the token carve-out
   (`--mj*`), everything else survives all 30 combos; placeholder tile art
   swaps for hand-drawn sprites under `assets/sprites/mahjong/{deck}/`
   (`tile-{id}.png`, `back.png`; two decks — `numeral/`, `traditional/` —

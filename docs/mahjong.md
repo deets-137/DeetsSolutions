@@ -2,9 +2,12 @@
 
 Four-seat Hong Kong Old Style mahjong at `/mahjong`, built on the
 DeetsCities playbook: a pure rules engine, a mock transport that speaks
-the real wire protocol, a bento page, and a Phase-2 Cloudflare Worker
+the real wire protocol, a bento page, and a Cloudflare Worker
 (sibling repo `../DeetsMahjong`, `mahjong-api.deets.solutions`) that
-vendors the engine verbatim. Read
+vendors the engine verbatim. **The worker is built and deployed, and
+`transport.js` defaults to it** — the mock is now a dev tool behind
+`?mock`, and its disconnect semantics diverge sharply from production
+(see "Disconnects" below). Read
 [architecture.md](architecture.md) for site-wide conventions and
 [cities.md](cities.md) for the patterns this tab copies deliberately.
 
@@ -49,8 +52,8 @@ mahjong/
   engine.js         pure rules engine (contract file — worker vendors verbatim)
   colors.js         seat-color contract (identical algorithm to cities/colors.js)
   strings.js        every user-facing flavor string ([ph] convention)
-  transport.js      real WS client (mahjong-api.deets.solutions; Phase 2)
-  transport-mock.js in-page fake worker + bot AI (?mock; the Phase-1 way in)
+  transport.js      real WS client (mahjong-api.deets.solutions; the default)
+  transport-mock.js in-page fake worker + bot AI (?mock; dev tool, no disconnect model)
   mahjong.js        page UI (sixth copy of the toolbar/popover kit)
   index.html
 ```
@@ -113,11 +116,18 @@ Total clamps to the cap. All of this is data Aditya can retune inside
 ## State & wire protocol
 
 Same envelope as cities: `snapshot` on join, `state {v, serverNow, ev}`
-broadcasts, `error {code}`, `kicked`, `closed`. Lobby commands: `sit`,
+broadcasts, `error {code}`, `kicked`, `closed`, plus the client-
+synthesized `replaced` (the socket closed 4408 because another tab on
+this device joined — final, no reconnect). Lobby commands: `sit`,
 `stand`, `addBot`, `shuffle`, `recolor` (colors.js contract),
 `setSettings {minFaan, capFaan, winds, timerSec}`, `start` (needs
-exactly 4 seated; seats compact so seat index === engine player index).
-Game commands are the engine actions; the server injects `seat`.
+exactly 4 seated; seats compact so seat index === engine player index;
+any seat **disconnected at that moment converts to a bot**, one
+`takeover` event each, with the host warned by a count under the Start
+button — see "Identity, disconnects & rejoining"). `kickSeat` is host-
+only: in the lobby it opens the seat, in a running game the seat becomes
+a bot **and its token is dropped**, so the kicked player's rejoin can't
+reclaim it. Game commands are the engine actions; the server injects `seat`.
 `rematch` (host, game `over` only) clears the finished game back to the
 lobby — seats, colors, bots, and settings persist; scores lived in the
 discarded game, so Start deals a fresh match.
@@ -142,6 +152,50 @@ discarded game, so Start deals a fresh match.
   rack-title hint and the dead Mahjong pill's tooltip read it
 - the winning hand reveals in the public `handOver` summary — the moment
   it hits the table for real
+
+## Identity, disconnects & rejoining
+
+Cities' table-session layer verbatim — [cities.md](cities.md) is the
+fuller writeup; this is what's mahjong-specific.
+
+**Identity is a device token**: 32 hex chars in `localStorage`
+(`deets-mahjong-token`), sent as a field on the first frame's `join`,
+never a cookie or query param, never broadcast. It's what binds the
+hidden information: `viewFor` resolves `seatOfToken` first and attaches
+`you.hand` / `you.drawn` / `you.claims` only inside `if (seat != null)`,
+and game commands ignore any client-supplied seat — the server injects
+`action.seat` from the token. A client therefore cannot act as, or peek
+at, a seat it doesn't hold. Identity is the **browser profile**, not the
+person: two people on one device share a seat.
+
+**One device, one connection.** A second tab joining with the same token
+supersedes the first, which is closed with code **4408**. The client
+treats that as final and says so — reconnecting instead would make the
+two tabs evict each other indefinitely.
+
+**A dropped seat stays reserved for its token**, always. Mid-game, the
+last socket dropping opens a **30 s grace window**: `seat.graceUntil`
+rides every view, a `leaving` event fires, and every client shows a red
+countdown toast reconciled *from the model* (so a spectator arriving
+mid-grace sees it too). The turn clock **suspends** — a disconnected
+human isn't "human" for timer purposes. Return in time (`returned`) and
+play resumes; otherwise the seat converts to a bot (`takeover`) and the
+hand plays on. Reclaim works at any point until the game is `over` —
+rejoin with the same token and the seat comes back off the bot with the
+concealed hand intact, since the hand is DO state re-derived from the
+seat, never held client-side. The `handOver` interstitial auto-advances
+at 9 s regardless of who's connected.
+
+**A lobby seat is held indefinitely** — no grace, no timeout; the grace
+window is strictly mid-game. Because of that, `start` converts any
+seated-but-disconnected player to a bot as it deals (see the command
+table); without it such a seat would be neither bot nor connected human,
+no deadline would arm, and the table would hang forever.
+
+⚠️ **The mock cannot exercise any of this.** `transport-mock.js` has no
+grace, no takeover-on-disconnect, no reconnect, and its `onStatus` is a
+no-op — a dropped mock connection just goes silently dead. Test
+disconnect behavior against the worker.
 
 ## Page layout — the bento
 
@@ -256,15 +310,25 @@ portrait art;
 with plain smooth filtering (`image-rendering: pixelated` shimmered at
 fractional rem sizes).
 
-## Worker details (Phase 2)
+## Worker details (built + deployed)
 
 `../DeetsMahjong` → `mahjong-api.deets.solutions`, a Durable Object per
 table, `npx wrangler deploy` — radio/cities' playbook. It vendors
-`engine.js` and `colors.js` **verbatim** (byte-identical contract
-files), re-runs every command through `applyAction`, builds per-seat
-views with the same hidden-info rules as the mock, and owns the alarm
-that fires `timerExpire`. Reconnect/backoff, `v`-gap resync, and the
-25 s ping are already in `transport.js`.
+`engine.js` and `colors.js` **verbatim** (byte-identical contract files,
+guarded pre-deploy by `node scripts/vendor.mjs --check`), re-runs every
+command through `applyAction`, builds per-seat views with the same
+hidden-info rules as the mock, and owns the alarm that fires
+`timerExpire`. Reconnect/backoff, `v`-gap resync, and the 25 s ping are
+in `transport.js`, which **defaults to prod** — `?mock` is the opt-out.
+
+One storage alarm multiplexes everything: the table deadline, the
+disconnect-grace deadlines, the ~700 ms bot step, and the 1-hour
+idle-empty fuse. With nobody connected the drives **freeze** and only
+the fuse is armed, so grace deadlines don't tick down while a table sits
+empty; they resolve on the next join. Sockets are hibernatable
+(`acceptWebSocket` + a `ping`/`pong` auto-response), so the 25 s
+keepalive never wakes the DO, and identity rides the socket attachment
+rather than storage.
 
 ## Build order (mock first, radio's playbook)
 
@@ -272,7 +336,7 @@ that fires `timerExpire`. Reconnect/backoff, `v`-gap resync, and the
 2. ✅ strings/colors/transport-mock/transport
 3. ✅ bento UI + CSS + nav links
 4. Aditya: play it at `/mahjong?mock`, ✅ copy pass, art pass
-5. Phase 2: the worker repo, then flip the default transport
+5. ✅ the worker repo, deployed, default transport flipped to prod
 
 ## Open questions (deferred, not blockers)
 
@@ -281,5 +345,4 @@ that fires `timerExpire`. Reconnect/backoff, `v`-gap resync, and the
   not modeled; seat-flower faan only.
 - Concealed-kong robbery for Thirteen Orphans (rare HK nuance) — not
   modeled.
-- Rematch (worker-era, like cities).
 - Spectator betting — cities' v1.1 design would port straight over.
