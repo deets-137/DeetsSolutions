@@ -1,5 +1,10 @@
 # DeetsMahjong — the Hong Kong mahjong tab
 
+> **The shared half lives in [games.md](games.md)** — the wire protocol,
+> the table shell (`games/table.js`), the Durable Object base
+> (`games/table-do.js`), seat colors, and the conventions every game
+> inherits. This document covers only what makes DeetsMahjong itself.
+
 Four-seat Hong Kong Old Style mahjong at `/mahjong`, built on the
 DeetsCities playbook: a pure rules engine, a mock transport that speaks
 the real wire protocol, a bento page, and a Cloudflare Worker
@@ -50,11 +55,10 @@ Exactly cities':
 ```
 mahjong/
   engine.js         pure rules engine (contract file — worker vendors verbatim)
-  colors.js         seat-color contract (identical algorithm to cities/colors.js)
   strings.js        every user-facing flavor string ([ph] convention)
-  transport.js      real WS client (mahjong-api.deets.solutions; the default)
+  (transport + the table shell + seat colors are shared: games/)
   transport-mock.js in-page fake worker + bot AI (?mock; dev tool, no disconnect model)
-  mahjong.js        page UI (sixth copy of the toolbar/popover kit)
+  mahjong.js        page UI (the board half; the shell is games/table.js)
   index.html
 ```
 
@@ -267,7 +271,8 @@ full-width role row). Contents:
 
 Token discipline: chrome rides theme/skin tokens (all 30 combos); the
 **tile faces, backs, dice, and felt are the carve-out** (`--mj*` literals
-on `.mj`). Seat colors fill `--mjseat-N` slots, cities-style.
+on `.mj`). Seat colors are NOT part of this carve-out — they fill the
+shared `--gseat-N` slots every game table uses (styles/table.css).
 
 ## Timers
 
@@ -314,12 +319,12 @@ fractional rem sizes).
 
 `../DeetsMahjong` → `mahjong-api.deets.solutions`, a Durable Object per
 table, `npx wrangler deploy` — radio/cities' playbook. It vendors
-`engine.js` and `colors.js` **verbatim** (byte-identical contract files,
+`engine.js`, `games/table-do.js` and `games/colors.js` **verbatim** (byte-identical contract files,
 guarded pre-deploy by `node scripts/vendor.mjs --check`), re-runs every
 command through `applyAction`, builds per-seat views with the same
 hidden-info rules as the mock, and owns the alarm that fires
 `timerExpire`. Reconnect/backoff, `v`-gap resync, and the 25 s ping are
-in `transport.js`, which **defaults to prod** — `?mock` is the opt-out.
+in `games/transport.js`, which **defaults to prod** — `?mock` is the opt-out.
 
 One storage alarm multiplexes everything: the table deadline, the
 disconnect-grace deadlines, the ~700 ms bot step, and the 1-hour

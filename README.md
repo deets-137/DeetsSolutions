@@ -60,6 +60,8 @@ sotd/                 Song of the Day (page + generated songs.json)
 movies/               Movie log (page + generated movies.json)
 radio/                DeetsRadio listening rooms (talks to the DeetsRadio worker)
 league/               League of Legends stats (talks to the DeetsLeague worker)
+games/                the shared game foundation (table shell, transport,
+                      seat colors, the worker's DO base) — docs/games.md
 cities/               DeetsCities board game (talks to the DeetsCities worker)
 mahjong/              DeetsMahjong (talks to the DeetsMahjong worker)
 cool-stuff/           project portfolio
@@ -94,6 +96,9 @@ by TMDB).
 - [docs/league.md](docs/league.md) — the League tab: worker architecture,
   data model, rate-limit guardrails, and what the Riot API can and can't
   reveal.
+- [docs/games.md](docs/games.md) — the shared game foundation: wire
+  protocol, the table shell, the Durable Object base, and how to add a
+  game. Read this first for anything game-related.
 - [docs/cities.md](docs/cities.md) — the DeetsCities board game: rules
   engine, board data, wire protocol, the bento layout, the identity /
   disconnect-grace / rejoin rules, and the mock-first build order.

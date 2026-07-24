@@ -1,5 +1,10 @@
 # DeetsCities — design + build log
 
+> **The shared half lives in [games.md](games.md)** — the wire protocol,
+> the table shell (`games/table.js`), the Durable Object base
+> (`games/table-do.js`), seat colors, and the conventions every game
+> inherits. This document covers only what makes DeetsCities itself.
+
 **Status (2026-07-21):** **Phase 1 is built.** The full mock-playable
 game runs at `cities/?mock` — `engine.js` (rules), `board-data.js`,
 `transport-mock.js` (host-added bots running the real engine), and the
@@ -136,11 +141,13 @@ Files, following the radio anatomy:
 cities/index.html        page shell (bar + bento mounts)
 cities/cities.js         UI: gate, lobby, board render, panels
 cities/engine.js         rules engine (pure; vendored into the worker)
-cities/colors.js         seat-color contract (pure; vendored into the
+games/colors.js          seat-color contract, SHARED (vendored into the
                          worker): presets, hex normalize, clash check
 cities/board-data.js     static board definitions (hex layouts, harbor
                          positions, token/harbor/deck counts, per board)
-cities/transport.js      real WebSocket client (reconnect, v-gap)
+games/transport.js       real WebSocket client, SHARED (reconnect, v-gap)
+games/table.js           the table shell, SHARED (gate, lobby, toolbar)
+games/table-do.js        the Durable Object base, SHARED (vendored)
 cities/transport-mock.js in-page fake table speaking the protocol
                          verbatim (?mock selects it); runs engine.js
                          locally, drives host-added bots (addBot)
@@ -150,12 +157,12 @@ docs/cities.md           this file
                          colors.js + board-data.js + wrangler config
 ```
 
-`transport.js` / `transport-mock.js` follow radio's interface (connect,
+`games/transport.js` / `transport-mock.js` follow radio's interface (connect,
 send, onMessage, onStatus) and its reconnect rules: backoff + rejoin,
 `v`-gap detection forcing a fresh snapshot. `?api=<url>` (localhost
-only) points at `npx wrangler dev`. Per the site's deliberate-duplication
-convention, `cities.js` carries its own copy of the toolbar/popover kit
-(fifth copy: sotd, movies, league, radio, cities) — a fix to that
+only) points at `npx wrangler dev`. `cities.js` no longer carries its own
+toolbar/popover kit: the games share `games/table.js` (see
+[games.md](games.md)). The JOURNALS still duplicate that kit — a fix to that
 machinery must be mirrored across all five.
 
 ## The two boards
@@ -806,11 +813,11 @@ for the host, a bot's) is a button that slides open a picker — the six
 preset swatches, a seventh device-local slot holding the last custom
 hex you Become'd (localStorage; empty = a dashed ring that focuses the
 field), and the exact-hex field itself. `cities.js` writes the chosen
-hexes over the `--cseat-N` slots on the `.cities` root, so every
-index-keyed render site follows along; the CSS carve-out block keeps
-the presets as fallbacks. Validation (seat-vs-seat distance only, by
-decision) lives in `cities/colors.js` — pure and vendored into the
-worker verbatim, same contract rule as `engine.js`. Custom picks are
+hexes over the shared `--gseat-N` slots on the `.cities` root, so every
+index-keyed render site follows along; `styles/table.css` keeps the
+presets as fallbacks. Validation (seat-vs-seat distance only, by
+decision) lives in `games/colors.js` — one contract for every game,
+pure and vendored into the worker verbatim, same rule as `engine.js`. Custom picks are
 outside the CVD guarantee: the presets promise distinctness, a custom
 hex is the player's own eyes' responsibility.
 

@@ -7,11 +7,13 @@ deep dives in [docs/architecture.md](docs/architecture.md),
 League tab + its Cloudflare Worker backend),
 [docs/radio.md](docs/radio.md) (DeetsRadio — shared listening rooms:
 protocol, sync design, build phases), and
-[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game:
-rules engine, wire protocol, bento layout), and
+**[docs/games.md](docs/games.md) (the shared game foundation — read this
+FIRST for anything game-related: the wire protocol, the table shell, the
+Durable Object base, and how to add a game)**, then
+[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game) and
 [docs/mahjong.md](docs/mahjong.md) (DeetsMahjong — four-seat Hong Kong
-mahjong on the cities playbook). **Both games' workers are built and
-deployed**, and both transports default to prod — `?mock` is the dev
+mahjong), each covering only what makes that game itself. **Both games'
+workers are built and deployed**, and both transports default to prod — `?mock` is the dev
 opt-out, and the mocks do NOT model disconnects (no grace window, no bot
 takeover, no reconnect), so rejoin behavior can only be tested live.
 
@@ -36,13 +38,24 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
 - **The page-bar is shared.** Home, Resume, and Cool Stuff open with
   `.page-bar`, which mirrors the journals' `.sotd__bar` panel geometry —
   keep the two visually in sync if either changes.
-- **sotd.js, movies.js, league/league.js, radio/radio.js,
-  cities/cities.js, and mahjong/mahjong.js deliberately duplicate the
-  toolbar/popover kit** (pills, facets, state persistence) to keep each
-  page self-contained (mahjong is the sixth copy). A fix to that
-  machinery in one file must be mirrored in the others. The toast host (`js/toast.js`) is the
-  exception by design: shared chrome like `controls.js`, one copy on
-  every page ([docs/ui.md](docs/ui.md), "Toasts").
+- **The JOURNALS deliberately duplicate the toolbar/popover kit.**
+  `sotd.js`, `movies.js`, `league/league.js` and `radio/radio.js` each
+  carry their own copy (pills, facets, state persistence) to keep those
+  pages self-contained — a fix to that machinery in one must be mirrored
+  in the others. **The GAMES do not**: cities and mahjong share
+  `games/table.js` ([docs/games.md](docs/games.md)), and a new game must
+  use it rather than start a seventh copy. The toast host
+  (`js/toast.js`) is shared chrome like `controls.js`, one copy on every
+  page ([docs/ui.md](docs/ui.md), "Toasts").
+- **Games share a foundation — start at [docs/games.md](docs/games.md).**
+  `games/table.js` (the browser table shell: gate, lobby, seats/bots/
+  colors, toolbar, render frame), `games/table-do.js` (the Durable Object
+  base every worker subclasses), `games/transport.js`, `games/colors.js`
+  and `styles/table.css` are shared by every game; `table-do.js` and
+  `colors.js` are vendored VERBATIM into each worker repo alongside that
+  game's `engine.js`. Shell-rendered nodes use the `gt-` class prefix and
+  a game's CSS must never restyle them. Seat colors are the shared
+  `--gseat-0..5` contract, NOT part of a game's art carve-out.
 - **DeetsRadio copy is handwritten.** Every user-facing string on the
   radio page lives in `radio/strings.js`; Aditya writes them. Claude may
   only add `[ph]`-prefixed placeholders there and must never edit an
@@ -54,23 +67,22 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
   placeholders, never inline copy in `cities.js`. Aditya's copy pass is
   underway: un-prefixed entries are his (some dictated in chat — section
   comments mark those); `[ph]` entries still await him. **The rules engine
-  and seat-color contract are shared code:** `cities/engine.js` is a pure,
-  DOM-free module, `cities/board-data.js` its data, and `cities/colors.js`
-  the seat-color contract (presets, hex validation, seat-vs-seat clash
-  check); the deployed worker (sibling repo `../DeetsCities`,
-  `cities-api.deets.solutions`) vendors all three **verbatim**, exactly
-  like the radio protocol — the mock and worker must run byte-identical
-  copies. The board + card art is a token carve-out
+  is shared code:** `cities/engine.js` is a pure, DOM-free module and
+  `cities/board-data.js` its data; the deployed worker (sibling repo
+  `../DeetsCities`, `cities-api.deets.solutions`) vendors both
+  **verbatim** alongside `games/table-do.js` and `games/colors.js`,
+  exactly like the radio protocol — the mock and worker must run
+  byte-identical copies. The board + card art is a token carve-out
   (fixed game palette, ignores theme/skin); everything else survives all
   30 combos. Art ships as geometric placeholders until Aditya draws it,
   swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
 - **DeetsMahjong follows every cities convention:** copy is
   `[ph]`-convention in `mahjong/strings.js` (Aditya's copy pass is done —
   every entry is his, so edit none of them); `mahjong/engine.js` (pure,
-  DOM-free, `node mahjong/engine.js` runs its self-checks) and
-  `mahjong/colors.js` are shared-contract files the deployed worker
-  (sibling repo `../DeetsMahjong`, `mahjong-api.deets.solutions`)
-  vendors **verbatim**; tile faces/backs/dice/felt are the token carve-out
+  DOM-free, `node mahjong/engine.js` runs its self-checks) is a
+  shared-contract file the deployed worker (sibling repo
+  `../DeetsMahjong`, `mahjong-api.deets.solutions`) vendors **verbatim**
+  alongside `games/table-do.js` and `games/colors.js`; tile faces/backs/dice/felt are the token carve-out
   (`--mj*`), everything else survives all 30 combos; placeholder tile art
   swaps for hand-drawn sprites under `assets/sprites/mahjong/{deck}/`
   (`tile-{id}.png`, `back.png`; two decks — `numeral/`, `traditional/` —

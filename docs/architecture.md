@@ -190,9 +190,12 @@ Hong Kong mahjong, locked to four seats. Full design in
 playbook wholesale: the same bar/bento anatomy (table · dice · players ·
 log · rack tiles, plus the claim window docked where cities' trade hub
 sits), the same transport interface, and a **pure, DOM-free
-`mahjong/engine.js`** the Phase-2 worker (`../DeetsMahjong`,
-`mahjong-api.deets.solutions`) will vendor verbatim alongside
-`mahjong/colors.js`. What's new versus cities is **hidden information**:
+`mahjong/engine.js`** the deployed worker (`../DeetsMahjong`,
+`mahjong-api.deets.solutions`) vendors verbatim alongside the shared
+`games/table-do.js` and `games/colors.js`. Both games now sit on ONE
+foundation — the table shell, transport, seat colors, DO base and their
+CSS all live in `games/` + `styles/table.css`
+([docs/games.md](games.md)). What's new versus cities is **hidden information**:
 hands, the drawn tile, and per-seat claim options ride only each
 connection's `you`; the transport (mock today, worker later) builds
 per-seat views and masks claim acks. Page-specific rules: **copy lives
