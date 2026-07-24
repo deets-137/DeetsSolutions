@@ -19,10 +19,9 @@
 (function () {
   "use strict";
 
-  var T = window.CitiesTransport;
   var S = window.CITIES_STRINGS || {};
   var Engine = window.CitiesEngine;
-  var Colors = window.CitiesColors;
+  var Colors = window.DeetsColors;
   var Boards = window.CITIES_BOARDS.BOARDS;
   var RES = Engine.RES;
 
@@ -40,50 +39,13 @@
   var TRADE = document.querySelector("[data-cities-trade]");
   var DESKTOP = document.querySelector("[data-cities-desktop]");
 
-  /* ── small helpers ────────────────────────────────────────────── */
-  function el(tag, cls, text) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
   function svgEl(tag, attrs) {
     var n = document.createElementNS("http://www.w3.org/2000/svg", tag);
     if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]);
     return n;
   }
-  function load(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
-  function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
-  function slugify(raw) { return String(raw || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24); }
-  function fmt(tpl, vals) { return String(tpl || "").replace(/\{(\w+)\}/g, function (_, k) { return vals && vals[k] != null ? vals[k] : ""; }); }
-  function reduceMotion() { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
 
-  var TOKEN_KEY = "deets-cities-token", NAME_KEY = "deets-cities-name", RECENTS_KEY = "deets-cities-recents";
-  var CUSTOM_COLOR_KEY = "deets-cities-customhex";   // last custom hex Become'd — the picker's 7th swatch
-  function deviceToken() {
-    var t = load(TOKEN_KEY, null);
-    if (t) return t;
-    var bytes = new Uint8Array(16);
-    try { crypto.getRandomValues(bytes); } catch (e) { for (var i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256); }
-    t = Array.prototype.map.call(bytes, function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
-    save(TOKEN_KEY, t);
-    return t;
-  }
-  function recents() { return load(RECENTS_KEY, []); }
-  function remember(code) {
-    var r = recents().filter(function (c) { return c !== code; });
-    r.unshift(code); save(RECENTS_KEY, r.slice(0, 6));
-  }
 
-  // No meta line on this page (the bento sits flush under the bar) — every
-  // transient notice goes through the toast host. `opts` passes through
-  // sticky / actions for the trade-accepted alert.
-  function toast(text, kind, opts) {
-    if (!window.DeetsToast) return { dismiss: function () {}, update: function () {} };
-    var o = { kind: kind || "info", text: text };
-    if (opts) for (var k in opts) o[k] = opts[k];
-    return window.DeetsToast.push(o);
-  }
 
   /* ── display-name maps (from strings; the carve-out's labels) ─── */
   var RES_NAME = { wood: S.resWood, brick: S.resBrick, wheat: S.resWheat, sheep: S.resSheep, ore: S.resOre };
@@ -92,43 +54,94 @@
   var DEV_DESC = { knight: S.devKnightDesc, road: S.devRoadDesc, plenty: S.devPlentyDesc, monopoly: S.devMonopolyDesc, vp: S.devVpDesc };
   var BUILD_COST = { road: { wood: 1, brick: 1 }, settlement: { wood: 1, brick: 1, wheat: 1, sheep: 1 }, city: { ore: 3, wheat: 2 }, dev: { ore: 1, sheep: 1, wheat: 1 } };
   function resName(r) { return RES_NAME[r] || r; }
-  function seatName(i) { return (model && model.seats && model.seats[i] && model.seats[i].name) || ("Seat " + (i + 1)); }
 
-  /* ── popover kit (mirrored from league.js / radio.js) ─────────── */
-  var openEntry = null;
-  function closePop() {
-    if (!openEntry) return;
-    openEntry.pop.hidden = true;
-    if (openEntry.pill) openEntry.pill.setAttribute("aria-expanded", "false");
-    openEntry = null;
-    document.removeEventListener("click", onDocClick, true);
-    document.removeEventListener("keydown", onDocKey);
-  }
-  function onDocClick(e) { if (openEntry && !openEntry.ctrl.contains(e.target)) closePop(); }
-  function onDocKey(e) { if (e.key === "Escape") { var p = openEntry; closePop(); if (p && p.pill) p.pill.focus(); } }
-  function openPop(entry) {
-    closePop();
-    entry.pop.hidden = false;
-    if (entry.pill) entry.pill.setAttribute("aria-expanded", "true");
-    openEntry = entry;
-    document.addEventListener("click", onDocClick, true);
-    document.addEventListener("keydown", onDocKey);
-  }
-  function togglePop(entry) { if (openEntry === entry) closePop(); else openPop(entry); }
+  /* ═══ THE TABLE SHELL ══════════════════════════════════════════
+     games/table.js owns the socket, the code combobox, the gate, the
+     lobby (seats, bots, seat colors), the toolbar, the disconnect-grace
+     toasts and the render frame — every table on the site wears the same
+     one. This file supplies the board, the rules-facing UI, and the hooks
+     below. `model` is rebound by onModel on every broadcast, so the rest
+     of the file reads it exactly as it always did. */
+  var model = null;
+  var TBL = window.DeetsTable.create({
+    ns: "cities",
+    api: "https://cities-api.deets.solutions",
+    mock: window.CitiesTransport,        // transport-mock.js, selected by ?mock
+    strings: S,
+    rootSel: ".cities",
+    capacity: 6,
+    minSeats: 3,
+    startNeedsHint: S.startNeedsThree,
+    logCap: 120,
+    errExtra: { cost: S.errCost, loc: S.errLoc, rate: S.errRate, empty: S.errEmpty, supply: S.errSupply },
+    els: {
+      bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".cities-code"),
+      toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
+    },
+    onModel: function (m) {
+      model = m;
+      if (!m) return;
+      if (mySeat() !== ledgerSeat) { ledgerSeat = mySeat(); resetLedger(); }
+      setupBuildLoc = null; setupResCount = {};   // setup-payout attribution is per-broadcast
+    },
+    beforeMerge: function () {
+      // pre-merge snapshots; safe to hold — every delivery is a fresh clone
+      prevHand = (model && model.you && model.you.hand) || null;
+      prevAwards = (model && model.awards) || null;
+      prevHandCounts = (model && model.players) ? model.players.map(function (p) { return p.handCount; }) : null;
+      prevPhase = (model && model.phase) || null;
+      prevPendingKind = (model && model.turn && model.turn.pending) ? model.turn.pending.kind : null;
+    },
+    onEvent: handleEvent,
+    logLine: logLine,
+    postEvents: sweepAcceptToasts,
+    preRender: function () {
+      if (ui.mode && !modeStillValid()) ui.mode = null;   // a mode that no longer applies
+      autoSetupMode();                                    // decide board-interaction mode
+      syncPendingMode();                                  // ...before rendering the board
+    },
+    render: paint,
+    postRender: function () {
+      flushFlights();   // chips launch AFTER render: their targets exist now
+      // refresh AFTER handleEvent ran: the fade ghost needs the previous
+      // broadcast's copy of an offer this broadcast just removed
+      offerCache = {};
+      (model.offers || []).forEach(function (o) { offerCache[o.id] = o; });
+    },
+    onResize: function () { ROLE.style.minHeight = ""; },   // wrap points moved — re-measure the lock
+    onLeave: onLeave,
+    lobbySettings: lobbySettings,
+    settingsRows: function () {
+      return [
+        [S.capacityLabel, String(model.settings.capacity)],
+        [S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff],
+        [S.bettingLabel, model.settings.betting ? S.bettingOn : S.bettingOff],
+        [S.resViewLabel, model.settings.resView !== false ? S.bettingOn : S.bettingOff]
+      ];
+    }
+  });
+  // shell utilities under their old names — the rest of the file is unchanged
+  var el = TBL.el, load = TBL.load, save = TBL.save, fmt = TBL.fmt, slugify = TBL.slugify;
+  var reduceMotion = TBL.reduceMotion, toast = TBL.toast, seatDot = TBL.seatDot;
+  var mySeat = TBL.mySeat, seatName = TBL.seatName, seatedCount = TBL.seatedCount;
+  var logLines = TBL.logLines, ui = TBL.ui;
+  function send(msg) { TBL.send(msg); }
+  function render() { TBL.render(); }
+  function leaveTable() { TBL.leave(); }
+  function fitLog() { TBL.fitLog(".cities-log__list"); }
+  function code() { return TBL.code(); }
 
-  /* ── connection state ─────────────────────────────────────────── */
-  var conn = null, model = null, code = null;
-  var joined = false, joining = false, peekSeq = 0;
-  var logLines = [], connToast = null, spinUntil = 0;
+  /* ── board-interaction state (this game's own) ─────────────────── */
+  ui.mode = null; ui.build = null; ui.plentyPick = []; ui.actionMenu = null;
+  ui.tradeHub = false; ui.tradeTool = null; ui.embargoPop = null; ui.overExpanded = {};
+  var spinUntil = 0;
   var LOGVIEW_KEY = "deets-cities-logview";
   var logView = load(LOGVIEW_KEY, "deck");   // log tile rail: "log" | "deck" — sticky across sessions, Deck by default
   var lastTurnSeat = null;   // players tile: scroll-to-active fires on change only
-  var clockSkew = 0, timerHandle = null;   // clockSkew = Date.now() - server clock
+  var timerHandle = null;
   var tumbleHandle = null;   // face-shuffle interval while the dice spin
   var ringHandle = null;     // the active strip's timer-ring tick (dice clock's twin)
-  var ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, overExpanded: {}, colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false };   // transient board-interaction state
   var acceptToasts = {};   // "offerId:seat" -> sticky accepted-toast handle
-  var graceToasts = {};    // seat -> { handle, until, timer } — red disconnect-grace countdowns
   var offerCache = {};     // last-seen offer bundles (for the decline-fade ghost)
   var fadingOffers = {};   // id -> offer snapshot, briefly rendered fading out
   var ledger = null, ledgerSeat = null;   // "since your last turn" hand ledger (client-only; resets when my turn starts)
@@ -146,14 +159,14 @@
      offers are treated as declined (their strip is never closeable). The
      server knows nothing about it. */
   var EMBARGO_KEY = "deets-cities-embargo";
-  function embargoList() { var m = load(EMBARGO_KEY, {}); return (code && m[code]) || []; }
+  function embargoList() { var m = load(EMBARGO_KEY, {}), c = code(); return (c && m[c]) || []; }
   function isEmbargoed(s) { return embargoList().indexOf(s) >= 0; }
   function toggleEmbargo(s) {
-    var m = load(EMBARGO_KEY, {});
-    var list = (code && m[code]) || [];
+    var m = load(EMBARGO_KEY, {}), c = code();
+    var list = (c && m[c]) || [];
     var i = list.indexOf(s);
     if (i >= 0) list.splice(i, 1); else list.push(s);
-    m[code] = list; save(EMBARGO_KEY, m);
+    m[c] = list; save(EMBARGO_KEY, m);
     return i < 0;   // true = now embargoed
   }
   function declineOpenOffersFrom(s) {
@@ -164,200 +177,9 @@
     });
   }
 
-  /* ═══ BAR: code combobox + recents ═════════════════════════════ */
-  if (BAR_INPUT) {
-    BAR_INPUT.placeholder = S.tableCodePlaceholder || "";
-    BAR_INPUT.setAttribute("aria-label", S.tableCodePlaceholder || "Table code");
-    BAR_INPUT.addEventListener("focus", function () { fillCodePop(); if (recents().length) openCodePop(); BAR_INPUT.select(); });
-    BAR_INPUT.addEventListener("input", function () {
-      var slug = slugify(BAR_INPUT.value);
-      BAR_INPUT.setAttribute("data-slug", slug && slug !== BAR_INPUT.value ? slug : "");
-    });
-    BAR_INPUT.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); commitCode(BAR_INPUT.value); BAR_INPUT.blur(); }
-    });
-  }
-  var codeEntry = { ctrl: document.querySelector(".cities-code"), pill: null, pop: CODE_POP };
-  function openCodePop() { openPop(codeEntry); }
-  function fillCodePop() {
-    CODE_POP.textContent = "";
-    var r = recents();
-    if (!r.length) { CODE_POP.appendChild(el("div", "tb-pop__empty", S.yourTables)); return; }
-    CODE_POP.appendChild(el("div", "tb-pop__head", S.yourTables));
-    r.forEach(function (c) {
-      var b = el("button", "tb-pop__opt", c);
-      b.type = "button";
-      b.addEventListener("click", function () { closePop(); commitCode(c); });
-      CODE_POP.appendChild(b);
-    });
-  }
 
-  /* ═══ GATE: peek → sit / watch / open ══════════════════════════ */
-  function commitCode(raw) {
-    var c = slugify(raw);
-    if (!c) return;
-    closePop();
-    BAR_INPUT.value = c;
-    BAR_INPUT.setAttribute("data-slug", "");
-    if (joining || (joined && c === code)) return;
-    if (joined) leaveTable();
-    var seq = ++peekSeq;
-    T.peek(c).then(function (p) {
-      if (seq !== peekSeq || joining || joined) return;
-      renderGate(c, p);
-    }).catch(function () { if (seq === peekSeq && !joined) toast(S.peekFailed, "error"); });
-  }
-  function renderGate(c, p, refuseName) {
-    GATE.hidden = false; GATE.textContent = "";
-    TABLE.hidden = true; DESKTOP.hidden = true;
-    // an existing table always offers BOTH pills — Sit down (grayed when
-    // there's no seat to take: full lobby, or a running game) + Spectate
-    var full = p.exists && p.phase === "lobby" && p.seated >= p.capacity;
-    var canSit = p.exists && p.phase === "lobby" && !full;
-    var line;
-    if (refuseName) line = S.nameTaken;
-    else if (!p.exists) line = fmt(S.createLine, { code: c });
-    else if (full) line = fmt(S.peekFull, { spectators: p.spectators });
-    else line = fmt(S.peekPlayers, { seated: p.seated, spectators: p.spectators });
-    GATE.appendChild(el("p", "cities-gate__line", line));
 
-    var form = el("div", "cities-gate__form");
-    var stored = String(load(NAME_KEY, "")).trim();
-    var nameInput = null;
-    if (!stored || refuseName) {
-      var wrap = el("label", "cities-gate__name");
-      wrap.appendChild(el("span", "cities-gate__name-label", S.nameLabel));
-      nameInput = el("input", "cities-gate__name-input"); nameInput.type = "text"; nameInput.maxLength = 24; nameInput.value = stored;
-      wrap.appendChild(nameInput); form.appendChild(wrap);
-    }
-    var btns = [];
-    function goBtn(label, asWatch, enabled) {
-      var b = el("button", "tb-pill cities-gate__go");
-      b.type = "button"; b.disabled = !enabled;
-      b.appendChild(el("span", "tb-pill__label", label));
-      b.addEventListener("click", function () {
-        var who = nameInput ? nameInput.value.trim() : stored;
-        if (!who) { toast(S.nameNeeded, "error"); if (nameInput) nameInput.focus(); return; }
-        save(NAME_KEY, who);
-        btns.forEach(function (x) { x.el.disabled = true; });
-        joinTable(c, who, !p.exists, asWatch).then(function () {
-          if (!joined) btns.forEach(function (x) { x.el.disabled = !x.enabled; });
-        });
-      });
-      btns.push({ el: b, enabled: enabled });
-      form.appendChild(b);
-      return b;
-    }
-    /* An open seat gets the Sit/Spectate pair. With no seat to take (running
-       game, or a full lobby) a grayed "Sit down" was the only lit path being
-       "Spectate" — misleading, because a returning player's token silently
-       repossesses their seat whichever pill they press. So offer the one
-       action that's actually available, enabled, and let the worker decide
-       whether it's a rejoin or a spectate. */
-    var first;
-    if (!p.exists) first = goBtn(S.createButton, false, true);
-    else if (canSit) {
-      first = goBtn(S.sitButton, false, true);
-      goBtn(S.watchButton, true, true);
-    } else first = goBtn(S.rejoinButton, true, true);
-    GATE.appendChild(form);
-    if (nameInput) nameInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); (first.disabled ? btns[btns.length - 1].el : first).click(); }
-    });
-  }
 
-  /* ── join / leave ─────────────────────────────────────────────── */
-  function joinTable(c, who, create, asSpectator) {
-    if (joining || (joined && c === code)) return Promise.resolve();
-    joining = true; peekSeq++;
-    return T.connect(c, { name: who, create: !!create, token: deviceToken() }).then(function (cn) {
-      joining = false; conn = cn; code = c; joined = true; logLines = [];
-      cn.onMessage(onMessage);
-      if (cn.onStatus) cn.onStatus(function (s) {
-        if (!joined) return;
-        if (s === "down") { if (!connToast) connToast = toast(S.connDown, "error"); }
-        else { if (connToast) { connToast.dismiss(); connToast = null; } toast(S.connUp, "success"); }
-      });
-      ui.wantSit = !asSpectator;   // opening or joining a lobby means "I want to play"; only Watch stays a spectator
-      remember(c);
-      try { history.replaceState(null, "", "#" + c); } catch (e) {}
-    }).catch(function (err) {
-      joining = false;
-      var ec = err && err.code;
-      if (ec === "name-taken") { renderGate(c, { exists: true, phase: "lobby", seated: 0, capacity: 6, spectators: 0 }, true); return; }
-      if (ec === "replaced") { toast(S.replacedToast, "error", { sticky: true }); return; }
-      toast(ec === "no-table" ? S.noTable : ec === "full" ? S.tableFull : S.peekFailed, "error");
-    });
-  }
-  function leaveTable() {
-    if (conn) conn.close();
-    conn = null; model = null; joined = false; code = null; logLines = [];
-    if (connToast) { connToast.dismiss(); connToast = null; }
-    Object.keys(acceptToasts).forEach(function (k) { acceptToasts[k].dismiss(); });
-    acceptToasts = {};
-    clearGraceToasts();
-    offerCache = {}; fadingOffers = {};
-    ledger = null; ledgerSeat = null; prevHand = null; lastDiscard = null;
-    prevAwards = null; rollFlash = null; boardSeen = null; clearStealToasts();
-    clearFlights();
-    document.removeEventListener("click", onEmbargoDocClick, true);
-    document.removeEventListener("keydown", onEmbargoKey);
-    ui = { mode: null, build: null, plentyPick: [], actionMenu: null, tradeHub: false, tradeTool: null, embargoPop: null, botEdit: null, botDraft: null, botFocus: false };
-    tradeToolEl = null;
-    lastTurnSeat = null;
-    GATE.hidden = true; TABLE.hidden = true; DESKTOP.hidden = true;
-    ROLE.style.minHeight = "";
-    buildToolbar();
-    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-  }
-  function send(msg) { if (conn) conn.send(msg); }
-
-  /* ═══ MESSAGE HANDLING ═════════════════════════════════════════ */
-  function onMessage(msg) {
-    if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
-    if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
-    // another tab on this device took the table — sticky, because the user has
-    // to act (close a tab); a timed toast would vanish before they read it
-    if (msg.type === "replaced") { leaveTable(); toast(S.replacedToast, "error", { sticky: true }); return; }
-    if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
-    if (msg.type === "snapshot") { prevHand = (model && model.you && model.you.hand) || null; prevAwards = (model && model.awards) || null; prevHandCounts = (model && model.players) ? model.players.map(function (p) { return p.handCount; }) : null; prevPhase = (model && model.phase) || null; prevPendingKind = (model && model.turn && model.turn.pending) ? model.turn.pending.kind : null; model = stripMeta(msg); afterModel(msg); return; }
-    if (msg.type === "state") {
-      if (!model) model = {};
-      prevHand = (model.you && model.you.hand) || null;   // pre-merge hand; safe to hold — every delivery is a fresh clone
-      prevAwards = model.awards || null;                  // pre-merge award holders, same idiom
-      prevHandCounts = model.players ? model.players.map(function (p) { return p.handCount; }) : null;   // fly-ins' monopoly attribution
-      prevPhase = model.phase || null;                     // fly-ins' paid-vs-free build inference
-      prevPendingKind = model.turn && model.turn.pending ? model.turn.pending.kind : null;
-      for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") model[k] = msg[k];
-      afterModel(msg);
-      return;
-    }
-  }
-  function stripMeta(msg) { var m = {}; for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") m[k] = msg[k]; return m; }
-  function afterModel(msg) {
-    if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
-    if (mySeat() !== ledgerSeat) { ledgerSeat = mySeat(); resetLedger(); }
-    setupBuildLoc = null; setupResCount = {};   // setup-payout attribution is per-broadcast
-    (msg.ev || []).forEach(handleEvent);
-    sweepAcceptToasts();
-    syncGraceToasts();
-    // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator in
-    // the lobby; take a seat once (the toolbar's Sit/Stand governs after)
-    if (ui.wantSit && model.phase === "lobby" && mySeat() == null) { ui.wantSit = false; send({ type: "sit" }); }
-    // clear a placement mode that no longer applies
-    if (ui.mode && !modeStillValid()) ui.mode = null;
-    // decide board-interaction mode BEFORE rendering the board
-    autoSetupMode();
-    syncPendingMode();
-    applySeatColors();
-    GATE.hidden = true;
-    render();
-    flushFlights();   // chips launch AFTER render: their targets exist now
-    // refresh AFTER handleEvent ran: the fade ghost needs the previous
-    // broadcast's copy of an offer this broadcast just removed
-    offerCache = {};
-    (model.offers || []).forEach(function (o) { offerCache[o.id] = o; });
-  }
   // pending interrupts I own drive the board's click affordances
   function syncPendingMode() {
     if (!model || model.phase !== "main" || !isMyTurn()) return;
@@ -398,11 +220,6 @@
           : fmt(S.awardDropped, { award: awardName(e.kind) }), "warn");
       }
     }
-    // disconnect-grace trio (worker only; the mock never emits these). The
-    // sticky countdown itself is model-driven — syncGraceToasts reads
-    // seat.graceUntil — so these are just the one-shot resolution lines.
-    if (e.t === "returned") toast(fmt(S.returnedToast, { name: seatName(e.seat) }), "success");
-    if (e.t === "takeover") toast(fmt(S.takeoverToast, { name: seatName(e.seat) }), "warn");
     // an incoming offer pops the trade hub so the accept/decline is right
     // there — unless the sender is embargoed: then it's declined on sight
     if (e.t === "offer" && e.from !== mySeat()) {
@@ -432,8 +249,7 @@
     }
     collectFlight(e);   // before ledgerEvent — the discard branch reads lastDiscard, which the ledger consumes
     ledgerEvent(e);
-    var line = logLine(e);
-    if (line) { logLines.push(line); if (logLines.length > 120) logLines.shift(); }
+    // the shell appends the log line (cfg.logLine) and owns the presence toasts
   }
 
   /* ── the "since your last turn" hand ledger (client-only) ───────
@@ -498,42 +314,7 @@
       if (!live) { acceptToasts[k].dismiss(); delete acceptToasts[k]; }
     });
   }
-  function errText(codeStr) {
-    var map = { cost: S.errCost, loc: S.errLoc, turn: S.errTurn, phase: S.errPhase, rate: S.errRate, perm: S.errPerm, full: S.errFull, empty: S.errEmpty, supply: S.errSupply, "no-table": S.noTable, "name-taken": S.nameTaken, color: S.errColor, "color-taken": S.errColorTaken, flood: S.errFlood };
-    return map[codeStr] || S.errPhase;
-  }
 
-  /* ── disconnect-grace countdown (the red toast) ─────────────────
-     Authoritative state is the seat's graceUntil in every broadcast
-     (docs/cities.md, "Disconnects → grace → bot takeover"), so the sticky
-     toast is reconciled from the model — a spectator joining mid-grace
-     sees it from their first snapshot, no `leaving` event needed. Ticks
-     locally off serverNow's clockSkew, like the turn box. */
-  function graceSecs(until) { return Math.max(0, Math.ceil((until - (Date.now() - clockSkew)) / 1000)); }
-  function syncGraceToasts() {
-    var live = {};
-    (model.seats || []).forEach(function (s, i) { if (s && !s.empty && s.graceUntil && !s.bot) live[i] = s.graceUntil; });
-    Object.keys(graceToasts).forEach(function (k) {
-      if (live[k] == null) {
-        clearInterval(graceToasts[k].timer);
-        graceToasts[k].handle.dismiss();
-        delete graceToasts[k];
-      }
-    });
-    Object.keys(live).forEach(function (k) {
-      if (graceToasts[k]) { graceToasts[k].until = live[k]; return; }
-      var seat = +k;
-      var entry = { until: live[k], handle: null, timer: null };
-      var line = function () { return fmt(S.leavingToast, { name: seatName(seat), secs: graceSecs(entry.until) }); };
-      entry.handle = toast(line(), "error", { sticky: true });
-      entry.timer = setInterval(function () { entry.handle.update(line()); }, 250);
-      graceToasts[k] = entry;
-    });
-  }
-  function clearGraceToasts() {
-    Object.keys(graceToasts).forEach(function (k) { clearInterval(graceToasts[k].timer); graceToasts[k].handle.dismiss(); });
-    graceToasts = {};
-  }
   function clearStealToasts() {
     stealToasts.forEach(function (t) { t.dismiss(); });
     stealToasts = [];
@@ -628,7 +409,6 @@
     return pts.join(" ");
   }
   function geo() { return Engine.geoOf(model.board); }
-  function mySeat() { return model && model.you ? model.you.seat : null; }
   function isMyTurn() { return model.turn && model.turn.seat === mySeat() && mySeat() != null; }
 
   /* ── client-side legality (cosmetic; server re-validates) ─────── */
@@ -685,13 +465,9 @@
   }
 
   /* ═══ RENDER ═══════════════════════════════════════════════════ */
-  function render() {
-    if (!model) return;
-    buildToolbar();
-    // desktop-only guard
-    var narrow = window.matchMedia("(max-width: 56rem)").matches;
-    if (narrow) { TABLE.hidden = true; DESKTOP.hidden = false; DESKTOP.textContent = S.desktopOnly; return; }
-    DESKTOP.hidden = true; TABLE.hidden = false; GATE.hidden = true;
+  /* the shell's render frame calls this once the toolbar, the desktop-only
+     guard and the gate/table visibility are settled (games/table.js) */
+  function paint() {
     renderBig();
     renderDice();
     renderPlayers();
@@ -712,224 +488,31 @@
     var h = ROLE.getBoundingClientRect().height;
     if (h) ROLE.style.minHeight = Math.ceil(h) + "px";
   }
-  // Lock the log's height to the space left under the board, so the right
-  // column bottom-aligns with the board tile instead of overflowing past it
-  // (CSS grid 1fr can't do this on its own — an indefinite-height grid sizes
-  // a 1fr track to max-content). Keeps the trade overlay in sync too.
-  function fitLog() {
-    if (!BIG || !LOG || TABLE.hidden) return;
-    // Lock the log TILE to a fixed height reaching the board's bottom, so it
-    // stays a consistent full size no matter how many lines it holds (the list
-    // fills it and scrolls). Setting the tile height keeps the bento stable.
-    var avail = BIG.getBoundingClientRect().bottom - LOG.getBoundingClientRect().top;
-    if (avail > 60) LOG.style.height = Math.floor(avail) + "px";
-    var list = LOG.querySelector(".cities-log__list");
-    if (list) list.scrollTop = list.scrollHeight;
-  }
-  function seatedCount() { return (model.seats || []).filter(function (s) { return s && !s.empty; }).length; }
 
-  /* ── toolbar (Invite · Watch/Sit · Leave · Close) ─────────────── */
-  function buildToolbar() {
-    TOOLBAR.textContent = "";
-    if (!joined || !model) return;
-    var mine = mySeat();
-    // Invite
-    TOOLBAR.appendChild(pill(S.invitePill, function () {
-      var url = location.origin + location.pathname + (T.kind === "mock" ? "?mock" : "") + "#" + code;
-      try { navigator.clipboard.writeText(url); toast(S.shareToast, "success"); } catch (e) { toast(url, "info"); }
-    }));
-    // View settings — a hover peek at the table's rules, available any time
-    if (model.settings) TOOLBAR.appendChild(viewSettingsPill());
-    if (model.phase === "lobby") {
-      if (mine == null) TOOLBAR.appendChild(pill(S.sitPill, function () { send({ type: "sit" }); }));
-      else TOOLBAR.appendChild(pill(S.standButton, function () { send({ type: "stand" }); }));
-    }
-    TOOLBAR.appendChild(pill(S.leavePill, function () { leaveTable(); }));
-    if (model.host) {
-      var cp = pill(S.closePill, function () {
-        if (cp._armed) { send({ type: "closeTable" }); } else { cp._armed = true; cp.querySelector(".tb-pill__label").textContent = S.closeConfirm; setTimeout(function () { if (cp.isConnected) { cp._armed = false; cp.querySelector(".tb-pill__label").textContent = S.closePill; } }, 2600); }
-      });
-      TOOLBAR.appendChild(cp);
-    }
-  }
-  function pill(label, onClick) {
-    var b = el("button", "tb-pill"); b.type = "button";
-    b.appendChild(el("span", "tb-pill__label", label));
-    b.addEventListener("click", onClick);
-    return b;
-  }
-  function viewSettingsPill() {
-    var wrap = el("span", "cities-setth");
-    var b = el("button", "tb-pill"); b.type = "button"; b.setAttribute("aria-haspopup", "true");
-    b.appendChild(el("span", "tb-pill__label", S.settingsPill));
-    wrap.appendChild(b);
-    var pop = el("div", "tb-pop cities-setth__pop"); pop.hidden = true;
-    pop.appendChild(el("div", "tb-pop__head", S.lobbyTitle));
-    pop.appendChild(settingRow(S.capacityLabel, String(model.settings.capacity)));
-    pop.appendChild(settingRow(S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff));
-    pop.appendChild(settingRow(S.bettingLabel, model.settings.betting ? S.bettingOn : S.bettingOff));
-    pop.appendChild(settingRow(S.resViewLabel, model.settings.resView !== false ? S.bettingOn : S.bettingOff));
-    wrap.appendChild(pop);
-    // Hover = transient peek; click = pin open through the popover kit (so
-    // Esc / outside-click dismiss it like every other popover). The pinned
-    // state survives toolbar rebuilds via ui.settingsPinned + entry.kind.
-    var entry = { ctrl: wrap, pill: b, pop: pop, kind: "setth" };
-    function peek() { if (openEntry !== entry) pop.hidden = false; }
-    function unpeek() { if (openEntry !== entry) pop.hidden = true; }
-    wrap.addEventListener("mouseenter", peek);
-    wrap.addEventListener("mouseleave", unpeek);
-    b.addEventListener("focus", peek);
-    b.addEventListener("blur", unpeek);
-    b.addEventListener("click", function () {
-      togglePop(entry);
-      ui.settingsPinned = openEntry === entry;
-    });
-    if (ui.settingsPinned && openEntry && openEntry.kind === "setth") {
-      openPop(entry);          // re-pin across the rebuild
-      ui.settingsPinned = true;
-    } else ui.settingsPinned = false;
-    return wrap;
-  }
-  function settingRow(label, value) {
-    var r = el("div", "cities-setth__row");
-    r.appendChild(el("span", "cities-setth__k", label));
-    r.appendChild(el("span", "cities-setth__v", value));
-    return r;
-  }
 
   /* ── BIG tile: lobby settings / board / stats ─────────────────── */
   function renderBig() {
     BIG.textContent = "";
-    if (model.phase === "lobby") return renderLobby();
+    if (model.phase === "lobby") return TBL.renderLobby(BIG);
     if (model.phase === "over") return renderOver();
     renderBoard();
   }
 
-  function renderLobby() {
-    var wrap = el("div", "cities-lobby");
-    wrap.appendChild(el("h2", "cities-lobby__title", S.lobbyTitle));
-    var host = model.host;
-
-    // capacity
-    var capRow = el("div", "cities-set");
-    capRow.appendChild(el("span", "cities-set__label", S.capacityLabel));
-    var capOpts = el("div", "cities-set__opts");
-    [3, 4, 5, 6].forEach(function (n) {
-      var b = el("button", "cities-chip" + (model.settings.capacity === n ? " is-active" : ""), String(n));
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", capacity: n }); });
-      capOpts.appendChild(b);
-    });
-    capRow.appendChild(capOpts); wrap.appendChild(capRow);
-
-    // timer
-    var tRow = el("div", "cities-set");
-    tRow.appendChild(el("span", "cities-set__label", S.timerLabel));
-    var tOpts = el("div", "cities-set__opts");
-    [0, 45, 60, 90, 120].forEach(function (n) {
-      var b = el("button", "cities-chip" + (model.settings.timerSec === n ? " is-active" : ""), n === 0 ? S.timerOff : fmt(S.timerSecs, { n: n }));
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", timerSec: n }); });
-      tOpts.appendChild(b);
-    });
-    tRow.appendChild(tOpts); wrap.appendChild(tRow);
-
-    // betting
-    var bRow = el("div", "cities-set");
-    bRow.appendChild(el("span", "cities-set__label", S.bettingLabel));
-    var bOpts = el("div", "cities-set__opts");
-    [["on", true], ["off", false]].forEach(function (o) {
-      var b = el("button", "cities-chip" + (!!model.settings.betting === o[1] ? " is-active" : ""), o[1] ? S.bettingOn : S.bettingOff);
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", betting: o[1] }); });
-      bOpts.appendChild(b);
-    });
-    bRow.appendChild(bOpts); wrap.appendChild(bRow);
-
+  /* The shell renders the lobby (title, seats, bots, seat colors, Start);
+     these are DeetsCities' own setting rows, declared as chip choices. */
+  function lobbySettings(wrap) {
+    var st = model.settings;
+    wrap.appendChild(TBL.choiceRow(S.capacityLabel, "capacity",
+      [[3, "3"], [4, "4"], [5, "5"], [6, "6"]], st.capacity));
+    wrap.appendChild(TBL.choiceRow(S.timerLabel, "timerSec",
+      [[0, S.timerOff], [45, fmt(S.timerSecs, { n: 45 })], [60, fmt(S.timerSecs, { n: 60 })],
+       [90, fmt(S.timerSecs, { n: 90 })], [120, fmt(S.timerSecs, { n: 120 })]], st.timerSec));
+    wrap.appendChild(TBL.choiceRow(S.bettingLabel, "betting",
+      [[true, S.bettingOn], [false, S.bettingOff]], !!st.betting));
     // in-game resources view (the board's Resources popover; default on)
-    var rvOn = model.settings.resView !== false;
-    var rvRow = el("div", "cities-set");
-    rvRow.appendChild(el("span", "cities-set__label", S.resViewLabel));
-    var rvOpts = el("div", "cities-set__opts");
-    [["on", true], ["off", false]].forEach(function (o) {
-      var b = el("button", "cities-chip" + (rvOn === o[1] ? " is-active" : ""), o[1] ? S.bettingOn : S.bettingOff);
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", resView: o[1] }); });
-      rvOpts.appendChild(b);
-    });
-    rvRow.appendChild(rvOpts); wrap.appendChild(rvRow);
-
-    // seats — your own dot (and, for the host, a bot's) is a button that
-    // slides open the color picker below the row; colors lock at Start
-    // because `recolor` is a lobby command (transport enforces it too)
-    var seatList = el("div", "cities-lobby__seats");
-    (model.seats || []).forEach(function (s, i) {
-      var isBot = !s.empty && s.phantom;
-      // host-only inline bot editor takes over the row (same height); a seat
-      // a human claimed mid-edit drops the editor, like the color picker
-      if (ui.botEdit === i && !(host && (s.empty || isBot))) { ui.botEdit = null; ui.botDraft = null; }
-      if (ui.botEdit === i) { seatList.appendChild(botEditorRow(i)); return; }
-      var row = el("div", "cities-seat" + (s.empty ? " cities-seat--empty" : ""));
-      var editable = !s.empty && (s.seat === mySeat() || (host && s.phantom));
-      row.appendChild(editable ? dotButton(s, i) : seatDot(i));
-      var label = s.empty ? S.seatOpen : s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
-      if (host && isBot) {
-        // the bot's name is the rename affordance (lobby-only — names lock at Start like colors)
-        var nameBtn = el("button", "cities-seat__name cities-seat__namebtn", label); nameBtn.type = "button";
-        nameBtn.setAttribute("aria-label", fmt(S.renameBotAria, { name: s.name }));
-        nameBtn.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = s.name; ui.botFocus = true; render(); });
-        row.appendChild(nameBtn);
-      } else row.appendChild(el("span", "cities-seat__name", label));
-      if (model.hostSeat === i) row.appendChild(el("span", "cities-seat__badge", S.hostBadge));
-      if (host && s.empty) {
-        var add = el("button", "cities-seat__addbot", S.addBotButton); add.type = "button";
-        add.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = null; ui.botFocus = true; render(); });
-        row.appendChild(add);
-      }
-      if (host && !s.empty && s.seat !== mySeat()) {
-        var kick = el("button", "cities-seat__kick", "✕"); kick.type = "button";
-        kick.setAttribute("aria-label", fmt(S.kickSeatAria, { name: s.name || "" }));
-        kick.addEventListener("click", function () { send({ type: "kickSeat", seat: i }); });
-        row.appendChild(kick);
-      }
-      seatList.appendChild(row);
-      if (editable) seatList.appendChild(colorPicker(s, i));
-    });
-    if (ui.colorOpen != null) {
-      // the open picker's seat stopped being editable (kicked, stood up,
-      // capacity trim): forget it so a later rebuild doesn't reopen it
-      var stillOpen = seatList.querySelector('[data-colorpick="' + ui.colorOpen + '"]');
-      if (!stillOpen) { ui.colorOpen = null; ui.colorDraft = null; }
-    }
-    wrap.appendChild(seatList);
-
-    // start (+ Shuffle: host randomizes the seated players' order)
-    if (host) {
-      var startRow = el("div", "cities-lobby__startrow");
-      var start = el("button", "tb-pill cities-lobby__start");
-      start.type = "button";
-      start.appendChild(el("span", "tb-pill__label", S.startButton));
-      var ready = seatedCount() >= 3;
-      start.disabled = !ready;
-      start.addEventListener("click", function () { send({ type: "start" }); });
-      startRow.appendChild(start);
-      var shuf = el("button", "tb-pill cities-lobby__start");
-      shuf.type = "button";
-      shuf.appendChild(el("span", "tb-pill__label", S.shufflePill));
-      shuf.disabled = seatedCount() < 2;
-      shuf.addEventListener("click", function () { send({ type: "shuffle" }); });
-      startRow.appendChild(shuf);
-      wrap.appendChild(startRow);
-      wrap.appendChild(el("p", "cities-lobby__hint", ready ? S.startHint : S.startNeedsThree));
-      // a seat that went dark in the lobby is dealt in as a bot (the worker
-      // does the conversion at Start). Say so before the press, never after —
-      // bots.length counts only humans, since a seat view marks bots connected.
-      var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
-      if (ready && dark) wrap.appendChild(el("p", "cities-lobby__hint", fmt(S.startBotWarn, { n: dark })));
-    }
-    BIG.appendChild(wrap);
+    wrap.appendChild(TBL.choiceRow(S.resViewLabel, "resView",
+      [[true, S.bettingOn], [false, S.bettingOff]], st.resView !== false));
   }
-  function seatDot(i) { var d = el("span", "cities-dot"); d.style.background = "var(--cseat-" + i + ")"; return d; }
 
   /* ── lobby: host-added bots (the addBot verb) ───────────────────
      "+ Bot" on an open seat (or the bot's own name, to rename) swaps the
@@ -937,57 +520,6 @@
      from the suggestion pool, Add sends addBot (re-adding at a bot's
      seat = rename), ✕ cancels. The draft rides ui.botDraft so
      broadcasts don't wipe mid-typing (the color picker's idiom). */
-  var BOT_NAMES = ["Rook", "Vala", "Ozan", "Mira", "Deca"];   // prefill suggestions only — free text wins
-  function nextBotName() {
-    var used = {};
-    (model.seats || []).forEach(function (s) { if (s && !s.empty && s.name) used[s.name.toLowerCase()] = 1; });
-    for (var pi = 0; ; pi++) {
-      var gen = Math.floor(pi / BOT_NAMES.length);
-      var name = BOT_NAMES[pi % BOT_NAMES.length] + (gen ? " " + (gen + 1) : "");
-      if (!used[name.toLowerCase()]) return name;
-    }
-  }
-  function botEditorRow(i) {
-    var row = el("div", "cities-seat cities-seat--edit");
-    row.appendChild(seatDot(i));
-    var input = el("input", "cities-seat__nameinput");
-    input.type = "text"; input.maxLength = 24;
-    input.value = ui.botDraft != null ? ui.botDraft : nextBotName();
-    input.setAttribute("aria-label", S.addBotNameAria);
-    input.addEventListener("input", function () { ui.botDraft = input.value; });
-    var go = function () {
-      var name = input.value.trim();
-      if (!name) { input.focus(); return; }
-      send({ type: "addBot", seat: i, name: name });
-      ui.botEdit = null; ui.botDraft = null; render();
-    };
-    var cancel = function () { ui.botEdit = null; ui.botDraft = null; render(); };
-    input.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter") go();
-      else if (ev.key === "Escape") cancel();
-    });
-    row.appendChild(input);
-    var ok = el("button", "cities-seat__addgo", S.addBotGo); ok.type = "button";
-    ok.addEventListener("click", go);
-    row.appendChild(ok);
-    var x = el("button", "cities-seat__kick", "✕"); x.type = "button";
-    x.setAttribute("aria-label", S.addBotCancelAria);
-    x.addEventListener("click", cancel);
-    row.appendChild(x);
-    // focus only when the editor OPENS — broadcast re-renders must not steal it
-    if (ui.botFocus) { ui.botFocus = false; setTimeout(function () { if (input.isConnected) { input.focus(); input.select(); } }, 0); }
-    return row;
-  }
-  // seat colors drive the --cseat-N slots (main.css game-palette carve-out
-  // holds the preset fallbacks; a custom pick simply overrides its slot, so
-  // every index-keyed render site — board, strips, log, over — follows along)
-  function applySeatColors() {
-    var root = document.querySelector(".cities");
-    if (!root || !model) return;
-    (model.seats || []).forEach(function (s, i) {
-      if (s && s.color) root.style.setProperty("--cseat-" + i, s.color);
-    });
-  }
 
   /* ── lobby seat-color picker (dot → slide-open expand) ──────────
      The expand animates with the game-over superlatives' slide (the same
@@ -995,119 +527,6 @@
      a class on the LIVE node — a re-render would insert the panel already
      open and skip the motion. Open state + a mid-typing hex draft ride
      `ui.colorOpen` / `ui.colorDraft` so broadcasts don't wipe them. */
-  function dotButton(s, i) {
-    var b = el("button", "cities-seat__dotbtn"); b.type = "button";
-    b.setAttribute("data-colorseat", i);
-    b.setAttribute("aria-expanded", ui.colorOpen === i ? "true" : "false");
-    b.setAttribute("aria-label", fmt(S.colorDotAria, { name: s.name }));
-    b.appendChild(seatDot(i));
-    b.addEventListener("click", function () { toggleColorPick(i); });
-    return b;
-  }
-  function toggleColorPick(i) {
-    ui.colorOpen = ui.colorOpen === i ? null : i;
-    ui.colorDraft = null;
-    Array.prototype.forEach.call(BIG.querySelectorAll("[data-colorpick]"), function (p) {
-      p.classList.toggle("is-open", +p.getAttribute("data-colorpick") === ui.colorOpen);
-    });
-    Array.prototype.forEach.call(BIG.querySelectorAll("[data-colorseat]"), function (b) {
-      b.setAttribute("aria-expanded", +b.getAttribute("data-colorseat") === ui.colorOpen ? "true" : "false");
-    });
-  }
-  function sendRecolor(i, hex) {
-    send({ type: "recolor", seat: i, color: hex });
-    if (ui.colorOpen === i) toggleColorPick(i);   // animated close; the
-    // broadcast then re-renders the roster with the new color applied
-  }
-  function colorPicker(s, i) {
-    var wrap = el("div", "cities-colorpick" + (ui.colorOpen === i ? " is-open" : ""));
-    wrap.setAttribute("data-colorpick", i);
-    var slide = el("div", "cities-colorpick__inner");   // the 0fr→1fr track (bare, like the superlatives')
-    var inner = el("div", "cities-colorpick__body");
-    inner.appendChild(el("span", "cities-colorpick__label",
-      s.seat === mySeat() ? S.colorYours : fmt(S.colorTheirs, { name: s.name })));
-    // clash targets = every OTHER seat's color, positions preserved so a
-    // clash index maps straight back to a seat for the "{name} has it" line
-    var others = (model.seats || []).map(function (o) {
-      return o.empty || o.seat === i ? null : o.color;
-    });
-    var sw = el("div", "cities-colorpick__swatches");
-    Colors.PRESETS.forEach(function (hex) {
-      var b = el("button", "cities-colorpick__swatch"); b.type = "button";
-      b.style.background = hex;
-      if (hex === s.color) b.classList.add("is-current");
-      var ci = Colors.clash(hex, others);
-      if (ci >= 0) {
-        b.disabled = true;
-        b.title = fmt(S.colorTakenBy, { name: seatName(ci) });
-        b.setAttribute("aria-label", fmt(S.colorTakenBy, { name: seatName(ci) }));
-      } else {
-        b.setAttribute("aria-label", S.colorSwatchAria);
-        b.addEventListener("click", function () { sendRecolor(i, hex); });
-      }
-      sw.appendChild(b);
-    });
-    // 7th swatch: YOUR custom color (device-local, saved when a hex is
-    // Become'd) — select it again here, or the empty slot focuses the field
-    var savedCustom = Colors.norm(load(CUSTOM_COLOR_KEY, null));
-    var cb = el("button", "cities-colorpick__swatch cities-colorpick__swatch--custom");
-    cb.type = "button";
-    if (savedCustom) {
-      cb.style.background = savedCustom;
-      if (savedCustom === s.color) cb.classList.add("is-current");
-      var cci = Colors.clash(savedCustom, others);
-      if (cci >= 0 && savedCustom !== s.color) {
-        cb.disabled = true;
-        cb.title = fmt(S.colorTakenBy, { name: seatName(cci) });
-        cb.setAttribute("aria-label", fmt(S.colorTakenBy, { name: seatName(cci) }));
-      } else {
-        cb.setAttribute("aria-label", S.colorCustomAria);
-        cb.addEventListener("click", function () { sendRecolor(i, savedCustom); });
-      }
-    } else {
-      cb.classList.add("is-empty");
-      cb.setAttribute("aria-label", S.colorCustomAria);
-      cb.addEventListener("click", function () { input.focus(); });   // var-hoisted; assigned below
-    }
-    sw.appendChild(cb);
-    inner.appendChild(sw);
-    // exact-hex row: seeded with the current color, validated as you type
-    // (colors.js — the same check the transport re-runs), submit = Become...
-    var row = el("div", "cities-colorpick__custom");
-    row.appendChild(el("span", "cities-colorpick__hexlabel", S.colorHexLabel));
-    var input = el("input", "cities-colorpick__hexinput");
-    input.type = "text"; input.spellcheck = false; input.maxLength = 8;
-    input.value = ui.colorDraft != null ? ui.colorDraft : s.color;
-    var become = el("button", "cities-chip cities-colorpick__go", S.colorBecome);
-    become.type = "button";
-    var note = el("span", "cities-colorpick__msg");
-    function validate() {
-      var hex = Colors.norm(input.value);
-      var ci = hex ? Colors.clash(hex, others) : -1;
-      var bad = !hex ? (input.value.trim() ? S.colorBadHex : "")
-              : ci >= 0 ? fmt(S.colorClashWith, { name: seatName(ci) }) : "";
-      note.textContent = bad;
-      become.disabled = !hex || ci >= 0;
-      return become.disabled ? null : hex;
-    }
-    function becomeCustom() {
-      var hex = validate();
-      if (!hex) return;
-      save(CUSTOM_COLOR_KEY, hex);   // remembers the 7th swatch across sessions
-      sendRecolor(i, hex);
-    }
-    input.addEventListener("input", function () { ui.colorDraft = input.value; validate(); });
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") becomeCustom();
-    });
-    become.addEventListener("click", becomeCustom);
-    validate();
-    row.appendChild(input); row.appendChild(become); row.appendChild(note);
-    inner.appendChild(row);
-    slide.appendChild(inner);
-    wrap.appendChild(slide);
-    return wrap;
-  }
 
   /* ── the SVG board ────────────────────────────────────────────── */
   function renderBoard() {
@@ -1225,7 +644,7 @@
         };
         if (!anchored(vs[0]) && anchored(vs[1])) { var sw = a; a = b; b = sw; }
       }
-      var attrs = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road" + (fresh ? " is-built" : ""), stroke: "var(--cseat-" + model.roads[e] + ")" };
+      var attrs = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road" + (fresh ? " is-built" : ""), stroke: "var(--gseat-" + model.roads[e] + ")" };
       if (fresh) attrs.pathLength = 1;
       svg.appendChild(svgEl("line", attrs));
     });
@@ -1269,7 +688,7 @@
         var vs = g.edgeVertices[e], a = vertexXY(vs[0]), b = vertexXY(vs[1]);
         var t = svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road cities-road--target" });
         t.addEventListener("click", function () { send({ type: "place", kind: "road", loc: e }); if (ui.mode === "place-road") ui.mode = null; });
-        t.addEventListener("mouseenter", function () { showGhost(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road", stroke: "var(--cseat-" + mySeat() + ")" })); });
+        t.addEventListener("mouseenter", function () { showGhost(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "cities-road", stroke: "var(--gseat-" + mySeat() + ")" })); });
         t.addEventListener("mouseleave", hideGhost);
         svg.appendChild(t);
       });
@@ -1394,7 +813,7 @@
       var x = x0 + i * (bw + gap);
       var h = Math.max(Math.round(gained[i] / maxC * maxH), 2);
       var r = svgEl("rect", { x: x.toFixed(1), y: base - h, width: bw.toFixed(1), height: h, rx: 3 });
-      r.style.fill = "var(--cseat-" + i + ")";
+      r.style.fill = "var(--gseat-" + i + ")";
       svg.appendChild(r);
       var ct = svgEl("text", { x: (x + bw / 2).toFixed(1), y: base - h - 5, "text-anchor": "middle", class: "cities-odds__n" });
       ct.textContent = gained[i];
@@ -1571,7 +990,7 @@
     if (!l) {
       l = el("div", "cities-flylayer");
       // MUST live inside <section class="cities"> — the game palette
-      // (--cterr-*, --cseat-*) is scoped there, and a body-parented layer
+      // (--cterr-*, --gseat-*) is scoped there, and a body-parented layer
       // resolved every chip color to nothing. position:fixed still
       // anchors to the viewport from here.
       (document.querySelector("section.cities") || document.body).appendChild(l);
@@ -1962,7 +1381,7 @@
     fl.forEach(function (go) { go(); });
   }
   function pieceShape(kind, p, seat) {
-    var fill = "var(--cseat-" + seat + ")";
+    var fill = "var(--gseat-" + seat + ")";
     if (kind === "city") return svgEl("rect", { x: p.x - 8, y: p.y - 8, width: 16, height: 16, rx: 2, class: "cities-piece cities-piece--city", fill: fill });
     // settlement: a small house = pentagon-ish; use a circle for the placeholder
     return svgEl("circle", { cx: p.x, cy: p.y, r: 7, class: "cities-piece cities-piece--settlement", fill: fill });
@@ -2111,7 +1530,7 @@
   // seconds left on the current actor's turn, or null when the clock isn't armed
   function timerLeftMs() {
     if (!model.settings || !model.settings.timerSec || model.turnEndsAt == null) return null;
-    return Math.max(0, model.turnEndsAt - (Date.now() - clockSkew));
+    return Math.max(0, model.turnEndsAt - (Date.now() - TBL.skew()));
   }
   function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
   // turn timer ring: when the table clock is armed, the active seat's dot
@@ -2211,7 +1630,7 @@
       (model.seats || []).forEach(function (s, i) {
         if (s.empty) return;
         var strip = el("div", "cities-pstrip");
-        strip.style.setProperty("--cstrip", "var(--cseat-" + i + ")");
+        strip.style.setProperty("--cstrip", "var(--gseat-" + i + ")");
         var body = el("div", "cities-pstrip__body");
         var head = el("div", "cities-pstrip__head");
         head.appendChild(seatDot(i));
@@ -2232,7 +1651,7 @@
       var active = model.phase === "main" && model.turn.seat === i;
       var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") + (model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
       strip.dataset.seat = i;   // fly-in chips steer by this, re-queried per frame
-      strip.style.setProperty("--cstrip", "var(--cseat-" + i + ")");
+      strip.style.setProperty("--cstrip", "var(--gseat-" + i + ")");
       var body = el("div", "cities-pstrip__body");
       var head = el("div", "cities-pstrip__head");
       // the active seat's dot carries the timer ring when the clock is armed
@@ -2612,7 +2031,7 @@
     parent.appendChild(el("p", "cities-role__note", S.stealPrompt));
     var row = el("div", "cities-steal");
     p.targets.forEach(function (s) {
-      var b = el("button", "cities-chip"); b.type = "button";
+      var b = el("button", "gt-chip"); b.type = "button";
       b.appendChild(seatDot(s)); b.appendChild(el("span", null, seatName(s)));
       b.addEventListener("click", function () { send({ type: "steal", target: s }); });
       row.appendChild(b);
@@ -2792,7 +2211,7 @@
       var mineOffer = o.from === seat;
       var incoming = seat != null && !mineOffer && !(o.responses && o.responses[seat]);
       var card = el("div", "cities-offer" + (mineOffer ? " is-mine" : "") + (incoming ? " is-incoming" : ""));
-      if (mineOffer) card.style.setProperty("--cstrip", "var(--cseat-" + o.from + ")");
+      if (mineOffer) card.style.setProperty("--cstrip", "var(--gseat-" + o.from + ")");
       var head = mineOffer ? fmt(S.offerFrom, { name: seatName(o.from) }) : fmt(S.offerToYou, { name: seatName(o.from) });
       card.appendChild(el("div", "cities-offer__head", head));
       card.appendChild(bundleView(S.tradeGive, o.give));
@@ -2811,7 +2230,7 @@
             if (emb) verdict = "decline";
             var row = el("button", "cities-offer__seat" + (verdict === "accept" ? " is-accept" : verdict === "decline" ? " is-decline" : ""));
             row.type = "button";
-            row.style.setProperty("--cstrip", "var(--cseat-" + s + ")");
+            row.style.setProperty("--cstrip", "var(--gseat-" + s + ")");
             row.appendChild(seatDot(s));
             row.appendChild(el("span", "cities-offer__seatname", seatName(s)));
             row.appendChild(el("span", "cities-offer__verdict", emb ? "🚫" : verdict === "accept" ? "✓" : verdict === "decline" ? "✕" : "…"));
@@ -2822,10 +2241,10 @@
             status.appendChild(row);
           });
           card.appendChild(status);
-          var cancel = el("button", "cities-chip", S.tradeCancel); cancel.type = "button"; cancel.addEventListener("click", function () { send({ type: "cancel", offerId: o.id }); }); btns.appendChild(cancel);
+          var cancel = el("button", "gt-chip", S.tradeCancel); cancel.type = "button"; cancel.addEventListener("click", function () { send({ type: "cancel", offerId: o.id }); }); btns.appendChild(cancel);
         } else {
-          var acc = el("button", "cities-chip", S.tradeAccept); acc.type = "button"; acc.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "accept" }); }); btns.appendChild(acc);
-          var dec = el("button", "cities-chip", S.tradeDecline); dec.type = "button"; dec.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "decline" }); }); btns.appendChild(dec);
+          var acc = el("button", "gt-chip", S.tradeAccept); acc.type = "button"; acc.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "accept" }); }); btns.appendChild(acc);
+          var dec = el("button", "gt-chip", S.tradeDecline); dec.type = "button"; dec.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "decline" }); }); btns.appendChild(dec);
         }
       }
       card.appendChild(btns);
@@ -2835,7 +2254,7 @@
     fadeIds.forEach(function (id) {
       var o = fadingOffers[id];
       var ghost = el("div", "cities-offer cities-offer--fading" + (o.from === seat ? " is-mine" : ""));
-      if (o.from === seat) ghost.style.setProperty("--cstrip", "var(--cseat-" + o.from + ")");
+      if (o.from === seat) ghost.style.setProperty("--cstrip", "var(--gseat-" + o.from + ")");
       ghost.appendChild(el("div", "cities-offer__head", o.from === seat ? fmt(S.offerFrom, { name: seatName(o.from) }) : fmt(S.offerToYou, { name: seatName(o.from) })));
       ghost.appendChild(bundleView(S.tradeGive, o.give));
       ghost.appendChild(bundleView(S.tradeGet, o.get));
@@ -2850,19 +2269,24 @@
     return row;
   }
 
-  /* ═══ BOOT ═════════════════════════════════════════════════════ */
-  window.addEventListener("resize", function () {
-    if (!joined || !model) return;
-    ROLE.style.minHeight = "";   // wrap points moved — re-measure the lock
-    render();
-  });
-  function boot() {
-    var hash = slugify((location.hash || "").replace(/^#/, ""));
-    if (hash) { BAR_INPUT.value = hash; commitCode(hash); }
+  /* ── leaving: the shell drops the socket, the model and its own lobby
+     state; this clears what's DeetsCities' alone ─────────────────── */
+  function onLeave() {
+    Object.keys(acceptToasts).forEach(function (k) { acceptToasts[k].dismiss(); });
+    acceptToasts = {};
+    offerCache = {}; fadingOffers = {};
+    ledger = null; ledgerSeat = null; prevHand = null; lastDiscard = null;
+    prevAwards = null; rollFlash = null; boardSeen = null; clearStealToasts();
+    clearFlights();
+    document.removeEventListener("click", onEmbargoDocClick, true);
+    document.removeEventListener("keydown", onEmbargoKey);
+    ui.mode = null; ui.build = null; ui.plentyPick = []; ui.actionMenu = null;
+    ui.tradeHub = false; ui.tradeTool = null; ui.embargoPop = null; ui.overExpanded = {};
+    tradeToolEl = null;
+    lastTurnSeat = null;
+    ROLE.style.minHeight = "";
   }
-  window.addEventListener("hashchange", function () {
-    var h = slugify((location.hash || "").replace(/^#/, ""));
-    if (h && h !== code) commitCode(h);
-  });
-  boot();
+
+  /* ═══ BOOT ═════════════════════════════════════════════════════ */
+  TBL.boot();
 })();

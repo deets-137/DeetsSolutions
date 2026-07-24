@@ -3511,12 +3511,10 @@ button:focus-visible {
    ============================================================ */
 
 /* cities game palette — deliberate token carve-out (docs/cities.md).
-   Fixed literals scoped to the board + cards only: terrain fills, the six
-   PRESET seat colors (chosen to stay distinct for common color-vision
-   deficiencies), and number-token ink. These do NOT vary by theme. The
-   --cseat-N values here are fallbacks: cities.js overrides the slots on
-   this root with each seat's actual (possibly custom-hex) pick from the
-   lobby color picker. Until Aditya's hand-drawn sprites land every art
+   Fixed literals scoped to the board + cards only: terrain fills and
+   number-token ink. These do NOT vary by theme. The seat colors are NOT
+   here: they're the shared --gseat-N contract every game table uses
+   (styles/table.css, games/colors.js). Until Aditya's hand-drawn sprites land every art
    surface is a flat geometric placeholder in these colors (rectangles for
    cards, circles for tokens/pieces, flat hex fills). */
 .cities {
@@ -3527,67 +3525,12 @@ button:focus-visible {
   --cterr-ore:    #8a8f98;
   --cterr-desert: #d8c89a;
   --cterr-sea:    #3b6ea5;
-  --cseat-0: #d94141;  /* red    */
-  --cseat-1: #3b7dd8;  /* blue   */
-  --cseat-2: #2fae66;  /* green  */
-  --cseat-3: #e08a2e;  /* orange */
-  --cseat-4: #9457c9;  /* purple */
-  --cseat-5: #22b0b0;  /* teal   */
   --ctoken-bg:  #f2ead4;
   --ctoken-ink: #23303f;
   --ctoken-hot: #c0271f;   /* 6 / 8 ink */
   --cglow:      #ffd75e;   /* roll-celebration wash on hit hexes */
 }
 
-/* ── code combobox (the table code IS the title, League/radio idiom) ── */
-.cities-code { flex: 1 1 auto; min-width: 0; max-width: 22rem; }
-.cities-code__input {
-  width: 100%;
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: calc(var(--fs-title) * 1.1);
-  color: var(--title);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid var(--border);
-  padding: var(--space-1) 0;
-  outline: none;
-}
-.cities-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
-.cities-code__input:focus { border-bottom-color: var(--title); }
-.cities-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; }
-.tb-pop__head, .tb-pop__empty {
-  padding: var(--space-2) var(--space-3);
-  color: var(--subtext);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* ── gate (peek → sit / watch / open) ─────────────────────────── */
-.cities-gate {
-  margin-bottom: var(--space-5);
-  padding: var(--space-5);
-  background: var(--menu-surface);
-  -webkit-backdrop-filter: var(--menu-backdrop);
-  backdrop-filter: var(--menu-backdrop);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
-}
-.cities-gate__line { margin: 0 0 var(--space-4); color: var(--text); font-size: 1.05rem; }
-.cities-gate__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
-.cities-gate__name { display: flex; flex-direction: column; gap: var(--space-1); }
-.cities-gate__name-label { color: var(--subtext); font-size: 0.8rem; }
-.cities-gate__name-input {
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.cities-gate__go { cursor: pointer; }
-.cities-gate__go:disabled { opacity: 0.4; cursor: default; }
 
 /* ── the bento ────────────────────────────────────────────────── */
 .cities-bento {
@@ -3753,7 +3696,7 @@ button:focus-visible {
 /* the chip is a pocket res card: the hand/deck cards' silhouette and
    resource fill (--ccard) at flying size, sprite riding inside. The
    negative offsets center the box on its flight coordinates.
-   ("flychip" — .cities-chip is already the toolbar pill.) */
+   ("flychip" — .gt-chip is already the settings chip.) */
 .cities-flychip {
   position: absolute; left: -11px; top: -14px; width: 22px; height: 28px;
   border-radius: var(--radius-control); border: 1px solid rgba(0, 0, 0, 0.28);
@@ -3798,145 +3741,6 @@ button:focus-visible {
 .cities-harbor__dot { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
 .cities-harbor__flag { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }   /* the sprite's backing disc, off-map of the dot */
 .cities-harbor__label { fill: #fff; font: 700 8px/1 var(--font-body); }
-
-/* ── View-settings hover pill (toolbar) ───────────────────────── */
-.cities-setth { position: relative; display: inline-flex; }
-.cities-setth__pop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 12rem; padding: var(--space-2); }
-.cities-setth__row { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-1) var(--space-2); font-size: 0.85rem; }
-.cities-setth__k { color: var(--subtext); }
-.cities-setth__v { color: var(--title); font-weight: 700; }
-
-/* ── lobby (settings + seats) ─────────────────────────────────── */
-.cities-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
-.cities-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
-.cities-set { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.cities-set__label { color: var(--subtext); min-width: 8rem; font-size: 0.9rem; }
-.cities-set__opts { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.cities-chip {
-  padding: var(--space-1) var(--space-3);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  font: inherit;
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  transition: transform var(--dur-fast) var(--ease-ui);
-}
-.cities-chip:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
-.cities-chip:disabled { opacity: 0.55; cursor: default; }
-.cities-chip.is-active { border-color: var(--title); color: var(--title); }
-.cities-lobby__seats { display: flex; flex-direction: column; gap: var(--space-2); }
-.cities-seat {
-  display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.cities-seat--empty { opacity: 0.6; border-style: dashed; }
-.cities-seat__name { flex: 1 1 auto; color: var(--text); }
-.cities-seat__badge {
-  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
-  padding: 0 var(--space-2);
-}
-.cities-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
-.cities-seat__kick:hover { color: var(--stop); }
-/* host-added bots: "+ Bot" on open seats, and the inline add/rename editor —
-   the editor swaps into the row at the SAME height (input capped to the text
-   line), so toggling it never resizes the roster (the universal layout rule) */
-.cities-seat__addbot,
-.cities-seat__addgo {
-  background: none; border: 1px solid var(--border); border-radius: var(--radius-control);
-  color: var(--subtext); font: inherit; font-size: 0.78rem;
-  padding: 0 var(--space-2); line-height: 1.4; cursor: pointer;
-}
-.cities-seat__addbot:hover { color: var(--title); border-color: var(--title); }
-.cities-seat__addgo { color: var(--go); }
-.cities-seat__addgo:hover { border-color: var(--go); }
-.cities-seat__namebtn {
-  background: none; border: none; padding: 0; font: inherit; color: var(--text);
-  text-align: left; cursor: pointer;
-  text-decoration: underline dotted; text-underline-offset: 0.15em;
-}
-.cities-seat__namebtn:hover { color: var(--title); }
-.cities-seat__nameinput {
-  flex: 1 1 auto; min-width: 0; height: 1.6em;
-  font: inherit; color: var(--text);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control);
-  padding: 0 var(--space-2);
-}
-.cities-seat__nameinput:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-.cities-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
-
-/* ── seat-color picker (lobby): the dot is the button, the panel slides
-   open under the row with the game-over superlatives' 0fr→1fr slide ── */
-.cities-seat__dotbtn {
-  flex: none; display: flex; align-items: center; justify-content: center;
-  width: 1.6rem; height: 1.6rem; margin: -0.35rem;   /* bigger target, same layout as the bare dot */
-  padding: 0; background: none; border: none; border-radius: 50%;
-  cursor: pointer;
-  transition: box-shadow var(--dur-fast) var(--ease-ui);
-}
-.cities-seat__dotbtn:hover,
-.cities-seat__dotbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--border); }
-.cities-seat__dotbtn:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-/* collapsed it must occupy ZERO height AND swallow one roster flex gap
-   (the negative top margin), so a picker's presence never shifts the rows
-   below — the bento's universal layout rule. Border/padding live on the
-   inner-inner body, never on the overflow-hidden track (they'd leak at 0fr,
-   the same reason the superlatives keep their inner bare). */
-.cities-colorpick {
-  display: grid; grid-template-rows: 0fr;
-  transition: grid-template-rows 240ms ease;
-  margin: calc(-1 * var(--space-2)) var(--space-2) 0;
-}
-.cities-colorpick.is-open { grid-template-rows: 1fr; }
-.cities-colorpick__inner { overflow: hidden; min-height: 0; }
-.cities-colorpick__body {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 var(--radius-control) var(--radius-control);
-  background: var(--surface);
-}
-.cities-colorpick__label {
-  color: var(--subtext); font-size: 0.72rem;
-  text-transform: uppercase; letter-spacing: 0.03em;
-}
-.cities-colorpick__swatches { display: flex; gap: var(--space-2); }
-.cities-colorpick__swatch {
-  width: 1.5rem; height: 1.5rem; flex: none;
-  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
-  cursor: pointer;
-  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
-}
-.cities-colorpick__swatch:hover:not(:disabled) { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
-.cities-colorpick__swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-.cities-colorpick__swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
-.cities-colorpick__swatch:disabled { opacity: 0.35; cursor: default; }
-/* the 7th (custom) slot before a hex was ever Become'd: an empty dashed
-   ring that just focuses the field — chrome, so tokens, not the palette */
-.cities-colorpick__swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
-.cities-colorpick__custom { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-.cities-colorpick__hexlabel { color: var(--subtext); font-size: 0.85rem; }
-.cities-colorpick__hexinput {
-  width: 6.5rem;
-  font: inherit;                      /* match the Become... chip's height */
-  padding: var(--space-1) var(--space-2);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.cities-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
-.cities-colorpick__go { cursor: pointer; }
-.cities-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
-.cities-lobby__startrow { display: flex; gap: var(--space-2); align-self: flex-start; }   /* Start game · Shuffle */
-.cities-lobby__start { align-self: flex-start; cursor: pointer; }
-.cities-lobby__start:disabled { opacity: 0.5; cursor: default; }
-.cities-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }
 
 /* ── dice tile ────────────────────────────────────────────────── */
 .cities-dice__faces { display: flex; gap: var(--space-3); justify-content: center; align-items: center; padding: var(--space-2) 0; }
@@ -3991,7 +3795,7 @@ button:focus-visible {
 }
 .cities-pstrip.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
 .cities-pstrip.is-away { opacity: 0.5; }
-.cities-pstrip__head > .cities-dot { flex: none; }
+.cities-pstrip__head > .gt-dot { flex: none; }
 /* turn timer ring: the active strip's seat dot wears the table clock —
    drains in the seat color, red for the last ten seconds */
 .cities-pstrip__ringwrap {
@@ -4426,10 +4230,9 @@ button:focus-visible {
 
 /* mahjong game palette — deliberate token carve-out (docs/mahjong.md).
    Fixed literals scoped to tile faces, backs, and dice only: suit inks,
-   ivory face, the woven back, and the six PRESET seat colors (identical
-   to DeetsCities' presets — one contract, see mahjong/colors.js). The
-   --mjseat-N values are fallbacks: mahjong.js overrides the slots with
-   each seat's lobby pick. Until Aditya's hand-drawn tile sprites land
+   the ivory face, and the woven back. Seat colors are NOT here — they're
+   the shared --gseat-N contract every game table uses (styles/table.css,
+   games/colors.js). Until Aditya's hand-drawn tile sprites land
    (assets/sprites/mahjong/tile-{id}.png, back.png) every face is a
    glyph-on-ivory geometric placeholder in these colors. */
 .mj {
@@ -4452,56 +4255,8 @@ button:focus-visible {
      and every tile on the table reads as the same physical object */
   --mjwallw: 1.25rem;
   --mjwallh: 1.7rem;
-  --mjseat-0: #d94141;
-  --mjseat-1: #3b7dd8;
-  --mjseat-2: #2fae66;
-  --mjseat-3: #e08a2e;
-  --mjseat-4: #9457c9;
-  --mjseat-5: #22b0b0;
 }
 
-/* ── code combobox (the table code IS the title) ──────────────── */
-.mj-code { flex: 1 1 auto; min-width: 0; max-width: 22rem; }
-.mj-code__input {
-  width: 100%;
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: calc(var(--fs-title) * 1.1);
-  color: var(--title);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid var(--border);
-  padding: var(--space-1) 0;
-  outline: none;
-}
-.mj-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
-.mj-code__input:focus { border-bottom-color: var(--title); }
-.mj-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; }
-
-/* ── gate ─────────────────────────────────────────────────────── */
-.mj-gate {
-  margin-bottom: var(--space-5);
-  padding: var(--space-5);
-  background: var(--menu-surface);
-  -webkit-backdrop-filter: var(--menu-backdrop);
-  backdrop-filter: var(--menu-backdrop);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
-}
-.mj-gate__line { margin: 0 0 var(--space-4); color: var(--text); font-size: 1.05rem; }
-.mj-gate__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
-.mj-gate__name { display: flex; flex-direction: column; gap: var(--space-1); }
-.mj-gate__name-label { color: var(--subtext); font-size: 0.8rem; }
-.mj-gate__name-input {
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.mj-gate__go { cursor: pointer; }
-.mj-gate__go:disabled { opacity: 0.4; cursor: default; }
 
 /* ── the bento (cities' grid, verbatim geometry) ──────────────── */
 .mj-bento {
@@ -4782,12 +4537,6 @@ button:focus-visible {
 .mj-handover__next:disabled { opacity: 0.4; cursor: default; }
 .mj-handover__auto { margin: 0; color: var(--subtext); font-size: 0.8rem; min-height: 1.2em; }
 
-/* ── View-settings hover pill ─────────────────────────────────── */
-.mj-setth { position: relative; display: inline-flex; }
-.mj-setth__pop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 12rem; padding: var(--space-2); }
-.mj-setth__row { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-1) var(--space-2); font-size: 0.85rem; }
-.mj-setth__k { color: var(--subtext); }
-.mj-setth__v { color: var(--title); font-weight: 700; }
 
 /* ── tile-art picker (per viewer, not a table setting) ──────────
    The same two-face sample rides the lobby chips and the toolbar
@@ -4796,137 +4545,6 @@ button:focus-visible {
 .mj-deck__sample { width: 1.1rem; height: 1.5rem; object-fit: contain; }
 .mj-deck__pop { left: 0; right: auto; min-width: 13rem; }
 .mj-deck__lead { display: inline-flex; align-items: center; gap: var(--space-2); }
-
-/* ── lobby ────────────────────────────────────────────────────── */
-.mj-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
-.mj-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
-.mj-set { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.mj-set__label { color: var(--subtext); min-width: 8rem; font-size: 0.9rem; }
-.mj-set__opts { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
-.mj-set__custom {
-  width: 3rem; text-align: center;
-  font: inherit; color: var(--text);
-  padding: var(--space-1) var(--space-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.mj-set__custom.is-active { border-color: var(--title); color: var(--title); }
-.mj-set__custom:focus { border-color: var(--title); outline: none; }
-.mj-chip {
-  padding: var(--space-1) var(--space-3);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  font: inherit;
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  transition: transform var(--dur-fast) var(--ease-ui);
-}
-.mj-chip:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
-.mj-chip:disabled { opacity: 0.55; cursor: default; }
-.mj-chip.is-active { border-color: var(--title); color: var(--title); }
-.mj-lobby__seats { display: flex; flex-direction: column; gap: var(--space-2); }
-.mj-seat {
-  display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.mj-seat--empty { opacity: 0.6; border-style: dashed; }
-.mj-seat__name { flex: 1 1 auto; color: var(--text); }
-.mj-seat__badge {
-  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
-  padding: 0 var(--space-2);
-}
-.mj-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
-.mj-seat__kick:hover { color: var(--stop); }
-.mj-seat__addbot,
-.mj-seat__addgo {
-  background: none; border: 1px solid var(--border); border-radius: var(--radius-control);
-  color: var(--subtext); font: inherit; font-size: 0.78rem;
-  padding: 0 var(--space-2); line-height: 1.4; cursor: pointer;
-}
-.mj-seat__addbot:hover { color: var(--title); border-color: var(--title); }
-.mj-seat__addgo { color: var(--go); }
-.mj-seat__addgo:hover { border-color: var(--go); }
-.mj-seat__namebtn {
-  background: none; border: none; padding: 0; font: inherit; color: var(--text);
-  text-align: left; cursor: pointer;
-  text-decoration: underline dotted; text-underline-offset: 0.15em;
-}
-.mj-seat__namebtn:hover { color: var(--title); }
-.mj-seat__nameinput {
-  flex: 1 1 auto; min-width: 0; height: 1.6em;
-  font: inherit; color: var(--text);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control);
-  padding: 0 var(--space-2);
-}
-.mj-seat__nameinput:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-.mj-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
-.mj-lobby__startrow { display: flex; gap: var(--space-2); align-self: flex-start; }
-.mj-lobby__start { align-self: flex-start; cursor: pointer; }
-.mj-lobby__start:disabled { opacity: 0.5; cursor: default; }
-.mj-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }
-
-/* ── seat-color picker (cities' slide-open, verbatim recipe) ──── */
-.mj-seat__dotbtn {
-  flex: none; display: flex; align-items: center; justify-content: center;
-  width: 1.6rem; height: 1.6rem; margin: -0.35rem;
-  padding: 0; background: none; border: none; border-radius: 50%;
-  cursor: pointer;
-  transition: box-shadow var(--dur-fast) var(--ease-ui);
-}
-.mj-seat__dotbtn:hover,
-.mj-seat__dotbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--border); }
-.mj-seat__dotbtn:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-.mj-colorpick {
-  display: grid; grid-template-rows: 0fr;
-  transition: grid-template-rows 240ms ease;
-  margin: calc(-1 * var(--space-2)) var(--space-2) 0;
-}
-.mj-colorpick.is-open { grid-template-rows: 1fr; }
-.mj-colorpick__inner { overflow: hidden; min-height: 0; }
-.mj-colorpick__body {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 var(--radius-control) var(--radius-control);
-  background: var(--surface);
-}
-.mj-colorpick__label {
-  color: var(--subtext); font-size: 0.72rem;
-  text-transform: uppercase; letter-spacing: 0.03em;
-}
-.mj-colorpick__swatches { display: flex; gap: var(--space-2); }
-.mj-colorpick__swatch {
-  width: 1.5rem; height: 1.5rem; flex: none;
-  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
-  cursor: pointer;
-  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
-}
-.mj-colorpick__swatch:hover:not(:disabled) { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
-.mj-colorpick__swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-.mj-colorpick__swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
-.mj-colorpick__swatch:disabled { opacity: 0.35; cursor: default; }
-.mj-colorpick__swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
-.mj-colorpick__custom { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-.mj-colorpick__hexlabel { color: var(--subtext); font-size: 0.85rem; }
-.mj-colorpick__hexinput {
-  width: 6.5rem;
-  font: inherit;
-  padding: var(--space-1) var(--space-2);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-.mj-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
-.mj-colorpick__go { cursor: pointer; }
-.mj-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
 
 /* ── dice tile (cities' tumble kit) ───────────────────────────── */
 .mj-dice__faces { display: flex; gap: var(--space-3); justify-content: center; align-items: center; padding: var(--space-2) 0; }
@@ -4988,7 +4606,7 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) { .mj-pstrip__ringarc { transition: none; } }
 .mj-pstrip__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .mj-pstrip__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-.mj-pstrip__head > .mj-dot { flex: none; }
+.mj-pstrip__head > .gt-dot { flex: none; }
 .mj-pstrip__name { color: var(--text); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mj-pstrip__tags { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .mj-pstrip__tag {

@@ -19,10 +19,9 @@
 (function () {
   "use strict";
 
-  var T = window.MahjongTransport;
   var S = window.MAHJONG_STRINGS || {};
   var Engine = window.MahjongEngine;
-  var Colors = window.MahjongColors;
+  var Colors = window.DeetsColors;
 
   /* ── DOM handles ──────────────────────────────────────────────── */
   var BAR_INPUT = document.querySelector("[data-mj-code]");
@@ -39,42 +38,76 @@
   var CLAIM = document.querySelector("[data-mj-claim]");
   var DESKTOP = document.querySelector("[data-mj-desktop]");
 
-  /* ── small helpers ────────────────────────────────────────────── */
-  function el(tag, cls, text) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
-  function load(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
-  function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
-  function slugify(raw) { return String(raw || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24); }
-  function fmt(tpl, vals) { return String(tpl || "").replace(/\{(\w+)\}/g, function (_, k) { return vals && vals[k] != null ? vals[k] : ""; }); }
-  function reduceMotion() { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
+  var DECK_KEY = "deets-mahjong-deck";           // tile art: per VIEWER, never on the wire
+  var ARRANGE_KEY = "deets-mahjong-autoarrange"; // "Auto-Arrange" toggle (default on)
 
-  var TOKEN_KEY = "deets-mahjong-token", NAME_KEY = "deets-mahjong-name", RECENTS_KEY = "deets-mahjong-recents";
-  var CUSTOM_COLOR_KEY = "deets-mahjong-customhex", DECK_KEY = "deets-mahjong-deck";
-  var ARRANGE_KEY = "deets-mahjong-autoarrange";   // "Auto-Arrange" toggle (default on)
-  function deviceToken() {
-    var t = load(TOKEN_KEY, null);
-    if (t) return t;
-    var bytes = new Uint8Array(16);
-    try { crypto.getRandomValues(bytes); } catch (e) { for (var i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256); }
-    t = Array.prototype.map.call(bytes, function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
-    save(TOKEN_KEY, t);
-    return t;
-  }
-  function recents() { return load(RECENTS_KEY, []); }
-  function remember(code) {
-    var r = recents().filter(function (c) { return c !== code; });
-    r.unshift(code); save(RECENTS_KEY, r.slice(0, 6));
-  }
-  function toast(text, kind, opts) {
-    if (!window.DeetsToast) return { dismiss: function () {}, update: function () {} };
-    var o = { kind: kind || "info", text: text };
-    if (opts) for (var k in opts) o[k] = opts[k];
-    return window.DeetsToast.push(o);
-  }
+  /* ═══ THE TABLE SHELL ══════════════════════════════════════════
+     games/table.js owns the socket, the code combobox, the gate, the
+     lobby (seats, bots, seat colors), the toolbar, the disconnect-grace
+     toasts and the render frame — the same shell DeetsCities wears. This
+     file supplies the tiles, the rack and the rules-facing UI. `model` is
+     rebound by onModel on every broadcast, so the rest of the file reads
+     it exactly as it always did. */
+  var model = null;
+  var TBL = window.DeetsTable.create({
+    ns: "mahjong",
+    api: "https://mahjong-api.deets.solutions",
+    mock: window.MahjongTransport,       // transport-mock.js, selected by ?mock
+    strings: S,
+    rootSel: ".mj",
+    capacity: 4,
+    minSeats: 4,
+    startNeedsHint: S.startNeedsFour,
+    errExtra: { loc: S.errLoc },
+    /* fields the worker omits when absent must clear, not linger */
+    clearFields: ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn"],
+    clearYouFields: ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue"],
+    els: {
+      bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".mj-code"),
+      toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
+    },
+    onModel: function (m) { model = m; },
+    beforeMerge: function (isSnapshot) { if (isSnapshot) seen = null; },
+    onEvent: handleEvent,
+    logLine: logLine,
+    blockRender: function () { return dragActive; },   // a rack drag owns the DOM until it drops
+    render: paint,
+    postRender: flushFlights,
+    onLeave: onLeave,
+    extraPills: function () { return [deckPill()]; },
+    lobbySettings: lobbySettings,
+    settingsRows: function () {
+      var st = model.settings;
+      return [
+        [S.minFaanLabel, String(st.minFaan)],
+        [S.capFaanLabel, String(st.capFaan)],
+        [S.windsLabel, st.winds === 4 ? S.windsFour : (st.winds === 0 ? S.windsHand : S.windsOne)],
+        [S.timerLabel, st.timerSec ? fmt(S.timerSecs, { n: st.timerSec }) : S.timerOff]
+      ];
+    }
+  });
+  // shell utilities under their old names — the rest of the file is unchanged
+  var el = TBL.el, load = TBL.load, save = TBL.save, fmt = TBL.fmt, slugify = TBL.slugify;
+  var reduceMotion = TBL.reduceMotion, toast = TBL.toast, seatDot = TBL.seatDot;
+  var mySeat = TBL.mySeat, seatName = TBL.seatName, seatedCount = TBL.seatedCount;
+  var logLines = TBL.logLines, ui = TBL.ui;
+  function send(msg) { TBL.send(msg); }
+  function render() { TBL.render(); }
+  function leaveTable() { TBL.leave(); }
+  function fitLog() { TBL.fitLog(".mj-log__list"); }
+
+  /* ── rack / table state (this game's own) ─────────────────────── */
+  ui.deckPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
+  ui.autoArrange = load(ARRANGE_KEY, true); ui.handOrder = null;
+  ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
+  var spinUntil = 0, spinDice = 2;
+  var lastActor = null;
+  var timerHandle = null, ringHandle = null, tumbleHandle = null, nextHandTick = null;
+  var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
+  var seen = null;        // previous render's ponds/melds/flowers — new pieces animate in
+  var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
+
+
 
   /* ── tile display (the mahjong palette carve-out's labels) ────── */
   var SUIT_GLYPH = { m: "萬", p: "筒", s: "條" };           // 萬 筒 條
@@ -163,215 +196,10 @@
     return b;
   }
 
-  /* ── popover kit (mirrored from league/radio/cities) ──────────── */
-  var openEntry = null;
-  function closePop() {
-    if (!openEntry) return;
-    openEntry.pop.hidden = true;
-    if (openEntry.pill) openEntry.pill.setAttribute("aria-expanded", "false");
-    openEntry = null;
-    document.removeEventListener("click", onDocClick, true);
-    document.removeEventListener("keydown", onDocKey);
-  }
-  function onDocClick(e) { if (openEntry && !openEntry.ctrl.contains(e.target)) closePop(); }
-  function onDocKey(e) { if (e.key === "Escape") { var p = openEntry; closePop(); if (p && p.pill) p.pill.focus(); } }
-  function openPop(entry) {
-    closePop();
-    entry.pop.hidden = false;
-    if (entry.pill) entry.pill.setAttribute("aria-expanded", "true");
-    openEntry = entry;
-    document.addEventListener("click", onDocClick, true);
-    document.addEventListener("keydown", onDocKey);
-  }
-  function togglePop(entry) { if (openEntry === entry) closePop(); else openPop(entry); }
 
-  /* ── connection state ─────────────────────────────────────────── */
-  var conn = null, model = null, code = null;
-  var joined = false, joining = false, peekSeq = 0;
-  var logLines = [], connToast = null, spinUntil = 0, spinDice = 2;
-  var graceToasts = {};    // seat -> { handle, until, timer } — red disconnect-grace countdowns
-  var lastActor = null;
-  var clockSkew = 0, timerHandle = null, ringHandle = null, tumbleHandle = null, nextHandTick = null;
-  var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
-  var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
-             settingsPinned: false, deckPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
-             autoArrange: load(ARRANGE_KEY, true), handOrder: null,
-             guideOpen: false, guideScroll: 0, guideSecOpen: {} };
-  var seen = null;        // previous render's ponds/melds/flowers — new pieces animate in
-  var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
 
-  /* ═══ BAR: code combobox + recents ═════════════════════════════ */
-  if (BAR_INPUT) {
-    BAR_INPUT.placeholder = S.tableCodePlaceholder || "";
-    BAR_INPUT.setAttribute("aria-label", S.tableCodePlaceholder || "Table code");
-    BAR_INPUT.addEventListener("focus", function () { fillCodePop(); if (recents().length) openCodePop(); BAR_INPUT.select(); });
-    BAR_INPUT.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); commitCode(BAR_INPUT.value); BAR_INPUT.blur(); }
-    });
-  }
-  var codeEntry = { ctrl: document.querySelector(".mj-code"), pill: null, pop: CODE_POP };
-  function openCodePop() { openPop(codeEntry); }
-  function fillCodePop() {
-    CODE_POP.textContent = "";
-    var r = recents();
-    if (!r.length) { CODE_POP.appendChild(el("div", "tb-pop__empty", S.yourTables)); return; }
-    CODE_POP.appendChild(el("div", "tb-pop__head", S.yourTables));
-    r.forEach(function (c) {
-      var b = el("button", "tb-pop__opt", c);
-      b.type = "button";
-      b.addEventListener("click", function () { closePop(); commitCode(c); });
-      CODE_POP.appendChild(b);
-    });
-  }
 
-  /* ═══ GATE: peek → sit / watch / open ══════════════════════════ */
-  function commitCode(raw) {
-    var c = slugify(raw);
-    if (!c) return;
-    closePop();
-    BAR_INPUT.value = c;
-    if (joining || (joined && c === code)) return;
-    if (joined) leaveTable();
-    var seq = ++peekSeq;
-    T.peek(c).then(function (p) {
-      if (seq !== peekSeq || joining || joined) return;
-      renderGate(c, p);
-    }).catch(function () { if (seq === peekSeq && !joined) toast(S.peekFailed, "error"); });
-  }
-  function renderGate(c, p, refuseName) {
-    GATE.hidden = false; GATE.textContent = "";
-    TABLE.hidden = true; DESKTOP.hidden = true;
-    var full = p.exists && p.phase === "lobby" && p.seated >= p.capacity;
-    var canSit = p.exists && p.phase === "lobby" && !full;
-    var line;
-    if (refuseName) line = S.nameTaken;
-    else if (!p.exists) line = fmt(S.createLine, { code: c });
-    else if (full) line = fmt(S.peekFull, { spectators: p.spectators });
-    else line = fmt(S.peekPlayers, { seated: p.seated, spectators: p.spectators });
-    GATE.appendChild(el("p", "mj-gate__line", line));
 
-    var form = el("div", "mj-gate__form");
-    var stored = String(load(NAME_KEY, "")).trim();
-    var nameInput = null;
-    if (!stored || refuseName) {
-      var wrap = el("label", "mj-gate__name");
-      wrap.appendChild(el("span", "mj-gate__name-label", S.nameLabel));
-      nameInput = el("input", "mj-gate__name-input"); nameInput.type = "text"; nameInput.maxLength = 24; nameInput.value = stored;
-      wrap.appendChild(nameInput); form.appendChild(wrap);
-    }
-    var btns = [];
-    function goBtn(label, asWatch, enabled) {
-      var b = el("button", "tb-pill mj-gate__go");
-      b.type = "button"; b.disabled = !enabled;
-      b.appendChild(el("span", "tb-pill__label", label));
-      b.addEventListener("click", function () {
-        var who = nameInput ? nameInput.value.trim() : stored;
-        if (!who) { toast(S.nameNeeded, "error"); if (nameInput) nameInput.focus(); return; }
-        save(NAME_KEY, who);
-        btns.forEach(function (x) { x.el.disabled = true; });
-        joinTable(c, who, !p.exists, asWatch).then(function () {
-          if (!joined) btns.forEach(function (x) { x.el.disabled = !x.enabled; });
-        });
-      });
-      btns.push({ el: b, enabled: enabled });
-      form.appendChild(b);
-      return b;
-    }
-    /* An open seat gets the Sit/Spectate pair. With no seat to take (running
-       game, or a full lobby) a grayed "Sit down" was the only lit path being
-       "Spectate" — misleading, because a returning player's token silently
-       repossesses their seat whichever pill they press. So offer the one
-       action that's actually available, enabled, and let the worker decide
-       whether it's a rejoin or a spectate. */
-    var first;
-    if (!p.exists) first = goBtn(S.createButton, false, true);
-    else if (canSit) {
-      first = goBtn(S.sitButton, false, true);
-      goBtn(S.watchButton, true, true);
-    } else first = goBtn(S.rejoinButton, true, true);
-    GATE.appendChild(form);
-    if (nameInput) nameInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); (first.disabled ? btns[btns.length - 1].el : first).click(); }
-    });
-  }
-
-  /* ── join / leave ─────────────────────────────────────────────── */
-  function joinTable(c, who, create, asSpectator) {
-    if (joining || (joined && c === code)) return Promise.resolve();
-    joining = true; peekSeq++;
-    return T.connect(c, { name: who, create: !!create, token: deviceToken() }).then(function (cn) {
-      joining = false; conn = cn; code = c; joined = true; logLines = [];
-      cn.onMessage(onMessage);
-      if (cn.onStatus) cn.onStatus(function (s) {
-        if (!joined) return;
-        if (s === "down") { if (!connToast) connToast = toast(S.connDown, "error"); }
-        else { if (connToast) { connToast.dismiss(); connToast = null; } toast(S.connUp, "success"); }
-      });
-      ui.wantSit = !asSpectator;
-      remember(c);
-      try { history.replaceState(null, "", "#" + c); } catch (e) {}
-    }).catch(function (err) {
-      joining = false;
-      var ec = err && err.code;
-      if (ec === "name-taken") { renderGate(c, { exists: true, phase: "lobby", seated: 0, capacity: 4, spectators: 0 }, true); return; }
-      if (ec === "replaced") { toast(S.replacedToast, "error", { sticky: true }); return; }
-      toast(ec === "no-table" ? S.noTable : ec === "full" ? S.tableFull : S.peekFailed, "error");
-    });
-  }
-  function leaveTable() {
-    if (conn) conn.close();
-    conn = null; model = null; joined = false; code = null; logLines = [];
-    if (connToast) { connToast.dismiss(); connToast = null; }
-    clearGraceToasts();
-    clearFlights();
-    seen = null; lastDice = null; lastActor = null;
-    ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
-           settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
-           autoArrange: load(ARRANGE_KEY, true), handOrder: null,
-           guideOpen: false, guideScroll: 0, guideSecOpen: {} };
-    dragActive = false;
-    GATE.hidden = true; TABLE.hidden = true; DESKTOP.hidden = true;
-    buildToolbar();
-    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-  }
-  function send(msg) { if (conn) conn.send(msg); }
-
-  /* ═══ MESSAGE HANDLING ═════════════════════════════════════════ */
-  function onMessage(msg) {
-    if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
-    if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
-    // another tab on this device took the table — sticky, because the user has
-    // to act (close a tab); a timed toast would vanish before they read it
-    if (msg.type === "replaced") { leaveTable(); toast(S.replacedToast, "error", { sticky: true }); return; }
-    if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
-    if (msg.type === "snapshot") { model = stripMeta(msg); seen = null; afterModel(msg); return; }
-    if (msg.type === "state") {
-      if (!model) model = {};
-      for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") model[k] = msg[k];
-      // fields the mock omits when absent must clear, not linger
-      ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn"].forEach(function (f) {
-        if (!(f in msg)) delete model[f];
-      });
-      if (model.you) {
-        ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue"].forEach(function (f) {
-          if (!(f in msg.you)) delete model.you[f];
-        });
-      }
-      afterModel(msg);
-      return;
-    }
-  }
-  function stripMeta(msg) { var m = {}; for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") m[k] = msg[k]; return m; }
-  function afterModel(msg) {
-    if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
-    (msg.ev || []).forEach(handleEvent);
-    syncGraceToasts();
-    if (ui.wantSit && model.phase === "lobby" && mySeat() == null) { ui.wantSit = false; send({ type: "sit" }); }
-    applySeatColors();
-    GATE.hidden = true;
-    render();
-    flushFlights();
-  }
   function handleEvent(e) {
     if (e.t === "seatRoll" || e.t === "breakRoll") {
       lastDice = { seat: e.seat, d: e.d };
@@ -392,51 +220,8 @@
       else if (s.discarder === mySeat()) toast(fmt(S.dealInToast, { name: seatName(s.seat) }), "error");
     }
     // disconnect-grace trio (worker only; the mock never emits these). The
-    // sticky countdown itself is model-driven — syncGraceToasts reads
-    // seat.graceUntil — so these are just the one-shot resolution lines.
-    if (e.t === "returned") toast(fmt(S.returnedToast, { name: seatName(e.seat) }), "success");
-    if (e.t === "takeover") toast(fmt(S.takeoverToast, { name: seatName(e.seat) }), "warn");
     collectFlight(e);
-    var line = logLine(e);
-    if (line) { logLines.push(line); if (logLines.length > 140) logLines.shift(); }
-  }
-  function errText(codeStr) {
-    var map = { turn: S.errTurn, phase: S.errPhase, loc: S.errLoc, perm: S.errPerm, full: S.errFull,
-                "no-table": S.noTable, "name-taken": S.nameTaken, color: S.errColor,
-                "color-taken": S.errColorTaken, flood: S.errFlood };
-    return map[codeStr] || S.errPhase;
-  }
-
-  /* ── disconnect-grace countdown (the red toast) ─────────────────
-     Authoritative state is the seat's graceUntil in every broadcast
-     (docs/mahjong.md, "Disconnects → grace → bot takeover"), so the sticky
-     toast is reconciled from the model — a spectator joining mid-grace
-     sees it from their first snapshot, no `leaving` event needed. Ticks
-     locally off serverNow's clockSkew, like the turn box. */
-  function graceSecs(until) { return Math.max(0, Math.ceil((until - (Date.now() - clockSkew)) / 1000)); }
-  function syncGraceToasts() {
-    var live = {};
-    (model.seats || []).forEach(function (s, i) { if (s && !s.empty && s.graceUntil && !s.bot) live[i] = s.graceUntil; });
-    Object.keys(graceToasts).forEach(function (k) {
-      if (live[k] == null) {
-        clearInterval(graceToasts[k].timer);
-        graceToasts[k].handle.dismiss();
-        delete graceToasts[k];
-      }
-    });
-    Object.keys(live).forEach(function (k) {
-      if (graceToasts[k]) { graceToasts[k].until = live[k]; return; }
-      var seat = +k;
-      var entry = { until: live[k], handle: null, timer: null };
-      var line = function () { return fmt(S.leavingToast, { name: seatName(seat), secs: graceSecs(entry.until) }); };
-      entry.handle = toast(line(), "error", { sticky: true });
-      entry.timer = setInterval(function () { entry.handle.update(line()); }, 250);
-      graceToasts[k] = entry;
-    });
-  }
-  function clearGraceToasts() {
-    Object.keys(graceToasts).forEach(function (k) { clearInterval(graceToasts[k].timer); graceToasts[k].handle.dismiss(); });
-    graceToasts = {};
+    // the shell appends the log line (cfg.logLine) and owns the presence toasts
   }
 
   /* ── typed events → terse mechanical log lines ────────────────── */
@@ -467,8 +252,6 @@
     }
   }
   function windLabel(i) { return WIND_NAME()[i % 4]; }
-  function seatName(i) { return (model && model.seats && model.seats[i] && model.seats[i].name) || ("Seat " + (i + 1)); }
-  function mySeat() { return model && model.you ? model.you.seat : null; }
   function orderIdx(seat) { return model.order ? model.order.indexOf(seat) : seat; }
   function seatWind(seat) {
     if (!model.order || !model.round) return null;
@@ -490,13 +273,9 @@
   }
 
   /* ═══ RENDER ═══════════════════════════════════════════════════ */
-  function render() {
-    if (!model) return;
-    if (dragActive) return;   // a rack drag owns the DOM until it drops
-    buildToolbar();
-    var narrow = window.matchMedia("(max-width: 56rem)").matches;
-    if (narrow) { TABLE.hidden = true; DESKTOP.hidden = false; DESKTOP.textContent = S.desktopOnly; return; }
-    DESKTOP.hidden = true; TABLE.hidden = false; GATE.hidden = true;
+  /* the shell's render frame calls this once the toolbar, the desktop-only
+     guard and the gate/table visibility are settled (games/table.js) */
+  function paint() {
     renderBig();
     renderDice();
     renderPlayers();
@@ -522,77 +301,7 @@
     col.appendChild(el("div", "mj-wallpanel__round", fmt(S.roundLine, { wind: windLabel(model.round.prevailing), n: model.round.hand })));
     WALL.appendChild(col);
   }
-  function fitLog() {
-    if (!BIG || !LOG || TABLE.hidden) return;
-    var avail = BIG.getBoundingClientRect().bottom - LOG.getBoundingClientRect().top;
-    if (avail > 60) LOG.style.height = Math.floor(avail) + "px";
-    var list = LOG.querySelector(".mj-log__list");
-    if (list) list.scrollTop = list.scrollHeight;
-  }
-  function seatedCount() { return (model.seats || []).filter(function (s) { return s && !s.empty; }).length; }
 
-  /* ── toolbar (Invite · Settings · Tile art · Sit/Stand · Leave · Close) ─ */
-  function buildToolbar() {
-    TOOLBAR.textContent = "";
-    if (!joined || !model) return;
-    var mine = mySeat();
-    TOOLBAR.appendChild(pill(S.invitePill, function () {
-      var url = location.origin + location.pathname + (T.kind === "mock" ? "?mock" : "") + "#" + code;
-      try { navigator.clipboard.writeText(url); toast(S.shareToast, "success"); } catch (e) { toast(url, "info"); }
-    }));
-    if (model.settings) TOOLBAR.appendChild(viewSettingsPill());
-    TOOLBAR.appendChild(deckPill());
-    if (model.phase === "lobby") {
-      if (mine == null) TOOLBAR.appendChild(pill(S.sitPill, function () { send({ type: "sit" }); }));
-      else TOOLBAR.appendChild(pill(S.standButton, function () { send({ type: "stand" }); }));
-    }
-    TOOLBAR.appendChild(pill(S.leavePill, function () { leaveTable(); }));
-    if (model.host) {
-      var cp = pill(S.closePill, function () {
-        if (cp._armed) { send({ type: "closeTable" }); } else { cp._armed = true; cp.querySelector(".tb-pill__label").textContent = S.closeConfirm; setTimeout(function () { if (cp.isConnected) { cp._armed = false; cp.querySelector(".tb-pill__label").textContent = S.closePill; } }, 2600); }
-      });
-      TOOLBAR.appendChild(cp);
-    }
-  }
-  function pill(label, onClick) {
-    var b = el("button", "tb-pill"); b.type = "button";
-    b.appendChild(el("span", "tb-pill__label", label));
-    b.addEventListener("click", onClick);
-    return b;
-  }
-  function viewSettingsPill() {
-    var wrap = el("span", "mj-setth");
-    var b = el("button", "tb-pill"); b.type = "button"; b.setAttribute("aria-haspopup", "true");
-    b.appendChild(el("span", "tb-pill__label", S.settingsPill));
-    wrap.appendChild(b);
-    var pop = el("div", "tb-pop mj-setth__pop"); pop.hidden = true;
-    pop.appendChild(el("div", "tb-pop__head", S.lobbyTitle));
-    pop.appendChild(settingRow(S.minFaanLabel, String(model.settings.minFaan)));
-    pop.appendChild(settingRow(S.capFaanLabel, String(model.settings.capFaan)));
-    pop.appendChild(settingRow(S.windsLabel, model.settings.winds === 4 ? S.windsFour : (model.settings.winds === 0 ? S.windsHand : S.windsOne)));
-    pop.appendChild(settingRow(S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff));
-    wrap.appendChild(pop);
-    var entry = { ctrl: wrap, pill: b, pop: pop, kind: "setth" };
-    function peek() { if (openEntry !== entry) pop.hidden = false; }
-    function unpeek() { if (openEntry !== entry) pop.hidden = true; }
-    wrap.addEventListener("mouseenter", peek);
-    wrap.addEventListener("mouseleave", unpeek);
-    b.addEventListener("focus", peek);
-    b.addEventListener("blur", unpeek);
-    b.addEventListener("click", function () {
-      togglePop(entry);
-      ui.settingsPinned = openEntry === entry;
-    });
-    if (ui.settingsPinned && openEntry && openEntry.kind === "setth") openPop(entry);
-    else ui.settingsPinned = false;
-    return wrap;
-  }
-  function settingRow(label, value) {
-    var r = el("div", "mj-setth__row");
-    r.appendChild(el("span", "mj-setth__k", label));
-    r.appendChild(el("span", "mj-setth__v", value));
-    return r;
-  }
   /* two live faces from a deck, for the chips + popover options. Only
      sprites that actually loaded show — a bare placeholder deck reads as
      its name alone rather than two broken frames. */
@@ -624,16 +333,17 @@
       lead.appendChild(el("span", null, deckName(d)));
       deckSamples(d, lead);
       o.appendChild(lead);
-      o.addEventListener("click", function () { closePop(); setDeck(d); });
+      o.addEventListener("click", function () { TBL.pop.close(); setDeck(d); });
       pop.appendChild(o);
     });
     wrap.appendChild(pop);
     var entry = { ctrl: wrap, pill: b, pop: pop, kind: "deck" };
     b.addEventListener("click", function () {
-      togglePop(entry);
-      ui.deckPinned = openEntry === entry;
+      TBL.pop.toggle(entry);
+      ui.deckPinned = TBL.pop.current() === entry;
     });
-    if (ui.deckPinned && openEntry && openEntry.kind === "deck") openPop(entry);
+    var open = TBL.pop.current();
+    if (ui.deckPinned && open && open.kind === "deck") TBL.pop.open(entry);
     else ui.deckPinned = false;
     return wrap;
   }
@@ -641,30 +351,29 @@
   /* ── BIG tile: lobby / seating / the table / game over ────────── */
   function renderBig() {
     BIG.textContent = "";
-    if (model.phase === "lobby") return renderLobby();
+    if (model.phase === "lobby") return TBL.renderLobby(BIG);
     if (model.phase === "over") return renderOver();
     if (model.phase === "seating") return renderSeating();
     renderTable();
     if (model.handOver) renderHandOver();
   }
 
-  function renderLobby() {
-    var wrap = el("div", "mj-lobby");
-    wrap.appendChild(el("h2", "mj-lobby__title", S.lobbyTitle));
-    var host = model.host;
+  /* The shell renders the lobby (title, seats, bots, seat colors, Start);
+     these are DeetsMahjong's own setting rows. Minimum faan keeps its
+     custom text box, so that row is built by hand rather than as a
+     plain chip choice. */
+  function lobbySettings(wrap) {
+    var st = model.settings, host = model.host;
 
-    // minimum faan: 0 / 1 / 3 / custom text box (host decision, chat 2026-07-23)
-    var mfRow = el("div", "mj-set");
-    mfRow.appendChild(el("span", "mj-set__label", S.minFaanLabel));
-    var mfOpts = el("div", "mj-set__opts");
-    var mf = model.settings.minFaan;
+    // minimum faan: 0 / 1 / 3 / custom text box
+    var mfRow = TBL.setRow(S.minFaanLabel);
+    var mf = st.minFaan;
     [0, 1, 3].forEach(function (n) {
-      var b = el("button", "mj-chip" + (mf === n ? " is-active" : ""), String(n));
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { ui.minFaanDraft = null; send({ type: "setSettings", minFaan: n }); });
-      mfOpts.appendChild(b);
+      mfRow.opts.appendChild(TBL.chip(String(n), mf === n, !host, function () {
+        ui.minFaanDraft = null; send({ type: "setSettings", minFaan: n });
+      }));
     });
-    var custom = el("input", "mj-set__custom" + ([0, 1, 3].indexOf(mf) < 0 ? " is-active" : ""));
+    var custom = el("input", "gt-set__custom" + ([0, 1, 3].indexOf(mf) < 0 ? " is-active" : ""));
     custom.type = "text"; custom.maxLength = 2; custom.disabled = !host;
     custom.setAttribute("aria-label", S.minFaanCustomAria);
     custom.value = ui.minFaanDraft != null ? ui.minFaanDraft : ([0, 1, 3].indexOf(mf) < 0 ? String(mf) : "");
@@ -678,277 +387,33 @@
       var n = parseInt(custom.value, 10);
       if (!isNaN(n) && n >= 0 && n <= 13 && n !== model.settings.minFaan) { ui.minFaanDraft = null; send({ type: "setSettings", minFaan: n }); }
     });
-    mfOpts.appendChild(custom);
-    mfRow.appendChild(mfOpts); wrap.appendChild(mfRow);
+    mfRow.opts.appendChild(custom);
+    wrap.appendChild(mfRow);
 
-    // faan cap
-    var capRow = el("div", "mj-set");
-    capRow.appendChild(el("span", "mj-set__label", S.capFaanLabel));
-    var capOpts = el("div", "mj-set__opts");
-    [8, 10, 13].forEach(function (n) {
-      var b = el("button", "mj-chip" + (model.settings.capFaan === n ? " is-active" : ""), String(n));
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", capFaan: n }); });
-      capOpts.appendChild(b);
-    });
-    capRow.appendChild(capOpts); wrap.appendChild(capRow);
-
+    wrap.appendChild(TBL.choiceRow(S.capFaanLabel, "capFaan",
+      [[8, "8"], [10, "10"], [13, "13"]], st.capFaan));
     // match length: one hand, one wind (default), or four winds
-    var wRow = el("div", "mj-set");
-    wRow.appendChild(el("span", "mj-set__label", S.windsLabel));
-    var wOpts = el("div", "mj-set__opts");
-    [[0, S.windsHand], [1, S.windsOne], [4, S.windsFour]].forEach(function (o) {
-      var b = el("button", "mj-chip" + (model.settings.winds === o[0] ? " is-active" : ""), o[1]);
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", winds: o[0] }); });
-      wOpts.appendChild(b);
-    });
-    wRow.appendChild(wOpts); wrap.appendChild(wRow);
-
-    // turn timer
-    var tRow = el("div", "mj-set");
-    tRow.appendChild(el("span", "mj-set__label", S.timerLabel));
-    var tOpts = el("div", "mj-set__opts");
-    [0, 45, 60, 90, 120].forEach(function (n) {
-      var b = el("button", "mj-chip" + (model.settings.timerSec === n ? " is-active" : ""), n === 0 ? S.timerOff : fmt(S.timerSecs, { n: n }));
-      b.type = "button"; b.disabled = !host;
-      b.addEventListener("click", function () { send({ type: "setSettings", timerSec: n }); });
-      tOpts.appendChild(b);
-    });
-    tRow.appendChild(tOpts); wrap.appendChild(tRow);
+    wrap.appendChild(TBL.choiceRow(S.windsLabel, "winds",
+      [[0, S.windsHand], [1, S.windsOne], [4, S.windsFour]], st.winds));
+    wrap.appendChild(TBL.choiceRow(S.timerLabel, "timerSec",
+      [[0, S.timerOff], [45, fmt(S.timerSecs, { n: 45 })], [60, fmt(S.timerSecs, { n: 60 })],
+       [90, fmt(S.timerSecs, { n: 90 })], [120, fmt(S.timerSecs, { n: 120 })]], st.timerSec));
 
     // tile art: NOT a table setting — every viewer picks their own deck
     // (localStorage, mirrored by the toolbar pill), so these chips are
     // live for guests too. Chips carry live sample sprites.
-    var dRow = el("div", "mj-set");
-    dRow.appendChild(el("span", "mj-set__label", S.deckLabel));
-    var dOpts = el("div", "mj-set__opts");
+    var dRow = TBL.setRow(S.deckLabel);
     DECKS.forEach(function (d) {
-      var b = el("button", "mj-chip mj-deck__chip" + (curDeck() === d ? " is-active" : ""));
-      b.type = "button";
+      var b = TBL.chip("", curDeck() === d, false, function () { setDeck(d); });
+      b.classList.add("mj-deck__chip");
       b.appendChild(el("span", null, deckName(d)));
       deckSamples(d, b);
-      b.addEventListener("click", function () { setDeck(d); });
-      dOpts.appendChild(b);
+      dRow.opts.appendChild(b);
     });
-    dRow.appendChild(dOpts); wrap.appendChild(dRow);
-
-    // seats (four, always)
-    var seatList = el("div", "mj-lobby__seats");
-    (model.seats || []).forEach(function (s, i) {
-      var isBot = !s.empty && s.phantom;
-      if (ui.botEdit === i && !(host && (s.empty || isBot))) { ui.botEdit = null; ui.botDraft = null; }
-      if (ui.botEdit === i) { seatList.appendChild(botEditorRow(i)); return; }
-      var row = el("div", "mj-seat" + (s.empty ? " mj-seat--empty" : ""));
-      var editable = !s.empty && (s.seat === mySeat() || (host && s.phantom));
-      row.appendChild(editable ? dotButton(s, i) : seatDot(i));
-      var label = s.empty ? S.seatOpen : s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
-      if (host && isBot) {
-        var nameBtn = el("button", "mj-seat__name mj-seat__namebtn", label); nameBtn.type = "button";
-        nameBtn.setAttribute("aria-label", fmt(S.renameBotAria, { name: s.name }));
-        nameBtn.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = s.name; ui.botFocus = true; render(); });
-        row.appendChild(nameBtn);
-      } else row.appendChild(el("span", "mj-seat__name", label));
-      if (model.hostSeat === i) row.appendChild(el("span", "mj-seat__badge", S.hostBadge));
-      if (host && s.empty) {
-        var add = el("button", "mj-seat__addbot", S.addBotButton); add.type = "button";
-        add.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = null; ui.botFocus = true; render(); });
-        row.appendChild(add);
-      }
-      if (host && !s.empty && s.seat !== mySeat()) {
-        var kick = el("button", "mj-seat__kick", "✕"); kick.type = "button";
-        kick.setAttribute("aria-label", fmt(S.kickSeatAria, { name: s.name || "" }));
-        kick.addEventListener("click", function () { send({ type: "kickSeat", seat: i }); });
-        row.appendChild(kick);
-      }
-      seatList.appendChild(row);
-      if (editable) seatList.appendChild(colorPicker(s, i));
-    });
-    if (ui.colorOpen != null) {
-      var stillOpen = seatList.querySelector('[data-colorpick="' + ui.colorOpen + '"]');
-      if (!stillOpen) { ui.colorOpen = null; ui.colorDraft = null; }
-    }
-    wrap.appendChild(seatList);
-
-    if (host) {
-      var startRow = el("div", "mj-lobby__startrow");
-      var start = el("button", "tb-pill mj-lobby__start");
-      start.type = "button";
-      start.appendChild(el("span", "tb-pill__label", S.startButton));
-      var ready = seatedCount() === 4;
-      start.disabled = !ready;
-      start.addEventListener("click", function () { send({ type: "start" }); });
-      startRow.appendChild(start);
-      var shuf = el("button", "tb-pill mj-lobby__start");
-      shuf.type = "button";
-      shuf.appendChild(el("span", "tb-pill__label", S.shufflePill));
-      shuf.disabled = seatedCount() < 2;
-      shuf.addEventListener("click", function () { send({ type: "shuffle" }); });
-      startRow.appendChild(shuf);
-      wrap.appendChild(startRow);
-      wrap.appendChild(el("p", "mj-lobby__hint", ready ? S.startHint : S.startNeedsFour));
-      // a seat that went dark in the lobby is dealt in as a bot (the worker
-      // does the conversion at Start). Say so before the press, never after —
-      // this counts only humans, since a seat view marks bots connected.
-      var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
-      if (ready && dark) wrap.appendChild(el("p", "mj-lobby__hint", fmt(S.startBotWarn, { n: dark })));
-    }
-    BIG.appendChild(wrap);
-  }
-  function seatDot(i) { var d = el("span", "mj-dot"); d.style.background = "var(--mjseat-" + i + ")"; return d; }
-
-  var BOT_NAMES = ["Rook", "Vala", "Ozan", "Mira", "Deca"];
-  function nextBotName() {
-    var used = {};
-    (model.seats || []).forEach(function (s) { if (s && !s.empty && s.name) used[s.name.toLowerCase()] = 1; });
-    for (var pi = 0; ; pi++) {
-      var gen = Math.floor(pi / BOT_NAMES.length);
-      var name = BOT_NAMES[pi % BOT_NAMES.length] + (gen ? " " + (gen + 1) : "");
-      if (!used[name.toLowerCase()]) return name;
-    }
-  }
-  function botEditorRow(i) {
-    var row = el("div", "mj-seat mj-seat--edit");
-    row.appendChild(seatDot(i));
-    var input = el("input", "mj-seat__nameinput");
-    input.type = "text"; input.maxLength = 24;
-    input.value = ui.botDraft != null ? ui.botDraft : nextBotName();
-    input.setAttribute("aria-label", S.addBotNameAria);
-    input.addEventListener("input", function () { ui.botDraft = input.value; });
-    var go = function () {
-      var name = input.value.trim();
-      if (!name) { input.focus(); return; }
-      send({ type: "addBot", seat: i, name: name });
-      ui.botEdit = null; ui.botDraft = null; render();
-    };
-    var cancel = function () { ui.botEdit = null; ui.botDraft = null; render(); };
-    input.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter") go();
-      else if (ev.key === "Escape") cancel();
-    });
-    row.appendChild(input);
-    var ok = el("button", "mj-seat__addgo", S.addBotGo); ok.type = "button";
-    ok.addEventListener("click", go);
-    row.appendChild(ok);
-    var x = el("button", "mj-seat__kick", "✕"); x.type = "button";
-    x.setAttribute("aria-label", S.addBotCancelAria);
-    x.addEventListener("click", cancel);
-    row.appendChild(x);
-    if (ui.botFocus) { ui.botFocus = false; setTimeout(function () { if (input.isConnected) { input.focus(); input.select(); } }, 0); }
-    return row;
-  }
-  function applySeatColors() {
-    var root = document.querySelector(".mj");
-    if (!root || !model) return;
-    (model.seats || []).forEach(function (s, i) {
-      if (s && s.color) root.style.setProperty("--mjseat-" + i, s.color);
-    });
+    wrap.appendChild(dRow);
   }
 
-  /* ── lobby seat-color picker (cities' slide-open expand) ──────── */
-  function dotButton(s, i) {
-    var b = el("button", "mj-seat__dotbtn"); b.type = "button";
-    b.setAttribute("data-colorseat", i);
-    b.setAttribute("aria-expanded", ui.colorOpen === i ? "true" : "false");
-    b.setAttribute("aria-label", fmt(S.colorDotAria, { name: s.name }));
-    b.appendChild(seatDot(i));
-    b.addEventListener("click", function () { toggleColorPick(i); });
-    return b;
-  }
-  function toggleColorPick(i) {
-    ui.colorOpen = ui.colorOpen === i ? null : i;
-    ui.colorDraft = null;
-    Array.prototype.forEach.call(BIG.querySelectorAll("[data-colorpick]"), function (p) {
-      p.classList.toggle("is-open", +p.getAttribute("data-colorpick") === ui.colorOpen);
-    });
-    Array.prototype.forEach.call(BIG.querySelectorAll("[data-colorseat]"), function (b) {
-      b.setAttribute("aria-expanded", +b.getAttribute("data-colorseat") === ui.colorOpen ? "true" : "false");
-    });
-  }
-  function sendRecolor(i, hex) {
-    send({ type: "recolor", seat: i, color: hex });
-    if (ui.colorOpen === i) toggleColorPick(i);
-  }
-  function colorPicker(s, i) {
-    var wrap = el("div", "mj-colorpick" + (ui.colorOpen === i ? " is-open" : ""));
-    wrap.setAttribute("data-colorpick", i);
-    var slide = el("div", "mj-colorpick__inner");
-    var inner = el("div", "mj-colorpick__body");
-    inner.appendChild(el("span", "mj-colorpick__label",
-      s.seat === mySeat() ? S.colorYours : fmt(S.colorTheirs, { name: s.name })));
-    var others = (model.seats || []).map(function (o) {
-      return o.empty || o.seat === i ? null : o.color;
-    });
-    var sw = el("div", "mj-colorpick__swatches");
-    Colors.PRESETS.forEach(function (hex) {
-      var b = el("button", "mj-colorpick__swatch"); b.type = "button";
-      b.style.background = hex;
-      if (hex === s.color) b.classList.add("is-current");
-      var ci = Colors.clash(hex, others);
-      if (ci >= 0) {
-        b.disabled = true;
-        b.title = fmt(S.colorTakenBy, { name: seatName(ci) });
-        b.setAttribute("aria-label", fmt(S.colorTakenBy, { name: seatName(ci) }));
-      } else {
-        b.setAttribute("aria-label", S.colorSwatchAria);
-        b.addEventListener("click", function () { sendRecolor(i, hex); });
-      }
-      sw.appendChild(b);
-    });
-    var savedCustom = Colors.norm(load(CUSTOM_COLOR_KEY, null));
-    var cb = el("button", "mj-colorpick__swatch mj-colorpick__swatch--custom");
-    cb.type = "button";
-    if (savedCustom) {
-      cb.style.background = savedCustom;
-      if (savedCustom === s.color) cb.classList.add("is-current");
-      var cci = Colors.clash(savedCustom, others);
-      if (cci >= 0 && savedCustom !== s.color) {
-        cb.disabled = true;
-        cb.title = fmt(S.colorTakenBy, { name: seatName(cci) });
-      } else {
-        cb.setAttribute("aria-label", S.colorCustomAria);
-        cb.addEventListener("click", function () { sendRecolor(i, savedCustom); });
-      }
-    } else {
-      cb.classList.add("is-empty");
-      cb.setAttribute("aria-label", S.colorCustomAria);
-      cb.addEventListener("click", function () { input.focus(); });
-    }
-    sw.appendChild(cb);
-    inner.appendChild(sw);
-    var row = el("div", "mj-colorpick__custom");
-    row.appendChild(el("span", "mj-colorpick__hexlabel", S.colorHexLabel));
-    var input = el("input", "mj-colorpick__hexinput");
-    input.type = "text"; input.spellcheck = false; input.maxLength = 8;
-    input.value = ui.colorDraft != null ? ui.colorDraft : s.color;
-    var become = el("button", "mj-chip mj-colorpick__go", S.colorBecome);
-    become.type = "button";
-    var note = el("span", "mj-colorpick__msg");
-    function validate() {
-      var hex = Colors.norm(input.value);
-      var ci = hex ? Colors.clash(hex, others) : -1;
-      var bad = !hex ? (input.value.trim() ? S.colorBadHex : "")
-              : ci >= 0 ? fmt(S.colorClashWith, { name: seatName(ci) }) : "";
-      note.textContent = bad;
-      become.disabled = !hex || ci >= 0;
-      return become.disabled ? null : hex;
-    }
-    function becomeCustom() {
-      var hex = validate();
-      if (!hex) return;
-      save(CUSTOM_COLOR_KEY, hex);
-      sendRecolor(i, hex);
-    }
-    input.addEventListener("input", function () { ui.colorDraft = input.value; validate(); });
-    input.addEventListener("keydown", function (e) { if (e.key === "Enter") becomeCustom(); });
-    become.addEventListener("click", becomeCustom);
-    validate();
-    row.appendChild(input); row.appendChild(become); row.appendChild(note);
-    inner.appendChild(row);
-    slide.appendChild(inner);
-    wrap.appendChild(slide);
-    return wrap;
-  }
+
 
   /* ── seating: four dice pads, highest deals as East ───────────── */
   function renderSeating() {
@@ -960,7 +425,7 @@
     var scope = st.reroll || [0, 1, 2, 3];
     (model.seats || []).forEach(function (s, i) {
       var pad = el("div", "mj-seating__pad" + (scope.indexOf(i) >= 0 && !st.rolls[i] ? " is-waiting" : ""));
-      pad.style.setProperty("--mjstrip", "var(--mjseat-" + i + ")");
+      pad.style.setProperty("--mjstrip", "var(--gseat-" + i + ")");
       var head = el("div", "mj-seating__head");
       head.appendChild(seatDot(i));
       head.appendChild(el("span", "mj-seating__name", seatName(i) + (i === mySeat() ? " ·" : "")));
@@ -999,7 +464,7 @@
       var pos = POS_CLS[displayPos(seat)];
       var zone = el("div", "mj-zone mj-zone--" + pos + (active.indexOf(seat) >= 0 ? " is-active" : ""));
       zone.setAttribute("data-zone", seat);
-      zone.style.setProperty("--mjstrip", "var(--mjseat-" + seat + ")");
+      zone.style.setProperty("--mjstrip", "var(--gseat-" + seat + ")");
       var p = model.players[seat];
 
       // head: dot + name + wind + dealer marker
@@ -1215,7 +680,7 @@
   function tickNextHand(node) {
     if (nextHandTick) { clearTimeout(nextHandTick); nextHandTick = null; }
     if (!model || !model.handOverAt) { node.textContent = ""; return; }
-    var ms = Math.max(0, model.handOverAt - (Date.now() - clockSkew));
+    var ms = Math.max(0, model.handOverAt - (Date.now() - TBL.skew()));
     node.textContent = fmt(S.nextHandAuto, { n: Math.ceil(ms / 1000) });
     nextHandTick = setTimeout(function () { if (node.isConnected) tickNextHand(node); }, 250);
   }
@@ -1473,7 +938,7 @@
   }
   function timerLeftMs() {
     if (!model.settings || !model.settings.timerSec || model.turnEndsAt == null) return null;
-    return Math.max(0, model.turnEndsAt - (Date.now() - clockSkew));
+    return Math.max(0, model.turnEndsAt - (Date.now() - TBL.skew()));
   }
   function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
   function tickTimer(node) {
@@ -1535,7 +1000,7 @@
       var isActive = active.indexOf(i) >= 0 && model.phase !== "lobby";
       var strip = el("div", "mj-pstrip" + (isActive ? " is-active" : "") + (!s.connected ? " is-away" : ""));
       strip.dataset.seat = i;
-      strip.style.setProperty("--mjstrip", "var(--mjseat-" + i + ")");
+      strip.style.setProperty("--mjstrip", "var(--gseat-" + i + ")");
       var body = el("div", "mj-pstrip__body");
       var head = el("div", "mj-pstrip__head");
       head.appendChild(isActive && timed && model.turnEndsAt ? ringDot(i) : seatDot(i));
@@ -2074,18 +1539,16 @@
     fl.forEach(function (go) { go(); });
   }
 
-  /* ═══ BOOT ═════════════════════════════════════════════════════ */
-  window.addEventListener("resize", function () {
-    if (!joined || !model) return;
-    render();
-  });
-  function boot() {
-    var hash = slugify((location.hash || "").replace(/^#/, ""));
-    if (hash) { BAR_INPUT.value = hash; commitCode(hash); }
+  /* ── leaving: the shell drops the socket, the model and its own lobby
+     state; this clears what's DeetsMahjong's alone ───────────────── */
+  function onLeave() {
+    clearFlights();
+    seen = null; lastDice = null; lastActor = null;
+    ui.deckPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
+    ui.handOrder = null; ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
+    dragActive = false;
   }
-  window.addEventListener("hashchange", function () {
-    var h = slugify((location.hash || "").replace(/^#/, ""));
-    if (h && h !== code) commitCode(h);
-  });
-  boot();
+
+  /* ═══ BOOT ═════════════════════════════════════════════════════ */
+  TBL.boot();
 })();

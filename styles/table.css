@@ -1,0 +1,231 @@
+/* ============================================================
+   Deets games — the table shell's chrome (docs/games.md).
+
+   Every game tab on the site wears the same table: a code combobox in
+   the bar, the peek gate, the lobby (settings chips, seat roster, bot
+   editor, seat-color picker), the view-settings hover pill. games/table.js
+   renders all of it with the `gt-` class prefix, and this file is its one
+   stylesheet — DeetsCities and DeetsMahjong each carried a copy until the
+   fundamentals pass.
+
+   Pure semantic tokens: every rule here must survive all 30 theme×skin
+   combos. The seat colors are the one carve-out — the six --gseat-N
+   presets below are the game palette's (games/colors.js is the contract),
+   and a game's own board/felt literals stay in that game's own block.
+
+   A game's stylesheet must never restyle a `gt-` class; if the shell needs
+   to look different for a game, the shell grows a modifier.
+   ============================================================ */
+
+/* seat colors — the game-palette carve-out, shared by every table.
+   These are FALLBACKS: table.js overrides each slot on the game root with
+   that seat's actual (possibly custom-hex) pick from the lobby picker, so
+   every index-keyed render site follows along. Chosen to stay distinct for
+   common color-vision deficiencies. */
+.cities, .mj {
+  --gseat-0: #d94141;  /* red    */
+  --gseat-1: #3b7dd8;  /* blue   */
+  --gseat-2: #2fae66;  /* green  */
+  --gseat-3: #e08a2e;  /* orange */
+  --gseat-4: #9457c9;  /* purple */
+  --gseat-5: #22b0b0;  /* teal   */
+}
+
+/* ── code combobox (the table code IS the title, League/radio idiom) ── */
+.gt-code { flex: 1 1 auto; min-width: 0; max-width: 22rem; }
+.gt-code__input {
+  width: 100%;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.1);
+  color: var(--title);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  padding: var(--space-1) 0;
+  outline: none;
+}
+.gt-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
+.gt-code__input:focus { border-bottom-color: var(--title); }
+.gt-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; }
+.tb-pop__head, .tb-pop__empty {
+  padding: var(--space-2) var(--space-3);
+  color: var(--subtext);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* ── gate (peek → sit / watch / open) ─────────────────────────── */
+.gt-gate {
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.gt-gate__line { margin: 0 0 var(--space-4); color: var(--text); font-size: 1.05rem; }
+.gt-gate__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.gt-gate__name { display: flex; flex-direction: column; gap: var(--space-1); }
+.gt-gate__name-label { color: var(--subtext); font-size: 0.8rem; }
+.gt-gate__name-input {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.gt-gate__go { cursor: pointer; }
+.gt-gate__go:disabled { opacity: 0.4; cursor: default; }
+
+/* ── View-settings hover pill (toolbar) ───────────────────────── */
+.gt-setth { position: relative; display: inline-flex; }
+.gt-setth__pop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 12rem; padding: var(--space-2); }
+.gt-setth__row { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-1) var(--space-2); font-size: 0.85rem; }
+.gt-setth__k { color: var(--subtext); }
+.gt-setth__v { color: var(--title); font-weight: 700; }
+/* ── lobby (settings + seats) ─────────────────────────────────── */
+.gt-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.gt-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.gt-set { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.gt-set__label { color: var(--subtext); min-width: 8rem; font-size: 0.9rem; }
+.gt-set__opts { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.gt-chip {
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.gt-chip:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
+.gt-chip:disabled { opacity: 0.55; cursor: default; }
+.gt-chip.is-active { border-color: var(--title); color: var(--title); }
+.gt-lobby__seats { display: flex; flex-direction: column; gap: var(--space-2); }
+.gt-seat {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.gt-seat--empty { opacity: 0.6; border-style: dashed; }
+.gt-seat__name { flex: 1 1 auto; color: var(--text); }
+.gt-seat__badge {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+}
+.gt-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
+.gt-seat__kick:hover { color: var(--stop); }
+/* host-added bots: "+ Bot" on open seats, and the inline add/rename editor —
+   the editor swaps into the row at the SAME height (input capped to the text
+   line), so toggling it never resizes the roster (the universal layout rule) */
+.gt-seat__addbot,
+.gt-seat__addgo {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius-control);
+  color: var(--subtext); font: inherit; font-size: 0.78rem;
+  padding: 0 var(--space-2); line-height: 1.4; cursor: pointer;
+}
+.gt-seat__addbot:hover { color: var(--title); border-color: var(--title); }
+.gt-seat__addgo { color: var(--go); }
+.gt-seat__addgo:hover { border-color: var(--go); }
+.gt-seat__namebtn {
+  background: none; border: none; padding: 0; font: inherit; color: var(--text);
+  text-align: left; cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 0.15em;
+}
+.gt-seat__namebtn:hover { color: var(--title); }
+.gt-seat__nameinput {
+  flex: 1 1 auto; min-width: 0; height: 1.6em;
+  font: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+}
+.gt-seat__nameinput:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.gt-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
+
+/* ── seat-color picker (lobby): the dot is the button, the panel slides
+   open under the row with the game-over superlatives' 0fr→1fr slide ── */
+.gt-seat__dotbtn {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; margin: -0.35rem;   /* bigger target, same layout as the bare dot */
+  padding: 0; background: none; border: none; border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui);
+}
+.gt-seat__dotbtn:hover,
+.gt-seat__dotbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--border); }
+.gt-seat__dotbtn:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+/* collapsed it must occupy ZERO height AND swallow one roster flex gap
+   (the negative top margin), so a picker's presence never shifts the rows
+   below — the bento's universal layout rule. Border/padding live on the
+   inner-inner body, never on the overflow-hidden track (they'd leak at 0fr,
+   the same reason the superlatives keep their inner bare). */
+.gt-colorpick {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease;
+  margin: calc(-1 * var(--space-2)) var(--space-2) 0;
+}
+.gt-colorpick.is-open { grid-template-rows: 1fr; }
+.gt-colorpick__inner { overflow: hidden; min-height: 0; }
+.gt-colorpick__body {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  background: var(--surface);
+}
+.gt-colorpick__label {
+  color: var(--subtext); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.gt-colorpick__swatches { display: flex; gap: var(--space-2); }
+.gt-colorpick__swatch {
+  width: 1.5rem; height: 1.5rem; flex: none;
+  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+}
+.gt-colorpick__swatch:hover:not(:disabled) { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
+.gt-colorpick__swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.gt-colorpick__swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
+.gt-colorpick__swatch:disabled { opacity: 0.35; cursor: default; }
+/* the 7th (custom) slot before a hex was ever Become'd: an empty dashed
+   ring that just focuses the field — chrome, so tokens, not the palette */
+.gt-colorpick__swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
+.gt-colorpick__custom { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.gt-colorpick__hexlabel { color: var(--subtext); font-size: 0.85rem; }
+.gt-colorpick__hexinput {
+  width: 6.5rem;
+  font: inherit;                      /* match the Become... chip's height */
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.gt-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
+.gt-colorpick__go { cursor: pointer; }
+.gt-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
+.gt-lobby__startrow { display: flex; gap: var(--space-2); align-self: flex-start; }   /* Start game · Shuffle */
+.gt-lobby__start { align-self: flex-start; cursor: pointer; }
+.gt-lobby__start:disabled { opacity: 0.5; cursor: default; }
+.gt-lobby__hint { margin: 0; color: var(--subtext); font-size: 0.85rem; }
+
+/* a free-text escape hatch inside a chip row (mahjong's minimum faan) */
+.gt-set__custom {
+  width: 3rem; text-align: center;
+  font: inherit; color: var(--text);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.gt-set__custom.is-active { border-color: var(--title); color: var(--title); }
+.gt-set__custom:focus { border-color: var(--title); outline: none; }

@@ -22,7 +22,7 @@
 
   var Engine = window.CitiesEngine;
   var Boards = window.CITIES_BOARDS;
-  var Colors = window.CitiesColors;
+  var Colors = window.DeetsColors;
   var RES = Engine.RES;
 
   var LATENCY = 110;                 // fake round-trip

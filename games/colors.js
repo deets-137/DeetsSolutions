@@ -1,22 +1,33 @@
-/* DeetsCities — seat-color contract (docs/cities.md, "Game palette").
+/* Deets games — the seat-color contract (docs/games.md, "Seat colors").
 
-   Pure, DOM-free, dependency-free — engine.js's contract rule applies: the
-   Phase-2 worker (../DeetsCities) vendors this file VERBATIM, so the mock
-   transport and the DO validate a `recolor` byte-identically. Keep it tiny.
+   ONE contract for every game table on the site: DeetsCities, DeetsMahjong,
+   and whatever comes next. Cities and mahjong each carried their own copy of
+   this file until the fundamentals pass; the two were identical but for the
+   global name, which is exactly the kind of drift a shared file exists to
+   prevent.
 
-   The six presets are the game palette's seat colors (main.css carve-out)
-   and stay the auto-assigned defaults; a seated player may claim any hex
-   from the lobby (seat dot → picker). The ONLY validation is seat-vs-seat
-   distance — proximity to the board's terrain fills is deliberately
-   unchecked (Aditya's call: hand-drawn tile texture plus road borders keep
-   pieces readable; the risk is the picker's own).
+   Pure, DOM-free, dependency-free — engine.js's contract rule applies: every
+   worker (../DeetsCities, ../DeetsMahjong, ...) vendors this file VERBATIM as
+   src/colors.js, so the mock transport and the DO validate a `recolor`
+   byte-identically. Keep it tiny.
 
-   Browser: window.CitiesColors. Node (worker/self-checks): module.exports. */
+   The six presets are the game palette's seat colors (the --gseat-* carve-out
+   in main.css) and stay the auto-assigned defaults; a seated player may claim
+   any hex from the lobby (seat dot → picker). The ONLY validation is
+   seat-vs-seat distance — proximity to a game's own board/felt fills is
+   deliberately unchecked (Aditya's call: hand-drawn art plus piece borders
+   keep things readable; the risk is the picker's own).
+
+   A game with fewer than six seats simply draws from the front of PRESETS.
+
+   Browser: window.DeetsColors. Node (worker/self-checks): module.exports. */
 (function () {
   "use strict";
 
   var PRESETS = ["#d94141", "#3b7dd8", "#2fae66", "#e08a2e", "#9457c9", "#22b0b0"];
-  // legacy wire names (pre-hex seats the mock persisted) → preset hexes
+  // legacy wire names (pre-hex seats early cities mocks persisted) → preset
+  // hexes. Cities-only in practice; harmless everywhere else, and cheaper to
+  // keep than to prove no stored table still carries one.
   var LEGACY = { red: PRESETS[0], blue: PRESETS[1], green: PRESETS[2],
                  orange: PRESETS[3], purple: PRESETS[4], teal: PRESETS[5] };
   var MIN_DIST = 60;   // redmean units; the presets sit ~100+ apart pairwise
@@ -56,5 +67,5 @@
   var API = { PRESETS: PRESETS, LEGACY: LEGACY, MIN_DIST: MIN_DIST,
               norm: norm, dist: dist, clash: clash, freePreset: freePreset };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
-  if (typeof window !== "undefined") window.CitiesColors = API;
+  if (typeof window !== "undefined") window.DeetsColors = API;
 })();

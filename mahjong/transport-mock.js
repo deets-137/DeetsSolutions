@@ -24,7 +24,7 @@
   "use strict";
 
   var Engine = window.MahjongEngine;
-  var Colors = window.MahjongColors;
+  var Colors = window.DeetsColors;
 
   var LATENCY = 110;                 // fake round-trip
   var STORE_KEY = "deets-mahjong-mock-v1";
