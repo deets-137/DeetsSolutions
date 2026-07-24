@@ -487,7 +487,7 @@
           if (mf >= 0 && mf <= 13) t.settings.minFaan = mf;
         }
         if (msg.capFaan != null && [8, 10, 13].indexOf(msg.capFaan) >= 0) t.settings.capFaan = msg.capFaan;
-        if (msg.winds != null && [1, 4].indexOf(msg.winds) >= 0) t.settings.winds = msg.winds;
+        if (msg.winds != null && [0, 1, 4].indexOf(msg.winds) >= 0) t.settings.winds = msg.winds;
         if (msg.timerSec != null && [0, 45, 60, 90, 120].indexOf(msg.timerSec) >= 0) t.settings.timerSec = msg.timerSec;
         if (msg.deck != null && ["numeral", "traditional"].indexOf(msg.deck) >= 0) t.settings.deck = msg.deck;
         return broadcast(t, []);

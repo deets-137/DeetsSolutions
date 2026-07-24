@@ -54,6 +54,7 @@
 
   var TOKEN_KEY = "deets-mahjong-token", NAME_KEY = "deets-mahjong-name", RECENTS_KEY = "deets-mahjong-recents";
   var CUSTOM_COLOR_KEY = "deets-mahjong-customhex";
+  var ARRANGE_KEY = "deets-mahjong-autoarrange";   // "Auto-Arrange" toggle (default on)
   function deviceToken() {
     var t = load(TOKEN_KEY, null);
     if (t) return t;
@@ -184,8 +185,10 @@
   var clockSkew = 0, timerHandle = null, ringHandle = null, tumbleHandle = null, nextHandTick = null;
   var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
   var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
-             settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {} };
+             settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
+             autoArrange: load(ARRANGE_KEY, true), handOrder: null };
   var seen = null;        // previous render's ponds/melds/flowers — new pieces animate in
+  var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
 
   /* ═══ BAR: code combobox + recents ═════════════════════════════ */
   if (BAR_INPUT) {
@@ -305,7 +308,9 @@
     clearFlights();
     seen = null; lastDice = null; lastActor = null;
     ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false,
-           settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {} };
+           settingsPinned: false, kongPick: false, minFaanDraft: null, overExpanded: {},
+           autoArrange: load(ARRANGE_KEY, true), handOrder: null };
+    dragActive = false;
     GATE.hidden = true; TABLE.hidden = true; DESKTOP.hidden = true;
     buildToolbar();
     try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
@@ -350,6 +355,7 @@
       spinDice = e.d.length;
       spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
     }
+    if (e.t === "deal") ui.handOrder = null;   // fresh hand → re-seed the manual arrangement
     if (e.t === "discard" && model.turn && e.seat === mySeat()) { /* no toast for my own act */ }
     if (e.t === "claimsOpen" && !e.robbing && e.seats.indexOf(mySeat()) >= 0) {
       toast(fmt(S.claimToast, { name: seatName(e.from), tile: tileName(e.tile) }), "info");
@@ -427,6 +433,7 @@
   /* ═══ RENDER ═══════════════════════════════════════════════════ */
   function render() {
     if (!model) return;
+    if (dragActive) return;   // a rack drag owns the DOM until it drops
     buildToolbar();
     var narrow = window.matchMedia("(max-width: 56rem)").matches;
     if (narrow) { TABLE.hidden = true; DESKTOP.hidden = false; DESKTOP.textContent = S.desktopOnly; return; }
@@ -501,7 +508,7 @@
     pop.appendChild(el("div", "tb-pop__head", S.lobbyTitle));
     pop.appendChild(settingRow(S.minFaanLabel, String(model.settings.minFaan)));
     pop.appendChild(settingRow(S.capFaanLabel, String(model.settings.capFaan)));
-    pop.appendChild(settingRow(S.windsLabel, model.settings.winds === 4 ? S.windsFour : S.windsOne));
+    pop.appendChild(settingRow(S.windsLabel, model.settings.winds === 4 ? S.windsFour : (model.settings.winds === 0 ? S.windsHand : S.windsOne)));
     pop.appendChild(settingRow(S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff));
     pop.appendChild(settingRow(S.deckLabel, curDeck() === "traditional" ? S.deckTraditional : S.deckNumeral));
     wrap.appendChild(pop);
@@ -582,11 +589,11 @@
     });
     capRow.appendChild(capOpts); wrap.appendChild(capRow);
 
-    // match length: one wind (default) or four
+    // match length: one hand, one wind (default), or four winds
     var wRow = el("div", "mj-set");
     wRow.appendChild(el("span", "mj-set__label", S.windsLabel));
     var wOpts = el("div", "mj-set__opts");
-    [[1, S.windsOne], [4, S.windsFour]].forEach(function (o) {
+    [[0, S.windsHand], [1, S.windsOne], [4, S.windsFour]].forEach(function (o) {
       var b = el("button", "mj-chip" + (model.settings.winds === o[0] ? " is-active" : ""), o[1]);
       b.type = "button"; b.disabled = !host;
       b.addEventListener("click", function () { send({ type: "setSettings", winds: o[0] }); });
@@ -1413,6 +1420,7 @@
     var head = el("div", "mj-rack__head");
     head.appendChild(el("h3", "mj-rack__title", S.handTitle));
     var canDiscard = myTurnToDiscard();
+    var manual = !ui.autoArrange;   // manual = drag to arrange, drag out to discard
     // Every phase's prompt rides the right end of the title line (one font,
     // mj-role__note), just left of the controls divider — it's appended to
     // `head` from the phase branches below, beside the "your hand" title. The
@@ -1422,28 +1430,41 @@
     var nw = canDiscard && model.you && model.you.nearWin;
     function headNote(text) { head.appendChild(el("span", "mj-role__note", text)); }
     rack.appendChild(head);
-    var row = el("div", "mj-rack__tiles" + (canDiscard ? " is-live" : ""));
+    // Auto-Arrange on → the engine-sorted hand, tap a tile to discard (default).
+    // Off → my own arrangement (ui.handOrder, reconciled each render as tiles
+    // come and go); drag to reorder, drag a tile up out of the strip to discard.
+    var row = el("div", "mj-rack__tiles" + (canDiscard && !manual ? " is-live" : "") + (manual ? " is-manual" : ""));
     row.setAttribute("data-rack", "");
     var hand = (model.you && model.you.hand) || [];
-    hand.forEach(function (t) { row.appendChild(rackTile(t, canDiscard, false)); });
+    var order = manual ? reconcileOrder(hand) : hand;
+    ui.handOrder = manual ? order : null;
+    order.forEach(function (t) { row.appendChild(rackTile(t, { tap: canDiscard && !manual, drag: manual, isDrawn: false })); });
     if (model.you && model.you.drawn != null) {
-      var drawn = rackTile(model.you.drawn, canDiscard, true);
-      drawn.classList.add("mj-racktile--drawn");
-      row.appendChild(drawn);
+      row.appendChild(rackTile(model.you.drawn, { tap: canDiscard && !manual, drag: manual, isDrawn: true }));
     }
     rack.appendChild(row);
 
-    // my melds + flowers under the hand
+    // my melds + flowers under the hand — the row is ALWAYS present (its CSS
+    // reserves one mini-tile row) so the rack doesn't grow when the first
+    // flower or meld of the hand lands
     var p = model.players && model.players[seat];
-    if (p && (p.melds.length || p.flowers.length)) {
-      var mrow = el("div", "mj-rack__melds");
+    var mrow = el("div", "mj-rack__melds");
+    if (p) {
       p.melds.forEach(function (m) { mrow.appendChild(meldEl(m, "mini")); });
       p.flowers.forEach(function (f) {
         var fe = tileEl(f, "mini");
         fe.classList.add("mj-tilef--flower");
         mrow.appendChild(fe);
       });
-      rack.appendChild(mrow);
+    }
+    rack.appendChild(mrow);
+
+    // Auto-Arrange toggle, bottom-right of the hand section — only while there's
+    // a hand to arrange (in play, before the settlement reveal).
+    if (model.phase === "play" && !model.handOver && model.you && model.you.hand) {
+      var foot = el("div", "mj-rack__foot");
+      foot.appendChild(arrangeToggle());
+      rack.appendChild(foot);
     }
     play.appendChild(rack);
 
@@ -1473,7 +1494,7 @@
         var hint = el("span", "mj-rack__hint", fmt(S.nearWinLine, { n: nw.faan, min: nw.need }));
         hint.title = fmt(S.nearWinLine, { n: nw.faan, min: nw.need });
         head.appendChild(hint);
-      } else if (canDiscard) headNote(S.discardHint);
+      } else if (canDiscard) headNote(manual ? S.discardHintManual : S.discardHint);
       else if (model.claims) headNote(S.claimWaiting);
       else if (model.turn) headNote(fmt(S.drawWaiting, { name: seatName(model.turn.seat) }));
       var pills = [];
@@ -1519,12 +1540,148 @@
     if (enabled) b.addEventListener("click", onClick);
     return b;
   }
-  function rackTile(t, clickable, isDrawn) {
+  function rackTile(t, o) {
     var b = el("button", "mj-racktile"); b.type = "button";
+    if (o.isDrawn) b.classList.add("mj-racktile--drawn");
     b.appendChild(tileEl(t, ""));
-    b.disabled = !clickable;
     b.title = tileName(t);
-    if (clickable) b.addEventListener("click", function () { send({ type: "discard", tile: t }); });
+    b.disabled = !(o.tap || o.drag);
+    if (o.tap) b.addEventListener("click", function () { send({ type: "discard", tile: t }); });
+    if (o.drag) attachTileDrag(b, t, o.isDrawn);
+    return b;
+  }
+
+  /* ── manual-arrange order (Auto-Arrange off) ──────────────────────
+     ui.handOrder is a persistent SEQUENCE of tile ids — my chosen order.
+     Tiles are fungible strings with duplicates, so it's reconciled by
+     MULTISET each render: keep the ids I still hold in the order I put
+     them, drop any I no longer hold, and drop in freshly gained tiles
+     (a kept draw, a post-kong reshuffle) at their canonical sorted spot.
+     Never leaves the client — arrangement is mine, and the hand is hidden
+     info (docs/mahjong.md). */
+  function countsOf(list) { var c = {}; list.forEach(function (t) { c[t] = (c[t] || 0) + 1; }); return c; }
+  function insertSorted(out, t) {
+    for (var i = 0; i < out.length; i++) if (out[i] > t) { out.splice(i, 0, t); return; }
+    out.push(t);
+  }
+  function reconcileOrder(hand) {
+    var want = countsOf(hand), prev = ui.handOrder || [], used = {}, out = [];
+    prev.forEach(function (t) {
+      if ((used[t] || 0) < (want[t] || 0)) { out.push(t); used[t] = (used[t] || 0) + 1; }
+    });
+    Object.keys(want).forEach(function (t) {
+      for (var k = used[t] || 0; k < want[t]; k++) insertSorted(out, t);
+    });
+    return out;
+  }
+
+  /* ── tile drag (manual mode): reorder within the strip, or up-and-out
+     to discard. Pointer Events (mouse + touch, no deps). Renders are
+     suppressed for the drag's duration (dragActive) so the strip is
+     stable under the pointer; the drop applies to ui.handOrder (reorder)
+     or fires a discard, then re-renders. The drawn tile drags only to
+     discard — it isn't part of the arranged hand. */
+  function attachTileDrag(btn, tile, isDrawn) {
+    btn.addEventListener("pointerdown", function (ev) {
+      if (ev.button != null && ev.button !== 0) return;
+      ev.preventDefault();
+      var row = ROLE.querySelector("[data-rack]");
+      if (!row) return;
+      var felt = document.querySelector("[data-mj-center]");
+      var canDiscard = myTurnToDiscard();
+      var pid = ev.pointerId, startX = ev.clientX, startY = ev.clientY;
+      var engaged = false, ghost = null, gap = null, discardArm = false, dropIndex = null;
+      // handOrder tiles present in the strip, minus the one being dragged
+      function others() {
+        return Array.prototype.filter.call(row.querySelectorAll(".mj-racktile"), function (n) {
+          return n !== btn && !n.classList.contains("mj-racktile--drawn");
+        });
+      }
+      function engage() {
+        engaged = true; dragActive = true;
+        var r = btn.getBoundingClientRect();
+        ghost = btn.cloneNode(true);
+        ghost.className = "mj-racktile mj-racktile--ghost" + (isDrawn ? " mj-racktile--drawn" : "");
+        ghost.style.cssText = "position:fixed;margin:0;pointer-events:none;width:" +
+          r.width + "px;height:" + r.height + "px;left:" + r.left + "px;top:" + r.top + "px;";
+        ghost._dx = startX - r.left; ghost._dy = startY - r.top;
+        document.body.appendChild(ghost);
+        if (!isDrawn) { gap = el("div", "mj-rack__gap"); gap.style.width = r.width + "px"; gap.style.height = r.height + "px"; }
+        btn.style.display = "none";   // the gap stands in for the moved tile
+      }
+      function update(x, y) {
+        ghost.style.left = (x - ghost._dx) + "px";
+        ghost.style.top = (y - ghost._dy) + "px";
+        var rr = row.getBoundingClientRect();
+        discardArm = canDiscard && y < rr.top - 6;   // lifted up out of the strip, toward the board
+        ghost.classList.toggle("is-discard", discardArm);
+        if (felt) felt.classList.toggle("is-discardarm", discardArm);
+        if (isDrawn) { dropIndex = null; if (gap && gap.parentNode) gap.parentNode.removeChild(gap); return; }
+        if (discardArm) { dropIndex = null; if (gap.parentNode) gap.parentNode.removeChild(gap); return; }
+        var list = others(), idx = list.length;
+        for (var i = 0; i < list.length; i++) {
+          var b = list[i].getBoundingClientRect();
+          if (x < b.left + b.width / 2) { idx = i; break; }
+        }
+        dropIndex = idx;
+        var drawnEl = row.querySelector(".mj-racktile--drawn");
+        if (idx >= list.length) { if (drawnEl) row.insertBefore(gap, drawnEl); else row.appendChild(gap); }
+        else row.insertBefore(gap, list[idx]);
+      }
+      function cleanup() {
+        document.removeEventListener("pointermove", onMove, true);
+        document.removeEventListener("pointerup", onUp, true);
+        document.removeEventListener("pointercancel", onUp, true);
+        if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+        if (gap && gap.parentNode) gap.parentNode.removeChild(gap);
+        if (felt) felt.classList.remove("is-discardarm");
+        btn.style.display = "";
+      }
+      function onMove(e) {
+        if (e.pointerId !== pid) return;
+        if (!engaged) { if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) < 5) return; engage(); }
+        update(e.clientX, e.clientY);
+      }
+      function onUp(e) {
+        if (e.pointerId !== pid) return;
+        var wasEngaged = engaged, doDiscard = discardArm, idx = dropIndex;
+        // btn is still in the DOM (display:none) at its original slot, so its
+        // index among hand tiles is the authoritative source index (duplicates)
+        var srcIdx = wasEngaged && !isDrawn ? Array.prototype.filter.call(
+          row.querySelectorAll(".mj-racktile"),
+          function (n) { return !n.classList.contains("mj-racktile--drawn"); }).indexOf(btn) : -1;
+        dragActive = false;
+        cleanup();
+        if (!wasEngaged) return;                              // never crossed the threshold — a no-op tap
+        if (doDiscard) { send({ type: "discard", tile: tile }); return; }
+        if (!isDrawn && idx != null && ui.handOrder) {
+          var arr = ui.handOrder.slice(), from = arr.indexOf(tile);
+          if (srcIdx >= 0) from = srcIdx;
+          if (from >= 0) { arr.splice(from, 1); arr.splice(idx, 0, tile); ui.handOrder = arr; }
+        }
+        render();
+      }
+      document.addEventListener("pointermove", onMove, true);
+      document.addEventListener("pointerup", onUp, true);
+      document.addEventListener("pointercancel", onUp, true);
+    });
+  }
+
+  function arrangeToggle() {
+    var b = el("button", "mj-arrange" + (ui.autoArrange ? " is-on" : "")); b.type = "button";
+    b.setAttribute("role", "switch");
+    b.setAttribute("aria-checked", ui.autoArrange ? "true" : "false");
+    b.title = S.arrangeTip;
+    b.appendChild(el("span", "mj-arrange__label", S.arrangeLabel));
+    var track = el("span", "mj-arrange__track");
+    track.appendChild(el("span", "mj-arrange__thumb"));
+    b.appendChild(track);
+    b.addEventListener("click", function () {
+      ui.autoArrange = !ui.autoArrange;
+      save(ARRANGE_KEY, ui.autoArrange);
+      if (ui.autoArrange) ui.handOrder = null;   // snap back to the engine sort
+      render();
+    });
     return b;
   }
 
@@ -1580,26 +1737,29 @@
     }, delay || 0);
   }
   function stepFlights(now) {
-    flights = flights.filter(function (f) {
+    // Two passes, deliberately: resolve every destination (each f.to() is a
+    // querySelector + getBoundingClientRect) BEFORE writing any transform, so a
+    // read can't force a sync layout in the middle of the write loop. The chips
+    // ride a position:fixed overlay, so their transforms never dirty the board.
+    var frame = flights.map(function (f) {
       var p = Math.min(1, (now - f.t0) / f.dur);
+      return { f: f, p: p, to: f.to() || { x: f.sx, y: f.sy } };
+    });
+    flights = [];
+    frame.forEach(function (o) {
+      var f = o.f, p = o.p, to = o.to;
       var e = 1 - Math.pow(1 - p, 3);
-      var to = f.to() || { x: f.sx, y: f.sy };
       var s;
       if (p < 0.12) s = (p / 0.12) * 1.2;
       else if (p < 0.24) s = 1.2 - ((p - 0.12) / 0.12) * 0.2;
       else if (p > 0.85) s = 1 - ((p - 0.85) / 0.15) * 0.7;
       else s = 1;
       f.el.style.transform = "translate(" + (f.sx + (to.x - f.sx) * e).toFixed(1) + "px," + (f.sy + (to.y - f.sy) * e).toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
-      if (p >= 1) {
-        if (f.el.parentNode) f.el.parentNode.removeChild(f.el);
-        if (to.el) {
-          to.el.classList.remove("mj-catch");
-          void to.el.offsetWidth;
-          to.el.classList.add("mj-catch");
-        }
-        return false;
-      }
-      return true;
+      // landing: the chip shrinks out (the pond's own is-fresh pop and the
+      // re-rendered zone acknowledge arrival — no bump on the container, which
+      // scaled a whole panel and read as a flinch every bot turn)
+      if (p >= 1) { if (f.el.parentNode) f.el.parentNode.removeChild(f.el); }
+      else flights.push(f);
     });
     flyRaf = flights.length ? requestAnimationFrame(stepFlights) : null;
   }

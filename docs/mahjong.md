@@ -23,9 +23,11 @@ vendors the engine verbatim. Read
     each (winner +4v);
   - self-draw → all three pay `2v` (winner +6v).
   Scores are chips on a zero-sum ledger, not money.
-- **Match length is a host setting**: one wind (default — a full East
-  round) or four winds. Dealer repeats on a dealer win or an exhaustive
-  draw, per HK rules, so a round is at-least-four hands.
+- **Match length is a host setting** (`winds`): one hand (`0` — a single
+  settled hand, no dealer repeat), one wind (`1`, default — a full East
+  round) or four winds (`4`). In the wind modes the dealer repeats on a
+  dealer win or an exhaustive draw, per HK rules, so a round is
+  at-least-four hands.
 - **Dice are ceremonial AND structural**: every player rolls two dice
   for seating (highest deals as East; ties re-roll among the tied), and
   the dealer rolls three dice to break the wall before each deal. Both
@@ -183,7 +185,19 @@ full-width role row). Contents:
   drawn hand wins structurally but misses the faan minimum, a
   right-aligned hint on the "Your hand" title line (and the disabled
   Mahjong pill's tooltip) says how many faan it scores vs. the minimum
-  (`you.nearWin`).
+  (`you.nearWin`). An **Auto-Arrange** switch sits bottom-right of the
+  rack (default on, persisted in `localStorage`): on, the hand is the
+  engine's canonical sort and a tap discards (today's behavior); off, the
+  player arranges the hand by dragging, and discards by dragging a tile
+  up out of the strip (the felt lights as the drop target) — tap no
+  longer discards, killing the fat-finger. The arrangement is a purely
+  **client-side, per-seat** concern (`ui.handOrder`, a tile-id sequence
+  reconciled by multiset each render as tiles come and go, re-seeded from
+  the sort on each `deal`) — it never touches the engine, the transport,
+  or a broadcast; the hand is hidden info, and order carries no game
+  meaning. Reorder works any time; the drag-out-to-discard target only
+  arms on your turn. Renders are suppressed while a drag is in flight
+  (`dragActive`) so the strip stays stable under the pointer.
 - **Claim window**: the trade-hub dock (over the board's right quarter)
   repurposed — the discarded tile writ large, my claim buttons (chow
   variants as tile-pair pickers), Pass; pulses while it awaits me. The
@@ -210,9 +224,9 @@ Bots act on their own ~700 ms cadence, timer or no timer.
 
 `strings.js`, radio/cities convention: Claude adds only `[ph]`-prefixed
 placeholders; Aditya rewrites and drops the prefix; nothing carrying
-`[ph]` ships. The copy pass hasn't started — every string is `[ph]`
-except `wallLeft` / `wallLeftTip` / `roundLine`, approved in chat
-(2026-07-23, the wall-panel redesign).
+`[ph]` ships. Aditya's copy pass landed 2026-07-23 — every string in the
+file is now handwritten, so Claude edits none of them; only newly wired
+UI arrives as `[ph]` and waits for him.
 
 ## Art
 
@@ -249,7 +263,7 @@ that fires `timerExpire`. Reconnect/backoff, `v`-gap resync, and the
 1. ✅ engine.js + selfTest (`node mahjong/engine.js`)
 2. ✅ strings/colors/transport-mock/transport
 3. ✅ bento UI + CSS + nav links
-4. Aditya: play it at `/mahjong?mock`, copy pass, art pass
+4. Aditya: play it at `/mahjong?mock`, ✅ copy pass, art pass
 5. Phase 2: the worker repo, then flip the default transport
 
 ## Open questions (deferred, not blockers)
