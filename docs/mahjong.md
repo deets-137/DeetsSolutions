@@ -134,7 +134,9 @@ a bot **and its token is dropped**, so the kicked player's rejoin can't
 reclaim it. Game commands are the engine actions; the server injects `seat`.
 `rematch` (host, game `over` only) clears the finished game back to the
 lobby — seats, colors, bots, and settings persist; scores lived in the
-discarded game, so Start deals a fresh match.
+discarded game, so Start deals a fresh match. It is a **shared table
+verb** ([games.md](games.md)), not mahjong's own: the base handles it and
+the client rebuilds its per-game UI through the `onRematch` hook.
 
 **Hidden information** — the mock enforces what the worker must:
 

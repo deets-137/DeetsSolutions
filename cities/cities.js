@@ -74,6 +74,13 @@
     startNeedsHint: S.startNeedsThree,
     logCap: 120,
     errExtra: { cost: S.errCost, loc: S.errLoc, rate: S.errRate, empty: S.errEmpty, supply: S.errSupply },
+    /* fields the worker omits when absent must clear, not linger — every
+       broadcast is a full view, so an omission means genuinely gone. A
+       rematch omits the lot: the lobby must not paint a discarded board. */
+    clearFields: ["frame", "board", "buildings", "roads", "bank", "devLeft", "dice",
+                  "gained", "turn", "setup", "awards", "offers", "vp", "players",
+                  "over", "turnEndsAt"],
+    clearYouFields: ["hand", "dev", "harbors", "chips"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
       toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
@@ -110,6 +117,7 @@
     },
     onResize: function () { ROLE.style.minHeight = ""; },   // wrap points moved — re-measure the lock
     onLeave: onLeave,
+    onRematch: resetGameUi,
     lobbySettings: lobbySettings,
     settingsRows: function () {
       return [
@@ -1421,12 +1429,11 @@
     wrap.appendChild(table);
 
     if (model.host) {
-      // Rematch re-enters the lobby with the same seats + settings; the
-      // transport wiring for it lands with the worker (Phase 2). For now the
-      // host leaves and re-opens the table.
+      // host rematch: the table drops back to the lobby settings (seats,
+      // colors, and bots persist) and Start deals a fresh board
       var rb = el("button", "tb-pill cities-over__rematch"); rb.type = "button";
       rb.appendChild(el("span", "tb-pill__label", S.rematchButton));
-      rb.addEventListener("click", function () { toast(S.rematchSoon, "info"); });
+      rb.addEventListener("click", function () { send({ type: "rematch" }); });
       wrap.appendChild(rb);
     }
     BIG.appendChild(wrap);
@@ -2269,9 +2276,10 @@
     return row;
   }
 
-  /* ── leaving: the shell drops the socket, the model and its own lobby
-     state; this clears what's DeetsCities' alone ─────────────────── */
-  function onLeave() {
+  /* ── letting go of ONE game: the sticky toasts, the per-game caches and
+     any open board mode. Both exits run it — leaving the table, and the
+     host's rematch dropping the table back to the lobby ──────────── */
+  function resetGameUi() {
     Object.keys(acceptToasts).forEach(function (k) { acceptToasts[k].dismiss(); });
     acceptToasts = {};
     offerCache = {}; fadingOffers = {};
@@ -2284,8 +2292,11 @@
     ui.tradeHub = false; ui.tradeTool = null; ui.embargoPop = null; ui.overExpanded = {};
     tradeToolEl = null;
     lastTurnSeat = null;
-    ROLE.style.minHeight = "";
+    ROLE.style.minHeight = "";   // the role tile re-measures against the new game
   }
+  /* ── leaving: the shell drops the socket, the model and its own lobby
+     state; this clears what's DeetsCities' alone ─────────────────── */
+  function onLeave() { resetGameUi(); }
 
   /* ═══ BOOT ═════════════════════════════════════════════════════ */
   TBL.boot();

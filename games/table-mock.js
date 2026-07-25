@@ -286,6 +286,20 @@
         return postApply(t);                             // the drive picks the seat up
       }
 
+      // host rematch from the game-over screen: the finished game is discarded
+      // and the table drops back to its own lobby (seats, tokens, colors, bots
+      // and settings live on `t`, not `t.game`, so the same players stay put
+      // and Start deals a fresh one) — the worker's rule, byte for byte
+      if (type === "rematch") {
+        if (!isHost(t, token)) return errTo(conn, "perm");
+        if (!t.game || t.game.phase !== "over") return errTo(conn, "phase");
+        disarmTimer(t);        // clears the pending timeout + turnEndsAt/timerFor
+        t.game = null;
+        if (spec.onRematch) spec.onRematch(t, HELPERS);
+        broadcast(t, []);
+        return postApply(t);
+      }
+
       if (spec.extraCommand && spec.extraCommand(t, conn, msg, HELPERS)) return;
 
       if (LOBBY_CMDS[type]) {

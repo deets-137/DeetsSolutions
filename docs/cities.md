@@ -791,7 +791,10 @@ against anything the reservations miss. Ghosts share one idiom: the
 element is laid out at full size with `visibility: hidden`
 (`.cities .is-ghost`).
 - **Game over:** the big tile flips to stats; a Rematch pill (host)
-  re-enters the lobby with the same seats and settings.
+  re-enters the lobby with the same seats and settings. `rematch` is a
+  shared table verb ([games.md](games.md)) — the board, the ledger and
+  the sticky toasts are dropped through `clearFields` and the
+  `onRematch` hook, so the lobby is clean.
 
 Desktop only, enforced twice: the nav link is not `data-nav-core`
 (mobile menu omits it), and below 56rem the page swaps the bento for a

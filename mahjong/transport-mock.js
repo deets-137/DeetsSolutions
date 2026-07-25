@@ -6,8 +6,8 @@
    connect - lives in the shared core, games/table-mock.js, which mirrors the
    worker base's subclass contract (games/table-do.js) hook for hook.
 
-   This file is the game half: the view, the settings, the rules bridge, the
-   bot, and the rematch verb. HIDDEN INFORMATION is enforced here exactly as
+   This file is the game half: the view, the settings, the rules bridge, and
+   the bot. HIDDEN INFORMATION is enforced here exactly as
    the worker enforces it: hands, the drawn tile and per-seat claim options
    ride only each connection's `you`, and maskEvent scrubs the claim ack. */
 (function () {
@@ -287,19 +287,8 @@
     },
     onStart: function () { return [{ t: "start" }]; },
 
-    // host rematch from the game-over reveal: the finished game clears and
-    // the table drops back to the lobby (seats, colors, bots and settings
-    // persist; scores lived in the discarded game)
-    extraCommand: function (t, conn, msg, H) {
-      if (msg.type !== "rematch") return false;
-      if (!H.isHost(t, conn.token)) { H.errTo(conn, "perm"); return true; }
-      if (!t.game || t.game.phase !== "over") { H.errTo(conn, "phase"); return true; }
-      t.game = null;
-      t.turnEndsAt = null; t.timerFor = null;
-      H.broadcast(t, []);
-      H.postApply(t);
-      return true;
-    },
+    // (rematch is a shared table verb — table-mock.js / table-do.js. Mahjong
+    // keeps nothing beside the game, so it needs no onRematch.)
 
     deadlineFor: deadlineFor,
     dlSig: dlSig,

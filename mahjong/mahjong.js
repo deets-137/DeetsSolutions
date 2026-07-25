@@ -60,8 +60,10 @@
     startNeedsHint: S.startNeedsFour,
     errExtra: { loc: S.errLoc },
     /* fields the worker omits when absent must clear, not linger */
-    clearFields: ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn"],
-    clearYouFields: ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue"],
+    clearFields: ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn",
+                  // a rematch omits the whole game — the lobby must not paint one
+                  "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"],
+    clearYouFields: ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue", "hand"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
       toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
@@ -74,6 +76,7 @@
     render: paint,
     postRender: flushFlights,
     onLeave: onLeave,
+    onRematch: resetGameUi,
     extraPills: function () { return [deckPill()]; },
     lobbySettings: lobbySettings,
     settingsRows: function () {
@@ -1539,15 +1542,19 @@
     fl.forEach(function (go) { go(); });
   }
 
-  /* ── leaving: the shell drops the socket, the model and its own lobby
-     state; this clears what's DeetsMahjong's alone ───────────────── */
-  function onLeave() {
+  /* ── letting go of ONE game: the tile caches, the rack order and any open
+     tool. Both exits run it — leaving the table, and the host's rematch
+     dropping the table back to the lobby ─────────────────────────── */
+  function resetGameUi() {
     clearFlights();
     seen = null; lastDice = null; lastActor = null;
     ui.deckPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
     ui.handOrder = null; ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
     dragActive = false;
   }
+  /* ── leaving: the shell drops the socket, the model and its own lobby
+     state; this clears what's DeetsMahjong's alone ───────────────── */
+  function onLeave() { resetGameUi(); }
 
   /* ═══ BOOT ═════════════════════════════════════════════════════ */
   TBL.boot();

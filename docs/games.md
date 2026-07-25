@@ -70,6 +70,7 @@ One envelope for every game. Only the action verbs differ.
 | `recolor` | `{seat?, color}` | own seat, or host on a bot seat; lobby only |
 | `setSettings` | game-specific keys | host, lobby only |
 | `start` | — | host |
+| `rematch` | — | host, game `over` only |
 | `closeTable` | — | host |
 | *(game verbs)* | game-specific | routed to the engine with the actor injected |
 
@@ -153,8 +154,16 @@ postRender()              anything that needs the new DOM
 `clearFields` / `clearYouFields` (fields a broadcast omits must clear, not
 linger), `els`.
 
-**Hooks:** the order above, plus `onJoin`, `onLeave`, `onResize`,
-`blockRender`, `extraPills`, `lobbySettings`, `settingsRows`.
+**Hooks:** the order above, plus `onJoin`, `onLeave`, `onRematch`,
+`onResize`, `blockRender`, `extraPills`, `lobbySettings`, `settingsRows`.
+
+`onRematch` fires when a broadcast takes this socket from `over` to
+`lobby` — the host rematched, so the game drops what belonged to the
+finished game (sticky toasts, per-game caches, open modes) before the
+lobby renders. Both games implement it as the game-scoped half of their
+`onLeave`. The model half is `clearFields` / `clearYouFields`: a rematch
+omits every game field, so a game that doesn't list them paints the
+discarded game into its own lobby.
 
 **Provided:** `send`, `leave`, `render`, `renderLobby`, `buildToolbar`,
 `fitLog`, `mySeat`, `seatName`, `seatedCount`, `seatDot`, `pill`, `chip`,
@@ -180,8 +189,11 @@ export default { fetch: (req, env) => tableFetch(req, env) };
 ```
 
 The base owns hibernatable sockets, the join handshake, the seat roster with
-host fallback, every lobby verb, personalized broadcasts, the single alarm,
-and the idle fuse. Routes are `GET /table/:code/peek` and
+host fallback, every lobby verb, `rematch` (host, game `over` only: the
+finished game is discarded and the table drops back to its own lobby — seats,
+tokens, colors, bots, settings and the host all live on `t`, not `t.game`, so
+the same players stay put and Start deals a fresh one), personalized
+broadcasts, the single alarm, and the idle fuse. Routes are `GET /table/:code/peek` and
 `/table/:code/ws`; `tableFetch` handles CORS, the origin check on the
 upgrade, and the IP rate limit on the enumerable peek.
 
@@ -199,8 +211,9 @@ be tested live.
 **Optional:** `EXTRA_STATE` (extra persisted keys as `{key: () => initial}`),
 `capacity()` (default: the `capacity` setting; a fixed-size table returns a
 constant), `maskEvent`, `compactSeatsAtStart`, `onStart`, `onGameOver`,
-`onJoined`, `extraCommand` (a verb the engine doesn't own — cities' `bet`,
-mahjong's `rematch`).
+`onRematch` (drop any per-game state the discarded game owned; neither game
+needs it yet), `onJoined`, `extraCommand` (a verb the engine doesn't own —
+cities' `bet`).
 
 ### The one alarm
 

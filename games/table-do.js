@@ -83,6 +83,7 @@ export class GameTable {
   compactSeatsAtStart() { return true; }   // seat index === engine player index
   onStart() { return []; }                 // extra events at Start
   onGameOver() {}                          // settle-up when phase turns "over"
+  onRematch() {}                           // drop any per-game state the rematch discards
   onJoined() {}                            // per-token work on a completed join
   extraCommand() { return false; }         // game-specific verb; true = handled
   deadlineFor() { return null; }           // ms window for the table's one deadline
@@ -350,6 +351,23 @@ export class GameTable {
       t.seats[s].bot = true; delete t.seats[s].graceUntil; delete t.seats[s].token;
       for (const c of this.socketsForToken(kickedTok)) { try { c.ws.send(JSON.stringify({ type: "kicked", serverNow: Date.now() })); } catch (e) {} try { c.ws.close(4403, "kicked"); } catch (e) {} }
       await this.broadcast([{ t: "takeover", seat: s }]);
+      this.armAlarm();
+      return;
+    }
+
+    // Host rematch from the game-over screen: the finished game is discarded
+    // and the table drops back to its own lobby, so `phase` turns "lobby" and
+    // every lobby verb opens up again. Seats, tokens, colors, bots, settings
+    // and the host all live on `t`, not `t.game` — the same players stay put
+    // and Start deals a fresh one. Anything a game keeps beside the game is
+    // its own to drop in onRematch().
+    if (type === "rematch") {
+      if (!this.isHost(token)) return this.errTo(ws, "perm");
+      if (!t.game || t.game.phase !== "over") return this.errTo(ws, "phase");
+      t.game = null;
+      t.turnEndsAt = null; t.timerFor = null;
+      this.onRematch();
+      await this.broadcast([]);
       this.armAlarm();
       return;
     }

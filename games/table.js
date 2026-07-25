@@ -277,10 +277,14 @@
       // to act (close a tab); a timed toast would vanish before they read it
       if (msg.type === "replaced") { leaveTable(); toast(S.replacedToast, "error", { sticky: true }); return; }
       if (msg.type === "error") { toast(errText(msg.code), "error"); return; }
+      // the phase this socket was at before the merge — a rematch is the
+      // over → lobby step, and the game's per-game UI has to let go of the
+      // finished game (see onRematch in afterModel)
+      var wasPhase = model ? model.phase : null;
       if (msg.type === "snapshot") {
         if (hook("beforeMerge")) cfg.beforeMerge(true);
         model = stripMeta(msg);
-        afterModel(msg);
+        afterModel(msg, wasPhase);
         return;
       }
       if (msg.type === "state") {
@@ -292,14 +296,18 @@
         if (model.you) {
           (cfg.clearYouFields || []).forEach(function (f) { if (!(f in msg.you)) delete model.you[f]; });
         }
-        afterModel(msg);
+        afterModel(msg, wasPhase);
         return;
       }
     }
     function stripMeta(msg) { var m = {}; for (var k in msg) if (k !== "type" && k !== "v" && k !== "serverNow" && k !== "ev") m[k] = msg[k]; return m; }
-    function afterModel(msg) {
+    function afterModel(msg, wasPhase) {
       if (typeof msg.serverNow === "number") clockSkew = Date.now() - msg.serverNow;
       if (hook("onModel")) cfg.onModel(model);
+      // the host rematched: the table is back in its lobby with the same
+      // players, so the game drops what belonged to the finished game (sticky
+      // toasts, per-game caches, open modes) before anything renders
+      if (wasPhase === "over" && model.phase === "lobby" && hook("onRematch")) cfg.onRematch();
       (msg.ev || []).forEach(handleEvent);
       if (hook("postEvents")) cfg.postEvents();
       syncGraceToasts();
