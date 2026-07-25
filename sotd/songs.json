@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-24T05:02:45Z",
+  "generated_at": "2026-07-25T02:39:48Z",
   "channel": "song-of-the-day",
-  "count": 335,
+  "count": 336,
   "songs": [
     {
       "post_id": 1,
@@ -7707,6 +7707,29 @@
       "apple_music_url": "https://music.apple.com/us/album/memories/1445949265?i=1445949419&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/cf/50/2a/cf502a71-87dc-c111-30b5-648e216bbaf2/mzaf_5554368561442548180.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/4b/30/2c/4b302cb6-7a14-5464-4e97-0577e9d0be49/18UMGIM82277.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 7241,
+      "posted_at": "2026-07-24T07:54:17.951000+00:00",
+      "date": "2026-07-23",
+      "day": "Thu",
+      "month": "07_2026",
+      "track_name": "Summer Nights",
+      "artist_name": "Zimmer90",
+      "album": "Summer Nights - Single",
+      "genre": "Pop",
+      "duration": "3:40",
+      "duration_sec": 220,
+      "release_date": "2026-07-17",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/summer-nights/6786505386?i=6786505387",
+      "apple_music_url": "https://music.apple.com/us/album/summer-nights/6786505386?i=6786505387&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/98/19/90/98199031-8bc9-565b-c1f0-b49588383065/mzaf_9360995851997417252.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/1b/16/1d/1b161d19-f07b-f95f-bf55-676c1b4e8231/820233868006.jpg/600x600bb.jpg"
     }
   ]
 }
