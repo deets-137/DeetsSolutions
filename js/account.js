@@ -169,7 +169,7 @@
          Signed out it's the invitation. (Radio's button keeps a fixed
          label because it has no name to show.) */
       label.textContent = s === "loading" ? "…" :
-        s === "in" ? (state && state.name ? state.name : "Signed in") : "Sign in";
+        s === "in" ? (state && state.name ? state.name : "Signed in") : "Sign in with Google";
       icon.innerHTML = s === "in" ? ICON_CHECK : s === "out" ? ICON_X : ICON_SPINNER;
       if (s !== "loading") {
         node.dataset.state = s;
