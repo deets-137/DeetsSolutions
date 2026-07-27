@@ -69,6 +69,49 @@
     var NAME_KEY = "deets-" + cfg.ns + "-name";
     var RECENTS_KEY = "deets-" + cfg.ns + "-recents";
     var CUSTOM_COLOR_KEY = "deets-" + cfg.ns + "-customhex";
+    /* A signed-in profile supplies the gate's defaults (docs/accounts.md).
+       It is a FALLBACK, never an override: a name typed at this game's
+       gate is this game's name and wins. Signed out — or signed in with
+       nothing set — every path below is exactly what it was before
+       accounts existed, because guests stay first class. */
+    function account() {
+      try { return (window.DeetsAccount && window.DeetsAccount.get()) || null; }
+      catch (e) { return null; }
+    }
+    function storedName() {
+      var mine = String(load(NAME_KEY, "")).trim();
+      if (mine) return mine;
+      var a = account();
+      return a && a.name ? String(a.name).trim().slice(0, 24) : "";
+    }
+    /* Seat colours are server-assigned at `sit`, so a profile preference
+       can only be applied as a follow-up `recolor` — an existing lobby
+       verb, so no worker changes. ONE attempt per page load, and it
+       stays silent unless the wish is both set and free: an occupied
+       colour is left alone rather than fought over, and the existing
+       clash UI keeps doing its job. */
+    var seededColor = false;
+    function seedSeatColor() {
+      if (seededColor || !model || model.phase !== "lobby") return;
+      var seat = mySeat();
+      if (seat == null) return;        // not seated yet — retry next broadcast
+      seededColor = true;              // seated: this is the one attempt
+
+      var a = account();
+      if (!a || a.color == null) return;
+      var presets = window.DeetsColors && window.DeetsColors.PRESETS;
+      var want = presets && presets[a.color];
+      if (!want) return;
+
+      var seats = model.seats || [];
+      var mine = seats[seat];
+      if (!mine || String(mine.color || "").toLowerCase() === want) return;  // already have it
+      for (var i = 0; i < seats.length; i++) {
+        if (i !== seat && seats[i] && String(seats[i].color || "").toLowerCase() === want) return;
+      }
+      send({ type: "recolor", seat: seat, color: want });
+    }
+
     function deviceToken() {
       var t = load(TOKEN_KEY, null);
       if (!t) {
@@ -185,7 +228,7 @@
       GATE.appendChild(el("p", "gt-gate__line", line));
 
       var form = el("div", "gt-gate__form");
-      var stored = String(load(NAME_KEY, "")).trim();
+      var stored = storedName();
       var nameInput = null;
       if (!stored || refuseName) {
         var wrap = el("label", "gt-gate__name");
@@ -314,6 +357,7 @@
       // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator in
       // the lobby; take a seat once (the toolbar's Sit/Stand governs after)
       if (wantSit && model.phase === "lobby" && mySeat() == null) { wantSit = false; send({ type: "sit" }); }
+      seedSeatColor();
       if (hook("preRender")) cfg.preRender();
       applySeatColors();
       GATE.hidden = true;

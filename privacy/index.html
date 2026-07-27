@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy — Deets.Solutions</title>
+    <meta
+      name="description"
+      content="What deets.solutions stores when you sign in, which is almost nothing."
+    />
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("deets-theme");
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
+          document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/main.css" />
+    <script src="../js/controls.js" defer></script>
+    <script src="../js/toast.js" defer></script>
+    <script src="../js/account.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="../movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../cities/" role="menuitem">DeetsCities</a>
+            <a href="../mahjong/" role="menuitem">DeetsMahjong</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../radio/" role="menuitem">DeetsRadio</a>
+            <a href="../league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="../resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <section class="page-bar">
+        <h1 class="page-bar__title">Privacy</h1>
+      </section>
+
+      <p class="page-meta">
+        This is a personal site. It is not a business, it does not sell
+        anything, and it has no interest in who you are. The short version:
+        signing in stores an opaque ID, a name you pick, and a colour.
+      </p>
+
+      <div class="prose">
+        <h2>What is stored when you sign in</h2>
+        <ul>
+          <li>
+            An <strong>opaque identifier</strong> that Google gives this site
+            for your account. It is specific to this site and means nothing
+            anywhere else.
+          </li>
+          <li>A <strong>display name</strong>, which you choose and can change.</li>
+          <li>A <strong>seat colour</strong> preference for the games.</li>
+          <li>When the account was created, and when it was last used.</li>
+        </ul>
+
+        <h2>What is not stored</h2>
+        <p>
+          Your email address. This site never asks Google for it, so it is
+          never sent and there is nothing here to lose. Same for your profile
+          picture, your contacts, and everything else in your Google account.
+        </p>
+        <p>
+          There are no analytics, no advertising, no tracking pixels, and no
+          third-party scripts on any page.
+        </p>
+
+        <h2>Cookies</h2>
+        <p>
+          One cookie, set only if you sign in. It keeps you signed in and does
+          nothing else. Signing out deletes it.
+        </p>
+        <p>
+          The site also uses your browser's local storage for things like your
+          theme, your skin, and which games you've recently joined. That never
+          leaves your device.
+        </p>
+
+        <h2>Signing in is optional</h2>
+        <p>
+          Every game on this site can be played without an account. Signing in
+          exists so you don't have to retype your name and pick your colour at
+          every table.
+        </p>
+
+        <h2>Deleting your account</h2>
+        <p>
+          Email me and I'll delete the row. There isn't much in it.
+        </p>
+
+        <h2>Changes</h2>
+        <p>
+          If this ever starts storing more than the above — game results, for
+          instance — this page gets updated first.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

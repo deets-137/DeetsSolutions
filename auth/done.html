@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signed in — Deets.Solutions</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <!-- Same pre-paint theme resolution as every other page. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("deets-theme");
+          if (!t) {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "moonlight" : "fairy";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) {
+            s = window.matchMedia("(max-width: 41rem)").matches
+              ? "ocean" : "cyberstorm";
+          }
+          document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/main.css" />
+  </head>
+
+  <body>
+    <!-- The landing pad for the sign-in tab. Its whole job is to tell the
+         tab that STARTED the sign-in, then close itself. It only ever
+         shows for a blink; the copy is here for when window.close() is
+         refused (some browsers refuse on tabs they didn't script-open,
+         and the error path lands here too). -->
+    <main class="site-main auth-done">
+      <section class="page-bar">
+        <h1 class="page-bar__title" data-done-title>Signed in</h1>
+      </section>
+      <p class="page-meta" data-done-msg>You can close this tab.</p>
+    </main>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.hash.replace(/^#/, ""));
+        var err = params.get("error");
+
+        if (err) {
+          var titles = {
+            denied: "Sign-in cancelled",
+            expired: "That took too long",
+          };
+          var msgs = {
+            denied: "No harm done — nothing was shared, and you can close this tab.",
+            expired: "The sign-in link timed out. Close this tab and try again.",
+          };
+          document.querySelector("[data-done-title]").textContent =
+            titles[err] || "Sign-in didn't work";
+          document.querySelector("[data-done-msg]").textContent =
+            msgs[err] || "Something went wrong on the way back. Close this tab and try again.";
+          return;   // leave the tab up so the message is readable
+        }
+
+        /* Announce, two ways. BroadcastChannel is the real path; the
+           localStorage write is the fallback for anything without it,
+           and rides the same `storage` event the site already uses to
+           sync theme/skin across tabs.
+
+           Deliberately NOT window.opener.postMessage — that needs
+           `noopener` dropped, which would hand this tab a live handle on
+           the page that opened it. */
+        try {
+          if (window.BroadcastChannel) {
+            var bc = new BroadcastChannel("deets-account");
+            bc.postMessage({ type: "signed-in", at: Date.now() });
+          }
+        } catch (e) {}
+        try { localStorage.setItem("deets-account-ping", String(Date.now())); } catch (e) {}
+
+        // Give the message a moment to land before the tab disappears.
+        setTimeout(function () { try { window.close(); } catch (e) {} }, 250);
+      })();
+    </script>
+  </body>
+</html>

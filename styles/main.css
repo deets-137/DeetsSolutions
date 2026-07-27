@@ -4932,3 +4932,73 @@ button:focus-visible {
 .mj-guide__payrow { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); padding: 1px var(--space-2); }
 .mj-guide__payk { color: var(--subtext); }
 .mj-guide__payv { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ── Account button (docs/accounts.md) ────────────────────────────
+   Injected by js/account.js into the Games dropdown and, separately,
+   into the mobile nav menu. It inherits each host's item geometry —
+   .nav-group__menu items and .nav-menu__item are styled for <a>, so
+   these rules only re-state what a <button> doesn't get for free
+   (reset, full-width, the status icon) and let the host own the rest. */
+.account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+}
+.account-btn:hover { background: var(--surface-hover); color: var(--title); }
+.account-btn[disabled] { cursor: default; }
+.account-btn__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The icon IS the status — same anatomy as the radio account button. */
+.account-btn__icon { flex: none; width: 1rem; height: 1rem; display: grid; place-items: center; }
+.account-btn__icon svg { width: 1rem; height: 1rem; display: block; }
+.account-btn[data-state="in"]  .account-btn__icon { color: var(--go); }
+.account-btn[data-state="out"] .account-btn__icon { color: var(--stop); }
+.account-btn__spinner {
+  width: 0.85rem; height: 0.85rem;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--title);
+  animation: account-btn-spin var(--dur-spin) linear infinite;
+}
+@keyframes account-btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Prose pages (privacy) ────────────────────────────────────────
+   Long-form body copy: the site's only page type that is just words. */
+.prose {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-6);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.65;
+}
+.prose h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  color: var(--title);
+  margin: var(--space-5) 0 var(--space-2);
+}
+.prose p { margin: 0 0 var(--space-3); }
+.prose ul { margin: 0 0 var(--space-3); padding-left: var(--space-5); }
+.prose li { margin: 0 0 var(--space-2); }
+.prose strong { color: var(--title); }
+
+/* The sign-in landing tab (auth/done.html) — visible for a blink on the
+   happy path, and as a readable message when close() is refused. */
+.auth-done { text-align: center; }
