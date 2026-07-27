@@ -72,8 +72,7 @@
         <h1 class="page-bar__title">Cool Stuff I Did</h1>
       </header>
       <p class="page-meta">
-        Apps, tools, and experiments — all built for fun, and now open source
-        on <a href="https://github.com/deets-137">GitHub</a>.
+        Apps, tools, experiments, and more - I was bored.
       </p>
 
       <h2 class="cool__section">Apps &amp; experiences</h2>
@@ -251,6 +250,75 @@
             <a class="project__link" href="https://github.com/deets-137/DeetsHealth">GitHub ↗</a>
           </div>
         </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsPixels</h3>
+            <span class="project__status">designing</span>
+          </div>
+          <p class="project__pitch">A pixel-art sprite, animation, and slideshow editor.</p>
+          <p class="project__desc">
+            Three surfaces over one document — draw sprites frame by frame, arrange them
+            into scenes and sequence those into a presentable deck, then browse the whole
+            cabinet. The brain is a UI-agnostic Rust crate where every mutation is a
+            command, which later lets an AI drive the editor the same way a person does.
+            Settled as a spec; the build comes next.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">Tauri v2</span>
+            <span class="project__chip">spec stage</span>
+          </div>
+        </article>
+      </div>
+
+      <h2 class="cool__section">Games</h2>
+      <div class="cool__grid">
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsCities</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">A hex-board trading game, playable in a browser tab.</p>
+          <p class="project__desc">
+            Share a table code and go — no install, no account. Every table is its own
+            Durable Object holding the whole game, and each player gets a personalized
+            view because hands and dev cards are hidden. Drop out mid-game and your seat
+            waits 30 seconds before a bot takes over, then hands it back when you return.
+            The worker behind it lives in its own private repo.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">no framework</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/cities/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsMahjong</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">Four-seat Hong Kong mahjong, same table, same rules.</p>
+          <p class="project__desc">
+            Built on the shared table foundation DeetsCities runs on, with the hidden
+            information taken seriously — your hand, your freshly drawn tile, and your own
+            claim options never leave your connection. The rules engine is a pure module
+            that checks itself, and tiles come in two decks you pick for yourself. Its
+            worker is a separate private repo.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">rules engine</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/mahjong/">Play ↗</a>
+          </div>
+        </article>
       </div>
 
       <h2 class="cool__section">Tools &amp; systems</h2>
@@ -411,13 +479,16 @@
           </div>
           <p class="project__pitch">This site.</p>
           <p class="project__desc">
-            Hand-rolled HTML/CSS with the same two-axis theme &times; skin token system
-            as the Deets apps — every page rides a color theme and a shape/type/motion
-            skin, switchable from the header.
+            Hand-rolled HTML/CSS — no build step, no frameworks, no dependencies — running
+            two journals, a League stats tab, shared listening rooms, and two multiplayer
+            games off a common table foundation. Every page rides the same two-axis theme
+            &times; skin token system as the Deets apps: pick a color theme and a
+            shape/type/motion skin from the header, and all 30 combinations hold up.
           </p>
           <div class="project__tags">
             <span class="project__chip">HTML/CSS</span>
             <span class="project__chip">no framework</span>
+            <span class="project__chip">design tokens</span>
           </div>
           <div class="project__links">
             <a class="project__link" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
