@@ -16,6 +16,9 @@ desktop.ini
 # Python (local http.server has none, but just in case)
 __pycache__/
 
+# Wrangler's local dev cache (`npx wrangler dev` run from the site root)
+.wrangler/
+
 # Apple Music signing credentials (DeetsRadio) — only the README is tracked.
 scripts/secrets/*
 !scripts/secrets/README.md
