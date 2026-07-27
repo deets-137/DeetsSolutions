@@ -64,10 +64,14 @@ games/                the shared game foundation (table shell, transport,
                       seat colors, the worker's DO base) — docs/games.md
 cities/               DeetsCities board game (talks to the DeetsCities worker)
 mahjong/              DeetsMahjong (talks to the DeetsMahjong worker)
+profile/              your account's home — name + color (docs/accounts.md)
+auth/                 sign-in landing pad (talks to the DeetsAccounts worker)
+privacy/              privacy policy (the OAuth consent screen links here)
 cool-stuff/           project portfolio
 resume/               resume page + downloadable PDF (generated, see below)
 styles/               palette → themes → skin → main (the token tiers)
 js/controls.js        settings menu
+js/account.js         sign-in chrome + the profile state (docs/accounts.md)
 js/toast.js           shared toast host (docs/ui.md, "Toasts")
 assets/fonts/         bundled faces (SIL OFL)
 docs/                 tech docs (see below)

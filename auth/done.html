@@ -30,15 +30,14 @@
 
   <body>
     <!-- The landing pad for the sign-in tab. Its whole job is to tell the
-         tab that STARTED the sign-in, then close itself. It only ever
-         shows for a blink; the copy is here for when window.close() is
-         refused (some browsers refuse on tabs they didn't script-open,
-         and the error path lands here too). -->
+         tab that STARTED the sign-in, then carry on to the profile page.
+         It only ever shows for a blink on success; the error path lands
+         here too and stays readable. -->
     <main class="site-main auth-done">
       <section class="page-bar">
         <h1 class="page-bar__title" data-done-title>Signed in</h1>
       </section>
-      <p class="page-meta" data-done-msg>You can close this tab.</p>
+      <p class="page-meta" data-done-msg>Taking you to your profile&hellip;</p>
     </main>
 
     <script>
@@ -78,8 +77,12 @@
         } catch (e) {}
         try { localStorage.setItem("deets-account-ping", String(Date.now())); } catch (e) {}
 
-        // Give the message a moment to land before the tab disappears.
-        setTimeout(function () { try { window.close(); } catch (e) {} }, 250);
+        /* Give the message a moment to land, then this tab BECOMES the
+           profile page — the fresh session's natural home. replace(), so
+           Back from the profile skips this blink of a page. The original
+           tab keeps whatever it was doing (that's what the broadcast is
+           for); it just gains a signed-in ✓. */
+        setTimeout(function () { location.replace("/profile/"); }, 250);
       })();
     </script>
   </body>

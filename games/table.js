@@ -99,8 +99,12 @@
 
       var a = account();
       if (!a || a.color == null) return;
-      var presets = window.DeetsColors && window.DeetsColors.PRESETS;
-      var want = presets && presets[a.color];
+      /* The profile colour is a hex (colors.js contract). Integers are
+         pre-hex caches from phase 1 — map them through the presets
+         rather than strand a stale localStorage copy. */
+      var want = typeof a.color === "number"
+        ? (Colors.PRESETS[a.color] || null)
+        : Colors.norm(a.color);
       if (!want) return;
 
       var seats = model.seats || [];
@@ -849,8 +853,22 @@
       graceSecs: graceSecs,
       boot: boot
     };
+    instances.push(TBL);
     return TBL;
   }
 
-  window.DeetsTable = { create: create };
+  /* Every shell this page created — one, in practice. `joined()` is the
+     site-chrome question "is a live table socket at stake right now?":
+     account.js asks it before navigating to the profile, so clicking
+     your name never tears down a lobby or a game in progress
+     (docs/accounts.md, "The new-tab flow"). */
+  var instances = [];
+  function anyJoined() {
+    for (var i = 0; i < instances.length; i++) {
+      try { if (instances[i].joined()) return true; } catch (e) {}
+    }
+    return false;
+  }
+
+  window.DeetsTable = { create: create, joined: anyJoined };
 })();
