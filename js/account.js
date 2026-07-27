@@ -91,14 +91,22 @@
     if (MOCK) { setState(MOCK_USER); return; }
     var ret = location.origin + "/auth/done.html";
     /* window.open MUST be synchronous inside the click handler or the
-       popup blocker eats it — nothing may be awaited before this line. */
+       popup blocker eats it — nothing may be awaited before this line.
+
+       NOT the "noopener" feature string: that makes open() return null
+       even on success, which would make the blocked-tab toast fire on
+       every sign-in. Instead the handle comes back real (so a genuine
+       block is detectable) and the opener link is severed by hand while
+       the tab is still same-origin about:blank — same isolation, working
+       detection. */
     var w = window.open(
       API + "/login?return=" + encodeURIComponent(ret),
-      "deets-signin", "noopener");
+      "deets-signin");
     if (!w) {
       toast("Your browser blocked the sign-in tab. Allow popups for deets.solutions and try again.", "error");
       return;
     }
+    try { w.opener = null; } catch (e) {}
     pending = true;
   }
 
