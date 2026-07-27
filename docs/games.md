@@ -273,7 +273,9 @@ key/value storage.
 2. `<game>/strings.js` — every string, `[ph]`-prefixed until Aditya writes it.
 3. `<game>/index.html` — copy a sibling's; swap the prefixes and the scripts.
 4. `<game>/<game>.js` — `DeetsTable.create({...})` + the board UI.
-5. `styles/main.css` — one block: the game's art and bento.
+5. `styles/main.css` — one block: the game's art and bento. **But first
+   read [css-split.md](css-split.md)** — the next game triggers the
+   per-page CSS split, and its styles start in `<game>/<game>.css` instead.
 6. `../Deets<Game>/` — worker repo: `GameTable` subclass, `wrangler.jsonc`,
    `scripts/vendor.mjs`, then `npx wrangler deploy`.
 7. `docs/<game>.md` — the rules, the game's own view fields, its art plan.

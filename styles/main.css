@@ -4999,6 +4999,96 @@ button:focus-visible {
 .prose li { margin: 0 0 var(--space-2); }
 .prose strong { color: var(--title); }
 
-/* The sign-in landing tab (auth/done.html) — visible for a blink on the
-   happy path, and as a readable message when close() is refused. */
+/* The sign-in landing tab (auth/done.html) — visible for a blink before
+   it becomes the profile page, and as a readable message on the error
+   path. */
 .auth-done { text-align: center; }
+
+/* ============================================================
+   Profile — /profile/, the account's home (docs/accounts.md).
+   League's page anatomy (.sotd__bar carrying the name) over a
+   bento grid of boxes. The boxes ride the card tokens so they're
+   siblings of the journal cards across all 30 theme×skin combos.
+   The color picker's swatch/hex kit deliberately mirrors the
+   lobby picker (styles/table.css, .gt-colorpick) — the gt- kit
+   is the table shell's own, so the profile carries its copy the
+   same way the journals carry theirs.
+   ============================================================ */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.profile-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.profile-box__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  color: var(--title);
+  margin: 0;
+}
+.profile-box__text {
+  margin: 0;
+  color: var(--subtext);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* A labelled control row inside a box. */
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+}
+.profile-field__label {
+  color: var(--subtext);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.profile-field__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.profile-field__input {
+  font: inherit;
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.profile-field__input:focus { border-color: var(--title); outline: none; }
+.profile-field__input--hex { flex: 0 1 6.5rem; }
+.profile-field__hexlabel { color: var(--subtext); font-size: 0.85rem; }
+.profile-field__msg { color: var(--stop); font-size: 0.85rem; }
+
+/* Swatches — the lobby picker's, without the clash-disabled state. */
+.profile-swatches { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.profile-swatch {
+  width: 1.5rem; height: 1.5rem; flex: none;
+  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
+}
+.profile-swatch:hover { transform: var(--hover-lift); box-shadow: 0 0 0 2px var(--border); }
+.profile-swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.profile-swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
+.profile-swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }

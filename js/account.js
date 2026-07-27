@@ -29,7 +29,8 @@
      It does not exercise the OAuth handshake — that needs the real
      worker, same caveat as the games' disconnect handling. */
   var MOCK = /(\?|&)mock(&|=|$)/.test(location.search);
-  var MOCK_USER = { id: "mock-user", name: "Deets", color: 0 };
+  /* color is a hex, the colors.js contract — same shape /me serves. */
+  var MOCK_USER = { id: "mock-user", name: "Deets", color: "#d94141" };
 
   var state = null;      // null = unknown, false = signed out, object = user
   var listeners = [];
@@ -110,6 +111,25 @@
     pending = true;
   }
 
+  /* Signed in, your name in the nav is the door to your profile page.
+     The one care: if this page has a LIVE table socket (lobby or game in
+     progress), navigating would tear it down — the same reason sign-in
+     opens a new tab — so the profile opens beside it instead. */
+  function goToProfile() {
+    var url = "/profile/" + (MOCK ? "?mock" : "");
+    if (location.pathname.replace(/\/+$/, "/") === "/profile/") return;  // already here
+    var live = false;
+    try { live = !!(window.DeetsTable && window.DeetsTable.joined && window.DeetsTable.joined()); }
+    catch (e) {}
+    if (!live) { location.href = url; return; }
+    var w = window.open(url, "_blank");
+    if (!w) {
+      toast("Your browser blocked the profile tab. Allow popups for deets.solutions and try again.", "error");
+      return;
+    }
+    try { w.opener = null; } catch (e) {}
+  }
+
   function signOut() {
     if (MOCK) { setState(false); return Promise.resolve(); }
     return fetch(API + "/logout", { method: "POST", credentials: "include" })
@@ -159,7 +179,7 @@
     btn.appendChild(icon);
 
     btn.addEventListener("click", function () {
-      if (state) { paint(btn, "loading"); signOut(); }
+      if (state) { goToProfile(); }
       else { signIn(); paint(btn, "loading"); }
     });
 

@@ -4,9 +4,9 @@ A profile that follows you across the site: a display name and a seat
 colour that the game tables pick up automatically, instead of retyping
 them at every gate.
 
-Phase 1 — this document — is **auth only**. No results, no stats, no
-profile page. The deliberate consequence is that **no game worker
-changes**: `games/table.js`, `games/table-do.js` and both vendored
+Phase 1 was **auth only**; the profile page (`/profile/`, "The profile
+page" below) is the first thing built on top of it. Still true either
+way: **no game worker changes** — `games/table-do.js` and both vendored
 copies are untouched, so signing in cannot break a live table.
 
 ---
@@ -20,7 +20,7 @@ CREATE TABLE users (
   id            TEXT PRIMARY KEY,      -- ours (uuid), never Google's
   google_sub    TEXT UNIQUE NOT NULL,  -- opaque, per-app, meaningless elsewhere
   display_name  TEXT,
-  seat_color    INTEGER,               -- 0..5, the --gseat-N contract
+  seat_color    INTEGER,               -- "#rrggbb", the colors.js contract (see below)
   token_epoch   INTEGER NOT NULL DEFAULT 0,
   created_at    INTEGER NOT NULL,
   last_seen_at  INTEGER NOT NULL
@@ -43,7 +43,12 @@ Three choices worth keeping:
   Google profile.
 - **`seat_color` is a preference, not a claim.** The gate offers it
   first if it's free at that table; the existing clash UI handles the
-  rest.
+  rest. On the wire it is a `"#rrggbb"` hex validated by the vendored
+  `colors.js` — the exact grammar a lobby seat speaks, so any color you
+  can Become at a table you can be by default. (Phase 1 stored a preset
+  *index* 0..5; the worker maps surviving integer rows through the
+  presets on read, and they become hexes on the next save. SQLite
+  affinity keeps both shapes in the one column — no migration.)
 
 `token_epoch` exists so a session can be invalidated everywhere without
 a sessions table — `/me` reads the user row anyway, so checking it is
@@ -117,7 +122,7 @@ table and back — would force a reconnect on the way home.
                                         |
                     BroadcastChannel('deets-account') ──> original tab
                                         |                 re-fetches /me
-                                 window.close()           flips to ✓
+                      location.replace('/profile/')       flips to ✓
 ```
 
 Four things this depends on:
@@ -126,7 +131,11 @@ Four things this depends on:
   before it, or the popup blocker eats it. If it's blocked anyway
   (`open()` returns null) we fall back to a toast with a clickable link.
 - **`auth/done.html` is a site page, not worker-returned HTML.** Copy
-  stays on the site and the page themes like everything else.
+  stays on the site and the page themes like everything else. On
+  success it broadcasts, then **becomes the profile page** via
+  `location.replace` (so Back skips the blink); the error hashes
+  (`denied`, `expired`, …) still render right there, readable. The
+  original tab is untouched either way — that's the broadcast's job.
 - **`BroadcastChannel`, with a `localStorage` write as fallback.** The
   site already syncs theme/skin across tabs via `storage` events, so
   this is an established pattern here.
@@ -158,6 +167,13 @@ Anatomy is [DeetsRadio's account button](radio.md) — a label plus a
 status icon where **the icon is the status**: ✓ in, ✕ out, spinner
 working, `aria-pressed` carrying it for screen readers.
 
+Signed out, clicking it starts sign-in. Signed in, the label is your
+name and clicking it **goes to your profile** — sign-out lives on the
+profile page now, not on this button. One care on the way there: if the
+page has a **live table socket** (`DeetsTable.joined()` — lobby or game
+in progress), same-tab navigation would tear it down, so the profile
+opens in a new tab instead. Same instinct as sign-in's new tab.
+
 **The mobile menu needs its own append.** `buildNavMenu()` clones
 `a[data-nav-core]` — a `<button>` won't come along, so without this the
 control silently vanishes below the 56rem breakpoint.
@@ -173,6 +189,32 @@ This matters more than it looks. These are party games joined from a
 texted link; putting sign-in in front of the gate would add friction at
 exactly the moment it costs you a player. Signing in is an affordance in
 the site chrome, never a step in joining.
+
+---
+
+## The profile page
+
+`/profile/` — the account's home, and where sign-in lands. League's
+page anatomy: the `.sotd__bar` carries your display name where League's
+carries the Riot ID, a toolbar holds Sign out, and a **bento grid** of
+boxes sits underneath. Not in any nav menu — your name in the Games
+dropdown is the way in. `profile/profile.js` paints everything from
+`DeetsAccount` state; signed out, the grid is a single sign-in
+invitation, and nothing 404s.
+
+One box so far — **Appearance**: display name (the one thing a lobby
+won't let you edit) and the account color. The color picker mirrors the
+lobby seat picker's anatomy — six preset swatches, a seventh custom
+slot, an exact-hex "Become..." row validated by the same `colors.js` —
+minus the clash checks, because a profile has no other seats. Both
+fields write through `DeetsAccount.update()` → `PATCH /me`, so every
+open tab's chrome picks the change up.
+
+Copy on the page is **inline** — the accounts-chrome precedent
+(`account.js`, `auth/done.html`), not the games' `[ph]` strings.js
+convention. The grid is deliberately roomy: stats boxes (phase 2),
+default table settings, and deeper customization each land as a new
+box, not a redesign.
 
 ---
 
