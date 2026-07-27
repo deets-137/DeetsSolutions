@@ -4,15 +4,13 @@ Everything that can't be done from a terminal, in order, with the exact
 values to paste. Design lives in [accounts.md](accounts.md); this is the
 runbook.
 
-**Nothing here is deployed yet.** The code is written and syntax-checked;
-none of it has run against a real Google client. Expect to shake out a
-bug or two on the first live sign-in — the notes at the bottom cover the
-failures that are actually likely.
-
-**You do not need a new Claude session for any of this.** Steps 1–4 are
-console and DNS work; step 5 is four terminal commands. If something
-breaks in step 6, that's when a fresh session is worth it — point it at
-this file and `docs/accounts.md`.
+**Status (2026-07-27): steps 1–5 are DONE.** The domain was already
+verified in Search Console; the consent screen is published; the OAuth
+client exists; the worker is deployed to `id.deets.solutions` with the
+D1 schema applied and `SESSION_SECRET` set. `/me` 401s and `/login`
+302s to Google correctly. The one thing never yet exercised is the full
+handshake — step 6's live sign-in. The failure notes at the bottom
+cover what's likely if it stumbles.
 
 ---
 
@@ -146,8 +144,7 @@ Local sign-in **cannot work** — the cookie is scoped to
 `.deets.solutions` and Google won't redirect to localhost. So this is a
 production test, and the site changes need to be live first.
 
-Site changes are **uncommitted** in the working tree (I didn't commit or
-push anything). Review, commit, push, then:
+The site changes are merged to master and live, so this is just:
 
 1. Open https://deets.solutions, hover **Games**. There should be a
    **Sign in** row with a red ✕.
@@ -206,7 +203,7 @@ Cloudflare preview URL it won't be.
 
 | File | |
 |---|---|
-| `../DeetsAccounts/` | new sibling worker repo (not a git repo yet, no remote) |
+| `../DeetsAccounts/` | new sibling worker repo, deployed to `id.deets.solutions` |
 | `docs/accounts.md` | design |
 | `docs/accounts-setup.md` | this |
 | `js/account.js` | new shared chrome |
