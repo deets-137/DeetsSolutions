@@ -43,14 +43,13 @@ Every page has a two-axis appearance system, picked from the Vibe menu in the
 header and remembered per visitor:
 
 - **Theme** (color): Fairy, Glade, Sepia, Moonlight, Hornet, Viper
-- **Skin** (shape, type, motion): Vanilla, Desk, Ocean, Glass, CyberStorm
+- **Skin** (shape, type, motion): Vanilla, Press, Ocean, Glass, CyberStorm
 
 Any theme pairs with any skin — 30 combinations, driven entirely by CSS
 tokens. Nothing in the site's styles hardcodes a color or a geometry value.
 
-First visits (no saved choice) follow the OS light/dark preference for the
-theme (Fairy in light, Moonlight in dark) and default the skin to CyberStorm
-on desktop, Ocean on mobile.
+First visits (no saved choice) follow the OS light/dark preference on both
+axes, landing on Press × Fairy in light or CyberStorm × Viper in dark.
 
 ## Structure
 

@@ -63,7 +63,7 @@ body {
 }
 
 /* ── Canvas texture layer ───────────────────────────────────────
-   The skin's wallpaper (Desk dots / Ocean waves / Glass aurora /
+   The skin's wallpaper (Press halftone / Ocean waves / Glass aurora /
    CyberStorm grid) painted on a VIEWPORT-fixed layer behind the
    content — same idea as the storm layer below. It lives here, not
    as a body background, so its size resolves against one screen: on
@@ -726,7 +726,7 @@ body::before {
   display: flex;
   flex-direction: column;
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -1393,7 +1393,7 @@ body::before {
   gap: var(--space-2);
   padding: var(--space-4);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -1515,7 +1515,7 @@ body::before {
   gap: var(--space-2);
   padding: var(--space-5);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -1600,7 +1600,7 @@ body::before {
   gap: var(--space-4);
   padding: var(--space-5);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -1831,7 +1831,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
    storm/waves/grid preview is visible. */
 .vibe {
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   overflow: hidden;
@@ -1968,11 +1968,12 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .resume__print-contact { display: none; }
 
 /* The sheet — the resume body on the skin's card material. Vanilla's
-   card is flush with the canvas (invisible, by design); Desk gets
-   paper, Glass frost, CyberStorm a smoked plate over the grid. */
+   card is flush with the canvas (invisible, by design); Press gets
+   stock over an offset plate, Glass frost, CyberStorm a smoked plate
+   over the grid. */
 .resume__sheet {
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -2135,7 +2136,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .lol-profile__icon {
   border-radius: var(--radius-card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
 }
 .lol-profile__head {
   display: flex;
@@ -2171,7 +2172,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   font: inherit;
@@ -2192,7 +2193,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   overflow-x: auto;
   margin-bottom: var(--space-6);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -2293,7 +2294,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .lol-matches { display: grid; gap: var(--space-2); margin-bottom: var(--space-6); }
 .lol-match {
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   overflow: hidden;
@@ -2464,7 +2465,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -2629,7 +2630,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .radio-col {
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -3054,7 +3055,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .radio-desk {
   margin-top: var(--space-4);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -3193,7 +3194,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   width: min(100%, 34rem);
   margin-top: var(--space-4);
   background: var(--card);
-  border: var(--card-border-width) solid var(--border);
+  border: var(--card-border-width) solid var(--card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
