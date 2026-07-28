@@ -46,7 +46,7 @@
     var EXTRA = spec.extraState || {};
     var EXTRA_KEYS = Object.keys(EXTRA);
     var GAME_CMDS = spec.gameVerbs || {};
-    var LOBBY_CMDS = { sit: 1, stand: 1, addBot: 1, shuffle: 1, recolor: 1, setSettings: 1, start: 1 };
+    var LOBBY_CMDS = { sit: 1, stand: 1, rename: 1, addBot: 1, shuffle: 1, recolor: 1, setSettings: 1, start: 1 };
 
     var TABLES = {};   // code -> table
     function ctx() { return { rand: Math.random, now: now() }; }
@@ -146,11 +146,13 @@
         hostSeat: seatOfToken(t, hostTok),
         seats: t.seats.map(function (s, i) {
           if (!s) return { seat: i, name: null, color: Colors.PRESETS[i], connected: false, empty: true };
-          return {
+          var o = {
             seat: i, name: s.name, color: s.color,
             connected: s.phantom ? true : tokenConnected(t, s.token),
             phantom: !!s.phantom, bot: !!s.bot
           };
+          if (s.conceded) o.conceded = true;
+          return o;
         }),
         spectators: spectatorCount(t),
         you: { seat: seat, host: token === hostTok }
@@ -184,6 +186,15 @@
       deliver(conn, Object.assign({ type: "snapshot", v: t.v, serverNow: now() }, view));
     }
     function errTo(conn, code) { deliver(conn, { type: "error", code: code }); }
+    function rejoinMode(t) { return (t.settings && t.settings.rejoin) || "rejoin"; }
+    // the "none" exit — the DO's concedeSeat, byte-parallel: the engine
+    // concedes, the roster keeps name + color for the grayed-out display
+    function concedeSeat(t, i) {
+      var r = applyEngine(t, { type: "concede", seat: i });
+      var s = t.seats[i];
+      if (s) { s.conceded = true; s.bot = false; s.phantom = false; }
+      return r.error ? [] : (r.events || []);
+    }
 
     /* ── engine bridge ──────────────────────────────────────────── */
     function applyEngine(t, action) {
@@ -277,10 +288,16 @@
           return broadcast(t, []);
         }
         // running game: a kick is a forced leave — the seat converts to a bot
-        // (the worker's takeover rule). phantom:true is what the drive keys
-        // on; bot:true is the client's tag.
-        t.seats[s].bot = true; t.seats[s].phantom = true;
+        // (the worker's takeover rule), or concedes at a "none" table.
+        // phantom:true is what the drive keys on; bot:true is the client's tag.
         var kcg = t.conns.filter(function (c) { return c.token === t.seats[s].token; })[0];
+        if (rejoinMode(t) === "none") {
+          var kev = concedeSeat(t, s);
+          if (kcg) deliver(kcg, { type: "kicked", serverNow: now() });
+          broadcast(t, kev);
+          return postApply(t);
+        }
+        t.seats[s].bot = true; t.seats[s].phantom = true;
         if (kcg) deliver(kcg, { type: "kicked", serverNow: now() });
         broadcast(t, [{ t: "takeover", seat: s }]);
         return postApply(t);                             // the drive picks the seat up
@@ -295,8 +312,41 @@
         if (!t.game || t.game.phase !== "over") return errTo(conn, "phase");
         disarmTimer(t);        // clears the pending timeout + turnEndsAt/timerFor
         t.game = null;
+        // conceded seats left for good — the rematch lobby opens them
+        t.seats = t.seats.map(function (s) { return s && s.conceded ? null : s; });
+        resizeSeats(t);
         if (spec.onRematch) spec.onRematch(t, HELPERS);
         broadcast(t, []);
+        return postApply(t);
+      }
+
+      // Mid-game stand / sit — the hop-out / hop-in pair, the DO's rules
+      // byte-parallel (mock edition: no reconnect, so "released" simply
+      // means the drive plays the seat and you spectate).
+      if (type === "stand" && t.game && t.game.phase !== "over") {
+        var ssi = seatOfToken(t, token);
+        if (ssi == null) return errTo(conn, "perm");
+        if (rejoinMode(t) === "none") {
+          var sev = concedeSeat(t, ssi);
+          broadcast(t, sev);
+          return postApply(t);
+        }
+        t.seats[ssi].bot = true; t.seats[ssi].phantom = true;
+        broadcast(t, [{ t: "takeover", seat: ssi }]);
+        return postApply(t);
+      }
+      if (type === "sit" && t.game && t.game.phase !== "over") {
+        if (rejoinMode(t) !== "anyone") return errTo(conn, "phase");
+        if (seatOfToken(t, token) != null) return errTo(conn, "perm");
+        var asi = msg.seat;
+        var aseat = asi != null ? t.seats[asi] : null;
+        if (!aseat || !(aseat.bot || aseat.phantom)) return errTo(conn, "full");   // only a bot-held seat
+        var alower = String(conn.name || "").toLowerCase();
+        var ataken = t.seats.some(function (x, xi) { return x && xi !== asi && x.name.toLowerCase() === alower; });
+        if (ataken) return errTo(conn, "name-taken");
+        aseat.name = conn.name; aseat.token = token;
+        aseat.bot = false; aseat.phantom = false;
+        broadcast(t, [{ t: "adopted", seat: asi }]);
         return postApply(t);
       }
 
@@ -319,6 +369,22 @@
           var mi = seatOfToken(t, token);
           if (mi != null) { t.seats[mi] = null; resizeSeats(t); broadcast(t, []); }
           return;
+        }
+        // rename your own seat (lobby-only — names lock at Start like
+        // colors). Display only, same clash rule as join and addBot; the DO
+        // runs this branch byte-parallel.
+        if (type === "rename") {
+          var ri = seatOfToken(t, token);
+          if (ri == null) return errTo(conn, "perm");
+          var rname = String(msg.name || "").trim().slice(0, 24);
+          if (!rname) return errTo(conn, "perm");
+          var rlower = rname.toLowerCase();
+          var rtaken = t.seats.some(function (s, si) { return s && si !== ri && s.name.toLowerCase() === rlower; }) ||
+                       t.conns.some(function (c) { return !c.closed && c.token !== token && c.name.toLowerCase() === rlower; });
+          if (rtaken) return errTo(conn, "name-taken");
+          t.seats[ri].name = rname;
+          t.conns.forEach(function (c) { if (c.token === token) c.name = rname; });
+          return broadcast(t, []);
         }
         // host adds (or renames — re-adding at a bot's seat) a named bot in
         // the lobby; the drive plays it from Start. Removal is kickSeat.
@@ -375,6 +441,13 @@
         }
         if (type === "setSettings") {
           if (!isHost(t, token)) return errTo(conn, "perm");
+          // rejoin is the table core's own key; the rest belongs to the game
+          if (msg.rejoin !== undefined) {
+            var modes = spec.rejoinModes || ["anyone", "rejoin"];
+            if (modes.indexOf(msg.rejoin) < 0) return errTo(conn, "phase");
+            t.settings.rejoin = msg.rejoin;
+            return broadcast(t, []);
+          }
           var bad = spec.applySettings(t, msg, HELPERS);
           if (bad) return errTo(conn, bad);
           resizeSeats(t);
@@ -437,7 +510,7 @@
             if (!t) {
               t = TABLES[code] = {
                 code: code, createdAt: now(), creatorToken: token,
-                settings: spec.defaultSettings(),
+                settings: Object.assign({ rejoin: "rejoin" }, spec.defaultSettings()),
                 seats: [], game: null, log: [],
                 v: 1, touched: now(), conns: [], timer: null, timerFor: null,
                 turnEndsAt: null, driving: false

@@ -426,6 +426,82 @@
       return null;
     },
 
+    /* ── concede: the seat leaves for good ─────────────────────────
+       The "None" re-join mode's exit (docs/cities.md): the table layer
+       sends this when a player stands, is kicked, or times out of
+       grace at a table with no bots. Resources go face-up back into
+       the bank; dev cards do NOT return to the deck (the drawing odds
+       must not change); buildings, roads, and any held award stay on
+       the board — an award is only lost by being overtaken. The turn
+       machine skips a conceded seat forever. Fewer than two live
+       seats left ends the game on current standings. */
+    concede: function (g, a, ctx, events) {
+      if (g.phase !== "setup" && g.phase !== "main") return err("phase");
+      var seat = a.seat;
+      if (seat == null || !g.players[seat] || g.players[seat].conceded) return err("turn");
+      var pl = g.players[seat];
+      pl.conceded = true;
+      var back = {};
+      RES.forEach(function (r) {
+        var c = pl.hand[r] || 0;
+        if (c) { back[r] = c; g.bank[r] += c; pl.hand[r] = 0; }
+      });
+      events.push({ t: "conceded", seat: seat, cards: back });
+      // their open offers die with them; obligations dissolve
+      g.offers = g.offers.filter(function (o) { return o.from !== seat; });
+      var p = g.turn.pending;
+      if (p && p.kind === "discard" && p.owed[seat] != null) {
+        delete p.owed[seat];
+        if (!Object.keys(p.owed).length) g.turn.pending = { kind: "robber", viaKnight: p.viaKnight };
+      }
+      if (p && p.kind === "steal") {
+        p.targets = p.targets.filter(function (x) { return x !== seat; });
+        if (!p.targets.length) g.turn.pending = null;
+      }
+      // end on standings when the table drops below two live seats: the
+      // survivor wins; with none left, the best score on the board does
+      var live = [];
+      for (var s2 = 0; s2 < g.seatCount; s2++) if (!g.players[s2].conceded) live.push(s2);
+      if (live.length <= 1) {
+        g.phase = "over";
+        g.turn.pending = null;
+        g.offers = [];
+        var w = live.length === 1 ? live[0] : 0;
+        if (!live.length) {
+          for (var s3 = 1; s3 < g.seatCount; s3++) if (totalVP(g, s3) > totalVP(g, w)) w = s3;
+        }
+        g.winner = w;
+        events.push({ t: "win", seat: w });
+        return null;
+      }
+      if (g.phase === "setup") {
+        // strike their remaining draft picks; a placed-but-unroaded
+        // settlement simply stays as it is
+        var cur = g.setup.seq[g.setup.i];
+        g.setup.seq = g.setup.seq.slice(0, g.setup.i)
+          .concat(g.setup.seq.slice(g.setup.i).filter(function (x) { return x !== seat; }));
+        if (cur === seat) { g.setup.need = "settlement"; g.setup.lastVid = null; }
+        if (g.setup.i >= g.setup.seq.length) {
+          g.phase = "main";
+          g.setup = null;
+          g.turn = { seat: firstLive(g), rolled: false, dice: null, devPlayed: false, pending: null };
+          g.stats.turns = 1;
+          events.push({ t: "turn", seat: g.turn.seat, n: 1 });
+        } else {
+          g.turn.seat = g.setup.seq[g.setup.i];
+        }
+        return null;
+      }
+      if (g.turn.seat === seat) {
+        // mid-turn exit: their whole flow (roll debt, robber, free roads)
+        // leaves with them
+        g.turn.pending = null;
+        nextTurn(g);
+        events.push({ t: "turn", seat: g.turn.seat, n: g.stats.turns });
+      }
+      return null;
+    },
+
     buyDev: function (g, a, ctx, events) {
       if (g.phase !== "main" || !g.turn.rolled || g.turn.pending) return err("phase");
       var seat = g.turn.seat, p = g.players[seat];
@@ -514,9 +590,10 @@
     if (g.setup.i >= g.setup.seq.length) {
       g.phase = "main";
       g.setup = null;
-      g.turn = { seat: 0, rolled: false, dice: null, devPlayed: false, pending: null };
+      // firstLive, not 0 — a seat can concede during the draft ("None" mode)
+      g.turn = { seat: firstLive(g), rolled: false, dice: null, devPlayed: false, pending: null };
       g.stats.turns = 1;
-      events.push({ t: "turn", seat: 0, n: 1 });
+      events.push({ t: "turn", seat: g.turn.seat, n: 1 });
     } else {
       g.setup.need = "settlement";
       g.turn.seat = g.setup.seq[g.setup.i];
@@ -607,7 +684,7 @@
       var verts = geo.hexVertices[hkey(hex.q, hex.r)] || [];
       verts.forEach(function (v) {
         var b = g.buildings[v];
-        if (!b) return;
+        if (!b || g.players[b.seat].conceded) return;   // dead seats collect nothing
         var amt = b.kind === "city" ? 2 : 1;
         demand[hex.terrain] = demand[hex.terrain] || {};
         demand[hex.terrain][b.seat] = (demand[hex.terrain][b.seat] || 0) + amt;
@@ -916,9 +993,15 @@
   /* ── turn advance ─────────────────────────────────────────────── */
   function nextTurn(g) {
     g.offers = [];
-    g.turn.seat = (g.turn.seat + 1) % g.seatCount;
+    // skip conceded seats; concede() ends the game before this could spin
+    do { g.turn.seat = (g.turn.seat + 1) % g.seatCount; }
+    while (g.players[g.turn.seat].conceded);
     g.turn.rolled = false; g.turn.dice = null; g.turn.devPlayed = false; g.turn.pending = null;
     g.stats.turns++;
+  }
+  function firstLive(g) {
+    for (var s = 0; s < g.seatCount; s++) if (!g.players[s].conceded) return s;
+    return 0;
   }
 
   /* ── timer expiry (auto-resolve the pending obligation, end turn) ─ */
@@ -1274,6 +1357,95 @@
       ok(!threw, "fuzz: no action throws");
       ok(!conserveBad, "fuzz: resources conserved (bank + hands invariant)");
       ok(!negBad, "fuzz: no negative bank or hand");
+    })();
+
+    /* concede — bank return, deck integrity, turn skipping, standings end */
+    (function () {
+      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var geo = geoOf(g.board);
+      function act(a) {
+        var r = applyAction(g, a, ctx);
+        if (r.error) { fail++; msgs.push("FAIL concede action " + a.type + " → " + r.error.code); return false; }
+        g = r.game; return true;
+      }
+      function freeVertex() {
+        var vs = Object.keys(geo.vertexHexes);
+        for (var i = 0; i < vs.length; i++) {
+          var v = vs[i];
+          if (g.buildings[v]) continue;
+          if ((geo.vertexNeighbors[v] || []).some(function (n) { return g.buildings[n]; })) continue;
+          return v;
+        }
+        return null;
+      }
+      function anyRoadFrom(v) {
+        var edges = geo.vertexEdges[v] || [];
+        for (var i = 0; i < edges.length; i++) if (g.roads[edges[i]] == null) return edges[i];
+        return null;
+      }
+      for (var i = 0; i < 6; i++) {
+        var v = freeVertex();
+        act({ type: "place", kind: "settlement", loc: v, seat: g.turn.seat });
+        act({ type: "place", kind: "road", loc: anyRoadFrom(v), seat: g.turn.seat });
+      }
+      eq(g.phase, "main", "concede test: draft completes");
+      g.players[1].hand.wood = 3; g.players[1].hand.ore = 2;
+      g.players[1].dev.push({ card: "knight", turnBought: 0 });
+      var bankWood = g.bank.wood, bankOre = g.bank.ore, deckLen = g.devDeck.length;
+      act({ type: "concede", seat: 1 });
+      ok(g.players[1].conceded, "seat concedes");
+      eq(g.bank.wood, bankWood + 3, "resources return to the bank");
+      eq(g.bank.ore, bankOre + 2, "the whole hand returns");
+      eq(g.players[1].dev.length, 1, "dev cards stay with the seat");
+      eq(g.devDeck.length, deckLen, "dev deck untouched by concede");
+      eq(g.turn.seat, 0, "bystander concede leaves the turn alone");
+      var r2 = applyAction(g, { type: "concede", seat: 1 }, ctx);
+      ok(r2.error && r2.error.code === "turn", "double concede refused");
+      g.turn.rolled = true;
+      act({ type: "endTurn" });
+      eq(g.turn.seat, 2, "turn skips the conceded seat");
+      g.turn.rolled = true;
+      act({ type: "endTurn" });
+      eq(g.turn.seat, 0, "turn wraps past the conceded seat");
+      act({ type: "concede", seat: 0 });
+      eq(g.phase, "over", "one live seat left ends the game");
+      eq(g.winner, 2, "the surviving seat takes the standings");
+    })();
+
+    /* concede during the draft — struck picks, live first turn */
+    (function () {
+      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var geo = geoOf(g.board);
+      function act(a) {
+        var r = applyAction(g, a, ctx);
+        if (r.error) { fail++; msgs.push("FAIL draft-concede " + a.type + " → " + r.error.code); return false; }
+        g = r.game; return true;
+      }
+      function freeVertex() {
+        var vs = Object.keys(geo.vertexHexes);
+        for (var i = 0; i < vs.length; i++) {
+          var v = vs[i];
+          if (g.buildings[v]) continue;
+          if ((geo.vertexNeighbors[v] || []).some(function (n) { return g.buildings[n]; })) continue;
+          return v;
+        }
+        return null;
+      }
+      function anyRoadFrom(v) {
+        var edges = geo.vertexEdges[v] || [];
+        for (var i = 0; i < edges.length; i++) if (g.roads[edges[i]] == null) return edges[i];
+        return null;
+      }
+      act({ type: "concede", seat: 0 });   // the very first drafter walks
+      eq(g.turn.seat, 1, "draft advances past a conceded drafter");
+      while (g.phase === "setup") {
+        var v = freeVertex();
+        act({ type: "place", kind: "settlement", loc: v, seat: g.turn.seat });
+        act({ type: "place", kind: "road", loc: anyRoadFrom(v), seat: g.turn.seat });
+      }
+      eq(g.phase, "main", "shortened draft completes");
+      eq(g.turn.seat, 1, "first turn lands on a live seat, not seat 0");
+      eq(g.players[1].hand ? g.setup : null, null, "setup state cleared");
     })();
 
     // a plausible random legal action for the current game state (fuzz driver)

@@ -3795,6 +3795,10 @@ button:focus-visible {
 }
 .cities-pstrip.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
 .cities-pstrip.is-away { opacity: 0.5; }
+/* conceded ("None" re-join mode): the seat is dead, not just away —
+   grayed for good, buildings still on the board */
+.cities-pstrip.is-conceded { opacity: 0.45; filter: grayscale(0.8); }
+.cities-pstrip.is-conceded .cities-pstrip__name { text-decoration: line-through; }
 .cities-pstrip__head > .gt-dot { flex: none; }
 /* turn timer ring: the active strip's seat dot wears the table clock —
    drains in the seat color, red for the last ten seconds */

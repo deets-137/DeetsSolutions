@@ -63,12 +63,13 @@ One envelope for every game. Only the action verbs differ.
 | Verb | Payload | Who |
 |---|---|---|
 | `join` | `{name, create, token}` | first message on every socket |
-| `sit` / `stand` | `{seat?}` | lobby only |
+| `sit` / `stand` | `{seat?}` | lobby; mid-game too under the re-join policy — `stand` releases your seat (two-stepped in the UI), `sit {seat}` adopts a bot-held one at an "anyone" table |
+| `rename` | `{name}` | own seat, lobby only (names lock at Start, like colors) |
 | `addBot` | `{seat, name}` | host, lobby only (re-adding at a bot's seat renames) |
 | `kickSeat` | `{seat}` | host; lobby opens the seat, mid-game converts it to a bot |
 | `shuffle` | — | host, lobby only |
 | `recolor` | `{seat?, color}` | own seat, or host on a bot seat; lobby only |
-| `setSettings` | game-specific keys | host, lobby only |
+| `setSettings` | game-specific keys, plus the shared `rejoin` | host, lobby only |
 | `start` | — | host |
 | `rematch` | — | host, game `over` only |
 | `closeTable` | — | host |
@@ -105,10 +106,68 @@ holds the token, so a returning player repossesses their seat from the bot
 that took it over — whichever gate pill they pressed. `name` is display only,
 and must be unique among live connections and seats.
 
+**Signed in, a seat also carries the account `uid`** — and the identity
+becomes portable across devices. The `ds_sess` cookie is scoped to
+`.deets.solutions`, so the browser sends it on the WebSocket upgrade by
+itself; the DO verifies its HMAC against the shared `SESSION_SECRET`
+(each game worker sets it with `npx wrangler secret put SESSION_SECRET`,
+same value as DeetsAccounts) and stashes the verified uid on the
+connection. Nothing about it rides the wire, a client message can't forge
+it, and without the secret or the cookie everything degrades to the guest
+path above. The rules ([table-do.js](../games/table-do.js), `sessionUid`
+and the join handler):
+
+- Reclaim matches **token first, then verified uid — but only a dark
+  seat** (grace, bot, or lobby-disconnected). A seat whose token still
+  has a live socket is never pulled out from under its session: hop out
+  on one device, then in on the other.
+- A uid reclaim **adopts the new device's token** onto the seat, and the
+  name-taken check skips the seat being reclaimed — same name + same
+  verified identity is you returning, not an imposter.
+- **Kick deletes the uid alongside the token**, so a kicked player can't
+  uid-waltz back in.
+- **`uid` never rides a view or broadcast** — identity is hidden info
+  even though it isn't game info.
+- `token_epoch` is not checked (that would take the accounts D1); a
+  stale session keeps seat-reclaim rights until its 30-day expiry,
+  which stakes nothing but a chair.
+
 The grace window is **model-driven, not event-driven**: a disconnected seat
 carries `graceUntil` in every broadcast, so a spectator arriving mid-grace
 sees the countdown from their first snapshot. The `leaving` / `returned` /
 `takeover` events are one-shot narration on top.
+
+### The re-join policy (`settings.rejoin`)
+
+One shared host setting on every lobby — the base's own settings key,
+rendered by the shell as the "Re-joining" chip row and validated against
+the game's `REJOIN_MODES` (default `["anyone", "rejoin"]`; offering
+`"none"` requires the game's engine to speak a `concede` action — cities
+opted in, mahjong never offers it because the game needs its four seats):
+
+- **anyone** — a dark seat's bot holds it *and* any spectator may adopt
+  it mid-game (`sit {seat}`, one toolbar pill per adoptable seat); the
+  original player keeps reclaim rights until someone else takes it.
+  Adoption keeps the seat's color and pieces and takes the adopter's
+  name (the `adopted` event).
+- **rejoin** (the default) — bots hold, token/uid reclaim only: exactly
+  the identity rules above.
+- **none** — no bots. Grace expiry, a mid-game kick, and standing all
+  **concede** the seat: the engine settles it (cities — resources back
+  to the bank, dev cards stay out of the deck so drawing odds hold,
+  buildings and held awards stand until overtaken), the roster grays it
+  (`conceded` rides the seat view) and severs its identity. Below two
+  live seats the game ends on current standings. One recorded corner: if
+  the current roller concedes while others still owe 7-roll discards,
+  those debts dissolve with the turn — a house-rule simplification.
+
+Standing mid-game is a voluntary release in every mode. The host's
+chosen policy is remembered client-side (`deets-games-rejoin`,
+deliberately shared across games) and applied once to the next table
+they create.
+
+**Stats rule (for phase-2 results):** a table where any seat changed
+hands mid-game (adoption) is unrated — its results attach to no one.
 
 ### Hidden information
 

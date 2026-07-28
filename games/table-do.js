@@ -85,6 +85,11 @@ export class GameTable {
   onGameOver() {}                          // settle-up when phase turns "over"
   onRematch() {}                           // drop any per-game state the rematch discards
   onJoined() {}                            // per-token work on a completed join
+  // re-join policy modes this game's tables may offer (settings.rejoin —
+  // "anyone" opens dark seats to adoption, "rejoin" holds them with bots,
+  // "none" makes leaving a concede). "none" needs the game's engine to
+  // speak a `concede` action, so a game opts in by overriding (cities).
+  get REJOIN_MODES() { return ["anyone", "rejoin"]; }
   extraCommand() { return false; }         // game-specific verb; true = handled
   deadlineFor() { return null; }           // ms window for the table's one deadline
   dlSig() { return null; }                 // stable signature of that obligation
@@ -162,6 +167,15 @@ export class GameTable {
   // code reads the same in both worlds).
   isBot(s) { return !!(s && (s.bot || s.phantom)); }
   botAt(i) { return this.isBot(this.t.seats[i]); }
+  rejoinMode() { return (this.t.settings && this.t.settings.rejoin) || "rejoin"; }
+  // the "none" exit: the engine concedes the seat, the roster severs it.
+  // Name and color stay for the grayed-out display; `conceded` is public.
+  concedeSeat(i) {
+    const r = this.applyEngine({ type: "concede", seat: i });
+    const s = this.t.seats[i];
+    if (s) { s.conceded = true; delete s.bot; delete s.graceUntil; delete s.token; delete s.uid; }
+    return r.error ? [] : (r.events || []);
+  }
 
   hostToken() {
     const t = this.t;
@@ -206,6 +220,7 @@ export class GameTable {
           connected: this.isBot(s) ? true : this.tokenConnected(s.token),
           phantom: this.isBot(s), bot: !!s.bot,
         };
+        if (s.conceded) o.conceded = true;
         if (s.graceUntil) o.graceUntil = s.graceUntil;
         return o;
       }),
@@ -285,12 +300,16 @@ export class GameTable {
     }
     let changed = false;
     let events = [];
-    // 1. grace expiries → bot takeover
+    // 1. grace expiries → bot takeover, or a concede at a "none" table
     for (let i = 0; i < t.seats.length; i++) {
       const s = t.seats[i];
       if (s && s.graceUntil && now >= s.graceUntil && !this.tokenConnected(s.token)) {
-        s.bot = true; delete s.graceUntil; changed = true;
-        events.push({ t: "takeover", seat: i });
+        if (this.rejoinMode() === "none") {
+          events = events.concat(this.concedeSeat(i)); changed = true;
+        } else {
+          s.bot = true; delete s.graceUntil; changed = true;
+          events.push({ t: "takeover", seat: i });
+        }
       }
     }
     // 2. table-deadline expiry (a connected human, or an auto-advancing
@@ -321,7 +340,7 @@ export class GameTable {
   // engine validates them) or extraCommand() for anything off-engine.
   async handle(ws, att, msg) {
     const t = this.t, token = att.token, type = msg.type;
-    const LOBBY = { sit: 1, stand: 1, addBot: 1, shuffle: 1, recolor: 1, setSettings: 1, start: 1 };
+    const LOBBY = { sit: 1, stand: 1, rename: 1, addBot: 1, shuffle: 1, recolor: 1, setSettings: 1, start: 1 };
 
     if (type === "closeTable") {
       if (!this.isHost(token)) return this.errTo(ws, "perm");
@@ -343,14 +362,22 @@ export class GameTable {
         this.armAlarm();
         return;
       }
-      // running game: a kick is a forced leave — the seat converts to a bot.
-      // Drop the token with it: the seat record is what join's reclaim matches
-      // on, so leaving it in place would hand the seat straight back the
-      // moment the kicked player re-entered the code. kickedTok is already
-      // captured above, so their sockets still get the close.
-      t.seats[s].bot = true; delete t.seats[s].graceUntil; delete t.seats[s].token;
+      // running game: a kick is a forced leave — the seat converts to a bot
+      // (or concedes, at a "none" table: no bots there by definition).
+      // Drop the token AND the uid with it: the seat record is what join's
+      // reclaim matches on (either key), so leaving one in place would hand
+      // the seat straight back the moment the kicked player re-entered the
+      // code. kickedTok is already captured above, so their sockets still
+      // get the close.
+      let kevents;
+      if (this.rejoinMode() === "none") {
+        kevents = this.concedeSeat(s);
+      } else {
+        t.seats[s].bot = true; delete t.seats[s].graceUntil; delete t.seats[s].token; delete t.seats[s].uid;
+        kevents = [{ t: "takeover", seat: s }];
+      }
       for (const c of this.socketsForToken(kickedTok)) { try { c.ws.send(JSON.stringify({ type: "kicked", serverNow: Date.now() })); } catch (e) {} try { c.ws.close(4403, "kicked"); } catch (e) {} }
-      await this.broadcast([{ t: "takeover", seat: s }]);
+      await this.broadcast(kevents);
       this.armAlarm();
       return;
     }
@@ -366,8 +393,48 @@ export class GameTable {
       if (!t.game || t.game.phase !== "over") return this.errTo(ws, "phase");
       t.game = null;
       t.turnEndsAt = null; t.timerFor = null;
+      // conceded seats left for good — the rematch lobby opens them
+      for (let ci = 0; ci < t.seats.length; ci++) if (t.seats[ci] && t.seats[ci].conceded) t.seats[ci] = null;
+      this.resizeSeats();
       this.onRematch();
       await this.broadcast([]);
+      this.armAlarm();
+      return;
+    }
+
+    // Mid-game stand and sit — the hop-out / hop-in pair (docs/games.md,
+    // "Identity and rejoin"). Standing is a voluntary exit: the seat is
+    // released like a kick (bot holds it, or it concedes at a "none"
+    // table) and the stander stays connected as a spectator. Sitting
+    // mid-game exists only at an "anyone" table: a spectator adopts a
+    // bot-held seat — the seat's color and pieces, their own name.
+    if (type === "stand" && t.game && t.game.phase !== "over") {
+      const si = this.seatOfToken(token);
+      if (si == null) return this.errTo(ws, "perm");
+      let sevents;
+      if (this.rejoinMode() === "none") {
+        sevents = this.concedeSeat(si);
+      } else {
+        t.seats[si].bot = true; delete t.seats[si].graceUntil; delete t.seats[si].token; delete t.seats[si].uid;
+        sevents = [{ t: "takeover", seat: si }];
+      }
+      await this.broadcast(sevents);
+      this.armAlarm();
+      return;
+    }
+    if (type === "sit" && t.game && t.game.phase !== "over") {
+      if (this.rejoinMode() !== "anyone") return this.errTo(ws, "phase");
+      if (this.seatOfToken(token) != null) return this.errTo(ws, "perm");
+      const ai = msg.seat;
+      const as = ai != null ? t.seats[ai] : null;
+      if (!as || !this.isBot(as)) return this.errTo(ws, "full");   // only a bot-held seat is adoptable
+      const alower = String(att.name || "").toLowerCase();
+      const ataken = t.seats.some((x, xi) => x && xi !== ai && x.name.toLowerCase() === alower);
+      if (ataken) return this.errTo(ws, "name-taken");   // connections were checked at join
+      as.name = att.name; as.token = token;
+      if (att.uid) as.uid = att.uid; else delete as.uid;
+      delete as.bot; delete as.graceUntil; delete as.phantom;
+      await this.broadcast([{ t: "adopted", seat: ai }]);
       this.armAlarm();
       return;
     }
@@ -384,6 +451,7 @@ export class GameTable {
         if (idx < 0) return this.errTo(ws, "full");
         const occupied = t.seats.map((s, si) => (s && si !== idx) ? s.color : null);
         t.seats[idx] = { token, name: att.name, color: this.Colors.freePreset(occupied) };
+        if (att.uid) t.seats[idx].uid = att.uid;   // account seat: uid-reclaim from any device
         this.resizeSeats();
         await this.broadcast([]);
         this.armAlarm();
@@ -392,6 +460,27 @@ export class GameTable {
       if (type === "stand") {
         const mi = this.seatOfToken(token);
         if (mi != null) { t.seats[mi] = null; this.resizeSeats(); await this.broadcast([]); this.armAlarm(); }
+        return;
+      }
+      // rename your own seat (lobby-only — names lock at Start like colors).
+      // Display only, same clash rule as join and addBot.
+      if (type === "rename") {
+        const ri = this.seatOfToken(token);
+        if (ri == null) return this.errTo(ws, "perm");
+        const rname = String(msg.name || "").trim().slice(0, NAME_CAP);
+        if (!rname) return this.errTo(ws, "perm");
+        const rlower = rname.toLowerCase();
+        const rtaken = t.seats.some((s, si) => s && si !== ri && s.name.toLowerCase() === rlower) ||
+                       this.joinedSockets().some((s) => s.att.token !== token && s.att.name.toLowerCase() === rlower);
+        if (rtaken) return this.errTo(ws, "name-taken");
+        t.seats[ri].name = rname;
+        // join's clash check reads live att.name too — every socket of this
+        // token follows, or the old name stays "taken" and the new one
+        // goes unguarded
+        for (const c of this.socketsForToken(token)) { c.att.name = rname; c.ws.serializeAttachment(c.att); }
+        att.name = rname;
+        await this.broadcast([]);
+        this.armAlarm();
         return;
       }
       // host adds (or renames — re-adding at a bot's seat) a named bot in the
@@ -452,6 +541,14 @@ export class GameTable {
       }
       if (type === "setSettings") {
         if (!this.isHost(token)) return this.errTo(ws, "perm");
+        // rejoin is the base's own key; the rest belongs to the game
+        if (msg.rejoin !== undefined) {
+          if (this.REJOIN_MODES.indexOf(msg.rejoin) < 0) return this.errTo(ws, "phase");
+          t.settings.rejoin = msg.rejoin;
+          await this.broadcast([]);
+          this.armAlarm();
+          return;
+        }
         const bad = this.applySettings(msg);
         if (bad) return this.errTo(ws, bad);
         this.resizeSeats();
@@ -499,6 +596,46 @@ export class GameTable {
     }
   }
 
+  /* ---- account identity (docs/accounts.md) ---------------------------------
+     The ds_sess cookie is scoped to .deets.solutions, so the browser sends it
+     on the WebSocket upgrade to this worker by itself — no client plumbing,
+     nothing on the wire. Verify its HMAC against the SHARED session secret
+     (`npx wrangler secret put SESSION_SECRET`, same value as DeetsAccounts)
+     and a seat can carry an account id no client message could forge. Missing
+     secret, missing cookie, bad signature, expired — all degrade to null,
+     which is exactly the guest path. token_epoch is deliberately NOT checked
+     (that would take the accounts D1): a signed-out-everywhere session keeps
+     seat-reclaim rights until its 30-day iat expiry, and it stakes nothing
+     but a chair. The uid NEVER rides a view or broadcast — identity is
+     hidden info even though it isn't game info. */
+  async sessionUid(req) {
+    try {
+      const secret = this.env.SESSION_SECRET;
+      if (!secret) return null;
+      const m = /(?:^|;\s*)ds_sess=([^;]+)/.exec(req.headers.get("Cookie") || "");
+      if (!m) return null;
+      const tok = decodeURIComponent(m[1]);
+      const dot = tok.lastIndexOf(".");
+      if (dot < 1) return null;
+      const payload = tok.slice(0, dot);
+      const b64 = (s) => {
+        const pad = s.replace(/-/g, "+").replace(/_/g, "/");
+        const raw = atob(pad + "=".repeat((4 - (pad.length % 4)) % 4));
+        const out = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+        return out;
+      };
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+      if (!(await crypto.subtle.verify("HMAC", key, b64(tok.slice(dot + 1)), enc.encode(payload)))) return null;
+      const data = JSON.parse(new TextDecoder().decode(b64(payload)));
+      if (!data || typeof data.u !== "string" || !data.u) return null;
+      if ((Date.now() / 1000) - (data.iat || 0) > 30 * 86400) return null;   // DeetsAccounts' SESSION_DAYS
+      return data.u;
+    } catch (e) { return null; }
+  }
+
   // ---- wire in -------------------------------------------------------------
   async fetch(req) {
     const parts = new URL(req.url).pathname.split("/").filter(Boolean);   // [table, code, leaf]
@@ -520,9 +657,10 @@ export class GameTable {
     if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") {
       return new Response("expected websocket", { status: 426 });
     }
+    const uid = await this.sessionUid(req);   // verified BEFORE accept — no attachment gap
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1]);
-    pair[1].serializeAttachment({ joined: false, code });   // joined once name is set
+    pair[1].serializeAttachment({ joined: false, code, uid });   // joined once name is set
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
@@ -553,13 +691,26 @@ export class GameTable {
       const token = typeof msg.token === "string" ? msg.token.slice(0, TOKEN_CAP) : "";
       const name = String(msg.name || "?").slice(0, NAME_CAP);
       const t = this.t;
+      const uid = att.uid || null;   // verified at upgrade — never client-supplied
       // reconnect supersedes: reap this device's own lingering sockets
       const mine = this.joinedSockets().filter((s) => s.ws !== ws && token && s.att.token === token);
       const others = this.joinedSockets().filter((s) => s.ws !== ws && !mine.includes(s));
-      // clash vs live connections AND host-added bot seats (a returning
-      // token's own seat doesn't block its reclaim)
+      // Reclaim target: this device's token, or — signed in — the account's
+      // seat from ANOTHER device, but only a DARK one: a seat whose token
+      // still has a live socket is never pulled out from under its session
+      // (hop out first, then in).
+      let reclaim = this.seatOfToken(token);
+      if (reclaim == null && uid) {
+        for (let i = 0; i < t.seats.length; i++) {
+          const s = t.seats[i];
+          if (s && s.uid === uid && !this.tokenConnected(s.token)) { reclaim = i; break; }
+        }
+      }
+      // clash vs live connections AND seats — the seat being reclaimed doesn't
+      // block its own return (same name + same verified identity is you
+      // coming back, not an imposter)
       if (others.some((s) => s.att.name.toLowerCase() === name.toLowerCase()) ||
-          t.seats.some((s) => s && s.token !== token && s.name.toLowerCase() === name.toLowerCase())) {
+          t.seats.some((s, si) => s && si !== reclaim && s.token !== token && s.name.toLowerCase() === name.toLowerCase())) {
         this.errTo(ws, "name-taken");
         try { ws.close(4409, "name-taken"); } catch (e) {}
         return;
@@ -577,7 +728,8 @@ export class GameTable {
         }
         t.createdAt = Date.now();
         t.creatorToken = token;
-        t.settings = this.defaultSettings();
+        // rejoin is the base's own setting; the game's keys ride alongside
+        t.settings = Object.assign({ rejoin: "rejoin" }, this.defaultSettings());
         t.seats = []; this.resizeSeats();
         t.game = null; t.log = []; t.v = 1;
         for (const k of Object.keys(this.EXTRA_STATE)) t[k] = this.EXTRA_STATE[k]();
@@ -585,12 +737,18 @@ export class GameTable {
       for (const s of mine) { try { s.ws.close(4408, "replaced"); } catch (e) {} }
       att.joined = true; att.token = token; att.name = name; att.at = Date.now(); att.tie = this.tie++;
       ws.serializeAttachment(att);
-      // reconnect reclaim: a returning token repossesses its seat from the bot
-      const seat = this.seatOfToken(token);
+      // reconnect reclaim: a returning token — or a verified account uid on a
+      // new device — repossesses its seat from the bot
+      const seat = reclaim;
       const revents = [];
-      if (seat != null && t.game && t.game.phase !== "over" && (t.seats[seat].bot || t.seats[seat].graceUntil)) {
-        delete t.seats[seat].bot; delete t.seats[seat].graceUntil;
-        revents.push({ t: "returned", seat });
+      if (seat != null) {
+        const rs = t.seats[seat];
+        rs.token = token;        // uid reclaim: the seat follows the account to this device
+        if (uid) rs.uid = uid;   // signing in tags the seat on any reclaim
+        if (t.game && t.game.phase !== "over" && (rs.bot || rs.graceUntil)) {
+          delete rs.bot; delete rs.graceUntil;
+          revents.push({ t: "returned", seat });
+        }
       }
       t.emptyAt = null;
       this.onJoined(token);

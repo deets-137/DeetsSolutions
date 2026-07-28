@@ -51,6 +51,8 @@
                  steal: 1, bankTrade: 1, offer: 1, respond: 1, close: 1, cancel: 1, endTurn: 1 },
 
     defaultSettings: function () { return { capacity: 3, timerSec: 0, betting: false, resView: true }; },
+    // cities opts into "None" — the engine speaks `concede` (docs/cities.md)
+    rejoinModes: ["anyone", "rejoin", "none"],
     minSeats: function () { return 3; },
 
     /* the view's game half (the core built code/phase/settings/seats/you) */

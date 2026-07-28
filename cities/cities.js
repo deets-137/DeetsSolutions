@@ -71,6 +71,9 @@
     rootSel: ".cities",
     capacity: 6,
     minSeats: 3,
+    // cities opts into "None" (leaving = conceding): the engine speaks
+    // `concede`, so a table can run bot-free (docs/cities.md)
+    rejoinModes: ["anyone", "rejoin", "none"],
     startNeedsHint: S.startNeedsThree,
     logCap: 120,
     errExtra: { cost: S.errCost, loc: S.errLoc, rate: S.errRate, empty: S.errEmpty, supply: S.errSupply },
@@ -1656,7 +1659,9 @@
     }
     (model.players || []).forEach(function (p, i) {
       var active = model.phase === "main" && model.turn.seat === i;
-      var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") + (model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
+      var conceded = model.seats[i] && model.seats[i].conceded;
+      var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") +
+        (conceded ? " is-conceded" : model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
       strip.dataset.seat = i;   // fly-in chips steer by this, re-queried per frame
       strip.style.setProperty("--cstrip", "var(--gseat-" + i + ")");
       var body = el("div", "cities-pstrip__body");

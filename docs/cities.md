@@ -218,6 +218,20 @@ actions return typed errors and change nothing. Every rule below is
 enforced **server-side**; client affordances (disabled pills, dimmed
 vertices) are cosmetic.
 
+**Concede** (`{type: "concede", seat}`, the `conceded` event) — cities'
+opt-in to the "None" re-join mode ([games.md](games.md), "The re-join
+policy"). The seat leaves for good: resources go face-up back into the
+bank; **dev cards do not return to the deck** (drawing odds must not
+change) and stay frozen on the seat, `vpCards` included, so the final
+standings count them; buildings and roads stand; a held Longest Road /
+Largest Army is kept until overtaken, never released early. The turn
+machine skips conceded seats (setup draft included — their remaining
+picks are struck), their buildings stop producing, and their open trade
+offers die. Below two live seats the game ends on current standings —
+the survivor is the winner. Recorded corner: a roller conceding while
+others still owe 7-roll discards dissolves those debts with the turn (a
+house-rule simplification).
+
 **Phases** (`game.phase`):
 
 ```
