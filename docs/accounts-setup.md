@@ -4,13 +4,12 @@ Everything that can't be done from a terminal, in order, with the exact
 values to paste. Design lives in [accounts.md](accounts.md); this is the
 runbook.
 
-**Status (2026-07-27): steps 1–5 are DONE.** The domain was already
+**Status (2026-07-27): ALL DONE, live-tested.** The domain was already
 verified in Search Console; the consent screen is published; the OAuth
 client exists; the worker is deployed to `id.deets.solutions` with the
-D1 schema applied and `SESSION_SECRET` set. `/me` 401s and `/login`
-302s to Google correctly. The one thing never yet exercised is the full
-handshake — step 6's live sign-in. The failure notes at the bottom
-cover what's likely if it stumbles.
+D1 schema applied and `SESSION_SECRET` set. Aditya ran step 6's live
+sign-in end to end the same day — the full handshake works. The failure
+notes at the bottom stay for the next time something stumbles.
 
 ---
 
@@ -190,11 +189,10 @@ Cloudflare preview URL it won't be.
 
 ## What is deliberately NOT built
 
-- **Results and stats.** Phase 1 is auth only. No game worker changed;
-  `table-do.js` and both vendored copies are untouched.
-- **A profile page.** Editing a name or colour goes through
-  `DeetsAccount.update({name, color})` from the console for now — there
-  is no UI for it yet.
+- **Results and stats.** Phase 1 was auth only. (Since then: the profile
+  page landed, and seats now carry a verified uid for cross-device
+  reclaim — see [accounts.md](accounts.md), "Beyond phase 1". Results
+  POSTing is still future.)
 - **Sign-out-everywhere.** The `token_epoch` column exists and is
   checked, but nothing bumps it. It's a manual D1 update if ever needed.
 - **The app logo**, per step 2.
