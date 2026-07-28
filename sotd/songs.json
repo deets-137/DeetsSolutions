@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-28T04:08:38Z",
+  "generated_at": "2026-07-28T21:34:23Z",
   "channel": "song-of-the-day",
-  "count": 343,
+  "count": 344,
   "songs": [
     {
       "post_id": 1,
@@ -7891,6 +7891,29 @@
       "apple_music_url": "https://music.apple.com/us/album/rome/6769443342?i=6769443707&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/00/9a/64/009a64a6-be79-b185-271a-d3a562e53505/mzaf_18274692938986766700.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/c8/3c/93/c83c93a5-1805-5171-3deb-87290a7f0702/196874353202.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 8610,
+      "posted_at": "2026-07-28T05:32:45.696000+00:00",
+      "date": "2026-07-27",
+      "day": "Mon",
+      "month": "07_2026",
+      "track_name": "Green Screen (1pm)",
+      "artist_name": "Cautious Clay",
+      "album": "The Hours: High Noon",
+      "genre": "R&B/Soul",
+      "duration": "2:10",
+      "duration_sec": 130,
+      "release_date": "",
+      "release_year": null,
+      "age_yrs": null,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/green-screen-1pm/1896264236?i=6766279426",
+      "apple_music_url": "https://music.apple.com/us/album/green-screen-1pm/1896264236?i=6766279426&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ec/db/c8/ecdbc895-7faf-ff80-bec4-d12ca97de090/mzaf_5481587314066363846.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/cb/38/fb/cb38fbd0-af64-978d-2213-4e1f91d34e82/26CRGIM54973.rgb.jpg/600x600bb.jpg"
     }
   ]
 }
