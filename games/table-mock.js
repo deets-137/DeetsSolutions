@@ -187,13 +187,18 @@
     }
     function errTo(conn, code) { deliver(conn, { type: "error", code: code }); }
     function rejoinMode(t) { return (t.settings && t.settings.rejoin) || "rejoin"; }
-    // the "none" exit — the DO's concedeSeat, byte-parallel: the engine
-    // concedes, the roster keeps name + color for the grayed-out display
+    // the "none" exit — the DO's concedeSeat, byte-parallel: the engine rules
+    // first (a refusal leaves the roster untouched), then the seat is severed
+    // and keeps only name + color for the grayed-out display. Dropping the
+    // token is what makes the conceder a spectator: leave it and seatOfToken
+    // still resolves, so they'd keep acting as a seat the drive also plays.
     function concedeSeat(t, i) {
-      var r = applyEngine(t, { type: "concede", seat: i });
       var s = t.seats[i];
-      if (s) { s.conceded = true; s.bot = false; s.phantom = false; }
-      return r.error ? [] : (r.events || []);
+      if (!s || !t.game) return [];
+      var r = applyEngine(t, { type: "concede", seat: i });
+      if (r.error) return [];
+      s.conceded = true; s.bot = false; s.phantom = false; delete s.token;
+      return r.events || [];
     }
 
     /* ── engine bridge ──────────────────────────────────────────── */
@@ -290,6 +295,9 @@
         // running game: a kick is a forced leave — the seat converts to a bot
         // (the worker's takeover rule), or concedes at a "none" table.
         // phantom:true is what the drive keys on; bot:true is the client's tag.
+        // A seat the drive already plays is not kickable: mid-game a bot only
+        // leaves by being taken over (the DO's rule).
+        if (t.seats[s].bot || t.seats[s].phantom) return errTo(conn, "perm");
         var kcg = t.conns.filter(function (c) { return c.token === t.seats[s].token; })[0];
         if (rejoinMode(t) === "none") {
           var kev = concedeSeat(t, s);
@@ -297,7 +305,7 @@
           broadcast(t, kev);
           return postApply(t);
         }
-        t.seats[s].bot = true; t.seats[s].phantom = true;
+        t.seats[s].bot = true; t.seats[s].phantom = true; delete t.seats[s].token;
         if (kcg) deliver(kcg, { type: "kicked", serverNow: now() });
         broadcast(t, [{ t: "takeover", seat: s }]);
         return postApply(t);                             // the drive picks the seat up
@@ -331,7 +339,7 @@
           broadcast(t, sev);
           return postApply(t);
         }
-        t.seats[ssi].bot = true; t.seats[ssi].phantom = true;
+        t.seats[ssi].bot = true; t.seats[ssi].phantom = true; delete t.seats[ssi].token;
         broadcast(t, [{ t: "takeover", seat: ssi }]);
         return postApply(t);
       }

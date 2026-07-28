@@ -1695,12 +1695,16 @@
   /* ── strip context menu (right-click a player strip) ────────────
      Embargo (any seated viewer) + Kick (host, incl. a spectating host —
      mid-game the seat converts to a bot, the takeover rule).
+     A bot's own strip has no Kick: mid-game a bot leaves only by being
+     taken over, never by the host's hand (the worker refuses it too).
      Not the popover kit: strips are wiped by every broadcast (~650ms in the
      mock), so the menu's open/closed state lives in ui.embargoPop and the
      strip re-renders it open — a kit popover would vanish mid-click. */
   function attachEmbargoMenu(strip, i) {
     var canEmbargo = mySeat() != null && i !== mySeat();
-    var canKick = model.host && i !== mySeat() && model.seats[i] && !model.seats[i].empty;
+    var kseat = model.seats[i];
+    var canKick = model.host && i !== mySeat() && kseat && !kseat.empty &&
+                  !kseat.phantom && !kseat.bot && !kseat.conceded;
     if (!canEmbargo && !canKick) return;
     strip.addEventListener("contextmenu", function (ev) {
       ev.preventDefault();

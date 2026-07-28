@@ -66,7 +66,7 @@ One envelope for every game. Only the action verbs differ.
 | `sit` / `stand` | `{seat?}` | lobby; mid-game too under the re-join policy — `stand` releases your seat (two-stepped in the UI), `sit {seat}` adopts a bot-held one at an "anyone" table |
 | `rename` | `{name}` | own seat, lobby only (names lock at Start, like colors) |
 | `addBot` | `{seat, name}` | host, lobby only (re-adding at a bot's seat renames) |
-| `kickSeat` | `{seat}` | host; lobby opens the seat, mid-game converts it to a bot |
+| `kickSeat` | `{seat}` | host; lobby opens the seat (bots included — this is how a lobby bot is removed), mid-game converts a **human** seat to a bot and refuses a bot-held one |
 | `shuffle` | — | host, lobby only |
 | `recolor` | `{seat?, color}` | own seat, or host on a bot seat; lobby only |
 | `setSettings` | game-specific keys, plus the shared `rejoin` | host, lobby only |
@@ -161,10 +161,26 @@ opted in, mahjong never offers it because the game needs its four seats):
   the current roller concedes while others still owe 7-roll discards,
   those debts dissolve with the turn — a house-rule simplification.
 
-Standing mid-game is a voluntary release in every mode. The host's
-chosen policy is remembered client-side (`deets-games-rejoin`,
-deliberately shared across games) and applied once to the next table
-they create.
+Standing mid-game is a voluntary release in every mode, and it is
+**one-way**: standing drops your token and uid, so unlike a disconnect it
+carries no reclaim right. At an `"anyone"` table you can sit back down
+through the ordinary adoption pill (any spectator could too, so the race
+is real); at a `"rejoin"` table the bot keeps the seat for the rest of
+the game. That asymmetry is deliberate — the toolbar two-steps the pill
+because of it.
+
+**A seat only ever loses its hand when nobody can inherit it.** A bot
+takeover, an adoption, and a reclaim all keep the hand, dev cards,
+buildings and color exactly as they stood, so whoever picks the seat up
+starts from the real position rather than from nothing. `concede` — the
+one path that returns resources to the bank — exists only in `"none"`
+mode, where by construction there is no successor. This is also why a
+bot-held seat cannot be kicked mid-game: the kick would delete a live
+hand with no one to hand it to.
+
+The host's chosen policy is remembered client-side
+(`deets-games-rejoin`, deliberately shared across games) and applied once
+to the next table they create.
 
 **Stats rule (for phase-2 results):** a table where any seat changed
 hands mid-game (adoption) is unrated — its results attach to no one.

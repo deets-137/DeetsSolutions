@@ -170,11 +170,17 @@ export class GameTable {
   rejoinMode() { return (this.t.settings && this.t.settings.rejoin) || "rejoin"; }
   // the "none" exit: the engine concedes the seat, the roster severs it.
   // Name and color stay for the grayed-out display; `conceded` is public.
+  // The engine rules first: if it refuses (no game, or already "over"), the
+  // roster must NOT be touched — severing a seat the engine still counts
+  // would strike a live player out of the final standings.
   concedeSeat(i) {
-    const r = this.applyEngine({ type: "concede", seat: i });
     const s = this.t.seats[i];
-    if (s) { s.conceded = true; delete s.bot; delete s.graceUntil; delete s.token; delete s.uid; }
-    return r.error ? [] : (r.events || []);
+    if (!s || !this.t.game) return [];
+    const r = this.applyEngine({ type: "concede", seat: i });
+    if (r.error) return [];
+    s.conceded = true;
+    delete s.bot; delete s.phantom; delete s.graceUntil; delete s.token; delete s.uid;
+    return r.events || [];
   }
 
   hostToken() {
@@ -300,11 +306,17 @@ export class GameTable {
     }
     let changed = false;
     let events = [];
-    // 1. grace expiries → bot takeover, or a concede at a "none" table
+    // 1. grace expiries → bot takeover, or a concede at a "none" table.
+    //    Only a running game has anything to take over: if the game ended (or
+    //    a rematch discarded it) while someone sat inside their window, the
+    //    window is moot — drop it and leave the seat whole, so they can still
+    //    reclaim their chair at the game-over screen and into the next deal.
     for (let i = 0; i < t.seats.length; i++) {
       const s = t.seats[i];
       if (s && s.graceUntil && now >= s.graceUntil && !this.tokenConnected(s.token)) {
-        if (this.rejoinMode() === "none") {
+        if (!g || g.phase === "over") {
+          delete s.graceUntil; changed = true;
+        } else if (this.rejoinMode() === "none") {
           events = events.concat(this.concedeSeat(i)); changed = true;
         } else {
           s.bot = true; delete s.graceUntil; changed = true;
@@ -363,7 +375,11 @@ export class GameTable {
         return;
       }
       // running game: a kick is a forced leave — the seat converts to a bot
-      // (or concedes, at a "none" table: no bots there by definition).
+      // (or concedes, at a "none" table). A seat the AI already drives is NOT
+      // kickable: mid-game, a bot only leaves by being taken over — adopted at
+      // an "anyone" table, or reclaimed by the player it stands in for. There
+      // is no host button that deletes a hand mid-game.
+      if (this.isBot(t.seats[s])) return this.errTo(ws, "perm");
       // Drop the token AND the uid with it: the seat record is what join's
       // reclaim matches on (either key), so leaving one in place would hand
       // the seat straight back the moment the kicked player re-entered the
@@ -393,8 +409,14 @@ export class GameTable {
       if (!t.game || t.game.phase !== "over") return this.errTo(ws, "phase");
       t.game = null;
       t.turnEndsAt = null; t.timerFor = null;
-      // conceded seats left for good — the rematch lobby opens them
-      for (let ci = 0; ci < t.seats.length; ci++) if (t.seats[ci] && t.seats[ci].conceded) t.seats[ci] = null;
+      // conceded seats left for good — the rematch lobby opens them. Any
+      // grace window still ticking belongs to the game just discarded: clear
+      // it, or the alarm would wake to a takeover with no game to take over.
+      for (let ci = 0; ci < t.seats.length; ci++) {
+        if (!t.seats[ci]) continue;
+        if (t.seats[ci].conceded) { t.seats[ci] = null; continue; }
+        delete t.seats[ci].graceUntil;
+      }
       this.resizeSeats();
       this.onRematch();
       await this.broadcast([]);
