@@ -316,6 +316,23 @@
   });
 
   /* ── gate: peek → join / create (below the bar) ───────────────── */
+  /* A signed-in profile supplies the gate's name (docs/accounts.md) —
+     same contract as the game gates: a FALLBACK, never an override. A
+     name typed at radio's gate is radio's name and wins, and NAME_KEY
+     is only written when the field was actually typed into, so a
+     profile rename keeps reaching here instead of being shadowed by a
+     stamped copy. Signed out, every path below is exactly what it was
+     before accounts existed. */
+  function accountName() {
+    try {
+      var a = (window.DeetsAccount && window.DeetsAccount.get()) || null;
+      return a && a.name ? String(a.name).trim().slice(0, 40) : "";
+    } catch (e) { return ""; }
+  }
+  function storedName() {
+    var mine = String(load(NAME_KEY, "")).trim();
+    return mine || accountName();
+  }
   function commitCode(raw) {
     var code = slugify(raw);
     if (!code) return;
@@ -329,10 +346,11 @@
       /* joins orphan in-flight peeks: a slow response must never render a
          stale gate over a room we've since entered */
       if (seq !== peekSeq || joining || joined) return;
-      /* Returning listener: once a name is saved, existing stations join
-         instantly — the gate only appears for create-confirm (always, so a
-         typo never mints a room) or when we don't know who you are yet. */
-      var stored = String(load(NAME_KEY, "")).trim();
+      /* Returning listener: once a name is known — saved here, or worn
+         by a signed-in profile — existing stations join instantly; the
+         gate only appears for create-confirm (always, so a typo never
+         mints a room) or when we don't know who you are yet. */
+      var stored = storedName();
       if (p.exists && stored) { joinRoom(code, stored, false); return; }
       renderGate(code, p);
     }).catch(function () {
@@ -346,7 +364,7 @@
     var input = el("input", "radio-gate__name-input");
     input.type = "text";
     input.maxLength = 40;
-    input.value = load(NAME_KEY, "");
+    input.value = storedName();
     wrap.appendChild(input);
     return { wrap: wrap, input: input };
   }
@@ -370,7 +388,7 @@
     }
     GATE.appendChild(el("p", "radio-gate__line", line));
     var form = el("div", "radio-gate__form");
-    var stored = String(load(NAME_KEY, "")).trim();
+    var stored = storedName();
     var name = null;
     if (!stored || nameTaken) {       // name is asked once, then remembered
       name = nameField();
@@ -382,7 +400,7 @@
     go.addEventListener("click", function () {
       var who = name ? name.input.value.trim() : stored;
       if (!who) { toast(S.nameNeeded, ""); if (name) name.input.focus(); return; }
-      save(NAME_KEY, who);
+      if (name) save(NAME_KEY, who);
       go.disabled = true;     // one press, one join; re-armed if it fails
       joinRoom(code, who, !p.exists).then(function () {
         if (!joined) go.disabled = false;

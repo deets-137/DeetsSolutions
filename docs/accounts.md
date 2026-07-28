@@ -185,6 +185,19 @@ name at `NAME_KEY` already, so the account name becomes its fallback and
 `seat_color` seeds the colour picker. **Guests are unaffected** — every
 existing path still works, signed out.
 
+The radio gate speaks the same contract (`radio/radio.js`): the profile
+name is the fallback, a name typed at the gate is radio's name and wins,
+and `NAME_KEY` is only written when the field was actually typed into —
+so a profile rename keeps reaching every gate instead of being shadowed
+by a stamped copy. Signed in, existing stations join instantly under the
+profile name.
+
+In a game lobby, your own seat name is click-to-edit (the bot editor's
+row, `rename` verb — [games.md](games.md)). Typing there saves the
+game's local name; the **Reset** button (signed in only) puts the
+profile name back on the seat *and clears the local override*, re-opening
+the profile pipe.
+
 This matters more than it looks. These are party games joined from a
 texted link; putting sign-in in front of the gate would add friction at
 exactly the moment it costs you a player. Signing in is an affordance in
@@ -263,13 +276,19 @@ Two non-issues worth recording so they aren't rediscovered:
 
 ---
 
-## Not in phase 1
+## Beyond phase 1
 
-Results and stats. When they come: `join` gains an optional `auth`
-field, the seat record gains a `uid`, game workers verify the session
-signature locally against a shared HMAC secret (no network hop on the
-join path), and finished tables POST results over a service binding
-with an idempotency key of `game:tableId:rematchIndex`.
+**Built (2026-07-27): seats carry the account uid.** Not via an `auth`
+field on `join` as first sketched — the `ds_sess` cookie is scoped to
+`.deets.solutions`, so it already rides the WebSocket upgrade to every
+game worker; the DO verifies its HMAC against the shared
+`SESSION_SECRET` and tags the seat. Cross-device seat reclaim falls out
+of that ([games.md](games.md), "Identity and rejoin" — dark seats only,
+kick severs, uid never broadcast).
 
-None of that is built. It's recorded here only so phase 1's shape makes
-sense — the account id is the hook everything later hangs on.
+**Still future — results and stats:** finished tables POST results over
+a service binding with an idempotency key of `game:tableId:rematchIndex`,
+and the profile grid grows stats boxes. The verified per-seat uid the
+reclaim work added is exactly the hook results will hang on. One rule
+already decided: a table where any seat changed hands mid-game
+(adoption, [games.md](games.md)) is unrated.

@@ -70,11 +70,28 @@ window.MAHJONG_STRINGS = {
    hostBadge: "Host",
    standButton: "Stand up",
    kickSeatAria: "Remove {name}",
+   /* re-join policy row + mid-game hop-out/hop-in — "Re-joining",
+      "Anyone", "Rejoin" are Aditya's (chat 2026-07-27); mahjong never
+      offers "None" (the game needs its four seats) */
+   rejoinLabel: "Re-joining",
+   rejoinAnyone: "Anyone",
+   rejoinRejoin: "Rejoin",
+   standConfirm: "[ph]For good?",
+   sitInPill: "[ph]Sit in for {name}",
+   adoptedToast: "[ph]{name} sat down.",
    addBotButton: "Add Bot",
    addBotGo: "Confirm?",
    addBotNameAria: "Bot name",
    addBotCancelAria: "Cancel adding a bot",
    renameBotAria: "Rename {name}",
+   /* renaming yourself (the rename verb): your own name is the same
+      click-to-edit row; "Save" and "Reset" are Aditya's (chat 2026-07-27) */
+   renameGo: "Save",
+   renameReset: "Reset",
+   renameYouAria: "[ph]Edit your name",
+   renameNameAria: "[ph]Your name",
+   renameResetAria: "[ph]Reset to your profile name",
+   renameCancelAria: "[ph]Cancel renaming",
    botSeatTag: "{name} (bot)",
    /* seat-color picker */
    colorYours: "Your color",

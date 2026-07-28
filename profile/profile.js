@@ -198,7 +198,7 @@
     }
 
     title.textContent = user.name || "Profile";
-    meta.textContent = "Signed in with Google. Tables pick these up automatically — a name typed at a gate still wins.";
+    meta.textContent = "Signed in with Google so your name, color, and stats sync.";
 
     var out = el("button", "tb-pill", "Sign out");
     out.type = "button";

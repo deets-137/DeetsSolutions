@@ -69,11 +69,16 @@
     var NAME_KEY = "deets-" + cfg.ns + "-name";
     var RECENTS_KEY = "deets-" + cfg.ns + "-recents";
     var CUSTOM_COLOR_KEY = "deets-" + cfg.ns + "-customhex";
+    // deliberately UN-namespaced: your table policy follows you to every game
+    var REJOIN_PREF_KEY = "deets-games-rejoin";
     /* A signed-in profile supplies the gate's defaults (docs/accounts.md).
        It is a FALLBACK, never an override: a name typed at this game's
-       gate is this game's name and wins. Signed out — or signed in with
-       nothing set — every path below is exactly what it was before
-       accounts existed, because guests stay first class. */
+       gate is this game's name and wins — and NAME_KEY is only written
+       when the field was actually typed into, so a profile rename keeps
+       reaching this game instead of being shadowed by a stamped copy.
+       Signed out — or signed in with nothing set — every path below is
+       exactly what it was before accounts existed, because guests stay
+       first class. */
     function account() {
       try { return (window.DeetsAccount && window.DeetsAccount.get()) || null; }
       catch (e) { return null; }
@@ -162,7 +167,7 @@
 
     /* ── connection state ─────────────────────────────────────────── */
     var conn = null, model = null, code = null;
-    var joined = false, joining = false, peekSeq = 0;
+    var joined = false, joining = false, peekSeq = 0, createdTable = false;
     var logLines = [], connToast = null;
     var clockSkew = 0;                       // Date.now() - server clock
     var graceToasts = {};                    // seat -> red countdown toast
@@ -248,7 +253,7 @@
         b.addEventListener("click", function () {
           var who = nameInput ? nameInput.value.trim() : stored;
           if (!who) { toast(S.nameNeeded, "error"); if (nameInput) nameInput.focus(); return; }
-          save(NAME_KEY, who);
+          if (nameInput) save(NAME_KEY, who);
           btns.forEach(function (x) { x.el.disabled = true; });
           joinTable(c, who, !p.exists, asWatch).then(function () {
             if (!joined) btns.forEach(function (x) { x.el.disabled = !x.enabled; });
@@ -290,6 +295,7 @@
         });
         // opening or joining a lobby means "I want to play"; only Watch stays a spectator
         wantSit = !asSpectator;
+        createdTable = !!create;   // the sticky rejoin pref applies once, to tables I mint
         remember(c);
         if (hook("onJoin")) cfg.onJoin(c);
         try { history.replaceState(null, "", "#" + c); } catch (e) {}
@@ -306,7 +312,7 @@
       conn = null; model = null; joined = false; code = null; logLines.length = 0;
       if (connToast) { connToast.dismiss(); connToast = null; }
       clearGraceToasts();
-      wantSit = false;
+      wantSit = false; createdTable = false;
       ui.colorOpen = ui.colorDraft = ui.botEdit = ui.botDraft = null;
       ui.botFocus = false; ui.settingsPinned = false;
       if (hook("onLeave")) cfg.onLeave();
@@ -361,6 +367,16 @@
       // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator in
       // the lobby; take a seat once (the toolbar's Sit/Stand governs after)
       if (wantSit && model.phase === "lobby" && mySeat() == null) { wantSit = false; send({ type: "sit" }); }
+      // sticky rejoin pref: a table I just created adopts my remembered
+      // policy once — the host can still flip it in the lobby afterwards
+      if (createdTable && model.phase === "lobby" && model.host) {
+        createdTable = false;
+        var wantRj = String(load(REJOIN_PREF_KEY, "") || "");
+        var okRj = (cfg.rejoinModes || ["anyone", "rejoin"]).indexOf(wantRj) >= 0;
+        if (okRj && wantRj !== ((model.settings && model.settings.rejoin) || "rejoin")) {
+          send({ type: "setSettings", rejoin: wantRj });
+        }
+      }
       seedSeatColor();
       if (hook("preRender")) cfg.preRender();
       applySeatColors();
@@ -373,6 +389,8 @@
     function handleEvent(e) {
       if (e.t === "returned") toast(fmt(S.returnedToast, { name: seatName(e.seat) }), "success");
       if (e.t === "takeover") toast(fmt(S.takeoverToast, { name: seatName(e.seat) }), "warn");
+      if (e.t === "conceded") toast(fmt(S.concededToast, { name: seatName(e.seat) }), "warn");
+      if (e.t === "adopted") toast(fmt(S.adoptedToast, { name: seatName(e.seat) }), "success");
       if (hook("onEvent")) cfg.onEvent(e);
       var line = hook("logLine") ? cfg.logLine(e) : null;
       if (line) { logLines.push(line); while (logLines.length > (cfg.logCap || 140)) logLines.shift(); }
@@ -459,6 +477,27 @@
       if (model.phase === "lobby") {
         if (mine == null) TOOLBAR.appendChild(pill(S.sitPill, function () { send({ type: "sit" }); }));
         else TOOLBAR.appendChild(pill(S.standButton, function () { send({ type: "stand" }); }));
+      } else if (model.phase !== "over") {
+        // mid-game hop-out / hop-in (docs/games.md). Standing releases the
+        // seat for good, so it two-steps like Close; sitting in exists only
+        // at an "anyone" table, one pill per adoptable (bot-held) seat.
+        if (mine != null) {
+          var sp = pill(S.standButton, function () {
+            if (sp._armed) { send({ type: "stand" }); }
+            else {
+              sp._armed = true; sp.querySelector(".tb-pill__label").textContent = S.standConfirm;
+              setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = S.standButton; } }, 2600);
+            }
+          });
+          TOOLBAR.appendChild(sp);
+        } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
+          (model.seats || []).forEach(function (s) {
+            if (!s || s.empty || !s.phantom || s.conceded) return;
+            TOOLBAR.appendChild(pill(fmt(S.sitInPill, { name: s.name }), function () {
+              send({ type: "sit", seat: s.seat });
+            }));
+          });
+        }
       }
       TOOLBAR.appendChild(pill(S.leavePill, function () { leaveTable(); }));
       if (model.host) {
@@ -487,6 +526,9 @@
       (hook("settingsRows") ? cfg.settingsRows() : []).forEach(function (r) {
         pop.appendChild(settingRow(r[0], r[1]));
       });
+      var rjV = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
+      var rjNow = (model.settings && model.settings.rejoin) || "rejoin";
+      pop.appendChild(settingRow(S.rejoinLabel, rjV[rjNow] || rjNow));
       wrap.appendChild(pop);
       var entry = { ctrl: wrap, pill: b, pop: pop, kind: "setth" };
       function peek() { if (openEntry !== entry) pop.hidden = false; }
@@ -522,24 +564,42 @@
 
       if (hook("lobbySettings")) cfg.lobbySettings(wrap);
 
+      // the shared re-join policy row — the base's own setting, one row on
+      // every game's lobby (docs/games.md). Changing it also remembers the
+      // choice for future tables this browser hosts, across all games.
+      var rjRow = setRow(S.rejoinLabel);
+      var rjModes = cfg.rejoinModes || ["anyone", "rejoin"];
+      var rjCur = (model.settings && model.settings.rejoin) || "rejoin";
+      var rjLabels = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
+      rjModes.forEach(function (m) {
+        rjRow.opts.appendChild(chip(rjLabels[m] || m, rjCur === m, !model.host, function () {
+          save(REJOIN_PREF_KEY, m);
+          send({ type: "setSettings", rejoin: m });
+        }));
+      });
+      wrap.appendChild(rjRow);
+
       // seats — your own dot (and, for the host, a bot's) is a button that
       // slides open the color picker below the row; colors lock at Start
       // because `recolor` is a lobby command (the worker enforces it too)
       var seatList = el("div", "gt-lobby__seats");
       (model.seats || []).forEach(function (s, i) {
         var isBot = !s.empty && s.phantom;
-        // host-only inline bot editor takes over the row (same height); a seat
-        // a human claimed mid-edit drops the editor, like the color picker
-        if (ui.botEdit === i && !(host && (s.empty || isBot))) { ui.botEdit = null; ui.botDraft = null; }
+        var isMe = !s.empty && s.seat === mySeat();
+        // inline editor takes over the row (same height) — the host's bot
+        // editor, or your own rename; a seat that stopped qualifying mid-edit
+        // (claimed, kicked, stood up) drops it, like the color picker
+        if (ui.botEdit === i && !(host && (s.empty || isBot)) && !isMe) { ui.botEdit = null; ui.botDraft = null; }
         if (ui.botEdit === i) { seatList.appendChild(botEditorRow(i)); return; }
         var row = el("div", "gt-seat" + (s.empty ? " gt-seat--empty" : ""));
-        var editable = !s.empty && (s.seat === mySeat() || (host && s.phantom));
+        var editable = !s.empty && (isMe || (host && s.phantom));
         row.appendChild(editable ? dotButton(s, i) : seatDot(i));
-        var label = s.empty ? S.seatOpen : s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
-        if (host && isBot) {
-          // the bot's name is the rename affordance (lobby-only — names lock at Start like colors)
+        var label = s.empty ? S.seatOpen : isMe ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
+        if ((host && isBot) || isMe) {
+          // the name is the rename affordance (lobby-only — names lock at
+          // Start like colors): a bot's name for the host, yours for you
           var nameBtn = el("button", "gt-seat__name gt-seat__namebtn", label); nameBtn.type = "button";
-          nameBtn.setAttribute("aria-label", fmt(S.renameBotAria, { name: s.name }));
+          nameBtn.setAttribute("aria-label", isMe ? S.renameYouAria : fmt(S.renameBotAria, { name: s.name }));
           nameBtn.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = s.name; ui.botFocus = true; render(); });
           row.appendChild(nameBtn);
         } else row.appendChild(el("span", "gt-seat__name", label));
@@ -625,12 +685,16 @@
       return row;
     }
 
-    /* ── lobby: host-added bots (the addBot verb) ───────────────────
-       "+ Bot" on an open seat (or the bot's own name, to rename) swaps the
-       row for an inline editor at the same height: name input prefilled
-       from the suggestion pool, Add sends addBot (re-adding at a bot's
-       seat = rename), ✕ cancels. The draft rides ui.botDraft so
-       broadcasts don't wipe it mid-typing (the color picker's idiom). */
+    /* ── lobby: the seat-name editor ────────────────────────────────
+       One row, two owners. "+ Bot" on an open seat (or the bot's own
+       name, to rename) opens it for the host: name input prefilled from
+       the suggestion pool, confirm sends addBot (re-adding at a bot's
+       seat = rename). YOUR own name opens the same row for you: confirm
+       sends the rename verb, and a Reset button (signed in only) puts
+       the profile name back on the seat AND clears the local override,
+       so profile renames flow here again (docs/accounts.md). ✕ cancels.
+       The draft rides ui.botDraft so broadcasts don't wipe it mid-typing
+       (the color picker's idiom). */
     var BOT_NAMES = ["Rook", "Vala", "Ozan", "Mira", "Deca"];   // prefill suggestions only — free text wins
     function nextBotName() {
       var used = {};
@@ -642,17 +706,24 @@
       }
     }
     function botEditorRow(i) {
+      var mine = i === mySeat();       // your own rename, vs the host's bot editor
+      var myName = mine && model.seats[i] ? model.seats[i].name : null;
       var row = el("div", "gt-seat gt-seat--edit");
       row.appendChild(seatDot(i));
       var input = el("input", "gt-seat__nameinput");
       input.type = "text"; input.maxLength = 24;
-      input.value = ui.botDraft != null ? ui.botDraft : nextBotName();
-      input.setAttribute("aria-label", S.addBotNameAria);
+      input.value = ui.botDraft != null ? ui.botDraft : mine ? (myName || "") : nextBotName();
+      input.setAttribute("aria-label", mine ? S.renameNameAria : S.addBotNameAria);
       input.addEventListener("input", function () { ui.botDraft = input.value; });
       var go = function () {
         var name = input.value.trim();
         if (!name) { input.focus(); return; }
-        send({ type: "addBot", seat: i, name: name });
+        if (mine) {
+          // typed here = this game's name from now on (the gate contract):
+          // the local save wins over the profile fallback
+          if (name !== myName) send({ type: "rename", name: name });
+          save(NAME_KEY, name);
+        } else send({ type: "addBot", seat: i, name: name });
         ui.botEdit = null; ui.botDraft = null; render();
       };
       var cancel = function () { ui.botEdit = null; ui.botDraft = null; render(); };
@@ -661,11 +732,26 @@
         else if (ev.key === "Escape") cancel();
       });
       row.appendChild(input);
-      var ok = el("button", "gt-seat__addgo", S.addBotGo); ok.type = "button";
+      var ok = el("button", "gt-seat__addgo", mine ? S.renameGo : S.addBotGo); ok.type = "button";
       ok.addEventListener("click", go);
       row.appendChild(ok);
+      var acct = mine ? account() : null;
+      var acctName = acct && acct.name ? String(acct.name).trim().slice(0, 24) : "";
+      if (acctName) {
+        // Reset re-opens the profile pipe: the account name goes back on the
+        // seat and the local override is cleared, so future profile renames
+        // reach this game again instead of being shadowed
+        var rst = el("button", "gt-seat__addgo", S.renameReset); rst.type = "button";
+        rst.setAttribute("aria-label", S.renameResetAria);
+        rst.addEventListener("click", function () {
+          save(NAME_KEY, "");
+          if (acctName !== myName) send({ type: "rename", name: acctName });
+          ui.botEdit = null; ui.botDraft = null; render();
+        });
+        row.appendChild(rst);
+      }
       var x = el("button", "gt-seat__kick", "✕"); x.type = "button";
-      x.setAttribute("aria-label", S.addBotCancelAria);
+      x.setAttribute("aria-label", mine ? S.renameCancelAria : S.addBotCancelAria);
       x.addEventListener("click", cancel);
       row.appendChild(x);
       // focus only when the editor OPENS — broadcast re-renders must not steal it

@@ -71,6 +71,9 @@
     rootSel: ".cities",
     capacity: 6,
     minSeats: 3,
+    // cities opts into "None" (leaving = conceding): the engine speaks
+    // `concede`, so a table can run bot-free (docs/cities.md)
+    rejoinModes: ["anyone", "rejoin", "none"],
     startNeedsHint: S.startNeedsThree,
     logCap: 120,
     errExtra: { cost: S.errCost, loc: S.errLoc, rate: S.errRate, empty: S.errEmpty, supply: S.errSupply },
@@ -1656,7 +1659,9 @@
     }
     (model.players || []).forEach(function (p, i) {
       var active = model.phase === "main" && model.turn.seat === i;
-      var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") + (model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
+      var conceded = model.seats[i] && model.seats[i].conceded;
+      var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") +
+        (conceded ? " is-conceded" : model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
       strip.dataset.seat = i;   // fly-in chips steer by this, re-queried per frame
       strip.style.setProperty("--cstrip", "var(--gseat-" + i + ")");
       var body = el("div", "cities-pstrip__body");
@@ -1690,12 +1695,16 @@
   /* ── strip context menu (right-click a player strip) ────────────
      Embargo (any seated viewer) + Kick (host, incl. a spectating host —
      mid-game the seat converts to a bot, the takeover rule).
+     A bot's own strip has no Kick: mid-game a bot leaves only by being
+     taken over, never by the host's hand (the worker refuses it too).
      Not the popover kit: strips are wiped by every broadcast (~650ms in the
      mock), so the menu's open/closed state lives in ui.embargoPop and the
      strip re-renders it open — a kit popover would vanish mid-click. */
   function attachEmbargoMenu(strip, i) {
     var canEmbargo = mySeat() != null && i !== mySeat();
-    var canKick = model.host && i !== mySeat() && model.seats[i] && !model.seats[i].empty;
+    var kseat = model.seats[i];
+    var canKick = model.host && i !== mySeat() && kseat && !kseat.empty &&
+                  !kseat.phantom && !kseat.bot && !kseat.conceded;
     if (!canEmbargo && !canKick) return;
     strip.addEventListener("contextmenu", function (ev) {
       ev.preventDefault();

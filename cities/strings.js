@@ -69,6 +69,16 @@ window.CITIES_STRINGS = {
   hostBadge:       "Host",
   standButton:     "Stand up",
   kickSeatAria:    "Remove {name}",
+  /* re-join policy row + mid-game hop-out/hop-in — "Re-joining",
+     "Anyone", "Rejoin", "None" are Aditya's (chat 2026-07-27) */
+  rejoinLabel:     "Re-joining",
+  rejoinAnyone:    "Anyone",
+  rejoinRejoin:    "Rejoin",
+  rejoinNone:      "None",
+  standConfirm:    "[ph]For good?",
+  sitInPill:       "[ph]Sit in for {name}",
+  concededToast:   "[ph]{name} conceded.",
+  adoptedToast:    "[ph]{name} sat down.",
   /* host-added bots (the addBot verb): "+ Bot" on an open seat opens an
      inline name editor; clicking a bot's name renames (lobby-only) */
   addBotButton:     "Add Bot",
@@ -76,6 +86,14 @@ window.CITIES_STRINGS = {
   addBotNameAria:   "Bot name",
   addBotCancelAria: "Cancel adding a bot",
   renameBotAria:    "Rename {name}",
+  /* renaming yourself (the rename verb): your own name is the same
+     click-to-edit row; "Save" and "Reset" are Aditya's (chat 2026-07-27) */
+  renameGo:         "Save",
+  renameReset:      "Reset",
+  renameYouAria:    "[ph]Edit your name",
+  renameNameAria:   "[ph]Your name",
+  renameResetAria:  "[ph]Reset to your profile name",
+  renameCancelAria: "[ph]Cancel renaming",
   /* seat-color picker (dot → slide-open expand) — "Your color",
      "{name}'s color", "Become...", "Custom:" and the six-digit help
      line are Aditya's wording (chat), no [ph] */
