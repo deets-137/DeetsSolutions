@@ -8,17 +8,13 @@
     <script>
       (function () {
         try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
           var t = localStorage.getItem("deets-theme");
-          if (!t) {
-            t = window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "moonlight" : "fairy";
-          }
+          if (!t) { t = dark ? "viper" : "fairy"; }
           document.documentElement.setAttribute("data-theme", t);
           var s = localStorage.getItem("deets-skin");
-          if (!s) {
-            s = window.matchMedia("(max-width: 41rem)").matches
-              ? "ocean" : "cyberstorm";
-          }
+          if (!s) { s = dark ? "cyberstorm" : "press"; }
+          if (s === "desk") s = "press";   /* retired skin → successor */
           document.documentElement.setAttribute("data-skin", s);
         } catch (e) {}
       })();

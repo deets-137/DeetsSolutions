@@ -74,10 +74,10 @@ right gutter (`.flyout__item::after`).
 
 `apply(axis, id)` sets `data-theme` / `data-skin` on `<html>` and persists to
 `localStorage` under `deets-theme` / `deets-skin`. A saved choice wins;
-otherwise the theme follows the OS light/dark preference (**Fairy** light /
-**Moonlight** dark) and the skin defaults to **CyberStorm** on desktop,
-**Ocean** on mobile (≤ 41rem; note the nav collapses earlier, at 56rem —
-the two breakpoints are deliberately different).
+otherwise **both** axes follow the OS light/dark preference, landing on one
+of two curated pairs: **Press × Fairy** in light, **CyberStorm × Viper** in
+dark. (Screen width no longer enters into it — the old CyberStorm-desktop /
+Ocean-mobile split is gone.)
 
 That default logic lives in **two places on purpose**: the `AXES[...].def`
 fields in `controls.js`, and the inline pre-paint `<script>` in every page's

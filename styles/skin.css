@@ -50,10 +50,11 @@
   /* -- content cards (future section pages) ------------------ */
   --card:              var(--canvas);   /* flush with the canvas by default */
   --card-border-width: 0;
+  --card-border:       var(--border);   /* the keyline's ink; Press strengthens it */
   --card-backdrop:     none;            /* frosted-glass blur; a skin opts in */
   --shadow-card:       none;            /* skins add a real card shadow */
 
-  /* -- canvas pattern (Desk dots / Ocean waves / Glass aurora / grid) -- */
+  /* -- canvas pattern (Press halftone / Ocean waves / Glass aurora / grid) -- */
   /* A background-image painted on <body>, BEHIND the content. Its color
      comes from theme roles; the pattern + motion are skin. Vanilla = none. */
   --canvas-bg:        none;
@@ -106,31 +107,56 @@
 }
 
 /* ============================================================
-   DESK — light/airy notebook. A handwritten title on a tidy
-   humanist body, over a dotted desk.
+   PRESS — a risograph print shop. Ink on stock, not light on
+   glass: a poster grotesque over a spec-sheet mono, every corner
+   trimmed square, and NO blur anywhere. Where the other skins
+   cast a shadow, Press prints a SECOND PLATE slightly out of
+   register — a hard offset block of --ink-2, the theme-owned
+   spot color (themes.css). Blur radius is 0 in every shadow
+   here, on purpose; a soft edge would break the illusion.
    ============================================================ */
-[data-skin="desk"] {
-  --font-title: "Comic Sans MS", "Comic Neue", cursive;
-  --font-body:  "Karla", "Segoe UI", system-ui, sans-serif;
-  --fw-title:   700;
-  --fs-title:   1.75rem;
+[data-skin="press"] {
+  --font-title: "Anton", "Haettenschweiler", "Arial Narrow", sans-serif;
+  --font-body:  "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --fw-title:   400;              /* Anton ships one weight, and it is heavy */
+  --fs-title:   1.7rem;           /* condensed caps take the extra size well */
+  --fs-nav:     0.9rem;           /* mono runs wide — size the nav down so the
+                                     desktop row still clears the breakpoint */
+  --lh-text:    1.7;              /* mono needs the extra leading to breathe */
 
-  /* squared, paper corners; a real raised card shadow */
-  --radius-control: 7px;
-  --radius-panel:   6px;
-  --radius-card:    6px;
-  --shadow-panel:   0 1px 2px rgba(0, 0, 0, 0.20), 0 6px 16px rgba(0, 0, 0, 0.14);
-  --card:           var(--surface);
-  --shadow-card:    0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 24px rgba(0, 0, 0, 0.12);
+  /* shape — everything comes off a trimmer */
+  --radius-control: 0;
+  --radius-panel:   0;
+  --radius-card:    0;
 
-  /* desk — a dot grid ruled in the theme's panel-border hairline */
-  --canvas-bg:        radial-gradient(circle, var(--panel-border) 1.6px, transparent 1.9px);
-  --canvas-bg-size:   24px 24px;
+  /* cards — opaque stock, a printed keyline, and the offset plate. The
+     keyline is --panel-border (the theme's stronger hairline), not the
+     usual --border: at 0 radius a faint edge reads as a rendering
+     artifact rather than a deliberate rule. */
+  --card:              var(--surface);
+  --card-border-width: 1px;
+  --card-border:       var(--panel-border);
+  --card-backdrop:     none;
+  --shadow-card:       4px 4px 0 var(--ink-2);
+
+  /* menus print too — same plate, one step further off register */
+  --menu-surface: var(--surface);
+  --shadow-panel: 5px 5px 0 var(--ink-2);
+
+  /* stock — a halftone screen, dotted in the theme's hairline. Tighter
+     and finer than a dot grid: at 7px it reads as paper tooth, not as
+     a pattern you are meant to look at. */
+  --canvas-bg:        radial-gradient(circle, var(--panel-border) 1.1px, transparent 1.4px);
+  --canvas-bg-size:   7px 7px;
   --canvas-bg-repeat: repeat;
+  --canvas-anim:      none;
 
-  /* motion — paper settles; rows rise a hair when you touch them */
-  --dur-fast:   0.16s;
-  --hover-lift: translateY(-1px);
+  /* motion — a press stroke, not a settle. The lift moves on BOTH axes
+     (every other skin only rises): the sheet slides up-left off its ink,
+     widening the misregistration to 5px instead of floating above it. */
+  --dur-fast:   0.1s;
+  --dur-med:    0.16s;
+  --hover-lift: translate(-1px, -1px);
 }
 
 /* ============================================================

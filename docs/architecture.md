@@ -14,7 +14,7 @@ Two orthogonal axes, ported from the DeetsMusic app:
 - **Theme = color only**, set as `data-theme` on `<html>`: Fairy, Glade,
   Sepia, Moonlight, Hornet, Viper.
 - **Skin = everything that isn't color** (type, shape, material, motion),
-  set as `data-skin`: Vanilla, Desk, Ocean, Glass, CyberStorm.
+  set as `data-skin`: Vanilla, Press, Ocean, Glass, CyberStorm.
 
 Any theme pairs with any skin — 6 × 5 = 30 combos, all of which every
 component must survive. That works because tokens cascade in strict tiers:
@@ -45,10 +45,9 @@ In both cases the geometry lives in `controls.js`, the ink is a theme role,
 and the motion is skin tokens.
 
 Each page resolves both axes inline in `<head>`, before CSS paints, so
-there's no flash of the wrong look. A saved choice wins; otherwise the theme
-follows the OS light/dark preference (**Fairy** light / **Moonlight** dark)
-and the skin defaults to **CyberStorm** on desktop, **Ocean** on mobile
-(≤ 41rem). That default logic lives in two places on purpose — the pre-paint head script on every
+there's no flash of the wrong look. A saved choice wins; otherwise both axes
+follow the OS light/dark preference, landing on **Press × Fairy** (light) or
+**CyberStorm × Viper** (dark). That default logic lives in two places on purpose — the pre-paint head script on every
 page and the AXES table in `controls.js` — and they must be kept in sync.
 
 ## Sprite walkers

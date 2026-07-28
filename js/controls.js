@@ -14,9 +14,11 @@
       attr: "data-theme",
       key: "deets-theme",
       // No saved choice: follow the OS light/dark preference, landing on
-      // Fairy (light) or Moonlight (dark). Kept in sync with the inline
-      // pre-paint script in each page's <head>.
-      def: function () { return prefersDark() ? "moonlight" : "fairy"; },
+      // Fairy (light) or Viper (dark). Both axes read the SAME preference,
+      // so a first visit lands on one of two curated pairs — Press × Fairy
+      // or CyberStorm × Viper. Kept in sync with the inline pre-paint
+      // script in each page's <head>.
+      def: function () { return prefersDark() ? "viper" : "fairy"; },
       options: [
         { id: "fairy",     label: "Fairy" },
         { id: "glade",     label: "Glade" },
@@ -29,13 +31,15 @@
     skin: {
       attr: "data-skin",
       key: "deets-skin",
-      // No saved choice: CyberStorm on desktop, but Ocean on mobile — its calm
-      // roll suits a phone better than the storm. Kept in sync with the inline
-      // pre-paint script in each page's <head>.
-      def: function () { return isMobile() ? "ocean" : "cyberstorm"; },
+      // No saved choice: the skin follows the OS light/dark preference too —
+      // Press on light (ink on stock wants a light stock), CyberStorm on
+      // dark. Pairs with the theme default above; no longer a screen-width
+      // call. Kept in sync with the inline pre-paint script in each page's
+      // <head>.
+      def: function () { return prefersDark() ? "cyberstorm" : "press"; },
       options: [
         { id: "vanilla",    label: "Vanilla" },
-        { id: "desk",       label: "Desk" },
+        { id: "press",      label: "Press" },
         { id: "ocean",      label: "Ocean" },
         { id: "glass",      label: "Glass" },
         { id: "cyberstorm", label: "CyberStorm" },
@@ -48,21 +52,21 @@
     catch (e) { return false; }
   }
 
-  function isMobile() {
-    try { return window.matchMedia("(max-width: 41rem)").matches; }
-    catch (e) { return false; }
-  }
-
   // A `def` may be a literal id or a function resolving one at call time
   // (the theme axis reads the OS preference).
   function fallback(axis) {
     return typeof axis.def === "function" ? axis.def() : axis.def;
   }
 
+  // Retired ids still sitting in someone's localStorage, mapped to their
+  // successor. Kept in sync with the inline pre-paint script in each page's
+  // <head>, which applies the same map before first paint.
+  var RETIRED = { desk: "press" };
+
   function current(axis) {
     try {
       var saved = localStorage.getItem(axis.key);
-      if (saved) return saved;
+      if (saved) return RETIRED[saved] || saved;
     } catch (e) {}
     return fallback(axis);
   }
@@ -239,9 +243,9 @@
     });
     brand.appendChild(menu);
 
-    // Mirrors the CSS nav-collapse breakpoint (56rem) — deliberately wider
-    // than isMobile()'s 41rem skin-default check: six inline links + the
-    // Vibe button overflow tablet widths long before phone widths.
+    // Mirrors the CSS nav-collapse breakpoint (56rem), which is wider than
+    // the 41rem phone breakpoint the rest of the site uses: six inline links
+    // + the Vibe button overflow tablet widths long before phone widths.
     function mobile() { return window.matchMedia("(max-width: 56rem)").matches; }
     function open() {
       menu.hidden = false;
