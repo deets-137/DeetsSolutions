@@ -208,7 +208,7 @@
   /* Mobile nav menu: on narrow viewports the inline nav links don't fit, so
      the "Deets" wordmark itself becomes the trigger for a dropdown. Desktop
      is untouched — the wordmark stays a plain home link and the inline nav
-     shows; the media query in main.css hides this menu and the mobile-only
+     shows; the media query in chrome.css hides this menu and the mobile-only
      affordances there. Links are CLONED from the live .site-nav so the
      destinations (and each page's aria-current) stay defined in one place:
      the page's markup. The menu carries only the links marked
@@ -293,7 +293,7 @@
      AND tangent match at the tile edge — no seam, no crossings. Each train
      is an opaque fill below a hairline crest, so a nearer swell occludes
      the ones behind it. Geometry lives here; ink/fill are theme roles and
-     motion is skin tokens (see .ocean in main.css). */
+     motion is skin tokens (see .ocean in chrome.css). */
   function buildOcean(suffix) {
     // The pattern ids must be unique per SVG instance: the home Vibe panel
     // renders its own scoped ocean alongside this page-level one, and two

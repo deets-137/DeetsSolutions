@@ -2,8 +2,10 @@
 
 Technical companion to the [README](../README.md). The README says what the
 site is; this file says how it works. No build step, no framework, no
-dependencies — every page is plain HTML that loads `styles/main.css`,
-`js/controls.js`, `js/toast.js` (the shared toast host — see
+dependencies — every page is plain HTML that loads `styles/chrome.css`
+(plus `styles/main.css` on the non-game tabs — see
+[css-split.md](css-split.md)), `js/controls.js`,
+`js/toast.js` (the shared toast host — see
 [ui.md](ui.md), "Toasts"), and (for the home hub and the journal pages)
 one page-local script.
 
@@ -26,10 +28,16 @@ styles/themes.css    Tier 2  color roles (--canvas, --title, --text, --card,
 styles/skin.css      Tier 3  non-color tokens (--font-title, --radius-card,
                              --shadow-card, --dur-fast, --hover-lift …)
                              per [data-skin]
-styles/main.css      Tier 4  site rules, referencing ONLY tier 2/3 tokens
+styles/chrome.css    Tier 4  shared rules + the tier 0-3 @imports; every
+                             page links this FIRST
+styles/main.css      Tier 4  one section per non-game tab (no imports)
+styles/table.css     Tier 4  the game table shell (`gt-` prefix)
+<game>/<game>.css    Tier 4  one game's own art + layout
 ```
 
-**Token discipline:** `main.css` never hardcodes a color or a geometry value.
+All tier-4 files reference ONLY tier 2/3 tokens.
+
+**Token discipline:** no tier-4 file hardcodes a color or a geometry value.
 If a rule needs a value that doesn't exist as a token, the fix is a new role
 in tier 2/3, not a literal in tier 4. `themes.css` and `skin.css` open with
 banners documenting every role.
@@ -61,7 +69,7 @@ the pair with Happy trailing. On skins with a ride, some strolls become the
 pair riding it instead — Ocean's rowboat along the bottom, Glass's hot-air
 balloon drifting across at altitude. The character art is the game's own
 4-frame side-walk strips in `assets/sprites/`, played by a CSS `steps(4)`
-animation at the game's 7 fps (the "Sprite walkers" section of `main.css`);
+animation at the game's 7 fps (the "Sprite walkers" section of `chrome.css`);
 the travel is a Web Animations API animation so the sit break can pause it.
 Walkers are `aria-hidden`, `pointer-events: none`, sit above `.site-main`
 but below the header's menus, and are never spawned under
@@ -75,16 +83,19 @@ composites (both characters drawn aboard), **graybox placeholders awaiting
 Aditya's art**: `boat.png` 96×72, `balloon.png` 64×96, side view facing
 LEFT (walkers.js mirrors for rightward travel), rendered at 2×. Same
 filename + size = drop-in, zero code changes; a new ride is one `SPRITES`
-entry in walkers.js plus a `.walker__sprite--<name>` block in main.css.
+entry in walkers.js plus a `.walker__sprite--<name>` block in chrome.css.
 
 ## Page bar
 
 Every page opens with the same header panel: `.page-bar` — title left,
 optional action pills (`.home__cta`) right — with the `.page-meta` dim
 line under it (journal counts, the resume's updated-on date, home's
-tagline). Home, Resume, and Cool Stuff use `.page-bar` directly; SOTD and
-Movies keep their own `.sotd__bar` because it pins (sticky) and carries
-the toolbar. `.page-bar` deliberately mirrors `.sotd__bar`'s desktop
+tagline). Home, Resume, Cool Stuff, Privacy and the auth landing use
+`.page-bar` directly; the other seven pages — SOTD, Movies, League,
+Radio, Profile, Cities and Mahjong — open with `.sotd__bar` instead,
+because it pins (sticky) and carries the toolbar. Despite the name,
+`.sotd__bar` is **shared chrome, not journal CSS**: both primitives live
+side by side in `styles/chrome.css`. `.page-bar` deliberately mirrors `.sotd__bar`'s desktop
 material and geometry (menu surface + backdrop, panel radius/border/
 shadow, same padding), so the title sits in the same place in the same
 dress on every tab — a geometry change to one should visit the other.

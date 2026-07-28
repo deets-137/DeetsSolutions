@@ -1,114 +1,138 @@
-# Splitting main.css — findings and plan
+# Splitting main.css — findings and outcome
 
-**Status: planned, not executed.** The trigger is the first commit of the
-next game tab, whichever game that turns out to be (poker, King of the
-Coop, or something else) — the new game gets born into its own CSS file
-instead of migrated later, and the existing page sections move out in the
-same sitting. Until then, nothing changes; keep adding to `main.css` as
-usual.
+**Status: executed (phase 1), branch `stats-and-more`.** The trigger fired
+early: rather than wait for the next game's first commit, the split ran
+ahead of the accounts phase-2 (game stats) work so the new stats box would
+land in a per-page file instead of the bottom of a 5,100-line monolith.
 
-## Findings (snapshot: 2026-07-27, commit b2979f4)
+Phase 1 moved **the two games out and the shared chrome into its own
+file**. The journals, Home, League and DeetsRadio deliberately stayed in
+`main.css` — see "What's left" below.
 
-The repo is *not* uniformly heavy. `index.html` is 201 lines, each tab
-already has its own HTML file, and the JS is already factored the way we
-want it (one page-local script per page, shared machinery in `games/` and
-`js/`). None of that needs restructuring.
+## What shipped
 
-The one genuine candidate is `styles/main.css` — 4,934 lines — and it is
-already "split" in every way except being one file. The `====` section
-banners map it cleanly (line numbers will drift; the banners are the
-durable anchors):
+`styles/main.css` was 5,099 lines. It is now four files:
 
-| Section (by banner)                              | Lines       | ~Size |
-| ------------------------------------------------ | ----------- | ----- |
-| Site chrome: frame, header, nav, wordmark        | 1–448       | 450   |
-| Settings menu (theme/skin picker)                | 449–628     | 180   |
-| SOTD + the shared journal card/toolbar kit       | 629–1308    | 680   |
-| Movies                                           | 1309–1366   | 60    |
-| Cool Stuff                                       | 1367–1456   | 90    |
-| Home                                             | 1457–1957   | 500   |
-| Resume                                           | 1958–2045   | 90    |
-| League                                           | 2046–2376   | 330   |
-| DeetsRadio                                       | 2377–3505   | 1,130 |
-| DeetsCities                                      | 3506–4223   | 715   |
-| DeetsMahjong                                     | 4224–4934   | 710   |
+| File | Lines | Owns |
+| ---- | ----- | ---- |
+| `styles/chrome.css`   | ~1,010 | Token imports + everything every page needs |
+| `styles/main.css`     | ~2,685 | One section per non-game tab |
+| `cities/cities.css`   | ~726  | The DeetsCities block |
+| `mahjong/mahjong.css` | ~717  | The DeetsMahjong block |
 
-Over half the file is the three newest tabs (radio, cities, mahjong), and
-everything from the radio banner down is fully page-scoped — no rule in
-those sections is used by any other page. The seams are clean; the split
-is a mechanical cut-and-paste, not a refactor.
+The cut was verified content-identical: stripping comments and blank lines
+from the original and from the union of the four files yields byte-identical
+sorted output (4,145 lines each side). No rule was rewritten, reordered
+within its section, or dropped.
 
-## Why split (and why not yet)
+### The open question, answered
 
-1. **Every page pays for every page.** All ~5k lines ship to someone
-   loading the resume. Minor on a flat static site, but it grows by
-   ~700 lines per game.
-2. **Parallel-session merge conflicts.** Work happens in parallel Claude
-   sessions that each push; one monolithic file that every feature
-   touches is the repo's biggest conflict magnet. Per-page files make a
-   radio-polish session and a mahjong-polish session conflict-free.
-3. **Navigability.** The banners still work at 5k lines; they will not
-   at 6k+ with a fourth game section.
+The plan asked whether to pull the shared kit into a named file or leave it
+in `main.css`. **Named file: `styles/chrome.css`.** The deciding factor was
+that the shared rules were not contiguous — they were scattered across six
+ranges in three different "sections", including a global focus ring stranded
+at the tail of the radio block and the `.account-btn` rules below mahjong.
+A filename makes "this is shared, don't fork it" visible; a comment banner in
+a 5k-line file did not.
 
-Against splitting *preemptively*: the file works today, the banners still
-navigate it, and a split with no motivating feature is churn. Doing it as
-the next game's first commit means the split pays for itself immediately.
+`chrome.css` carries, in this order: the four `@import`s and the structural
+tokens; reset, canvas/ocean/storm layers, sprite walkers; header, wordmark,
+nav, mobile nav; the settings menu; `.page-bar`; the `.sotd__bar` /
+`.sotd-toolbar` bar primitive; the `tb-` pill/popover kit; toasts; the focus
+ring; `.account-btn`; and `.prose` / `.auth-done`.
 
-## The plan
+### `.sotd__bar` is chrome, not journal CSS
 
-**Per-page files live next to their page**, mirroring the JS convention
-(`radio/radio.js` → `radio/radio.css`):
+Seven pages open with `.sotd__bar` — sotd, movies, league, radio, profile,
+cities, mahjong. It was filed under the "Song of the Day" banner purely
+because that is the tab it was born in. It moved to `chrome.css` **without
+being renamed**: renaming churns seven pages of HTML and JS for cosmetics,
+and the class name is load-bearing in each page's script. The misnomer is
+now documented at its definition instead.
 
-- `radio/radio.css`, `cities/cities.css`, `mahjong/mahjong.css` — the
-  big three, ~2,550 lines out.
-- The new game starts life in `<game>/<game>.css`.
-- Optional, only if the sitting is going smoothly: `js/../home` has no
-  directory, so Home (500 lines) would go to `styles/home.css`; League
-  (330) to `league/league.css`. Movies, Cool Stuff, and Resume are too
-  small to be worth their own files — they stay.
+Bonus: CLAUDE.md requires `.page-bar` and `.sotd__bar` stay visually in
+sync. They are now adjacent in one file, which makes that rule enforceable
+by reading rather than by memory.
 
-**What stays in main.css** (slimmed to roughly its first 1,300 lines):
-the site chrome, the settings menu, the page-bar, and the shared journal
-card + toolbar/pill/popover kit. That kit is genuinely multi-page CSS —
-unlike its JS, which the journals deliberately duplicate — so it keeps a
-single copy. Open question for the sitting: whether to pull the kit into
-a named `styles/journal-kit.css` so the "this is shared, don't fork it"
-rule is visible in the filename, or leave it in main.css. Either is fine;
-don't duplicate it per journal.
-
-**Cascade order per page** — each page's `<head>` links, in order:
+## Cascade order per page
 
 ```
-styles/palette.css → themes.css → skin.css   (token tiers, unchanged)
-styles/main.css                              (shared chrome + kits)
-styles/table.css                             (game pages only, unchanged)
-<page>/<page>.css                            (the moved section)
+styles/chrome.css        every page, first — carries the token imports
+styles/main.css          non-game pages only
+styles/table.css         game pages only (unchanged)
+<game>/<game>.css        game pages only, last
 ```
 
-The page file loads last, preserving today's source order for any
-equal-specificity overrides. Sections are page-scoped so the risk is low,
-but keep the order anyway.
+`main.css` has **no `@import`s of its own** — it inherits chrome's token
+cascade and must never be linked without it.
 
-**Mechanics:** pure cut-and-paste by banner — no rule rewrites, no
-selector changes, the banner comment becomes the new file's header. Then
-verify every page loads clean (console, DOM counts) and spot-check a few
-theme×skin combos; look-and-feel verification is Aditya's, as always.
-Estimated effort: about an hour of careful moves plus verification.
+Two pages are now chrome-only and link nothing else: `privacy/index.html`
+and `auth/done.html`. Both used exclusively shared classes; `auth/done.html`
+went from downloading 5,099 lines to 1,009.
 
-**What does not change:** token discipline (tier-2/3 tokens only, no hex,
-no hardcoded geometry), the 30-combo rule, the `gt-` prefix rule, the art
-carve-outs. Those are per-rule constraints; the split is per-file.
+The game pages **no longer link `main.css` at all**. This was verified safe:
+every shared class they use resolves in `chrome.css` or `table.css`, and the
+only references to shared classes left in `main.css` are comments or
+radio-scoped (`:root[data-radio-shell]`, `.radio-shell__actions`).
 
-## Doc touch-points when executing
+### Cascade regressions checked, none found
 
-The split lands in prose too — sweep the docs for "main.css" mentions and
-update at least:
+Moving the focus ring and `.account-btn` earlier could in principle let a
+later page rule win where it previously lost. Verified three ways: no
+selector string appears in both `chrome.css` and `main.css`; no selector
+appears in both `chrome.css` and either game sheet; and the one rule that
+overlaps behaviourally (`.sotd-cal__day.is-selected`, specificity 0-2-0)
+already beat the ring (0-1-1) on specificity before the move, so order was
+never what decided it.
 
-- [games.md](games.md) "Adding a game" step 5 ("`styles/main.css` — one
-  block") becomes "`<game>/<game>.css`".
-- [architecture.md](architecture.md) — the intro says every page loads
-  `styles/main.css`; the tier table's Tier 4 line needs the per-page
-  files added.
-- [CLAUDE.md](../CLAUDE.md) — the token-discipline bullet names
-  `styles/main.css`; widen it to cover the per-page files.
-- This file — flip the status line to executed, with the commit.
+## Cleanups done in the same pass
+
+- **`tb-` namespace fixed.** `.tb-pop__head` and `.tb-pop__empty` were
+  defined in `styles/table.css`, so they existed only on the two pages that
+  link it. They moved to the `tb-` kit in `chrome.css` where the rest of the
+  namespace lives.
+- **`--seat-edge` token added.** The hairline `rgba(0, 0, 0, 0.25)` around a
+  seat swatch was hardcoded in three places (`.gt-dot`,
+  `.gt-colorpick__swatch`, and the profile page's own `.profile-swatch`) —
+  an undeclared token-discipline exception. It is now one token in
+  `chrome.css`, deliberately a fixed literal rather than a theme role
+  because it outlines an *arbitrary user-picked hex* and must not follow the
+  theme. It lives in `chrome.css` rather than `table.css` because `/profile/`
+  renders the same picker without loading the table shell.
+- The two remaining `rgba(0, 0, 0, 0.25)` literals in `cities/cities.css`
+  (`.cities-token`, `.cities-vhint__bg`) are inside that file's **declared**
+  board carve-out and are legal as-is.
+
+## What's left (phase 2, unscheduled)
+
+Still in `main.css`, one banner-delimited section each: Song of the Day,
+Movies, Cool Stuff, Home, Resume, League, DeetsRadio, Profile. Radio (~1,130
+lines) and Home (~500) are the two worth moving next.
+
+**The blocker for the journals specifically:** the `.song*` card primitives
+do not belong to sotd/movies alone. `league.js` and `radio.js` both use
+`.song__chip`, and `home.js` uses a wider slice (`song__art`, `song__cover`,
+`song__mono`, `song__play`, `song__link`, `song__links`, `song__tags`). The
+card block cannot be cut cleanly until those chip/cover primitives are split
+out into `chrome.css` first. That is a real refactor, not a cut-and-paste,
+which is why phase 1 left it alone.
+
+## Pre-existing issues found, not fixed
+
+Not regressions — they predate the split and were left alone deliberately:
+
+- `--font-display` and `--fs-h2` are **referenced but never defined** in any
+  tier. Confirmed absent from `skin.css` at HEAD before the split too. They
+  silently fall back to inherited values. Used by `.prose h2` among others.
+- `--toast-accent` is referenced by the toast rules but set nowhere in CSS
+  or JS that a repo-wide grep finds.
+
+## What did not change
+
+Token discipline (tier-2/3 tokens only, no hex, no hardcoded geometry), the
+30-combo rule, the `gt-` prefix rule, the art carve-outs. Those are per-rule
+constraints; the split is per-file.
+
+**Look-and-feel verification is still Aditya's** — the mechanical checks
+(every page 200s, every stylesheet resolves, no content lost, no cascade
+crossings) all pass, but no browser has rendered these files.

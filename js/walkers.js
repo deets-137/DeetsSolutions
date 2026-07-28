@@ -8,7 +8,7 @@
    game's 7 fps walk. Side art faces LEFT, so a left-to-right walker is
    mirrored with scaleX(-1) — exactly what the game does with flip_h.
    Sprite geometry (frame sizes, strips) is intrinsic to the art and lives
-   here + in the walkers section of main.css, the same way the ocean's
+   here + in the walkers section of chrome.css, the same way the ocean's
    wave geometry lives in controls.js.
 
    Pages opt in by including this script. One stroll starts shortly after

@@ -313,7 +313,7 @@ only" caption — the pill's own value readout says which deck you're on,
 and that's enough (his call).
 Nothing server-side knows about it. Sideways boxes (walls, side racks) reuse the
 portrait art;
-`main.css` rotates `.mj-tilef__art` ±90° to match, and sprites scale
+`mahjong/mahjong.css` rotates `.mj-tilef__art` ±90° to match, and sprites scale
 with plain smooth filtering (`image-rendering: pixelated` shimmered at
 fractional rem sizes).
 

@@ -15,7 +15,7 @@
    All flavor copy comes from strings.js; the terse mechanical LOG lines are
    authored here (rendered from typed event records, never sent as prose).
    The TILES use the fixed mahjong palette (a token-discipline carve-out in
-   main.css); everything else rides the themes.css / skin.css tokens. */
+   mahjong.css); everything else rides the themes.css / skin.css tokens. */
 (function () {
   "use strict";
 

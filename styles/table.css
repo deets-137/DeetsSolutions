@@ -48,13 +48,8 @@
 .gt-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
 .gt-code__input:focus { border-bottom-color: var(--title); }
 .gt-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; }
-.tb-pop__head, .tb-pop__empty {
-  padding: var(--space-2) var(--space-3);
-  color: var(--subtext);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+/* .tb-pop__head / .tb-pop__empty are part of the tb- kit — styles/chrome.css. */
+
 /* ── gate (peek → sit / watch / open) ─────────────────────────── */
 .gt-gate {
   margin-bottom: var(--space-5);
@@ -148,7 +143,7 @@
   padding: 0 var(--space-2);
 }
 .gt-seat__nameinput:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
-.gt-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid rgba(0, 0, 0, 0.25); }
+.gt-dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; display: inline-block; flex: none; border: 1px solid var(--seat-edge); }
 
 /* ── seat-color picker (lobby): the dot is the button, the panel slides
    open under the row with the game-over superlatives' 0fr→1fr slide ── */
@@ -188,7 +183,7 @@
 .gt-colorpick__swatches { display: flex; gap: var(--space-2); }
 .gt-colorpick__swatch {
   width: 1.5rem; height: 1.5rem; flex: none;
-  padding: 0; border: 1px solid rgba(0, 0, 0, 0.25); border-radius: 50%;
+  padding: 0; border: 1px solid var(--seat-edge); border-radius: 50%;
   cursor: pointer;
   transition: box-shadow var(--dur-fast) var(--ease-ui), transform var(--dur-fast) var(--ease-ui);
 }

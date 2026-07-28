@@ -19,7 +19,7 @@ disconnects (no grace, no takeover, no reconnect), so rejoin behavior is
 only testable live. Still ahead: Phase 3 (betting), Phase 4 (Aditya's
 copy + art) — see **Build order**. All Phase-1 work is on branch
 `DeetsCities`: the supporting scaffolding landed in `f13c042` (this doc,
-`styles/main.css`, the nav links, `.claude/launch.json`), and the
+`cities/cities.css`, the nav links, `.claude/launch.json`), and the
 `cities/` app code (`engine.js`, `cities.js`, `board-data.js`, the two
 transports, `strings.js`, `index.html`) plus the `assets/sprites/cities/`
 placeholders are now committed as well — the branch checks out and runs.

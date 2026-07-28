@@ -207,6 +207,6 @@ Cloudflare preview URL it won't be.
 | `js/account.js` | new shared chrome |
 | `auth/done.html` | new — the sign-in landing tab |
 | `privacy/index.html` | new — required to publish |
-| `styles/main.css` | `.account-btn`, `.prose`, `.auth-done` appended |
+| `styles/chrome.css` | `.account-btn`, `.prose`, `.auth-done` appended |
 | `games/table.js` | name fallback + one-shot colour seed, both additive |
 | every page's `<head>` | `js/account.js` script tag |

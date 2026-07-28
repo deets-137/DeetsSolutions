@@ -44,7 +44,7 @@ border, and bottom edge — the image fully replaces the CSS box's
 styling. Sideways tiles (walls, side players' racks) reuse the same
 portrait art; the CSS rotates it.
 
-Suit ink colors, if you want to stay on palette (`--mj*` in main.css):
+Suit ink colors, if you want to stay on palette (`--mj*` in mahjong/mahjong.css):
 characters `#b3372e` · dots `#2b5fa3` · bamboo `#2e7d43` · winds
 `#23303f` · red dragon `#c0271f` · green `#1f7a3d` · white `#8a8f98` ·
 flowers/seasons `#c2703f` · face ivory `#f6efdc` · back green `#2e6e52`.

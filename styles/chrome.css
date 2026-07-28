@@ -1,0 +1,1027 @@
+/* ============================================================
+   Deets.Solutions — SHARED CHROME. Every page links this file
+   FIRST; page/tab styles come after it.
+
+   Tokens first (fonts → palette → themes → skin), then the rules
+   every page needs: the page frame, header/nav, settings menu, the
+   two page-header primitives (.page-bar and .sotd__bar), the tb-
+   toolbar kit, toasts, the focus ring, the account button, and
+   prose. Rules reference ONLY semantic tokens — never a raw hex,
+   font name, or geometry value. Two orthogonal axes, exactly like
+   the DeetsMusic app: theme = color, skin = shape/type/motion.
+
+   Nothing page-specific belongs here. See docs/ui.md.
+   ============================================================ */
+@import "./fonts.css";
+@import "./palette.css";
+@import "./themes.css";
+@import "./skin.css";
+
+/* Structural site tokens — NOT skin-varied (page frame + spacing scale).
+   Everything type / shape / material / motion lives in skin.css. */
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --header-h:    4rem;
+  --content-max: 68rem;
+
+  /* Seat-swatch hairline — part of the games/colors.js seat-color
+     contract, not a theme role. Deliberately a fixed literal: it
+     outlines an ARBITRARY user-picked hex (the lobby's custom colour),
+     so it must not follow the theme or it stops reading on half of
+     them. Lives here, not in table.css, because /profile/ renders the
+     same picker without loading the table shell. */
+  --seat-edge: rgba(0, 0, 0, 0.25);
+  /* the site-shell's gutter dock (DeetsRadio browse-while-listening) */
+  --radio-dock-w: 19rem;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  height: 100%;
+  /* Always reserve the vertical scrollbar's gutter, so a tall page (with a
+     scrollbar) and a short one (without) have identical usable width. Otherwise
+     the centered header + content re-center by ~half the scrollbar width when
+     you move between pages, reading as a sideways jump. */
+  scrollbar-gutter: stable;
+  /* The page scrollbar is ours, not the OS's — the same thin themed bar
+     the panel scrollers ride (themes.css declares the thumb roles; this
+     finishes what that comment promised). Matters doubly inside the
+     radio site-shell, where a native bar would float mid-screen at the
+     framed page's edge. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+body {
+  min-height: 100%;
+  position: relative;
+  background-color: var(--canvas);   /* solid fill; the texture is a fixed layer below */
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: var(--lh-text);
+  transition: background-color var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+
+  /* crisp text: no faux weights, smoothed edges */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Canvas texture layer ───────────────────────────────────────
+   The skin's wallpaper (Press halftone / Ocean waves / Glass aurora /
+   CyberStorm grid) painted on a VIEWPORT-fixed layer behind the
+   content — same idea as the storm layer below. It lives here, not
+   as a body background, so its size resolves against one screen: on
+   a body background, 100% is the whole scroll height, so Glass's
+   no-repeat aurora would sit only at the very top and bottom of a
+   long page with a flat-dark middle. Fixed also dodges the per-scroll
+   repaint cost of background-attachment: fixed. Color is still a theme
+   role via --canvas-bg; geometry + motion are skin tokens. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;              /* over the solid --canvas fill, under all content */
+  pointer-events: none;
+  background-image:  var(--canvas-bg);
+  background-size:   var(--canvas-bg-size);
+  background-repeat: var(--canvas-bg-repeat);
+  animation: var(--canvas-anim);
+}
+
+/* ── Ocean layer (injected by controls.js) ──────────────────────
+   Three seamless SVG wave trains behind the content; inert unless a
+   skin opts in via --ocean-display (Ocean). Tile geometry lives in
+   controls.js; ink/fill are theme roles via skin tokens; the roll and
+   bob motion (keyframes in skin.css) reads per-layer distances from
+   the --roll-dist / --bob-amp custom properties set here. */
+.ocean {
+  display: var(--ocean-display, none);
+  position: fixed;
+  inset: 0;
+  /* explicit: an <svg> is a replaced element, so inset alone leaves it
+     at its 300×150 intrinsic default instead of stretching it */
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+/* Oversized and left-shifted so a full roll cycle (≤144px) never drags
+   the rect's edge into view; the pattern just tiles across the slack. */
+.ocean__roll {
+  x: -160px;
+  y: -8px;
+  width: calc(100% + 320px);
+  height: calc(100% + 16px);
+  animation: ocean-roll 16s linear infinite;
+}
+.ocean__bob  { animation: ocean-bob 9s ease-in-out infinite alternate; }
+.ocean__fill { fill: var(--canvas); }
+.ocean__crest {
+  fill: none;
+  stroke-width: 1px;
+}
+.ocean__crest--1 { stroke: var(--ocean-ink-1); }
+.ocean__crest--2 { stroke: var(--ocean-ink-2); }
+.ocean__crest--3 { stroke: var(--ocean-ink-3); }
+/* Roll: each train drifts an INTEGER number of its own tile width per
+   16s loop (144=3×48, 128=2×64, 80=1×80) so the wrap is invisible, the
+   nearest moving fastest. Bob: amplitudes shrink with distance; the
+   middle train is counter-phase (negative) so the sea breathes rather
+   than pumps. 9s·2 vs 16s never sync (LCM 144s). */
+.ocean__roll--1 { --roll-dist: 144px; }
+.ocean__roll--2 { --roll-dist: 128px; }
+.ocean__roll--3 { --roll-dist:  80px; }
+.ocean__bob--1  { --bob-amp:  3px; }
+.ocean__bob--2  { --bob-amp: -2px; }
+.ocean__bob--3  { --bob-amp:  1px; }
+
+/* ── Storm layer (injected by controls.js) ──────────────────────
+   Decorative strokes drawn BEHIND the content; inert unless a skin
+   opts in via --storm-display (CyberStorm). Ink is a theme role. */
+.storm {
+  display: var(--storm-display);
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.storm__bolt {
+  fill: none;
+  stroke: var(--storm-ink);
+  stroke-width: var(--storm-w);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: var(--storm-glow);
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  /* Position transforms resolve in viewBox user units (0–100 across the
+     screen), origin top-left — so translateX(N) lands at N% of the width
+     regardless of viewport size. Right-edge bolts scaleX(-1) to mirror. */
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+/* Two bolts down the LEFT edge, two mirrored down the RIGHT edge. Unequal
+   cycles + staggered delays keep the four strikes from ever syncing. */
+.storm__bolt--1 { d: var(--storm-path-1); transform: translateX(10px);              animation: storm-strike var(--storm-cycle-1) linear infinite; }
+.storm__bolt--2 { d: var(--storm-path-2); transform: translateX(2px);               animation: storm-strike var(--storm-cycle-2) linear infinite 1.4s; }
+.storm__bolt--3 { d: var(--storm-path-1); transform: translateX(90px) scaleX(-1);   animation: storm-strike var(--storm-cycle-2) linear infinite 4s; }
+.storm__bolt--4 { d: var(--storm-path-2); transform: translateX(98px) scaleX(-1);   animation: storm-strike var(--storm-cycle-1) linear infinite 6.5s; }
+
+/* ── Sprite walkers (spawned by walkers.js) ─────────────────────
+   Deets and Happy from the DeetsLife game, occasionally strolling across
+   the bottom of the viewport. Content images like the journal posters:
+   the pixel art carries its own colors, so no theme roles — but they walk
+   IN FRONT of the content (above .site-main, below the header's menus),
+   inert to the pointer. Frame geometry (--fw/--fh, 4-frame strips at the
+   game's 7 fps) is intrinsic to the art, kept here + in walkers.js the
+   same way the ocean's wave geometry lives in controls.js. The travel
+   across the screen is a Web Animations API animation in walkers.js (so
+   Happy's sit break can pause it); only the sprite cycle lives here. */
+.walker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.walker__sprite {
+  width: var(--fw);
+  height: var(--fh);
+  background-repeat: repeat-x;
+  background-size: calc(var(--fw) * 4) var(--fh);
+  image-rendering: pixelated;
+  /* walkers.js mirrors + scales from here; feet stay on the viewport edge */
+  transform-origin: 50% 100%;
+  animation: walker-cycle 0.571s steps(4) infinite;   /* 4 frames / 7 fps */
+}
+@keyframes walker-cycle {
+  to { background-position-x: calc(var(--fw) * -4); }
+}
+.walker__sprite--deets {
+  --fw: 32px;
+  --fh: 64px;
+  background-image: url("../assets/sprites/deets/walk_side.png");
+}
+.walker__sprite--happy {
+  --fw: 32px;
+  --fh: 32px;
+  background-image: url("../assets/sprites/happy/walk_side.png");
+}
+.walker__sprite--sitting {
+  background-image: url("../assets/sprites/happy/sit_side.png");
+  background-size: var(--fw) var(--fh);   /* single frame, no cycle */
+  animation: none;
+}
+/* Skin rides: single-frame composites (both characters aboard) from
+   assets/sprites/vehicles/, graybox until Aditya draws them. Their bob
+   animates the independent translate/rotate properties, which COMPOSE
+   with the inline mirror/scale transform walkers.js sets — a transform
+   keyframe would overwrite it. */
+.walker__sprite--boat {
+  --fw: 96px;
+  --fh: 72px;
+  background-image: url("../assets/sprites/vehicles/boat.png");
+  background-size: var(--fw) var(--fh);
+  animation: walker-bob 2.6s ease-in-out infinite alternate;
+  --bob-y: -4px;
+  --bob-tilt: 2deg;
+}
+.walker__sprite--balloon {
+  --fw: 64px;
+  --fh: 96px;
+  background-image: url("../assets/sprites/vehicles/balloon.png");
+  background-size: var(--fw) var(--fh);
+  animation: walker-bob 3.4s ease-in-out infinite alternate;
+  --bob-y: -10px;
+  --bob-tilt: 0deg;
+}
+@keyframes walker-bob {
+  from { translate: 0 0;            rotate: calc(-1 * var(--bob-tilt)); }
+  to   { translate: 0 var(--bob-y); rotate: var(--bob-tilt); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .walker { display: none; }   /* walkers.js also never spawns them */
+}
+
+/* Content sits above the canvas texture + storm. The header outranks main so
+   its dropdown menu isn't covered by main's (later, same-context) content. */
+.site-header { position: relative; z-index: 10; }
+.site-main   { position: relative; z-index: 1; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.site-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+/* Brand — the wordmark, alone at the left. On mobile it doubles as the nav
+   menu trigger (see .nav-menu), so it's the positioning anchor for that
+   dropdown. */
+.site-brand {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Wordmark — the title-face signature, links home. The editorial
+   underline is a skin opt-in (Vanilla only), inked in currentColor. */
+.wordmark {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: var(--space-1) var(--space-2);
+  /* Pull left by the horizontal padding so the "Deets" TEXT sits on the
+     content edge — flush with page headings + cards below it — while the
+     hover background keeps its padded hit area. */
+  margin-left: calc(-1 * var(--space-2));
+  border-radius: var(--radius-control);
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.wordmark:hover { background: var(--surface-hover); }
+
+/* ── Primary nav ────────────────────────────────────────────── */
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;   /* push the nav + Vibe button to the right edge */
+}
+
+.site-nav a {
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.site-nav a:hover { background: var(--surface-hover); color: var(--title); transform: var(--hover-lift); }
+.site-nav a[aria-current="page"] { color: var(--title); }
+
+/* ── Grouped nav dropdowns (desktop) ──────────────────────────────
+   The primary nav groups its destinations under four hover menus
+   (Blog / Games / Utilities / About Me). Pure CSS, no desktop JS: the
+   panel reveals on hover and on :focus-within (keyboard), reusing the
+   same menu material as the Vibe + wordmark popovers. Mobile is
+   unaffected — .site-nav is display:none below the breakpoint and the
+   wordmark menu (controls.js) still clones the [data-nav-core] anchors
+   nested inside these groups. */
+.nav-group { position: relative; }
+.nav-group__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.nav-group:hover .nav-group__label,
+.nav-group:focus-within .nav-group__label {
+  background: var(--surface-hover);
+  color: var(--title);
+  transform: var(--hover-lift);
+}
+/* Active-page group stays lit even when not hovered. */
+.nav-group:has(a[aria-current="page"]) .nav-group__label { color: var(--title); }
+.nav-group__caret { font-size: 0.7em; line-height: 1; }
+
+.nav-group__menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 11rem;
+  margin: 0;
+  padding: var(--space-1);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  /* Hidden but kept in-flow + focusable so :focus-within can reveal it;
+     pointer-events:none keeps the invisible panel from grabbing hover. */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-1 * var(--space-1)));
+  transition: opacity var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.nav-group:hover .nav-group__menu,
+.nav-group:focus-within .nav-group__menu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+.nav-group__menu a {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+}
+.nav-group__menu a:hover { background: var(--surface-hover); color: var(--title); }
+.nav-group__menu a[aria-current="page"] { color: var(--title); }
+
+/* ── Mobile nav menu ──────────────────────────────────────────────
+   Below the breakpoint the inline nav can't fit, so the wordmark becomes a
+   dropdown trigger (wired in controls.js) and the destinations live in this
+   popover — same panel material as the Vibe menu. Desktop never shows it. */
+.nav-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 11rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.nav-menu[hidden] { display: none; }
+.nav-menu__item {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  white-space: nowrap;
+}
+.nav-menu__item:hover { background: var(--surface-hover); color: var(--title); }
+.nav-menu__item[aria-current="page"] { color: var(--title); }
+
+/* Desktop keeps the inline nav; the wordmark's dropdown stays inert.
+   NOTE: the nav collapses at 56rem — wider than the 41rem skin-default
+   breakpoint — because six inline links + the Vibe button overflow
+   anything narrower (controls.js `mobile()` mirrors this value). */
+@media (min-width: 56rem) {
+  .nav-menu { display: none; }
+}
+/* Narrow: hide the inline links, keep the Vibe button pinned right on its
+   own, and flag the wordmark as a menu with a caret. */
+@media (max-width: 56rem) {
+  .site-nav { display: none; }
+  .settings { margin-left: auto; }
+  .wordmark[aria-haspopup]::after {
+    content: "▾";
+    margin-left: var(--space-1);
+    font-size: 0.7em;
+    text-decoration: none;
+  }
+}
+
+/* ============================================================
+   Settings menu — mirrors DeetsMusic's title menu: a single
+   trigger opening a menu of rows, each row a flyout of live chips.
+   Theme chips taste the color; Skin chips taste the typeface.
+   ============================================================ */
+.settings { position: relative; display: inline-flex; align-items: center; }
+
+.settings__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--title);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  line-height: 1;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.settings__trigger:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
+
+/* The menu + flyouts adopt the skin's material (Glass frosts them). */
+.menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 9rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  z-index: 20;
+}
+.menu[hidden] { display: none; }
+
+.menu__group { position: relative; display: flex; flex-direction: column; }
+
+/* The row is the clickable header (a real button) that toggles the flyout. */
+.menu__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.menu__row:hover,
+.menu__group.is-open > .menu__row { background: var(--surface-hover); }
+.menu__chev { color: var(--subtext); }
+
+/* Flyout opens to the LEFT of the menu (which hugs the right edge, under the
+   right-aligned Vibe button), toggled by CLASS on click — no hover targets. */
+.flyout {
+  position: absolute;
+  top: calc(-1 * var(--space-1));
+  right: 100%;
+  margin-right: var(--space-2);
+  min-width: 9rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  display: none;
+  flex-direction: column;
+  gap: var(--space-1);
+  z-index: 30;
+}
+.menu__group.is-open .flyout { display: flex; }
+
+/* Each chip carries its own data-theme / data-skin, so the tokens resolve
+   to THAT choice — a theme chip tastes the color, a skin chip tastes the
+   typeface (rendered in its own --font-title). */
+.flyout__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;   /* name left, active dot right */
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  background: var(--canvas);
+  color: var(--title);
+  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-ui);
+}
+.flyout__item::after {             /* reserved right gutter; dot shows when active */
+  content: "";
+  width: 0.9em;
+  text-align: center;
+  line-height: 1;
+}
+.flyout__item:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.flyout__item[aria-checked="true"]::after { content: "•"; }
+
+/* Skin chips sit on the theme surface (skins name no color) and preview
+   the skin's own title face at a legible size. */
+.flyout__item[data-skin] {
+  background: var(--surface);
+  font-size: 1.05rem;
+}
+
+/* ── Main content canvas ────────────────────────────────────── */
+.site-main {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+/* ── Page bar ───────────────────────────────────────────────────
+   The shared page header: title left, optional action pills right,
+   wearing the same panel material + geometry as the journal pages'
+   control bar (.sotd__bar), so every tab's title sits in the same
+   place in the same dress. Not sticky — pages with no controls to
+   pin don't pin. */
+.page-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.page-bar__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.35);
+  color: var(--title);
+  line-height: 1.1;
+  white-space: nowrap;
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+}
+.page-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* The dim line under the bar — counts on the journals, the contact
+   line on the resume, the tagline on home. */
+.page-meta {
+  margin: 0 0 var(--space-5);
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+}
+
+
+/* ============================================================
+   The bar primitive — .sotd__bar / .sotd-toolbar.
+   Named for the journal it was born in, but it is SHARED site
+   chrome: sotd, movies, league, radio, profile, cities and mahjong
+   all open with it. Kept in sync with .page-bar's panel geometry
+   above (CLAUDE.md) — change one, change the other.
+   ============================================================ */
+/* ── Sticky control bar ──────────────────────────────────────────
+   Title + toolbar. Mobile-first: they stack and ONLY the toolbar pins
+   (title scrolls away). On wider screens the whole bar pins with the
+   title left and the pills right. The frosted background + hairline sit
+   on whichever element is the sticky one, so cards don't show through. */
+.sotd__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+/* The pinned element is a themed panel — same material as the dropdowns
+   (menu surface + backdrop) with the skin's panel radius, border and shadow,
+   so it rides every theme×skin. Mobile: title scrolls away, toolbar is the
+   panel. Desktop: the whole bar is the panel. */
+.sotd-toolbar {
+  position: sticky;
+  top: var(--space-2);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+@media (min-width: 41rem) {
+  .sotd__bar {
+    position: sticky;
+    top: var(--space-2);
+    z-index: 5;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    background: var(--menu-surface);
+    -webkit-backdrop-filter: var(--menu-backdrop);
+    backdrop-filter: var(--menu-backdrop);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+  }
+  .sotd-toolbar {   /* the bar is the panel now; reset the toolbar */
+    position: static;
+    flex-wrap: nowrap;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.sotd__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 1.35);
+  color: var(--title);
+  line-height: 1.1;
+  white-space: nowrap;
+  text-decoration-line: var(--title-underline);
+  text-decoration-thickness: var(--title-underline-w);
+  text-underline-offset: var(--title-underline-offset);
+}
+.sotd__meta {
+  margin: 0 0 var(--space-5);
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+}
+
+/* ── Toolbar pills + popovers ────────────────────────────────────
+   Each control is a pill that toggles a popover anchored below it.
+   Colours are theme roles; shape/material are skin tokens, so the
+   toolbar rides the same 30 theme×skin combos as everything else. */
+.tb-ctrl { position: relative; display: inline-flex; }
+.tb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui);
+}
+.tb-pill:hover { background: var(--surface-hover); color: var(--title); }
+.tb-pill.is-active { color: var(--title); border-color: var(--title); }
+.tb-pill__caret { color: var(--subtext); font-size: 0.7em; }
+/* Optional current-value readout inside a pill — "Queue | Arena ▾".
+   The divider is the value's left hairline (League's Queue pill). */
+.tb-pill__value {
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border);
+  color: var(--title);
+}
+.tb-pill[aria-expanded="true"] { color: var(--title); border-color: var(--title); }
+.tb-pill[aria-expanded="true"] .tb-pill__caret { color: var(--title); }
+
+.tb-pop {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 11rem;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-1);
+  z-index: 20;
+}
+.tb-pop[hidden] { display: none; }
+/* Popover section heading + its empty state. Used by the games' code
+   combobox (games/table.js) today; part of the kit, so it lives here
+   with the rest of it rather than in styles/table.css. */
+.tb-pop__head, .tb-pop__empty {
+  padding: var(--space-2) var(--space-3);
+  color: var(--subtext);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Toasts — shared chrome (js/toast.js; docs/ui.md) ───────────
+   A fixed top-right host under the header; toasts fly in from the
+   right, newest on top. Severity wears the theme's traffic-light
+   roles as a left stripe (success --go, warn --pause, error --stop;
+   info stays neutral), so every theme — the monochrome ones included —
+   expresses them in-family. z 50: over the radio site-shell (35) and
+   the row menus (40), so the room can reach you while you browse. */
+.toast-host {
+  position: fixed;
+  top: calc(var(--header-h) + var(--space-2));
+  right: var(--space-4);
+  width: 19rem;
+  max-width: calc(100vw - 2 * var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 50;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--toast-accent, var(--panel-border));
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text);
+  font-size: 0.86rem;
+  animation: toast-in var(--dur-med) var(--ease-ui) both;
+}
+.toast--success { --toast-accent: var(--go); }
+.toast--warn    { --toast-accent: var(--pause); }
+.toast--error   { --toast-accent: var(--stop); }
+.toast--out {
+  opacity: 0;
+  transform: translateX(30%);
+  transition: opacity var(--dur-med) var(--ease-ui),
+              transform var(--dur-med) var(--ease-ui);
+  pointer-events: none;
+}
+.toast__text { margin: 0; overflow-wrap: break-word; }
+.toast__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.toast__btn { font-size: 0.8rem; }
+/* the countdown — drains over the toast's lifetime; hover holds it
+   (toast.js holds the reap timer in step) */
+.toast__bar {
+  height: 2px;
+  margin-top: var(--space-2);
+  background: var(--toast-accent, var(--subtext));
+  transform-origin: left;
+  animation-name: toast-bar;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+.toast:hover .toast__bar { animation-play-state: paused; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(110%); }
+}
+@keyframes toast-bar {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+  .toast--out { transform: none; }
+}
+.tb-pop__opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tb-pop__opt:hover { background: var(--surface-hover); }
+.tb-pop__opt.is-active { color: var(--title); }
+.tb-pop__opt.is-active::after { content: "•"; color: var(--title); }
+/* [hidden] must beat the flex display above — the View popover hides its
+   Small chip on mobile (sotd.js/movies.js set the attribute). */
+.tb-pop__opt[hidden] { display: none; }
+
+/* Two-column popover: the option stack, a vertical hairline, then a slim
+   rail of icon toggles (the journals' sort-direction arrows, League's
+   single/split layout squares). */
+.tb-pop--cols { display: flex; align-items: stretch; }
+.tb-pop__main { flex: 1 1 auto; min-width: 0; }
+.tb-pop__rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-left: var(--space-1);
+  padding-left: var(--space-1);
+  border-left: 1px solid var(--border);
+}
+.tb-pop__icon {
+  display: grid;
+  place-items: center;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  padding: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.tb-pop__icon:hover { background: var(--surface-hover); color: var(--title); }
+.tb-pop__icon.is-active {
+  background: var(--surface-hover);
+  color: var(--title);
+  border-color: var(--title);
+}
+
+/* Sort direction toggle, divided off at the foot of the Sort popover. */
+.tb-pop__dirs {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+.tb-pop__dir {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.tb-pop__dir:hover { background: var(--surface-hover); }
+.tb-pop__dir.is-active {
+  background: var(--surface-hover);
+  color: var(--title);
+  border-color: var(--title);
+}
+
+
+/* Focus ring — keyboard users */
+a:focus-visible,
+button:focus-visible {
+  outline: var(--focus-ring-w) solid var(--title);
+  outline-offset: var(--focus-ring-off);
+}
+/* ── Account button (docs/accounts.md) ────────────────────────────
+   Injected by js/account.js into the Games dropdown and, separately,
+   into the mobile nav menu. It inherits each host's item geometry —
+   .nav-group__menu items and .nav-menu__item are styled for <a>, so
+   these rules only re-state what a <button> doesn't get for free
+   (reset, full-width, the status icon) and let the host own the rest. */
+.account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+}
+.account-btn:hover { background: var(--surface-hover); color: var(--title); }
+.account-btn[disabled] { cursor: default; }
+.account-btn__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The icon IS the status — same anatomy as the radio account button. */
+.account-btn__icon { flex: none; width: 1rem; height: 1rem; display: grid; place-items: center; }
+.account-btn__icon svg { width: 1rem; height: 1rem; display: block; }
+.account-btn[data-state="in"]  .account-btn__icon { color: var(--go); }
+.account-btn[data-state="out"] .account-btn__icon { color: var(--stop); }
+.account-btn__spinner {
+  width: 0.85rem; height: 0.85rem;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--title);
+  animation: account-btn-spin var(--dur-spin) linear infinite;
+}
+@keyframes account-btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Prose pages (privacy) ────────────────────────────────────────
+   Long-form body copy: the site's only page type that is just words. */
+.prose {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-6);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.65;
+}
+.prose h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  color: var(--title);
+  margin: var(--space-5) 0 var(--space-2);
+}
+.prose p { margin: 0 0 var(--space-3); }
+.prose ul { margin: 0 0 var(--space-3); padding-left: var(--space-5); }
+.prose li { margin: 0 0 var(--space-2); }
+.prose strong { color: var(--title); }
+
+/* The sign-in landing tab (auth/done.html) — visible for a blink before
+   it becomes the profile page, and as a readable message on the error
+   path. */
+.auth-done { text-align: center; }
+

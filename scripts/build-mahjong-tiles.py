@@ -23,7 +23,7 @@ W, H = 256, 352
 RADIUS = 18
 ROOT = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites", "mahjong")
 
-# the fixed mahjong palette carve-out (--mj* in styles/main.css)
+# the fixed mahjong palette carve-out (--mj* in styles/mahjong/mahjong.css)
 FACE = (246, 239, 220, 255)       # --mjface
 EDGE = (217, 207, 174, 255)       # --mjface-edge
 BACK = (46, 110, 82, 255)         # --mjback

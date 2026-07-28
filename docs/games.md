@@ -27,6 +27,7 @@ games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
 games/table.js         the browser table shell (gate, lobby, toolbar, frame)
 games/table-do.js      the Durable Object base every worker subclasses
 games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
+styles/chrome.css      shared site chrome + the token @imports (every page)
 styles/table.css       the shell's chrome, under the `gt-` class prefix
 docs/games.md          this file
 ```
@@ -39,7 +40,7 @@ A game adds:
 <game>/engine.js          the rules: pure, DOM-free, dual-export, self-tested
 <game>/<game>.js          the board/table UI + the shell's hooks
 <game>/transport-mock.js  the mock's game half (a spec on table-mock.js)
-styles/main.css           one block: the game's own art + layout
+<game>/<game>.css         the game's own art + layout (its own stylesheet)
 ../Deets<Game>/           the worker repo: a GameTable subclass + wrangler
 ```
 
@@ -348,9 +349,11 @@ key/value storage.
 2. `<game>/strings.js` — every string, `[ph]`-prefixed until Aditya writes it.
 3. `<game>/index.html` — copy a sibling's; swap the prefixes and the scripts.
 4. `<game>/<game>.js` — `DeetsTable.create({...})` + the board UI.
-5. `styles/main.css` — one block: the game's art and bento. **But first
-   read [css-split.md](css-split.md)** — the next game triggers the
-   per-page CSS split, and its styles start in `<game>/<game>.css` instead.
+5. `<game>/<game>.css` — the game's art and bento, its own stylesheet
+   ([css-split.md](css-split.md)). The page links, in order:
+   `styles/chrome.css` → `styles/table.css` → `<game>/<game>.css`. A game
+   page does **not** link `styles/main.css`; if you find yourself wanting a
+   rule from it, that rule belongs in `chrome.css` instead.
 6. `../Deets<Game>/` — worker repo: `GameTable` subclass, `wrangler.jsonc`,
    `scripts/vendor.mjs`, then `npx wrangler deploy`.
 7. `docs/<game>.md` — the rules, the game's own view fields, its art plan.

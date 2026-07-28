@@ -21,11 +21,22 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
 
 - **No build step, no frameworks, no dependencies.** Plain HTML/CSS/JS,
   served flat. Don't introduce npm, bundlers, or CDN scripts.
-- **Token discipline.** `styles/main.css` references only the semantic
-  tokens from `themes.css` (color roles) and `skin.css` (shape/type/motion).
+- **Token discipline.** Every site rule — in `styles/chrome.css`,
+  `styles/main.css`, `styles/table.css` or a game's own
+  `<game>/<game>.css` — references only the semantic tokens from
+  `themes.css` (color roles) and `skin.css` (shape/type/motion).
   Never write a hex code or hardcoded geometry into a site rule — if the
   value doesn't exist as a token, add a role to the right tier instead.
   Every component must survive all 30 theme×skin combos.
+- **The stylesheets are split by audience** ([docs/css-split.md](docs/css-split.md)).
+  `styles/chrome.css` is loaded FIRST by every page and carries the token
+  `@import`s plus everything shared (frame, header/nav, settings menu,
+  `.page-bar`, the `.sotd__bar` bar primitive, the `tb-` toolbar kit,
+  toasts, focus ring, `.account-btn`, `.prose`). `styles/main.css` holds
+  one section per non-game tab and has **no imports of its own** — never
+  link it without chrome. The games don't link it at all: they load
+  `chrome.css` → `table.css` → `<game>/<game>.css`. Put a new rule in the
+  narrowest file that needs it.
 - **Generated JSONs are read-only.** `sotd/songs.json` and
   `movies/movies.json` come from generators in the sibling
   [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo — regenerate (see docs/data.md), never

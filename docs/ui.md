@@ -16,7 +16,7 @@ discipline note in [architecture.md](architecture.md#appearance-system-theme--sk
 The site's one piece of app-like UI: a single header button that opens a
 two-axis theme/skin chooser. Built entirely by
 [js/controls.js](../js/controls.js); styled in the "Settings menu" section
-of [main.css](../styles/main.css) (around the `.settings__trigger` rule).
+of [chrome.css](../styles/chrome.css) (around the `.settings__trigger` rule).
 
 ### Mount and injection
 
@@ -157,7 +157,7 @@ visitor **preview** a theme × skin combo in place before committing it
 site-wide. Where the Vibe menu applies instantly and globally, the Vibe panel
 is preview-then-confirm. Markup lives in [index.html](../index.html)
 (`.vibe`, built out by [js/home.js](../js/home.js)'s `initVibe()`); styles
-are the "Vibe panel" section of [main.css](../styles/main.css).
+are the "Vibe panel" section of [chrome.css](../styles/chrome.css).
 
 ### Single source of truth
 

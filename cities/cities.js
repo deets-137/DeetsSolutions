@@ -15,7 +15,7 @@
    All flavor copy comes from strings.js; the terse mechanical LOG lines are
    authored here (rendered from typed event records, never sent as prose). The
    board + cards use the fixed game palette (a token-discipline carve-out, in
-   main.css); everything else rides the themes.css / skin.css tokens. */
+   cities.css); everything else rides the themes.css / skin.css tokens. */
 (function () {
   "use strict";
 
@@ -1443,7 +1443,7 @@
   }
   // A superlative card. Collapsed it names the leader + their value; click to
   // slide open the full field, ranked, showing where everyone else fell. The
-  // slide is a grid-template-rows 0fr→1fr transition (see main.css) so it needs
+  // slide is a grid-template-rows 0fr→1fr transition (see cities.css) so it needs
   // no height measurement; the big tile scrolls internally, so an open card
   // never resizes the panel. Open state rides `ui.overExpanded[key]` so a
   // re-render (e.g. a spectator joining) doesn't collapse it.
@@ -1965,7 +1965,7 @@
      remove, or reorder, and the value cell reserves width, so nothing
      can jitter. Quiet resources show a dim dash; active rows carry the
      per-source breakdown on the native title (the dev-card hover idiom).
-     Hidden entirely under 62rem (essentials-only; main.css). */
+     Hidden entirely under 62rem (essentials-only; cities.css). */
   function renderLedger(parent) {
     var wrap = el("div", "cities-ledger");
     wrap.appendChild(el("p", "cities-ledger__title", S.ledgerTitle));

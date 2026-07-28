@@ -6,7 +6,7 @@ geometric placeholders"). The swap points are deliberately narrow so a drawn
 asset drops in without a code rewrite:
 
 - **Terrain hex fills** — one CSS rule each: `--cterr-{wood,brick,wheat,sheep,
-  ore,desert,sea}` in the game-palette carve-out block (`styles/main.css`).
+  ore,desert,sea}` in the game-palette carve-out block (`cities/cities.css`).
   Swap a fill for a `url(...)` pattern or add a `<pattern>` to the board SVG.
 - **Pieces** (settlement / city / road) — one function: `pieceShape()` in
   `cities/cities.js`. It returns the SVG node per piece + seat color; point it
