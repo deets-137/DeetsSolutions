@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-27T19:26:36Z",
+  "generated_at": "2026-07-28T04:08:38Z",
   "channel": "song-of-the-day",
-  "count": 341,
+  "count": 343,
   "songs": [
     {
       "post_id": 1,
@@ -7845,6 +7845,52 @@
       "apple_music_url": "https://music.apple.com/us/album/rocket/6785601397?i=6785601418&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3b/d3/3b/3bd33bee-76f9-6fb5-9006-6e43f5ea7e65/mzaf_3599397231812453244.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/2b/c4/51/2bc45103-c1fc-1ad8-cfe4-f36d54a337d4/075679568496.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 8265,
+      "posted_at": "2026-07-28T03:06:43.047000+00:00",
+      "date": "2026-07-27",
+      "day": "Mon",
+      "month": "07_2026",
+      "track_name": "Sunkissed",
+      "artist_name": "khai dreams",
+      "album": "Now and Then",
+      "genre": "Alternative",
+      "duration": "2:06",
+      "duration_sec": 126,
+      "release_date": "2019-08-09",
+      "release_year": 2019,
+      "age_yrs": 7,
+      "service": "spotify",
+      "resolved": "yes",
+      "author": "sgrim:]",
+      "url": "https://open.spotify.com/track/1tD8J13a74q8fBqXwAP50j?si=b3c1a3acc46844c6",
+      "apple_music_url": "https://music.apple.com/us/album/sunkissed/1509787408?i=1509787412&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/b0/61/b0/b061b08d-a8e3-0b9f-4ce6-97688fcd84ce/mzaf_11226666766991207434.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/95/db/05/95db0523-d479-9a5c-8dae-fc7bf9afbe80/194759340767_1.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 8266,
+      "posted_at": "2026-07-28T03:17:41.655000+00:00",
+      "date": "2026-07-27",
+      "day": "Mon",
+      "month": "07_2026",
+      "track_name": "rome",
+      "artist_name": "Ethan Regan",
+      "album": "YOUNG REGAN",
+      "genre": "Folk",
+      "duration": "2:48",
+      "duration_sec": 168,
+      "release_date": "2026-06-12",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "spotify",
+      "resolved": "yes",
+      "author": "Defcon192",
+      "url": "https://open.spotify.com/track/771HqvspPa0yUzG7uod7mn?si=47e20506426d48d0",
+      "apple_music_url": "https://music.apple.com/us/album/rome/6769443342?i=6769443707&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/00/9a/64/009a64a6-be79-b185-271a-d3a562e53505/mzaf_18274692938986766700.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/c8/3c/93/c83c93a5-1805-5171-3deb-87290a7f0702/196874353202.jpg/600x600bb.jpg"
     }
   ]
 }
