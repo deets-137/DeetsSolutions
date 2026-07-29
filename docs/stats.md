@@ -606,6 +606,19 @@ two browsers being opened to test a table — which happens often. The spans
 ledger makes it visible (`COUNT(DISTINCT uid) < COUNT(*)` over a game's
 spans), and read-time policy can exclude those games from win rate and Elo.
 
+### Decided: bot and guest seats have no stored colour
+
+An account seat's colour resolves at read time through `users`. A bot or a
+guest has no row to resolve through, and the spans ledger stores their *name*
+but not their colour — so in the match-history field, those seats render as a
+neutral dot rather than the colour they actually wore at the table.
+
+**Left as is (2026-07-29).** Fixing it means a `color` column on
+`result_seat_spans` written in `openSpan()`, which is a `table-do.js` change:
+re-vendor plus all three deploys, for a cosmetic gain on seats nobody is
+trying to recognise. The names are already there, which is the part that
+carries meaning.
+
 ### A known limitation: guests
 
 A guest has no uid, so a guest is identifiable *within* a match but not
