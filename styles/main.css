@@ -2625,8 +2625,9 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   box-shadow: var(--shadow-card);
 }
 .profile-box__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-h2);
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.95);
   color: var(--title);
   margin: 0;
 }
@@ -2683,3 +2684,188 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .profile-swatch:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
 .profile-swatch.is-current { box-shadow: 0 0 0 2px var(--title); }
 .profile-swatch--custom.is-empty { background: transparent; border: 1px dashed var(--subtext); }
+
+/* ── Stats boxes (docs/stats.md, "The profile page") ──────────────
+   The grid was left roomy for exactly this, so these are new boxes
+   rather than a redesign. Two boxes want the full width — the record
+   strip and the match history — and take it by spanning every column
+   the auto-fill grid happened to make. */
+.profile-box--wide { grid-column: 1 / -1; }
+.profile-box__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-self: stretch;
+}
+.profile-chip {
+  padding: 0 var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* A row of headline numbers. */
+.profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-self: stretch;
+}
+.profile-stat { display: flex; flex-direction: column; gap: 2px; min-width: 4.5rem; }
+.profile-stat__value {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.9);
+  color: var(--title);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.profile-stat__label {
+  color: var(--subtext);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.profile-stat__hint { color: var(--subtext); font-size: 0.78rem; }
+
+/* Placement distribution — raw counts, one column per finishing place.
+   A tie makes these sum to more than games played, which is correct. */
+.profile-dist {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  align-self: stretch;
+  height: 5rem;
+}
+.profile-dist__bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex: 1 1 0;
+  height: 100%;
+  min-width: 0;
+}
+.profile-dist__fill {
+  width: 100%;
+  background: var(--border);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  transition: height var(--dur-med) var(--ease-ui);
+}
+.profile-dist__fill.is-first { background: var(--go); }
+.profile-dist__n { color: var(--text); font-size: 0.75rem; }
+.profile-dist__k { color: var(--subtext); font-size: 0.7rem; }
+
+/* The counter grid: a definition list in two columns, label left,
+   number right, so the numbers form a readable rail. */
+.profile-counters {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--space-3);
+  margin: 0;
+  align-self: stretch;
+  font-size: 0.85rem;
+}
+.profile-counters__k { color: var(--subtext); min-width: 0; }
+.profile-counters__v {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Match history — League's row anatomy: a summary you can scan, opening
+   onto the whole field. */
+.profile-matches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+}
+.profile-match {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  overflow: hidden;
+}
+.profile-match.is-win { border-color: var(--go); }
+.profile-match__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-match__head:hover { background: var(--surface-hover); }
+.profile-match__game { color: var(--title); font-weight: 600; flex: 0 0 auto; }
+.profile-match__place { color: var(--text); flex: 0 0 3.5rem; }
+.profile-match__score {
+  color: var(--subtext);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 2.5rem;
+}
+.profile-match__field { display: flex; gap: 3px; flex: 1 1 auto; flex-wrap: wrap; }
+.profile-match__dot {
+  width: 0.7rem; height: 0.7rem; flex: none;
+  border: 1px solid var(--seat-edge);
+  border-radius: 50%;
+}
+.profile-match__dot.is-anon { background: var(--border); }
+.profile-match__dot.is-me { box-shadow: 0 0 0 2px var(--title); }
+.profile-match__when { color: var(--subtext); font-size: 0.8rem; flex: 0 0 auto; }
+.profile-match__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+/* The field: every seat, not just yours. */
+.profile-field {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.profile-field th {
+  color: var(--subtext);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+  font-weight: 400;
+  padding-bottom: var(--space-1);
+}
+.profile-field td { padding: var(--space-1) var(--space-2) var(--space-1) 0; color: var(--text); }
+.profile-field tr.is-me td { color: var(--title); }
+.profile-field__seat { width: 1.4rem; }
+.profile-tag {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-size: 0.68rem;
+}
+
+/* Who came and went — straight from the spans ledger. */
+.profile-spans {
+  margin: 0;
+  padding-left: var(--space-4);
+  color: var(--subtext);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.profile-spans strong { color: var(--text); font-weight: 600; }

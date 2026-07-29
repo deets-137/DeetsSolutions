@@ -5,8 +5,11 @@ built, deployed and answering: the engines, the clients, the DO plumbing, the
 accounts schema, `/ingest` + `/me/stats` + `/me/export`, both payload builders,
 and the service bindings. Results are being written from here on.
 
-What remains is step 5 (the profile boxes — nothing *reads* `/me/stats` yet)
-and step 6 (the outbox sweep).
+Step 5 (the profile boxes) is built too, and step 6 (the outbox sweep) is not.
+
+**One redeploy of DeetsAccounts is owed** — the totals-vs-bests fix below.
+Until it lands, `/me/stats` reports `biggest_haul` and `best_faan` as lifetime
+sums, which the page will label "(best)". Cosmetic, and games-worker-free.
 
 **Not yet observed: a real game landing a row.** The deploy is verified, the
 attribution is not — see "This is deploy-to-verify".
@@ -776,16 +779,43 @@ The bento grid was left "deliberately roomy" for exactly this
 ([accounts.md](accounts.md)); stats land as new boxes, not a redesign. Two
 audiences, one page:
 
-- **Summary** — games played (with the rated split), win rate, podium rate,
-  times left mid-game. Then one box per game: Elo with its recent delta, the
-  counter grid, and a raw placement distribution.
+**Built 2026-07-29** — five boxes, in `profile/profile.js` + the
+`.profile-*` rules in `styles/main.css`. Elo is the one thing sketched here
+that is *not* built (it needs the derived-cache work first).
+
+- **Record** — games, won, podium, and **times left early** beside them, with
+  the `leftBy` breakdown. Left early sits next to the wins deliberately: it is
+  the honest other half of a record, and burying it would be a choice too.
+- **One box per game** — win/podium rates, average place, best score, a raw
+  placement distribution (bars, `1st` highlighted), and the counter grid.
+  Counters are labelled in *reading* order, not schema order, and a column the
+  page has no label for is simply not shown — so a new counter added
+  worker-side never breaks this page, it just waits for a label.
 - **Match history** — League's anatomy. One row per game: game chip, placement
-  (`1st`, `T-3rd`), score, the field's seat colours, relative date. Expanding
-  a row shows the **whole field**, not just you — every seat's counters, plus
-  `left · turn 31` / `joined · turn 31` tags rendered straight from
-  `result_seat_spans`. This is the view that cannot be built if the occupancy
-  timeline lives in a blob.
-- **Data** — export.
+  (`1st`, `T-3rd`), score, the field's seat colours (yours ringed), relative
+  date. Expanding shows the **whole field** — every seat, ranked, with `bot` /
+  `guest` tags — plus the occupancy timeline rendered straight from
+  `result_seat_spans` ("Sam stood up · turn 31", "Rook took the seat over ·
+  turn 31"). This is the view that cannot be built if the timeline lives in a
+  blob.
+- **Your data** — the three CSV exports. A plain link carries the session,
+  because `ds_sess` is `SameSite=Lax` and a download is a top-level GET.
+
+Empty states matter here and are written: signed in with no games yet gets an
+invitation, not an empty grid of zeroes.
+
+**`?mock` carries a canned payload.** Real sign-in cannot work on localhost —
+the cookie is scoped to `.deets.solutions` — so without this the boxes could
+not be iterated on at all without deploying. Same dev opt-out as `account.js`
+and the game transports.
+
+### Totals vs. personal bests
+
+`/me/stats` aggregates most counters with `SUM`, but `biggest_haul` and
+`best_faan` with `MAX` — a lifetime *sum* of "biggest hand" is a number that
+means nothing and looks authoritative, which is worse than not showing it. The
+response says which columns those are (`games.<name>.bests`), so the page
+labels them "(best)" without keeping its own copy of the list.
 
 Copy convention: the accounts pages write copy **inline**, not through a
 `strings.js` — that precedent is already set by phase 1 and the profile page,
@@ -809,7 +839,8 @@ All of this is written, vendored and **deployed** (`node scripts/vendor.mjs
 | Ingest + `/me/stats` + export + schema | `../DeetsAccounts` | deployed ✔ · schema applied ✔ |
 | Service bindings, `INGEST_SECRET` | both games' `wrangler.jsonc` | deployed ✔ |
 | Client `rank` rendering | `cities/cities.js`, `mahjong/mahjong.js` | site only ✔ |
-| Profile boxes | `profile/`, `styles/main.css` | **not built** (step 5) |
+| Profile boxes | `profile/`, `styles/main.css` | site only ✔ (built 2026-07-29) |
+| Totals-vs-bests aggregation | `../DeetsAccounts` | **redeploy owed** |
 | Outbox sweep | `games/table-do.js` | **not built** (step 6) |
 
 ### The deploy, for when it happens again
@@ -903,7 +934,8 @@ Everything else is decided. What remains:
 
 1. **Bot difficulty tiers tied to Elo** — parked, no rush. The schema already
    supports it: `kind = 'bot'` plus a stored `name` gives a per-bot rating
-   whenever it's wanted.
+   whenever it's wanted. Elo itself is still unbuilt, so this is parked behind
+   a parked thing.
 2. **Placement normalisation** — percentile, a 4.0 scale, or raw only. Stored
    raw either way; deferred until the stats view exists.
 3. ~~**Chunk size for the log archive.**~~ Settled at `ARC_CHUNK = 100`, and

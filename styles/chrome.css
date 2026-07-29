@@ -1010,8 +1010,9 @@ button:focus-visible {
   line-height: 1.65;
 }
 .prose h2 {
-  font-family: var(--font-display);
-  font-size: var(--fs-h2);
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.95);
   color: var(--title);
   margin: var(--space-5) 0 var(--space-2);
 }
