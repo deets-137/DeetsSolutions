@@ -1,8 +1,14 @@
 # Game stats — the accounts phase-2 design
 
-**Status: designed, not built.** Nothing in this document exists yet except
-the three engine fixes noted under "Data caveats". It is the plan for
-attributing finished games to accounts and showing them back on `/profile/`.
+**Status: built, not deployed.** Steps 1–4 of "Suggested landing order" are
+written and checked in — the engines, the clients, the DO plumbing, the
+accounts schema and its three routes, both payload builders, and the service
+bindings. What remains is step 5 (the profile boxes), step 6 (the outbox
+sweep), and **the three deploys**, which are listed at the end of "Cost and
+blast radius" and are deliberately a human's call: they ship vendored contract
+code to two games people are playing.
+
+Nothing here has met a real session cookie yet. See "This is deploy-to-verify".
 
 > "Phase 2" is overloaded in this repo. This is **accounts phase 2** — phase 1
 > was sign-in plus the profile page, both live since 2026-07-27
@@ -324,36 +330,60 @@ engine reaches phase "over"
                       └─ /profile/ reads aggregates
 ```
 
-### `onGameOver()` — the gaps to close first
+### `onGameOver()` — the gaps, all now closed
 
-1. **It is synchronous** and its return value is discarded, called from a sync
-   path. A POST needs `ctx.waitUntil` inside the override, or the call site
-   made async.
-2. **`rematchIndex` does not exist.** The agreed idempotency key references a
-   counter never built — `rematch()` nulls the game and increments nothing.
-   Add a monotonic per-table counter, bumped on rematch, persisted with the
-   table.
-3. **The spans ledger does not exist** — see "The uid is destroyed" above.
-   This is the load-bearing one.
-4. **Neither game worker makes any outbound request today**, and neither has a
-   `services` binding. This is the first.
+1. ~~**It is synchronous**~~ — **done.** `applyEngine()` stays synchronous
+   (everything else depends on that); the async tail rides a promise
+   `broadcast()` awaits at its own seam, alongside the archive flush.
+2. ~~**`rematchIndex` does not exist.**~~ **Done** — monotonic, bumped on
+   rematch, persisted with the table.
+3. ~~**The spans ledger does not exist.**~~ **Done** — the load-bearing one.
+4. ~~**Neither game worker makes any outbound request**~~ — **done**, both now
+   carry a `services` binding to `deets-accounts`.
 
-Note that cities already overrides `onGameOver()` (to settle the betting
-book), so its override grows rather than appears; mahjong gains one.
+**`reportResults()` is not a hook.** The base calls it itself, immediately
+after `onGameOver()` resolves, so no game can forget to record itself — and a
+new game gets results for free. `onGameOver()` stays what it always was: the
+game's own settle-up (cities pays out its betting book). A settle-up that
+throws is swallowed rather than allowed to cost the table its final broadcast,
+and the results POST still runs.
+
+Nothing in the delivery path may throw. It runs inside the game-over
+broadcast, and a stats POST that failed is just a stats POST that failed.
 
 ### Delivery
 
-`waitUntil` is fire-and-forget: if the accounts worker is mid-deploy, that
+Fire-and-forget would mean that if the accounts worker is mid-deploy, that
 game silently never happened.
 
-**First pass:** write the payload to DO storage under `pending:<key>` *before*
-POSTing, and delete it on a 2xx. Nothing reads it back yet.
+**First pass — built.** The payload is written to DO storage under
+`pending:<key>` *before* the POST and deleted only on a 2xx. Nothing reads it
+back yet; the key that survives is the whole point.
 
-**Second pass:** the existing alarm (already multiplexing turn deadlines,
-grace expiries and the idle fuse) sweeps leftover `pending:` keys and retries.
-Roughly fifteen lines — and games lost during the gap are still sitting in DO
-storage waiting to be drained, which is the entire reason the first pass
-writes a key it doesn't yet read.
+**Second pass — not built.** The existing alarm (already multiplexing turn
+deadlines, grace expiries and the idle fuse) sweeps leftover `pending:` keys
+and retries. Roughly fifteen lines — and games lost during the gap are still
+sitting in DO storage waiting to be drained, which is the entire reason the
+first pass writes a key it doesn't yet read. Deliberately last: it should be
+written once there are real leftovers to look at.
+
+**The outbox stores the result WITHOUT its event stream.** A DO storage value
+caps at 128 KiB and a game's stream runs to hundreds; the stream is already
+durable in its own `arc:` chunks, so keeping a second copy in the outbox would
+both blow the cap and duplicate the one grain that is actually large. A retry
+re-reads the archive. The one seam this leaves: a rematch resets `arc:*`, so a
+result that failed to POST *and* was then rematched past retries without its
+log. It keeps its counters, its standings and its ledger, which is the part
+that matters.
+
+**Authentication.** `/ingest` is reachable on `id.deets.solutions` as well as
+over the service binding, so it is authenticated either way with a shared
+`INGEST_SECRET` (a `wrangler secret` on all three workers, compared byte-wise
+rather than with `===`). With the secret unset the route is **closed**, never
+open: an unauthenticated write path into the accounts database is not a
+degraded mode worth having. This is the same pattern as the shared
+`SESSION_SECRET`, and a different secret on purpose — a worker that can read
+seat identity should not thereby be able to write results.
 
 ### Payload
 
@@ -372,8 +402,9 @@ readable, and it deliberately isn't in any view.
   "humans":   3,
   "bots":     1,
   "seats": [
-    { "seat": 0, "rank": 1, "tied": false, "score": 10,
-      "stats": { /* that game's per-seat blob, verbatim */ } }
+    { "seat": 0, "uid": "u_…", "rank": 1, "tied": false, "score": 10,
+      "stats":    { /* that game's per-seat blob, verbatim */ },
+      "counters": { "vp": 10, "ptp_trades": 3, /* … */ } }
   ],
   "spans": [
     { "seat": 0, "span": 0, "uid": "u_…", "name": "Deets", "kind": "user",
@@ -392,6 +423,29 @@ readable, and it deliberately isn't in any view.
 **Seats carry the outcome; spans carry the occupancy.** A seat with one span
 was played by one person start to finish. Two spans means it changed hands,
 and both occupants are named.
+
+`seat.uid` is the **final** occupant — the last span written for that seat —
+which is also how `humans` and `bots` are counted. Every other reading of
+"whose game was this" stays recoverable from the spans.
+
+**Who owns which half.** The base (`games/table-do.js`) builds everything
+above; a game supplies only what is game-shaped, through four small hooks in
+its own `src/index.js`:
+
+| Hook | Cities | Mahjong |
+| --- | --- | --- |
+| `gameName()` | `"cities"` | `"mahjong"` |
+| `seatStats(i)` | `g.stats.seats[i]` | `players[i].stats` |
+| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns |
+| `resultDetail()` | — | `g.results[]`, the per-hand history |
+
+`seatCounters()` is the one piece of this feature with **no runtime safety
+net**: it maps engine fields onto column names by hand, a wrong name resolves
+to `undefined`, the accounts worker drops that column rather than refusing the
+whole result, and the counter reads zero forever without a single error
+anywhere. Each worker repo therefore carries `scripts/check.mjs`, which builds
+a payload from a real engine game and asserts every column resolves to a
+finite number. **Run it after touching a counter.**
 
 ---
 
@@ -433,6 +487,7 @@ CREATE TABLE results (
   bots          INTEGER NOT NULL,
   settings      TEXT NOT NULL         -- JSON: VP target, frame, winds, minFaan…
 );
+CREATE INDEX results_game_ended ON results (game, ended_at DESC);
 
 -- the outcome, one row per seat. THIS is the uid join.
 CREATE TABLE result_seats (
@@ -652,12 +707,54 @@ and any export of it discloses every past hand.
 
 ## Reading
 
-One new route, `GET /me/stats`, returning aggregates for the signed-in user
-plus enough per-game detail for the profile boxes. `/me` stays
-`{id, name, color}` — widening it would make every page's sign-in check pay
-for stats it doesn't render.
+`GET /me/stats` returns aggregates for the signed-in user plus enough
+per-game detail for the profile boxes. `/me` stays `{id, name, color}` —
+widening it would make every page's sign-in check pay for stats it doesn't
+render.
 
-**Export, not a SQL console.** A shared stats page with a raw-SQL box is
+```jsonc
+{
+  "summary": { "games": 41, "wins": 12, "podium": 27,
+               "firstAt": 1753…, "lastAt": 1753…,
+               // the honest other half of a record
+               "left": 3, "leftBy": { "stand": 2, "grace": 1 } },
+  "games": {
+    "cities": { "games": 30, "wins": 9, "podium": 20,
+                "avgRank": 2.1, "avgScore": 8.4, "bestScore": 12,
+                "placements": { "1": 9, "2": 11, "3": 6, "4": 4 },
+                "counters": { "vp": 252, "ptp_trades": 88, /* … SUMs */ } }
+  },
+  "matches": [ { "key": "cities:abcd:0", "game": "cities", "endedAt": 1753…,
+                 "seatCount": 4, "humans": 3, "bots": 1, "settings": { … },
+                 // the WHOLE field, not just me — you cannot ask "did I lead
+                 // the table" without it
+                 "seats": [ { "seat": 0, "uid": "u_…", "name": "Deets",
+                              "color": "#c1440e", "rank": 1, "tied": false,
+                              "score": 10, "stats": { … } } ],
+                 "spans": [ { "seat": 2, "span": 0, "name": "Sam",
+                              "kind": "user", "via": "join", "exit": "stand",
+                              "leftTurn": 31 } ] } ]
+}
+```
+
+`?limit=` bounds the match history (default 25, max 100). Names and colours
+**resolve at read time** through `users`, so a rename retroactively fixes
+every past game; only bots and guests fall back to the name stored on their
+span. An orphaned uid resolves to nothing and reads exactly like a bot, which
+is the intended behaviour of having no foreign key.
+
+Not computed here, on purpose: **superlatives** ("most knights") stay
+client-side, from the counters at render time. **Elo** is a derived cache and
+is not built yet — when it is, it is recomputed from `result_seats` in
+`ended_at` order, never stored as truth.
+
+### Export
+
+`GET /me/export?what=seats|spans|games&format=csv|json`, scoped to games the
+user played in — **every seat of them**, not just their own, since a field you
+can't see is a field you can't compare yourself against.
+
+**Export, and NOT a SQL console.** A shared stats page with a raw-SQL box is
 explicitly *not* being built. `db.prepare(sql)` will happily run
 `DELETE FROM users`, D1 exposes no per-statement read-only mode, and
 regex-allowlisting `SELECT` is a guard that holds until someone gets clever —
@@ -697,60 +794,91 @@ unlike the games' `[ph]` convention.
 
 ## Cost and blast radius
 
+All of the code below is **written**; the "deploy" column is what is still
+owed. Everything vendored has been re-vendored (`node scripts/vendor.mjs
+--check` is clean in both game repos).
+
 | Change | File | Re-vendor / deploy |
 | --- | --- | --- |
-| Timer stat fixes (done) | `cities/engine.js` | **DeetsCities, redeploy — pending** |
-| `standings()` | `cities/engine.js`, `mahjong/engine.js` | **Both game worker repos, redeploy** |
-| Pung/chow counters | `mahjong/engine.js` | **DeetsMahjong, redeploy** |
-| `ptp` trade counters | `cities/engine.js` | **DeetsCities, redeploy** |
-| Spans ledger, `rematchIndex`, async `onGameOver`, outbox | `games/table-do.js` | **Both game worker repos, redeploy** |
-| Payload builder + stats→column mapping + the POST | each worker's `src/index.js` | Redeploy (not vendored) |
-| Ingest route + schema | `../DeetsAccounts` | Deploy + `wrangler d1 execute` |
-| Service bindings | both games' `wrangler.jsonc` | Redeploy |
-| Profile boxes | `profile/`, `styles/main.css` | Site only |
-| Client `rank` rendering | `cities/cities.js`, `mahjong/mahjong.js` | Site only |
+| Timer stat fixes | `cities/engine.js` | vendored ✔ · **deploy owed** |
+| `standings()` | `cities/engine.js`, `mahjong/engine.js` | vendored ✔ · **deploy owed** |
+| Pung/chow counters | `mahjong/engine.js` | vendored ✔ · **deploy owed** |
+| `ptp` trade counters | `cities/engine.js` | vendored ✔ · **deploy owed** |
+| Spans ledger, `rematchIndex`, `startedAt`, async tail, outbox | `games/table-do.js` | vendored ✔ · **deploy owed** |
+| Payload builder + stats→column mapping + the POST | each worker's `src/index.js` | **deploy owed** (not vendored) |
+| Ingest + `/me/stats` + export + schema | `../DeetsAccounts` | **deploy + `wrangler d1 execute` owed** |
+| Service bindings, `INGEST_SECRET` | both games' `wrangler.jsonc` | **deploy owed** |
+| Client `rank` rendering | `cities/cities.js`, `mahjong/mahjong.js` | site only ✔ |
+| Profile boxes | `profile/`, `styles/main.css` | **not built** (step 5) |
+| Outbox sweep | `games/table-do.js` | **not built** (step 6) |
 
-### ⚠ Known vendoring drift
+### The three deploys
 
-**`cities/engine.js` in the site repo is ahead of the copy deployed in
-`../DeetsCities`** as of 2026-07-28 — the three timer/counter fixes above.
-This is benign: the changes are counter-only, with no rule or wire-shape
-change, so a `?mock` game and a prod game still play identically and merely
-disagree on three stat numbers.
+In this order — accounts first, so an ingest POST never arrives at a worker
+that would 404 it:
 
-**Deliberately not deployed on its own.** The engine is due several more
-changes (`standings()`, the `ptp` counters, and mahjong's pungs/chows), so the
-drift gets cleared in **one re-vendor and redeploy of both workers once every
-stat counter is in** — rather than four separate deploys of vendored contract
-code. Anyone touching `cities/engine.js` before then should expect the site
-copy to be the newer one.
+```
+cd ../DeetsAccounts   && npx wrangler d1 execute deets-accounts --remote --file=schema.sql
+cd ../DeetsAccounts   && npx wrangler deploy
+cd ../DeetsCities     && npx wrangler deploy
+cd ../DeetsMahjong    && npx wrangler deploy
+```
 
-### Ordering
+The schema is `CREATE TABLE IF NOT EXISTS` throughout, so re-running it is
+safe. `INGEST_SECRET` must be set on **all three** workers, to the same value,
+before the game deploys mean anything:
 
-**Deploy the accounts worker before the game workers** — the same ordering
-phase 1 used, so an ingest POST never arrives at a worker that would 404 it.
+```
+npx wrangler secret put INGEST_SECRET
+```
 
-**This is deploy-to-verify.** Neither `?mock` path exercises the real session
-cookie, so the uid→seat attribution cannot be tested locally at all — the same
-caveat that applies to disconnect and rejoin behaviour. Expect to verify live,
-and prefer landing the engine/DO changes (which the mocks *do* exercise)
-separately from the POST.
+### ⚠ Known vendoring drift — now the DEPLOYED copies
+
+The drift that stood open through the design pass (site `cities/engine.js`
+ahead of the deployed worker) has been **cleared in the repos**: both worker
+repos have been re-vendored and `vendor.mjs --check` passes. It is now the
+*deployed* copies that lag, which is the same benign shape as before — the
+changes are counters, standings and DO plumbing, with no rule or wire-shape
+change, so a `?mock` game and a prod game still play identically.
+
+The one visible difference until the deploy lands: a prod table's `over` view
+carries no `rank`, so the clients fall back to their old local sort. That
+fallback exists for exactly this window.
+
+### This is deploy-to-verify
+
+Neither `?mock` path exercises the real session cookie, so **uid→seat
+attribution cannot be tested locally at all** — the same caveat that applies
+to disconnect and rejoin behaviour, and the reason the mocks model neither.
+
+What *has* been verified locally, without a deploy:
+
+| Check | What it covers |
+| --- | --- |
+| `node cities/engine.js` · `node mahjong/engine.js` | the rules, `standings()`, the new counters |
+| `node scripts/check.mjs` in each game repo | every counter column resolves; the payload's key, ranks, uid attribution and outbox size |
+| `node scripts/check.mjs` in `../DeetsAccounts` | schema.sql against real SQLite, then `/ingest`, `/me/stats` and `/me/export` driven with real Requests — SQL syntax, idempotency, the auth guard, the aggregates |
+
+What is left for live: the cookie, and therefore whether a `uid` ever reaches
+a `result_seats` row at all. First real game, check `/me/stats` returns
+`summary.games: 1`.
 
 ---
 
 ## Suggested landing order
 
-1. **Engine + client.** `standings()` in both engines, mahjong's
+1. ✔ **Engine + client.** `standings()` in both engines, mahjong's
    `pungs`/`chows`, cities' `ptp` counters, clients rendering `rank` and `T-`
    instead of local sorts. Fully testable under `?mock`.
-2. **DO plumbing.** The spans ledger, `rematchIndex`, async `onGameOver`, the
-   `pending:` write. Still no network. Re-vendor and redeploy both workers
-   here — this is the deploy that clears the drift.
-3. **Accounts schema + `POST /ingest` + `GET /me/stats`.** Deploy accounts
-   *before* the game workers.
-4. **Service bindings + the POST.** The live-only step.
-5. **Profile boxes + export.** Site only.
-6. **Outbox retry**, once results have been flowing long enough to trust.
+2. ✔ **DO plumbing.** The spans ledger, `rematchIndex`, the async tail, the
+   `pending:` write, the event archive. Still no network.
+3. ✔ **Accounts schema + `POST /ingest` + `GET /me/stats` + export.**
+4. ✔ **Service bindings + the POST.** Written; the deploy is what's left.
+5. ☐ **Profile boxes.** Site only — the bento grid was left roomy for these.
+6. ☐ **Outbox sweep**, once results have been flowing long enough to trust.
+
+Steps 2 and 4 folded into the same re-vendor rather than deploying vendored
+contract code twice, which is why one deploy now clears everything at once.
 
 ---
 
@@ -763,7 +891,19 @@ Everything else is decided. What remains:
    whenever it's wanted.
 2. **Placement normalisation** — percentile, a 4.0 scale, or raw only. Stored
    raw either way; deferred until the stats view exists.
-3. **Chunk size for the log archive** — how many events per `log:N` write.
-   Bigger chunks mean fewer metered writes and more loss if a table dies
-   mid-chunk; a hundred or so is probably right, but it wants one look at real
-   event rates before being fixed.
+3. ~~**Chunk size for the log archive.**~~ Settled at `ARC_CHUNK = 100`, and
+   the worry behind the question turned out to be misplaced: the un-flushed
+   buffer rides the persisted record, so a table dying mid-chunk loses
+   nothing. Chunk size is purely a write-volume knob, and 100 events (~15 KB)
+   sits comfortably under what `t.log` already costs every persist.
+
+4. **The `detail` grain has no reader.** Mahjong's per-hand `g.results[]` is
+   stored (in `result_logs.detail`, beside the stream rather than inside it)
+   but nothing queries it yet. It is there because the game-over screen is its
+   only other copy and a rematch discards it. What it becomes — a hand-by-hand
+   match view, most likely — is a step-5 question.
+
+5. **A live game's log must never be served.** Nothing serves it today, and
+   `result_logs` only ever holds finished games, so this is a rule for
+   whoever writes the first reader rather than an open bug: the archive is
+   **unmasked**, and for mahjong that means every hand every player held.

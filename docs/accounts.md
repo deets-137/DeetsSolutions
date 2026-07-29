@@ -69,6 +69,18 @@ Objects. Sibling repo, deployed with `npx wrangler deploy`, exactly like
 | `GET /me` | `{id, name, color}` or 401 |
 | `PATCH /me` | update `name` / `color` |
 | `POST /logout` | clear the cookie |
+| `POST /ingest` | a finished game from a game worker — see [stats.md](stats.md) |
+| `GET /me/stats` | aggregates + match history for the signed-in user |
+| `GET /me/export` | the same rows as CSV or JSON |
+
+The bottom three are phase 2. `/ingest` is the only write path that isn't a
+signed-in user acting on themselves, so it carries its own shared secret
+(`INGEST_SECRET`) and is **closed** when that secret is unset. `/me` stays
+`{id, name, color}` — the stats live one route over so every page's sign-in
+check doesn't pay for them.
+
+`node scripts/check.mjs` in the worker repo runs the whole results pipeline
+against an in-memory SQLite, no wrangler and no deploy.
 
 ### PKCE without storage
 
@@ -286,14 +298,18 @@ game worker; the DO verifies its HMAC against the shared
 of that ([games.md](games.md), "Identity and rejoin" — dark seats only,
 kick severs, uid never broadcast).
 
-**Still future — results and stats:** finished tables POST results over
-a service binding with an idempotency key of `game:tableId:rematchIndex`,
-and the profile grid grows stats boxes. The verified per-seat uid the
-reclaim work added is exactly the hook results will hang on. One rule
-already decided: a table where any seat changed hands mid-game
-(adoption, [games.md](games.md)) is unrated.
+**Built, not yet deployed (2026-07-28) — results and stats.** Finished
+tables POST themselves over a service binding under an idempotency key of
+`game:tableId:rematchIndex`, and D1 grew six tables for the outcome, the
+occupancy and the event stream. The verified per-seat uid the reclaim work
+added is exactly the hook they hang on.
 
-**That work is now designed in full — see [stats.md](stats.md)**, which
-carries the standings model, an inventory of what each engine already
-counts (and the four things it doesn't), the D1 schema, the re-vendor
-cost, and the open questions still needing your call.
+Two things the design pass changed from the sketch above. A table where a
+seat changed hands is **not** flagged unrated — `unrated` is a verdict, and
+a verdict baked into a row is one you can't revise; the spans ledger records
+the occupancy as fact and lets any read-time policy decide. And the uid
+turned out to be **deleted from a seat on every departure path**, so
+attribution had to be recorded as it happened rather than read at game over.
+
+**See [stats.md](stats.md)** for the standings model, the schema, what each
+engine counts, and the three deploys still owed.

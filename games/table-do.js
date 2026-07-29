@@ -105,7 +105,7 @@ export class GameTable {
     const extra = Object.keys(this.EXTRA_STATE);
     const keys = ["settings", "seats", "game", "log", "v", "meta",
                   "turnEndsAt", "emptyAt", "timerFor",
-                  "spans", "rematchIndex", "arcN", "arcBuf"].concat(extra);
+                  "spans", "rematchIndex", "arcN", "arcBuf", "startedAt"].concat(extra);
     const v = await this.ctx.storage.get(keys);
     const meta = v.get("meta") || {};
     this.t = {
@@ -119,11 +119,12 @@ export class GameTable {
       turnEndsAt: v.get("turnEndsAt") || null,
       emptyAt: v.get("emptyAt") || null,      // when sockets last hit zero (fuse)
       timerFor: v.get("timerFor") || null,    // signature of the obligation the timer is for
-      // stats plumbing (docs/stats.md) — all three reset with the game
+      // stats plumbing (docs/stats.md) — all of it resets with the game
       spans: v.get("spans") || [],            // occupancy ledger: who sat where, when, how they left
       rematchIndex: v.get("rematchIndex") || 0,   // monotonic; half the results idempotency key
       arcN: v.get("arcN") || 0,               // archive chunks written so far
       arcBuf: v.get("arcBuf") || [],          // events not yet flushed to a chunk
+      startedAt: v.get("startedAt") || null,  // when Start dealt the current game
     };
     for (const k of extra) { const got = v.get(k); this.t[k] = got === undefined ? this.EXTRA_STATE[k]() : got; }
     return this.t;
@@ -136,6 +137,7 @@ export class GameTable {
       settings: t.settings, seats: t.seats, game: t.game, log: t.log,
       v: t.v, turnEndsAt: t.turnEndsAt, emptyAt: t.emptyAt, timerFor: t.timerFor,
       spans: t.spans, rematchIndex: t.rematchIndex, arcN: t.arcN, arcBuf: t.arcBuf,
+      startedAt: t.startedAt,
       meta: { createdAt: t.createdAt, creatorToken: t.creatorToken },
     };
     for (const k of Object.keys(this.EXTRA_STATE)) rec[k] = t[k];
@@ -240,6 +242,97 @@ export class GameTable {
     const keys = [...m.keys()];
     if (keys.length) await this.ctx.storage.delete(keys);
     this.t.arcN = 0; this.t.arcBuf = [];
+  }
+
+  /* ── results delivery (docs/stats.md, "The pipeline") ────────────────
+     A finished game is POSTed to DeetsAccounts over a SERVICE BINDING —
+     worker to worker, never public HTTP — where it becomes rows the
+     profile page reads back. The base owns all of this because both games
+     want the identical thing and the load-bearing halves (the spans
+     ledger, the archive, the rematch counter) already live here; a game
+     supplies only what is game-shaped, through the four hooks below.
+
+     Nothing here may throw. It runs inside the game-over broadcast, and a
+     stats POST that failed is a stats POST that failed — it must never
+     cost the table its final state delivery. */
+  gameName() { throw new Error("subclass must provide gameName"); }
+  seatStats() { return null; }      // that game's per-seat blob, verbatim (the archive)
+  seatCounters() { return {}; }     // { column: number } for the game's counter table
+  resultDetail() { return null; }   // per-hand summaries, if the game keeps any
+  resultKey() { return this.gameName() + ":" + this.t.code + ":" + this.t.rematchIndex; }
+
+  /* The whole result EXCEPT the event stream. Split that way on purpose:
+     this is what goes to the outbox, and a DO storage value caps at 128 KiB
+     while a game's stream runs to hundreds. The stream is already durable in
+     its own arc: chunks, so the outbox stores the small half and a retry
+     re-reads the archive rather than keeping a second copy of it. */
+  buildResult() {
+    const t = this.t, g = t.game;
+    const rank = {};
+    for (const r of (this.Engine.standings(g) || [])) rank[r.seat] = r;
+    // spans are append-only, so the last one written for a seat is whoever
+    // was sitting in it at the end — the occupant the result hangs on
+    const final = [];
+    for (const sp of t.spans) final[sp.seat] = sp;
+    let humans = 0, bots = 0;
+    const seats = [];
+    for (let i = 0; i < t.seats.length; i++) {
+      const r = rank[i] || {}, fs = final[i];
+      if (fs) { if (fs.kind === "bot") bots++; else humans++; }
+      seats.push({
+        seat: i,
+        // NULL for a bot or a guest, which is why an orphan reads the same
+        // as a bot rather than as a hole in the field
+        uid: fs ? (fs.uid || null) : null,
+        rank: r.rank == null ? null : r.rank,
+        tied: !!r.tied,
+        score: r.score == null ? null : r.score,
+        stats: this.seatStats(i),
+        counters: this.seatCounters(i),
+      });
+    }
+    return {
+      key: this.resultKey(),
+      game: this.gameName(),
+      tableId: t.code,
+      rematchIndex: t.rematchIndex,
+      started: t.startedAt, ended: Date.now(),
+      settings: t.settings,
+      humans, bots,
+      seats, spans: t.spans,
+      detail: this.resultDetail(),
+    };
+  }
+
+  /* Outbox first, POST second (docs/stats.md, "Delivery"). waitUntil-style
+     fire-and-forget would mean a game silently never happened whenever the
+     accounts worker was mid-deploy, so the result is written to storage
+     BEFORE the attempt and deleted only on a 2xx. Nothing reads pending:
+     back yet — the alarm sweep that drains it is the last step of the
+     feature, and it can only be written once there are leftovers to look at.
+     The key that survives is the whole point. */
+  async reportResults() {
+    let meta;
+    try { meta = this.buildResult(); } catch (e) { return; }
+    const pk = "pending:" + meta.key;
+    try { await this.ctx.storage.put(pk, meta); } catch (e) { /* still worth the POST */ }
+    const acc = this.env.ACCOUNTS;
+    if (!acc) return;   // unbound (or a local dev run): the result waits in the outbox
+    try {
+      const body = Object.assign({}, meta, { log: await this.readArchive() });
+      // The hostname is ignored on a service binding — the request is handed
+      // straight to the accounts worker's fetch. The key authenticates it
+      // anyway, because /ingest is also reachable on the public custom domain.
+      const res = await acc.fetch("https://deets-accounts/ingest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Ingest-Key": this.env.INGEST_SECRET || "",
+        },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) await this.ctx.storage.delete(pk);
+    } catch (e) { /* stays pending */ }
   }
 
   // ---- sockets & identity --------------------------------------------------
@@ -384,10 +477,18 @@ export class GameTable {
     if (this.t.log.length > LOG_MAX) this.t.log.splice(0, this.t.log.length - LOG_MAX);
     if (this.t.game.phase === "over") {
       // spans close BEFORE the hook, so an override reads a finished ledger.
-      // applyEngine is synchronous and always is — an override that needs to
-      // await (a results POST) returns a promise, and broadcast() awaits it.
+      // applyEngine is synchronous and always is — the async tail rides a
+      // promise that broadcast() awaits at its own seam.
       this.closeAllSpans();
-      this._over = this.onGameOver() || null;
+      const settled = this.onGameOver();
+      // The game's settle-up first (cities pays out its book), then the
+      // results POST, which reports what the hook left behind. reportResults
+      // is unconditional: no game should be able to forget to record itself.
+      this._over = (async () => {
+        try { await settled; }
+        catch (e) { /* a settle-up that failed must not cost the table its final broadcast */ }
+        await this.reportResults();
+      })();
       this.t.turnEndsAt = null; this.t.timerFor = null;
     }
     return res;
@@ -736,6 +837,7 @@ export class GameTable {
           if (s && !this.isBot(s) && !this.tokenConnected(s.token)) { s.bot = true; autoBots.push({ t: "takeover", seat: i }); }
         }
         t.game = this.createGame(seated);
+        t.startedAt = Date.now();   // the result's `started`; a rematch re-stamps it
         // the ledger opens with the field as dealt — auto-bots above already
         // flipped, so a seat that went dark in the lobby opens as a bot
         t.spans = [];
@@ -897,7 +999,7 @@ export class GameTable {
         t.settings = Object.assign({ rejoin: "rejoin" }, this.defaultSettings());
         t.seats = []; this.resizeSeats();
         t.game = null; t.log = []; t.v = 1;
-        t.spans = []; t.rematchIndex = 0;
+        t.spans = []; t.rematchIndex = 0; t.startedAt = null;
         await this.resetArchive();
         for (const k of Object.keys(this.EXTRA_STATE)) t[k] = this.EXTRA_STATE[k]();
       }

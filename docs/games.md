@@ -333,14 +333,21 @@ be tested live.
 **Subclass must provide:** `Engine`, `Colors`, `GAME_VERBS`,
 `defaultSettings()`, `viewGame(view, token, seat)`, `applySettings(msg)`,
 `minSeats()`, `createGame(seated)`, `deadlineFor()`, `dlSig()`,
-`needsPhantom()`, `phantomOne()`.
+`needsPhantom()`, `phantomOne()`, and — since results — `gameName()`.
 
 **Optional:** `EXTRA_STATE` (extra persisted keys as `{key: () => initial}`),
 `capacity()` (default: the `capacity` setting; a fixed-size table returns a
 constant), `maskEvent`, `compactSeatsAtStart`, `onStart`, `onGameOver`,
 `onRematch` (drop any per-game state the discarded game owned; neither game
 needs it yet), `onJoined`, `extraCommand` (a verb the engine doesn't own —
-cities' `bet`).
+cities' `bet`), and the results hooks `seatStats(i)`, `seatCounters(i)`,
+`resultDetail()` ([stats.md](stats.md)).
+
+**The base records a finished game itself.** `onGameOver()` is the game's own
+settle-up, not the reporting hook — the base calls `reportResults()` after it
+resolves either way, so no game can forget to record itself and a new game
+gets results for free. A game that supplies no counter hooks still lands its
+standings, its settings and its occupancy ledger.
 
 ### The one alarm
 
@@ -380,6 +387,8 @@ matches what you're changing, and check the blast radius before you start.
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
 | The turn timer, grace window, rejoin, bots, reconnect | `games/table-do.js` | **Every game** | **Re-vendor** into both game workers, redeploy |
+| The spans ledger, the event archive, the results POST | `games/table-do.js` | **Every game** | **Re-vendor**, redeploy; see [stats.md](stats.md) |
+| What a game records about a finished game | that worker's `src/index.js` (`seatCounters` et al.) | That game only | Redeploy · `node scripts/check.mjs` · maybe an `ALTER TABLE` in `../DeetsAccounts` |
 | Site header, nav, settings menu, toasts, `.page-bar`, `.sotd__bar`, the `tb-` kit | `styles/chrome.css` | **Every page on the site** | — |
 | A non-game tab's own styles | `styles/main.css` | That tab only | — |
 | Tokens (a colour role, a shape/motion value) | `themes.css` / `skin.css` | **Everything, all 30 combos** | — |
