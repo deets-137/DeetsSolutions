@@ -1,14 +1,15 @@
 # Game stats — the accounts phase-2 design
 
-**Status: built, not deployed.** Steps 1–4 of "Suggested landing order" are
-written and checked in — the engines, the clients, the DO plumbing, the
-accounts schema and its three routes, both payload builders, and the service
-bindings. What remains is step 5 (the profile boxes), step 6 (the outbox
-sweep), and **the three deploys**, which are listed at the end of "Cost and
-blast radius" and are deliberately a human's call: they ship vendored contract
-code to two games people are playing.
+**Status: LIVE as of 2026-07-29.** Steps 1–4 of "Suggested landing order" are
+built, deployed and answering: the engines, the clients, the DO plumbing, the
+accounts schema, `/ingest` + `/me/stats` + `/me/export`, both payload builders,
+and the service bindings. Results are being written from here on.
 
-Nothing here has met a real session cookie yet. See "This is deploy-to-verify".
+What remains is step 5 (the profile boxes — nothing *reads* `/me/stats` yet)
+and step 6 (the outbox sweep).
+
+**Not yet observed: a real game landing a row.** The deploy is verified, the
+attribution is not — see "This is deploy-to-verify".
 
 > "Phase 2" is overloaded in this repo. This is **accounts phase 2** — phase 1
 > was sign-in plus the profile page, both live since 2026-07-27
@@ -794,25 +795,24 @@ unlike the games' `[ph]` convention.
 
 ## Cost and blast radius
 
-All of the code below is **written**; the "deploy" column is what is still
-owed. Everything vendored has been re-vendored (`node scripts/vendor.mjs
+All of this is written, vendored and **deployed** (`node scripts/vendor.mjs
 --check` is clean in both game repos).
 
 | Change | File | Re-vendor / deploy |
 | --- | --- | --- |
-| Timer stat fixes | `cities/engine.js` | vendored ✔ · **deploy owed** |
-| `standings()` | `cities/engine.js`, `mahjong/engine.js` | vendored ✔ · **deploy owed** |
-| Pung/chow counters | `mahjong/engine.js` | vendored ✔ · **deploy owed** |
-| `ptp` trade counters | `cities/engine.js` | vendored ✔ · **deploy owed** |
-| Spans ledger, `rematchIndex`, `startedAt`, async tail, outbox | `games/table-do.js` | vendored ✔ · **deploy owed** |
-| Payload builder + stats→column mapping + the POST | each worker's `src/index.js` | **deploy owed** (not vendored) |
-| Ingest + `/me/stats` + export + schema | `../DeetsAccounts` | **deploy + `wrangler d1 execute` owed** |
-| Service bindings, `INGEST_SECRET` | both games' `wrangler.jsonc` | **deploy owed** |
+| Timer stat fixes | `cities/engine.js` | vendored ✔ · deployed ✔ |
+| `standings()` | `cities/engine.js`, `mahjong/engine.js` | vendored ✔ · deployed ✔ |
+| Pung/chow counters | `mahjong/engine.js` | vendored ✔ · deployed ✔ |
+| `ptp` trade counters | `cities/engine.js` | vendored ✔ · deployed ✔ |
+| Spans ledger, `rematchIndex`, `startedAt`, async tail, outbox | `games/table-do.js` | vendored ✔ · deployed ✔ |
+| Payload builder + stats→column mapping + the POST | each worker's `src/index.js` | deployed ✔ (not vendored) |
+| Ingest + `/me/stats` + export + schema | `../DeetsAccounts` | deployed ✔ · schema applied ✔ |
+| Service bindings, `INGEST_SECRET` | both games' `wrangler.jsonc` | deployed ✔ |
 | Client `rank` rendering | `cities/cities.js`, `mahjong/mahjong.js` | site only ✔ |
 | Profile boxes | `profile/`, `styles/main.css` | **not built** (step 5) |
 | Outbox sweep | `games/table-do.js` | **not built** (step 6) |
 
-### The three deploys
+### The deploy, for when it happens again
 
 In this order — accounts first, so an ingest POST never arrives at a worker
 that would 404 it:
@@ -826,24 +826,25 @@ cd ../DeetsMahjong    && npx wrangler deploy
 
 The schema is `CREATE TABLE IF NOT EXISTS` throughout, so re-running it is
 safe. `INGEST_SECRET` must be set on **all three** workers, to the same value,
-before the game deploys mean anything:
+or `/ingest` refuses everything:
 
 ```
 npx wrangler secret put INGEST_SECRET
 ```
 
-### ⚠ Known vendoring drift — now the DEPLOYED copies
+Live as of 2026-07-29: accounts `c2d1d858`, cities `de995539`,
+mahjong `c27995ab`; D1 at 7 tables.
+
+### ✔ Vendoring drift — cleared
 
 The drift that stood open through the design pass (site `cities/engine.js`
-ahead of the deployed worker) has been **cleared in the repos**: both worker
-repos have been re-vendored and `vendor.mjs --check` passes. It is now the
-*deployed* copies that lag, which is the same benign shape as before — the
-changes are counters, standings and DO plumbing, with no rule or wire-shape
-change, so a `?mock` game and a prod game still play identically.
+ahead of the deployed worker) is **gone**: both worker repos are re-vendored,
+`vendor.mjs --check` passes, and both are deployed. Site, mock and production
+run the same engine again.
 
-The one visible difference until the deploy lands: a prod table's `over` view
-carries no `rank`, so the clients fall back to their old local sort. That
-fallback exists for exactly this window.
+The clients still carry their old local sort as a fallback for a table whose
+worker predates `rank`. Nothing serves that shape any more, but a table that
+was mid-game across the deploy is the one case it covers, so it stays.
 
 ### This is deploy-to-verify
 
@@ -859,9 +860,23 @@ What *has* been verified locally, without a deploy:
 | `node scripts/check.mjs` in each game repo | every counter column resolves; the payload's key, ranks, uid attribution and outbox size |
 | `node scripts/check.mjs` in `../DeetsAccounts` | schema.sql against real SQLite, then `/ingest`, `/me/stats` and `/me/export` driven with real Requests — SQL syntax, idempotency, the auth guard, the aggregates |
 
-What is left for live: the cookie, and therefore whether a `uid` ever reaches
-a `result_seats` row at all. First real game, check `/me/stats` returns
-`summary.games: 1`.
+Verified against the live deploy: `/ingest` answers `403` to a wrong key (so
+the route exists and the secret is configured — a `503` would mean unset),
+`/me/stats` and `/me/export` answer `401` signed out, and both games' `peek`
+still serves.
+
+**What is still unverified is the whole point of the feature:** whether a
+`uid` ever reaches a `result_seats` row. Nothing but a real signed-in game can
+show that. Finish one, then:
+
+```
+GET https://id.deets.solutions/me/stats     → summary.games should be 1
+```
+
+If it reports `0`, the game was recorded but not attributed — the result row
+exists with a null uid, and the fault is in the cookie reaching the upgrade,
+not in any of the above. `npx wrangler d1 execute deets-accounts --remote
+--command "SELECT key, seat, uid FROM result_seats"` tells the two apart.
 
 ---
 
