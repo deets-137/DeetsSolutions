@@ -216,7 +216,7 @@
     for (var i = 0; i < n; i++) {
       seats.push({
         gained: { rolls: emptyHand(), steals: emptyHand(), trades: emptyHand(), dev: emptyHand() },
-        lost: { discards: 0, robbed: 0, spent: 0 },
+        lost: { discards: 0, spent: 0 },     // robbed lives on robber.victimized
         rolls: { count: 0, hist: {} },
         pieces: { roads: 0, settlements: 0, cities: 0, devBought: 0, devPlayed: 0, knights: 0 },
         robber: { moved: 0, stolen: 0, victimized: 0 },
@@ -785,7 +785,6 @@
       vhand[res]--; g.players[g.turn.seat].hand[res]++;
       g.stats.seats[g.turn.seat].robber.stolen++;
       g.stats.seats[victim].robber.victimized++;
-      g.stats.seats[victim].lost.robbed++;
       g.stats.seats[g.turn.seat].gained.steals[res]++;
       // the resource identity rides only the two parties' `you` (transport layer)
       events.push({ t: "stealHidden", from: victim, to: g.turn.seat, res: res });
@@ -1029,6 +1028,7 @@
       var hexes = g.board.hexes.filter(function (h) { return hkey(h.q, h.r) !== g.board.robber; });
       var pick = hexes[randInt(ctx, hexes.length)];
       g.board.robber = hkey(pick.q, pick.r);
+      g.stats.seats[t.seat].robber.moved++;   // a forced move is still a move
       events.push({ t: "robber", seat: t.seat, hex: g.board.robber });
       g.turn.pending = null;
     }
@@ -1039,6 +1039,8 @@
       var d = [die(ctx), die(ctx)], sum = d[0] + d[1];
       t.rolled = true; t.dice = d;
       events.push({ t: "roll", seat: t.seat, d: d });
+      var ast = g.stats.seats[t.seat].rolls;   // an auto-roll counts on the seat too
+      ast.count++; ast.hist[sum] = (ast.hist[sum] || 0) + 1;
       g.stats.dice[sum] = (g.stats.dice[sum] || 0) + 1;
       if (sum === 7) { startRobber(g, ctx, events, false); return timerExpire(g, a, ctx, events); }
       produce(g, sum, events);
@@ -1446,6 +1448,63 @@
       eq(g.phase, "main", "shortened draft completes");
       eq(g.turn.seat, 1, "first turn lands on a live seat, not seat 0");
       eq(g.players[1].hand ? g.setup : null, null, "setup state cleared");
+    })();
+
+    /* timer-path stat accounting — the auto-roll and the forced robber move
+       must land on the acting seat exactly as their manual twins do, and the
+       steal keeps one victim counter now that lost.robbed is gone */
+    (function () {
+      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 30 } }, ctx);
+      var geo = geoOf(g.board);
+      function act(a) {
+        var r = applyAction(g, a, ctx);
+        if (r.error) { fail++; msgs.push("FAIL timer-stats " + a.type + " → " + r.error.code); return false; }
+        g = r.game; return true;
+      }
+      function freeVertex() {
+        var vs = Object.keys(geo.vertexHexes);
+        for (var i = 0; i < vs.length; i++) {
+          var v = vs[i];
+          if (g.buildings[v]) continue;
+          if ((geo.vertexNeighbors[v] || []).some(function (n) { return g.buildings[n]; })) continue;
+          return v;
+        }
+        return null;
+      }
+      function anyRoadFrom(v) {
+        var edges = geo.vertexEdges[v] || [];
+        for (var i = 0; i < edges.length; i++) if (g.roads[edges[i]] == null) return edges[i];
+        return null;
+      }
+      while (g.phase === "setup") {
+        var v = freeVertex();
+        act({ type: "place", kind: "settlement", loc: v, seat: g.turn.seat });
+        act({ type: "place", kind: "road", loc: anyRoadFrom(v), seat: g.turn.seat });
+      }
+      eq(g.phase, "main", "timer-stats: draft completes");
+
+      // 1. the auto-roll counts on the seat that timed out, histogram included
+      var rseat = g.turn.seat, before = g.stats.seats[rseat].rolls.count;
+      act({ type: "timerExpire" });
+      eq(g.stats.seats[rseat].rolls.count, before + 1, "auto-roll counts on the acting seat");
+      var hist = g.stats.seats[rseat].rolls.hist, htot = 0;
+      for (var k in hist) htot += hist[k];
+      eq(htot, g.stats.seats[rseat].rolls.count, "auto-roll lands in the seat's histogram");
+
+      // 2. a timer-forced robber move counts like a manual one
+      var mseat = g.turn.seat, moved = g.stats.seats[mseat].robber.moved;
+      g.turn.pending = { kind: "robber", viaKnight: false };
+      act({ type: "timerExpire" });
+      eq(g.stats.seats[mseat].robber.moved, moved + 1, "timer-forced robber move counts");
+
+      // 3. the steal still tracks the victim, and lost.robbed no longer exists
+      var thief = g.turn.seat, victim = (thief + 1) % g.seatCount;
+      g.players[victim].hand.wood++;            // a card to take (counters, not the bank)
+      g.turn.pending = { kind: "steal", hex: g.board.robber, targets: [victim] };
+      var vic = g.stats.seats[victim].robber.victimized;
+      act({ type: "steal", seat: thief, target: victim });
+      eq(g.stats.seats[victim].robber.victimized, vic + 1, "the victim's counter tracks the steal");
+      ok(!("robbed" in g.stats.seats[victim].lost), "lost.robbed is gone");
     })();
 
     // a plausible random legal action for the current game state (fuzz driver)
