@@ -97,8 +97,9 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
   30 combos. Art ships as geometric placeholders until Aditya draws it,
   swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
 - **DeetsMahjong follows every cities convention:** copy is
-  `[ph]`-convention in `mahjong/strings.js` (Aditya's copy pass is done —
-  every entry is his, so edit none of them); `mahjong/engine.js` (pure,
+  `[ph]`-convention in `mahjong/strings.js` (his copy pass is done, so
+  edit no un-prefixed entry — but strings wired up *since* that pass do
+  carry `[ph]` and still await him); `mahjong/engine.js` (pure,
   DOM-free, `node mahjong/engine.js` runs its self-checks) is a
   shared-contract file the deployed worker (sibling repo
   `../DeetsMahjong`, `mahjong-api.deets.solutions`) vendors **verbatim**

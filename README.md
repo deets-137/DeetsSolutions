@@ -104,10 +104,13 @@ by TMDB).
   game. Read this first for anything game-related.
 - [docs/cities.md](docs/cities.md) — the DeetsCities board game: rules
   engine, board data, wire protocol, the bento layout, the identity /
-  disconnect-grace / rejoin rules, and the mock-first build order.
+  disconnect-grace / rejoin rules, and what's still unbuilt.
 - [docs/mahjong.md](docs/mahjong.md) — DeetsMahjong: the HK rules
   engine, faan table, claim windows, hidden-info wire protocol, the
-  identity / disconnect-grace / rejoin rules, and the build order.
+  identity / disconnect-grace / rejoin rules, and what's still unbuilt.
+- [docs/stats.md](docs/stats.md) — game stats (accounts phase 2):
+  standings, what each engine already counts and what it doesn't, the
+  results pipeline and D1 schema. **Designed, not built.**
 
 ## Run locally
 

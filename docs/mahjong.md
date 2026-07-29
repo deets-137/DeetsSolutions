@@ -340,13 +340,38 @@ empty; they resolve on the next join. Sockets are hibernatable
 keepalive never wakes the DO, and identity rides the socket attachment
 rather than storage.
 
-## Build order (mock first, radio's playbook)
+## State of the tab
 
-1. ✅ engine.js + selfTest (`node mahjong/engine.js`)
-2. ✅ strings/colors/transport-mock/transport
-3. ✅ bento UI + CSS + nav links
-4. Aditya: play it at `/mahjong?mock`, ✅ copy pass, art pass
-5. ✅ the worker repo, deployed, default transport flipped to prod
+**Built and live.** The rules engine (`node mahjong/engine.js` runs its
+self-checks), both transports, the bento UI and CSS, the nav links, and
+the worker (`../DeetsMahjong`, `mahjong-api.deets.solutions`), which
+vendors `engine.js`, `colors.js` and `table-do.js` verbatim and is
+deployed. `transport.js` defaults to prod.
+
+The turn timer and the seat accent are **not** mahjong's own — they are
+the shell's ([games.md](games.md), "Turn timer"). The ring renders on
+*every* active seat, which matters here: a claim window waits on several
+at once.
+
+**Not built — Aditya's passes.**
+
+- **Art**: tiles render as generated placeholders under
+  `assets/sprites/mahjong/{numeral,traditional}/`. Drop in
+  `tile-{id}.png` / `back.png` at the same sizes to replace them;
+  `scripts/build-mahjong-tiles.py` regenerates the templates.
+- **A real four-browser game** — the mock models no disconnects, so
+  grace, bot takeover and rejoin are testable only live.
+
+**Copy: his pass is done, but nine newer strings await him.** Everything
+un-prefixed in `mahjong/strings.js` is Aditya's and Claude edits none of
+it. Nine entries added *after* that pass still carry `[ph]`: the re-join
+wiring (`rejoinButton`, `standConfirm`, `sitInPill`, `adoptedToast`) and
+the rename ARIA labels. Nothing carrying `[ph]` may ship.
+
+**Known gaps in the stats the engine keeps** — relevant to
+[stats.md](stats.md): there are no pung or chow counters (only kongs),
+and losers' melds are destroyed at each deal, so those counts cannot be
+reconstructed after the fact. `bestFaan` only records *winning* hands.
 
 ## Open questions (deferred, not blockers)
 

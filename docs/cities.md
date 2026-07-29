@@ -5,24 +5,23 @@
 > (`games/table-do.js`), seat colors, and the conventions every game
 > inherits. This document covers only what makes DeetsCities itself.
 
-**Status (2026-07-21):** **Phase 1 is built.** The full mock-playable
-game runs at `cities/?mock` — `engine.js` (rules), `board-data.js`,
-`transport-mock.js` (host-added bots running the real engine), and the
-whole bento UI in `cities.js`; a solo-vs-bots game plays start to
-finish, hidden-info holds, winner + stats present. This document is both
-the original implementation contract and a running record of what
-shipped: where the built UI refined the spec, the prose below is updated
-to match (the **Page layout** section carries the *current* layout).
-**Phase 2 (the worker) is built and deployed** — `transport.js` defaults
-to prod and `?mock` is the dev opt-out; note the mock does NOT model
-disconnects (no grace, no takeover, no reconnect), so rejoin behavior is
-only testable live. Still ahead: Phase 3 (betting), Phase 4 (Aditya's
-copy + art) — see **Build order**. All Phase-1 work is on branch
-`DeetsCities`: the supporting scaffolding landed in `f13c042` (this doc,
-`cities/cities.css`, the nav links, `.claude/launch.json`), and the
-`cities/` app code (`engine.js`, `cities.js`, `board-data.js`, the two
-transports, `strings.js`, `index.html`) plus the `assets/sprites/cities/`
-placeholders are now committed as well — the branch checks out and runs.
+**The tab is live.** The game plays start to finish against the deployed
+worker (`cities-api.deets.solutions`); `transport.js` defaults to prod
+and `?mock` is the dev opt-out. The mock does **not** model disconnects
+(no grace window, no bot takeover, no reconnect), so rejoin behaviour is
+testable only live.
+
+This document is both the original implementation contract and a running
+record of what shipped — where the built UI refined the spec, the prose
+below is updated to match, and the **Page layout** section carries the
+*current* layout.
+
+**What is not finished** (details in "State of the tab" near the end):
+
+- **Spectator betting** — the server half exists; there is no UI to place
+  a bet, and spectators see a "lands in a later build" note.
+- **Copy** — 23 of 214 strings still carry `[ph]` and await Aditya.
+- **Art** — the board and cards render as geometric placeholders.
 
 Design for the **DeetsCities** tab (`cities/`, nav label "DeetsCities"):
 a playable, real-time hex-settlement board game in the spirit of the
@@ -504,21 +503,28 @@ winner's row drawn in a **glowing accent box** (which replaces the old
 "{name} wins" subtitle line). Everything dies with the table (ephemeral,
 like the chips).
 
-## Betting (v1.1 — designed, deferred)
+## Betting (server built, no client UI)
+
+> **What exists:** the host toggle, the chip grant, the `bet` verb,
+> `you.chips`, and settlement of the book at `over`. **What doesn't:** any
+> way to place a bet — `cities.js` never sends the verb, and the spectator
+> tile shows `bettingSoon` instead of a panel. The bullets below describe
+> the whole design; the last two are the unbuilt half.
 
 - Spectators receive **100 chips** at game Start (joining mid-game:
-  same 100). Chips are per-token, per-table, ephemeral.
-- `bet {type, params, stake}` — v1.1 ships `type:"winner"`
-  (`params:{seat}`); the book settles at `over`. The type field is the
+  same 100). Chips are per-token, per-table, ephemeral. *(Built.)*
+- `bet {type, params, stake}` — `type:"winner"` (`params:{seat}`); the
+  book settles at `over`. *(Verb and settlement built.)* The type field is the
   extension point for per-stage micro-bets later ("next roll is 7",
   "next robbery victim", longest-road over/unders) — the DO already
   witnesses every outcome, so settlement is trivial; **odds and stage
   betting are the polish pass**, after the game itself is playable.
 - Seated tokens can't bet (a player's token is refused even from a
-  second tab — the token, not the socket, is the identity).
-- The betting panel lives in the spectator view's bottom tile (where
-  players see their hand). Book and standings are spectator-public;
-  players never see the book mid-game (no information, just decorum).
+  second tab — the token, not the socket, is the identity). *(Built.)*
+- **Unbuilt:** the betting panel, which would live in the spectator
+  view's bottom tile (where players see their hand). Book and standings
+  are spectator-public; players never see the book mid-game (no
+  information, just decorum).
 
 ## Page layout — the bento
 
@@ -972,36 +978,45 @@ typed events the log and ledger consume.
   (never trust a client blob), locations validated against the board's
   derived adjacency before touching state.
 
-## Build order (mock first, radio's playbook)
+## State of the tab
 
-1. **Board + engine on the mock. — ✅ DONE (2026-07).** `board-data.js`,
-   `engine.js` with full rules + an inline `selfTest()` (69 assertions,
-   green in node and in-browser; runs fuzzed games with a
-   resource-conservation invariant), `transport-mock.js` running the
-   engine locally with phantom seats (which also auto-play *and* answer
-   trade offers), and the page: gate, lobby bento, SVG board, placement,
-   dice tile + turn-timer box, the two-column play area with in-panel
-   build/trade trays and in-hand dev cards, the full-height trade
-   overlay, the locked log, discard/robber/steal interrupts, game over +
-   stats, and the View-settings hover pill. A full solo-vs-phantoms game
-   plays to a winner on `?mock`. Strings are fully scaffolded as `[ph]`
-   placeholders — all ~100 entries still carry the prefix, awaiting
-   Aditya's copy pass. Look-and-feel + copy remain Aditya's passes.
-2. **Worker + DO** in `../DeetsCities` — ✅ DONE + DEPLOYED (2026-07-21,
-   `cities-api.deets.solutions`): vendored `engine.js` + `board-data.js` +
-   `colors.js` verbatim (`scripts/vendor.mjs --check` green), the mock's
-   command dispatch, peek, reconnect, per-socket views, timers-as-alarms,
-   bot takeover (grace → AI), abuse guards. Client wiring for the
-   grace trio (red countdown toast off `graceUntil`, `(bot)` strip tag,
-   `flood` in errText) is in `cities.js`; a 13-assertion WS integration
-   test (grace → returned → takeover → reclaim → flood) passed against
-   `wrangler dev` and prod. Remaining: a real two-browser game (Aditya's).
-3. **Spectator polish + betting v1.1**: the betting panel, winner bets,
-   settlement at `over`.
-4. **Site wiring**: nav link (not core) added to every page's header,
-   `.claude/launch.json` already serves the tab; Aditya's copy pass
-   over `strings.js`; his look-and-feel pass (visual verification is
-   his, per convention).
+**Built and live.** The rules engine (`engine.js`, with an inline
+`selfTest()` of 69 assertions that runs fuzzed games under a
+resource-conservation invariant — `node cities/engine.js`),
+`board-data.js`, both transports, and the whole bento UI: gate, lobby,
+SVG board, placement, dice tile, the two-column play area with in-panel
+build/trade trays and in-hand dev cards, the full-height trade overlay,
+the locked log, the discard/robber/steal interrupts, game over + stats,
+and the View-settings hover pill. The worker (`../DeetsCities`,
+`cities-api.deets.solutions`) vendors `engine.js`, `board-data.js`,
+`colors.js` and `table-do.js` verbatim and is deployed; a 13-assertion WS
+integration test (grace → returned → takeover → reclaim → flood) passed
+against both `wrangler dev` and prod.
+
+The turn timer and the seat accent are **not** cities' own — they are the
+shell's ([games.md](games.md), "Turn timer").
+
+**Partly built — spectator betting.** The server half works: the host
+toggle, a 100-chip grant to each spectator, the `bet` verb, `you.chips`
+on the wire, and settlement of the book at game over (cities' existing
+`onGameOver()` override). What is missing is the **client**: nothing in
+`cities.js` ever sends a `bet`, so there is no way to place one. A
+spectator sees their chip count and `bettingSoon` — "Spectator betting
+lands in a later build." The design for the missing panel is in
+"Betting" above.
+
+**Not built — Aditya's passes.**
+
+- **Copy**: 23 of 214 strings in `cities/strings.js` still carry `[ph]`.
+  They are the newer wiring — the re-join policy (`rejoinButton`,
+  `standConfirm`, `sitInPill`, `adoptedToast`, `concededToast`) and the
+  rename ARIA labels — added after his 2026-07-22 pass. Everything
+  un-prefixed is his; Claude edits none of it.
+- **Art**: the board and cards are geometric placeholders under
+  `assets/sprites/cities/`, swappable by landing a file at the same path
+  and size.
+- **A real two-browser game**, which is the only way to exercise the
+  disconnect/rejoin paths the mock doesn't model.
 
 ## Open questions (deferred, not blockers)
 

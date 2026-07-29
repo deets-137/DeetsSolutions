@@ -292,3 +292,8 @@ and the profile grid grows stats boxes. The verified per-seat uid the
 reclaim work added is exactly the hook results will hang on. One rule
 already decided: a table where any seat changed hands mid-game
 (adoption, [games.md](games.md)) is unrated.
+
+**That work is now designed in full — see [stats.md](stats.md)**, which
+carries the standings model, an inventory of what each engine already
+counts (and the four things it doesn't), the D1 schema, the re-vendor
+cost, and the open questions still needing your call.
