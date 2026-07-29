@@ -103,9 +103,17 @@
         view.you.harbors = Engine.playerHarbors(g, geo, seat);
       }
       if (g.phase === "over") {
+        // rank/tied come from the engine so the client never sorts a finish
+        // itself (docs/stats.md, "Standings") — competition ranking, ties
+        // shared. Must stay identical to the worker's viewGame.
+        var rank = {};
+        Engine.standings(g).forEach(function (r) { rank[r.seat] = r; });
         view.over = {
           winner: g.winner,
-          reveal: g.players.map(function (p, i) { return { seat: i, total: Engine.totalVP(g, i), vpCards: p.vpCards }; }),
+          reveal: g.players.map(function (p, i) {
+            return { seat: i, total: Engine.totalVP(g, i), vpCards: p.vpCards,
+                     rank: rank[i].rank, tied: rank[i].tied };
+          }),
           stats: g.stats,
           book: t.book,
           chips: t.chips

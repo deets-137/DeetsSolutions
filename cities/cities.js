@@ -359,6 +359,12 @@
     }
   }
   function awardName(k) { return k === "longestRoad" ? S.awardRoad : S.awardArmy; }
+  // "1st" / "T-3rd" — competition ranking, so a shared rank is marked rather
+  // than silently making two seats look like they finished apart
+  function placeLabel(rank, tied) {
+    var base = S.ordinals[rank - 1] || String(rank);
+    return tied ? fmt(S.placeTied, { place: base }) : base;
+  }
 
   /* ── sprite swap points (assets/sprites/cities/README.md) ──
      Aditya's hand-drawn PNGs replace the geometric placeholders the
@@ -1420,10 +1426,16 @@
 
     // per-seat VP reveal, winner first; ties keep seat order (stable sort)
     var table = el("div", "cities-over__reveal");
-    (o.reveal || []).slice().sort(function (a, b) { return b.total - a.total; }).forEach(function (r) {
+    // rank rides the view from Engine.standings (docs/stats.md) — the client
+    // does not decide a finish. Sorting still falls back to VP so a table on
+    // an older worker (one that predates rank) still reveals in order.
+    (o.reveal || []).slice().sort(function (a, b) {
+      return (a.rank != null && b.rank != null ? a.rank - b.rank : b.total - a.total) || (a.seat - b.seat);
+    }).forEach(function (r) {
       var row = el("div", "cities-over__row" + (r.seat === o.winner ? " is-winner" : ""));
       row.appendChild(seatDot(r.seat));
       row.appendChild(el("span", "cities-over__name", seatName(r.seat)));
+      if (r.rank != null) row.appendChild(el("span", "cities-over__place", placeLabel(r.rank, r.tied)));
       row.appendChild(el("span", "cities-over__vp", fmt(S.vpShort, { n: r.total })));
       table.appendChild(row);
     });

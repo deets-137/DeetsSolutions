@@ -36,6 +36,7 @@ export const GRACE_MS = 30_000;     // mid-game disconnect grace before a bot ta
 export const BOT_STEP = 700;        // ms between a bot's actions (watchable, not a flood)
 export const EXPIRE_MS = 3_600_000; // idle + empty this long → the table evaporates
 export const LOG_MAX = 240;
+export const ARC_CHUNK = 100;       // events per append-only archive chunk
 export const MSG_CAP = 16_384;      // inbound message size cap
 export const NAME_CAP = 24;
 export const TOKEN_CAP = 64;
@@ -58,6 +59,8 @@ export class GameTable {
     this.t = null;   // in-memory mirror of the persisted table (see load())
     this.tie = 0;    // join-order tiebreak within one wake
     this._ev = null; // scratch: events from the last bot action (driveStep)
+    this._over = null;     // scratch: a promise an onGameOver() override returned
+    this._exiting = null;  // scratch: {seat, exit} while a concede is in the engine
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
   }
 
@@ -101,7 +104,8 @@ export class GameTable {
     if (this.t) return this.t;
     const extra = Object.keys(this.EXTRA_STATE);
     const keys = ["settings", "seats", "game", "log", "v", "meta",
-                  "turnEndsAt", "emptyAt", "timerFor"].concat(extra);
+                  "turnEndsAt", "emptyAt", "timerFor",
+                  "spans", "rematchIndex", "arcN", "arcBuf"].concat(extra);
     const v = await this.ctx.storage.get(keys);
     const meta = v.get("meta") || {};
     this.t = {
@@ -115,6 +119,11 @@ export class GameTable {
       turnEndsAt: v.get("turnEndsAt") || null,
       emptyAt: v.get("emptyAt") || null,      // when sockets last hit zero (fuse)
       timerFor: v.get("timerFor") || null,    // signature of the obligation the timer is for
+      // stats plumbing (docs/stats.md) — all three reset with the game
+      spans: v.get("spans") || [],            // occupancy ledger: who sat where, when, how they left
+      rematchIndex: v.get("rematchIndex") || 0,   // monotonic; half the results idempotency key
+      arcN: v.get("arcN") || 0,               // archive chunks written so far
+      arcBuf: v.get("arcBuf") || [],          // events not yet flushed to a chunk
     };
     for (const k of extra) { const got = v.get(k); this.t[k] = got === undefined ? this.EXTRA_STATE[k]() : got; }
     return this.t;
@@ -126,6 +135,7 @@ export class GameTable {
     const rec = {
       settings: t.settings, seats: t.seats, game: t.game, log: t.log,
       v: t.v, turnEndsAt: t.turnEndsAt, emptyAt: t.emptyAt, timerFor: t.timerFor,
+      spans: t.spans, rematchIndex: t.rematchIndex, arcN: t.arcN, arcBuf: t.arcBuf,
       meta: { createdAt: t.createdAt, creatorToken: t.creatorToken },
     };
     for (const k of Object.keys(this.EXTRA_STATE)) rec[k] = t[k];
@@ -135,6 +145,101 @@ export class GameTable {
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     this.t = null;
+  }
+
+  /* ── the spans ledger (docs/stats.md) ────────────────────────────────
+     Who occupied which seat, when they arrived, and how they left.
+
+     This exists because the uid is DELETED from a seat on every departure
+     path (concede, stand, kick — see those sites), so reading seat.uid at
+     game over misses exactly the players most worth crediting: the one who
+     conceded at 8 VP, the one who stood up. And it misses them SILENTLY, as
+     a plausible-looking null that reads like a guest. Attribution has to be
+     recorded when it happens, not reconstructed at the end.
+
+     Append-only. Opened at Start and on every takeover / adoption /
+     reclaim; closed on departure, and closed with exit:null for everyone
+     still seated when the game ends. One span per occupancy, so a seat with
+     two spans changed hands — which makes "this table is unrated" a derived
+     fact rather than a flag somebody had to remember to set. */
+  seatKind(s) { return this.isBot(s) ? "bot" : (s && s.uid ? "user" : "guest"); }
+  // Roughly "when in the game did this happen". Games count different things
+  // and neither counter is on a shared contract, so read whichever the engine
+  // keeps rather than inventing a third. A subclass may override.
+  clock() {
+    const st = this.t.game && this.t.game.stats;
+    if (!st) return null;
+    return st.turns != null ? st.turns : (st.hands != null ? st.hands : null);
+  }
+  openSpan(i, via) {
+    const s = this.t.seats[i];
+    if (!s || !this.t.game) return;
+    const n = this.t.spans.filter((x) => x.seat === i).length;
+    this.t.spans.push({
+      seat: i, span: n, uid: s.uid || null, name: s.name, kind: this.seatKind(s),
+      via, exit: null,
+      joinedAt: Date.now(), leftAt: null, joinedTurn: this.clock(), leftTurn: null,
+    });
+  }
+  closeSpan(i, exit) {
+    if (!this.t.game) return;
+    for (let k = this.t.spans.length - 1; k >= 0; k--) {
+      const sp = this.t.spans[k];
+      if (sp.seat === i && sp.leftAt == null) {
+        sp.exit = exit; sp.leftAt = Date.now(); sp.leftTurn = this.clock();
+        return;
+      }
+    }
+  }
+  // the seat changed hands mid-game: the leaver is closed, the arrival opens
+  handOver(i, exit, via) { this.closeSpan(i, exit); this.openSpan(i, via); }
+  closeAllSpans() {
+    // game over: anyone still seated played it to the end, so exit stays null
+    // — except a seat whose concede is what ended it (_exiting), which must
+    // keep its reason. Conceding the second-to-last seat ends the game inside
+    // the same applyEngine call, so this runs BEFORE concedeSeat can name it.
+    const now = Date.now(), turn = this.clock(), ex = this._exiting;
+    for (const sp of this.t.spans) {
+      if (sp.leftAt == null) {
+        sp.leftAt = now; sp.leftTurn = turn;
+        if (ex && sp.seat === ex.seat) sp.exit = ex.exit;
+      }
+    }
+  }
+
+  /* ── the event archive (docs/stats.md) ───────────────────────────────
+     t.log is the live client's scrollback, capped at LOG_MAX and trimmed
+     FIFO — it is the TAIL of a game, not the game. The archive is the whole
+     stream, kept for the questions the counters can't answer.
+
+     It is stored OUTSIDE the table record on purpose: persist() serialises
+     the whole record and broadcast() calls it on every state change, so an
+     uncapped log inside it would rewrite a growing blob hundreds of times a
+     game. These chunks are written once and never rewritten.
+
+     The un-flushed tail rides in t.arcBuf, which IS in the record — so a
+     hibernation or crash between flushes loses nothing, and flushing is a
+     write-volume optimisation rather than a correctness mechanism. */
+  arcKey(n) { return "arc:" + String(n).padStart(6, "0"); }   // padded: list() sorts as STRINGS
+  async flushArc(force) {
+    const t = this.t;
+    if (!t.arcBuf.length || (!force && t.arcBuf.length < ARC_CHUNK)) return;
+    await this.ctx.storage.put(this.arcKey(t.arcN), t.arcBuf);
+    t.arcN++; t.arcBuf = [];
+  }
+  async readArchive() {
+    const m = await this.ctx.storage.list({ prefix: "arc:" });
+    const out = [];
+    for (const chunk of m.values()) for (const e of chunk) out.push(e);
+    return out.concat(this.t.arcBuf);
+  }
+  // a new game reuses chunk numbers, so the old ones must go with it or
+  // arc:000000 would collide with the previous game's
+  async resetArchive() {
+    const m = await this.ctx.storage.list({ prefix: "arc:" });
+    const keys = [...m.keys()];
+    if (keys.length) await this.ctx.storage.delete(keys);
+    this.t.arcN = 0; this.t.arcBuf = [];
   }
 
   // ---- sockets & identity --------------------------------------------------
@@ -173,12 +278,20 @@ export class GameTable {
   // The engine rules first: if it refuses (no game, or already "over"), the
   // roster must NOT be touched — severing a seat the engine still counts
   // would strike a live player out of the final standings.
-  concedeSeat(i) {
+  concedeSeat(i, exit) {
     const s = this.t.seats[i];
     if (!s || !this.t.game) return [];
+    // name the exit before the engine runs — see closeAllSpans()
+    this._exiting = { seat: i, exit: exit || "concede" };
     const r = this.applyEngine({ type: "concede", seat: i });
+    this._exiting = null;
     if (r.error) return [];
     s.conceded = true;
+    // the span closes BEFORE the uid is dropped — that delete is why the
+    // ledger exists. `exit` names how they went; nobody takes the seat over,
+    // so no new span opens. Their standing survives: concede() leaves their
+    // buildings, roads and awards on the board.
+    this.closeSpan(i, exit || "concede");
     delete s.bot; delete s.phantom; delete s.graceUntil; delete s.token; delete s.uid;
     return r.events || [];
   }
@@ -245,6 +358,9 @@ export class GameTable {
     const t = this.t;
     t.v++;
     t.touched = Date.now();
+    // the async seams applyEngine (synchronous, always) cannot reach itself
+    await this.flushArc(!!(t.game && t.game.phase === "over"));
+    if (this._over) { const p = this._over; this._over = null; await p; }
     await this.persist();
     for (const s of this.joinedSockets(except)) {
       const view = this.viewFor(s.att.token);
@@ -264,9 +380,16 @@ export class GameTable {
     const res = this.Engine.applyAction(this.t.game, action, this.ctx2());
     if (res.error) return res;
     this.t.game = res.game;
-    (res.events || []).forEach((e) => this.t.log.push(e));
+    (res.events || []).forEach((e) => { this.t.log.push(e); this.t.arcBuf.push(e); });
     if (this.t.log.length > LOG_MAX) this.t.log.splice(0, this.t.log.length - LOG_MAX);
-    if (this.t.game.phase === "over") { this.onGameOver(); this.t.turnEndsAt = null; this.t.timerFor = null; }
+    if (this.t.game.phase === "over") {
+      // spans close BEFORE the hook, so an override reads a finished ledger.
+      // applyEngine is synchronous and always is — an override that needs to
+      // await (a results POST) returns a promise, and broadcast() awaits it.
+      this.closeAllSpans();
+      this._over = this.onGameOver() || null;
+      this.t.turnEndsAt = null; this.t.timerFor = null;
+    }
     return res;
   }
 
@@ -317,9 +440,13 @@ export class GameTable {
         if (!g || g.phase === "over") {
           delete s.graceUntil; changed = true;
         } else if (this.rejoinMode() === "none") {
-          events = events.concat(this.concedeSeat(i)); changed = true;
+          events = events.concat(this.concedeSeat(i, "grace")); changed = true;
         } else {
+          // a grace expiry keeps the token and uid on the seat (that is what
+          // lets them reclaim it), so the span closes but the identity stays
+          this.closeSpan(i, "grace");
           s.bot = true; delete s.graceUntil; changed = true;
+          this.openSpan(i, "takeover");
           events.push({ t: "takeover", seat: i });
         }
       }
@@ -387,9 +514,11 @@ export class GameTable {
       // get the close.
       let kevents;
       if (this.rejoinMode() === "none") {
-        kevents = this.concedeSeat(s);
+        kevents = this.concedeSeat(s, "kick");
       } else {
+        this.closeSpan(s, "kick");   // before the uid goes with the token
         t.seats[s].bot = true; delete t.seats[s].graceUntil; delete t.seats[s].token; delete t.seats[s].uid;
+        this.openSpan(s, "takeover");
         kevents = [{ t: "takeover", seat: s }];
       }
       for (const c of this.socketsForToken(kickedTok)) { try { c.ws.send(JSON.stringify({ type: "kicked", serverNow: Date.now() })); } catch (e) {} try { c.ws.close(4403, "kicked"); } catch (e) {} }
@@ -409,6 +538,12 @@ export class GameTable {
       if (!t.game || t.game.phase !== "over") return this.errTo(ws, "phase");
       t.game = null;
       t.turnEndsAt = null; t.timerFor = null;
+      // a rematch is a NEW result, so it gets the next idempotency key and a
+      // clean ledger and archive. The chunks must actually go: the next game
+      // numbers from zero again and would otherwise read the old game's.
+      t.rematchIndex++;
+      t.spans = [];
+      await this.resetArchive();
       // conceded seats left for good — the rematch lobby opens them. Any
       // grace window still ticking belongs to the game just discarded: clear
       // it, or the alarm would wake to a takeover with no game to take over.
@@ -435,9 +570,11 @@ export class GameTable {
       if (si == null) return this.errTo(ws, "perm");
       let sevents;
       if (this.rejoinMode() === "none") {
-        sevents = this.concedeSeat(si);
+        sevents = this.concedeSeat(si, "stand");
       } else {
+        this.closeSpan(si, "stand");
         t.seats[si].bot = true; delete t.seats[si].graceUntil; delete t.seats[si].token; delete t.seats[si].uid;
+        this.openSpan(si, "takeover");
         sevents = [{ t: "takeover", seat: si }];
       }
       await this.broadcast(sevents);
@@ -453,9 +590,11 @@ export class GameTable {
       const alower = String(att.name || "").toLowerCase();
       const ataken = t.seats.some((x, xi) => x && xi !== ai && x.name.toLowerCase() === alower);
       if (ataken) return this.errTo(ws, "name-taken");   // connections were checked at join
+      this.closeSpan(ai, "adopted");   // the bot's span ends here
       as.name = att.name; as.token = token;
       if (att.uid) as.uid = att.uid; else delete as.uid;
       delete as.bot; delete as.graceUntil; delete as.phantom;
+      this.openSpan(ai, "adopt");
       await this.broadcast([{ t: "adopted", seat: ai }]);
       this.armAlarm();
       return;
@@ -597,6 +736,10 @@ export class GameTable {
           if (s && !this.isBot(s) && !this.tokenConnected(s.token)) { s.bot = true; autoBots.push({ t: "takeover", seat: i }); }
         }
         t.game = this.createGame(seated);
+        // the ledger opens with the field as dealt — auto-bots above already
+        // flipped, so a seat that went dark in the lobby opens as a bot
+        t.spans = [];
+        for (let i = 0; i < t.seats.length; i++) if (t.seats[i]) this.openSpan(i, "lobby");
         const extra = this.onStart(seated) || [];
         await this.broadcast(extra.concat(autoBots));
         this.armAlarm();
@@ -754,6 +897,8 @@ export class GameTable {
         t.settings = Object.assign({ rejoin: "rejoin" }, this.defaultSettings());
         t.seats = []; this.resizeSeats();
         t.game = null; t.log = []; t.v = 1;
+        t.spans = []; t.rematchIndex = 0;
+        await this.resetArchive();
         for (const k of Object.keys(this.EXTRA_STATE)) t[k] = this.EXTRA_STATE[k]();
       }
       for (const s of mine) { try { s.ws.close(4408, "replaced"); } catch (e) {} }
@@ -765,12 +910,18 @@ export class GameTable {
       const revents = [];
       if (seat != null) {
         const rs = t.seats[seat];
+        // a bot actually held it → the seat changed hands and the ledger says
+        // so. A bare graceUntil is the same person reconnecting inside their
+        // window: no takeover happened, so no span closed and none opens.
+        const wasBot = !!(t.game && t.game.phase !== "over" && rs.bot);
+        if (wasBot) this.closeSpan(seat, "reclaimed");
         rs.token = token;        // uid reclaim: the seat follows the account to this device
         if (uid) rs.uid = uid;   // signing in tags the seat on any reclaim
         if (t.game && t.game.phase !== "over" && (rs.bot || rs.graceUntil)) {
           delete rs.bot; delete rs.graceUntil;
           revents.push({ t: "returned", seat });
         }
+        if (wasBot) this.openSpan(seat, "reclaim");
       }
       t.emptyAt = null;
       this.onJoined(token);

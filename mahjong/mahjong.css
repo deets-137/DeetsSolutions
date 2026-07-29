@@ -592,6 +592,11 @@
 @keyframes mj-winnerpulse { 50% { box-shadow: 0 0 0 1px var(--title), 0 0 22px 2px var(--title); } }
 @media (prefers-reduced-motion: reduce) { .mj-over { animation: none; } .mj-over__row.is-winner { animation: none; } }
 .mj-over__name { flex: 1 1 auto; color: var(--text); }
+/* placement badge — muted, between the name and the score */
+.mj-over__place {
+  flex: none; color: var(--subtext); font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
 .mj-over__vp { color: var(--title); font-weight: 700; }
 .mj-over__rematch { align-self: flex-start; cursor: pointer; }
 

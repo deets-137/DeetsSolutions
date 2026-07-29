@@ -102,7 +102,10 @@
       game.players.push({
         hand: [], melds: [], flowers: [], discards: [],
         score: 0,
-        stats: { wins: 0, selfDraws: 0, dealIns: 0, kongs: 0, bestFaan: 0 }
+        // pungs and chows are counted as they are claimed and never after:
+        // deal() resets every melds array, and only the WINNER's melds are
+        // snapshotted into results[], so a loser's history is destroyed
+        stats: { wins: 0, selfDraws: 0, dealIns: 0, kongs: 0, pungs: 0, chows: 0, bestFaan: 0 }
       });
     }
     return game;
@@ -509,6 +512,29 @@
     return true;
   }
 
+  /* ── standings (docs/stats.md) ────────────────────────────────
+     Final placement for every seat, winner first, on cumulative
+     score. Competition ranking: equal scores share the best rank and
+     the next rank skips (1, 2, 2, 4), with `tied` on any shared rank.
+
+     Note this deliberately does NOT agree with finishGame() in a tie.
+     finishGame picks the top score with `>`, so a tie silently lands
+     on the lowest seat index; changing that would change who wins a
+     match, which is a rules decision. standings() only DESCRIBES the
+     finish — it reports the tie honestly and leaves g.winner alone. */
+  function standings(g) {
+    var rows = [], s;
+    for (s = 0; s < 4; s++) rows.push({ seat: s, rank: 0, score: g.players[s].score, tied: false });
+    rows.sort(function (a, b) { return (b.score - a.score) || (a.seat - b.seat); });
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].rank = (i > 0 && rows[i].score === rows[i - 1].score) ? rows[i - 1].rank : i + 1;
+    }
+    var counts = {};
+    for (var j = 0; j < rows.length; j++) counts[rows[j].rank] = (counts[rows[j].rank] || 0) + 1;
+    for (var k = 0; k < rows.length; k++) rows[k].tied = counts[rows[k].rank] > 1;
+    return rows;
+  }
+
   /* rotate the dealership after a settled hand (nextHand applies it) */
   function advanceRound(g, events) {
     var s = g.handOver;
@@ -607,6 +633,7 @@
     if (pick.action === "pung") {
       removeOne(p.hand, cl.tile); removeOne(p.hand, cl.tile);
       p.melds.push({ kind: "pung", tile: cl.tile, from: cl.from });
+      p.stats.pungs++;
       events.push({ t: "meld", seat: seat, kind: "pung", tile: cl.tile, from: cl.from });
       g.turn = { seat: seat, drawn: null, justKonged: false, anyDiscard: true };
       return null;
@@ -628,6 +655,7 @@
     removeOne(p.hand, use[0]); removeOne(p.hand, use[1]);
     var low = Math.min(numOf(cl.tile), numOf(use[0]), numOf(use[1]));
     p.melds.push({ kind: "chow", tile: suitOf(cl.tile) + low, from: cl.from, claimed: cl.tile });
+    p.stats.chows++;
     events.push({ t: "meld", seat: seat, kind: "chow", tile: suitOf(cl.tile) + low, from: cl.from });
     g.turn = { seat: seat, drawn: null, justKonged: false, anyDiscard: true };
     return null;
@@ -876,7 +904,8 @@
     isWinningTiles: isWinningTiles,
     winCheck: winCheck,
     scoreHand: scoreHand,
-    scoreProgress: scoreProgress
+    scoreProgress: scoreProgress,
+    standings: standings
   };
 
   API.selfTest = selfTest;
@@ -1015,6 +1044,82 @@
       var pr2 = scoreProgress(g, 0);
       // pure one suit 7 + the two flowers
       eq(pr2.faan, 9, "progress: pure flush reads from concealed tiles alone");
+    })();
+
+    /* standings — competition ranking over cumulative score */
+    (function () {
+      var g = createGame({ settings: { minFaan: 0, capFaan: 13, winds: 1 } }, ctx);
+      g.players[0].score = 48; g.players[1].score = -16;
+      g.players[2].score = -16; g.players[3].score = -16;
+      var st = standings(g);
+      eq(st.length, 4, "standings covers all four seats");
+      eq(st[0].seat, 0, "standings puts the leader first");
+      eq(st[0].rank, 1, "the leader is 1st");
+      ok(!st[0].tied, "an outright leader is not tied");
+      eq(st[1].rank, 2, "a three-way tie shares one rank");
+      eq(st[3].rank, 2, "…all the way down");
+      ok(st[1].tied && st[2].tied && st[3].tied, "every member of the tie is flagged");
+      var tot = 0;
+      st.forEach(function (r) { tot += r.score; });
+      eq(tot, 0, "standings reports the zero-sum scores untouched");
+
+      // the reported tie must NOT quietly become a rules change
+      g.players[1].score = 48; g.players[2].score = -48; g.players[3].score = -48;
+      var st2 = standings(g);
+      eq(st2[0].rank, 1, "tied leaders share 1st");
+      eq(st2[1].rank, 1, "…both of them");
+      eq(st2[2].rank, 3, "and the next rank skips the one the tie consumed");
+      var before = g.winner;
+      standings(g);
+      eq(g.winner, before, "standings never touches g.winner");
+    })();
+
+    /* pungs and chows are counted at the claim — the only chance there is,
+       driven through the real claim window rather than by poking the counter */
+    (function () {
+      function windowFor(claimer, tile, hand, can) {
+        var g = createGame({ settings: { minFaan: 0, capFaan: 13, winds: 1 } }, ctx);
+        g.phase = "play";
+        g.order = [0, 1, 2, 3];
+        g.round = { prevailing: 0, dealerIdx: 0, hand: 1 };
+        g.wall = ["m1", "m2", "m3"];
+        g.players[1].discards = [tile];          // seat 1 threw it
+        g.pond = [{ seat: 1, tile: tile }];
+        g.players[claimer].hand = hand.slice();
+        var cn = {}; cn[claimer] = can;
+        g.claims = { tile: tile, from: 1, can: cn, responses: {}, robbing: false };
+        return g;
+      }
+
+      var g1 = windowFor(2, "m5", ["m5", "m5", "p1", "p2", "p3", "s9", "dr"], ["pung"]);
+      eq(g1.players[2].stats.pungs, 0, "a fresh seat has claimed no pungs");
+      var r1 = applyAction(g1, { type: "claim", seat: 2, action: "pung" }, ctx);
+      ok(!r1.error, "pung claim resolves");
+      g1 = r1.game;
+      eq(g1.players[2].stats.pungs, 1, "claiming a pung counts it");
+      eq(g1.players[2].melds.length, 1, "…and melds it");
+      eq(g1.players[0].stats.pungs, 0, "a bystander counts nothing");
+
+      var g2 = windowFor(2, "m5", ["m6", "m7", "p1", "p2", "p3", "s9", "dr"], ["chow"]);
+      eq(g2.players[2].stats.chows, 0, "a fresh seat has claimed no chows");
+      var r2 = applyAction(g2, { type: "claim", seat: 2, action: "chow", tiles: ["m6", "m7"] }, ctx);
+      ok(!r2.error, "chow claim resolves");
+      g2 = r2.game;
+      eq(g2.players[2].stats.chows, 1, "claiming a chow counts it");
+      eq(g2.players[2].stats.pungs, 0, "a chow is not a pung");
+
+      // an added kong upgrades a pung already counted: the pung still happened,
+      // and the kong is counted separately (docs/stats.md)
+      var p = g1.players[2];
+      var before = p.stats.pungs;
+      var m = p.melds.filter(function (x) { return x.kind === "pung" && x.tile === "m5"; })[0];
+      m.kind = "kongA"; p.stats.kongs++;
+      eq(p.stats.pungs, before, "an added kong does not un-count the pung");
+      eq(p.stats.kongs, 1, "the kong is counted on its own");
+
+      // the counters survive the deal that destroys the melds themselves
+      p.melds = [];
+      eq(p.stats.pungs, before, "the pung counter outlives the meld array");
     })();
 
     var summary = "mahjong engine selfTest: " + pass + " passed, " + fail + " failed";

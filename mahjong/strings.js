@@ -274,6 +274,10 @@ window.MAHJONG_STRINGS = {
    gameOver: "Game Over",
    handCount: "{n} hands",
    rematchButton: "Rematch",
+   // placement badge on the reveal (docs/stats.md). Competition ranking:
+   // tied seats share a rank and the next one skips. Indexed by rank - 1.
+   ordinals:    ["[ph]1st", "[ph]2nd", "[ph]3rd", "[ph]4th"],
+   placeTied:   "[ph]T-{place}",
    superMostWins: "Most wins",
    superBestHand: "Biggest hand",
    superMostDealIns: "Most deal-ins",

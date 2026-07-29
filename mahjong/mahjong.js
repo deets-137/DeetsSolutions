@@ -850,15 +850,21 @@
     wrap.appendChild(sup);
 
     var table = el("div", "mj-over__reveal");
-    (o.scores || []).map(function (score, seat) { return { seat: seat, score: score }; })
-      .sort(function (a, b) { return b.score - a.score; })
-      .forEach(function (r) {
-        var row = el("div", "mj-over__row" + (r.seat === o.winner ? " is-winner" : ""));
-        row.appendChild(seatDot(r.seat));
-        row.appendChild(el("span", "mj-over__name", seatName(r.seat)));
-        row.appendChild(el("span", "mj-over__vp", fmt(S.scoreShort, { n: r.score })));
-        table.appendChild(row);
-      });
+    // standings ride the view from Engine.standings (docs/stats.md) — the
+    // client does not decide a finish. The score sort remains the fallback so
+    // a table on an older worker still reveals in order.
+    var rows = (o.standings || []).length
+      ? o.standings.slice()
+      : (o.scores || []).map(function (score, seat) { return { seat: seat, score: score, rank: null, tied: false }; })
+          .sort(function (a, b) { return b.score - a.score; });
+    rows.forEach(function (r) {
+      var row = el("div", "mj-over__row" + (r.seat === o.winner ? " is-winner" : ""));
+      row.appendChild(seatDot(r.seat));
+      row.appendChild(el("span", "mj-over__name", seatName(r.seat)));
+      if (r.rank != null) row.appendChild(el("span", "mj-over__place", placeLabel(r.rank, r.tied)));
+      row.appendChild(el("span", "mj-over__vp", fmt(S.scoreShort, { n: r.score })));
+      table.appendChild(row);
+    });
     wrap.appendChild(table);
 
     if (model.host) {
@@ -870,6 +876,12 @@
       wrap.appendChild(rb);
     }
     BIG.appendChild(wrap);
+  }
+  // "1st" / "T-3rd" — a shared rank is marked rather than silently making two
+  // seats look like they finished apart
+  function placeLabel(rank, tied) {
+    var base = S.ordinals[rank - 1] || String(rank);
+    return tied ? fmt(S.placeTied, { place: base }) : base;
   }
   function superCard(key, label, seats, valueFn) {
     var ranked = (seats || []).map(function (s, i) { return { seat: i, value: valueFn(s) }; })

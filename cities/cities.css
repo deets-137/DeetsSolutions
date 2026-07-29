@@ -710,6 +710,12 @@
 @keyframes cities-winnerpulse { 50% { box-shadow: 0 0 0 1px var(--title), 0 0 22px 2px var(--title); } }
 @media (prefers-reduced-motion: reduce) { .cities-over { animation: none; } .cities-over__row.is-winner { animation: none; } }
 .cities-over__name { flex: 1 1 auto; color: var(--text); }
+/* placement badge — between the name (which takes the slack) and the VP,
+   muted so the winner glow stays the loud thing on the row */
+.cities-over__place {
+  flex: none; color: var(--subtext); font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
 .cities-over__vp { color: var(--title); font-weight: 700; }
 
 /* ── desktop-only guard (below the 56rem nav breakpoint) ──────── */

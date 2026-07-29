@@ -220,6 +220,10 @@
         rolls: { count: 0, hist: {} },
         pieces: { roads: 0, settlements: 0, cities: 0, devBought: 0, devPlayed: 0, knights: 0 },
         robber: { moved: 0, stolen: 0, victimized: 0 },
+        // player-to-player trades, which gained.trades does NOT cover (that
+        // counts bank/harbour only). Cards, not bundles: a heavy trader wants
+        // a number, not five.
+        ptp: { trades: 0, given: 0, received: 0 },
         biggestHaul: 0
       });
     }
@@ -366,6 +370,35 @@
     for (var s = 0; s < game.seatCount; s++) out.push(publicVP(game, s));
     return out;
   }
+  /* ── standings (docs/stats.md) ────────────────────────────────
+     Final placement for every seat, winner first. Competition
+     ranking: equal scores share the best rank and the next rank
+     skips (1, 2, 2, 4), with `tied` on any shared rank — two tied
+     3rds are both 3rd and the tie is visible, which is the whole
+     point of reporting it.
+
+     This DESCRIBES the finish, it does not decide it: `winner` is
+     whatever the engine already set, and nothing here touches the
+     game. A conceded seat keeps the standing its VP earned —
+     concede() leaves its buildings, roads and awards on the board,
+     so totalVP stays meaningful for a seat that left early. */
+  function standings(game) {
+    var rows = [], s;
+    for (s = 0; s < game.seatCount; s++) {
+      rows.push({ seat: s, rank: 0, score: totalVP(game, s), tied: false });
+    }
+    rows.sort(function (a, b) { return (b.score - a.score) || (a.seat - b.seat); });
+    for (var i = 0; i < rows.length; i++) {
+      // share the rank of the row above on an equal score; otherwise this
+      // row's rank is its position, which is what makes the ranks skip
+      rows[i].rank = (i > 0 && rows[i].score === rows[i - 1].score) ? rows[i - 1].rank : i + 1;
+    }
+    var counts = {};
+    for (var j = 0; j < rows.length; j++) counts[rows[j].rank] = (counts[rows[j].rank] || 0) + 1;
+    for (var k = 0; k < rows.length; k++) rows[k].tied = counts[rows[k].rank] > 1;
+    return rows;
+  }
+
   function checkWin(game, seat, events) {
     if (game.phase !== "main") return;
     if (totalVP(game, seat) >= BOARDS.BOARDS[game.frame].winVP) {
@@ -908,6 +941,11 @@
   function moveBundle(from, to, gg) {
     RES.forEach(function (r) { var c = gg[r] || 0; from[r] -= c; to[r] += c; });
   }
+  function bundleSize(gg) {
+    var n = 0;
+    RES.forEach(function (r) { n += gg[r] || 0; });
+    return n;
+  }
   function offer(g, a, ctx, events) {
     if (g.phase !== "main" || !g.turn.rolled || g.turn.pending) return err("phase");
     var seat = a.seat;
@@ -977,6 +1015,12 @@
     moveBundle(gh, th, o.give);
     moveBundle(th, gh, o.get);
     g.offers = g.offers.filter(function (x) { return x.id !== o.id; });
+    // the only site a player-to-player trade completes, and the only place
+    // both bundles are in hand — one seat's `given` is the other's `received`
+    var out = bundleSize(o.give), back = bundleSize(o.get);
+    var gs = g.stats.seats[giver].ptp, ts = g.stats.seats[taker].ptp;
+    gs.trades++; gs.given += out; gs.received += back;
+    ts.trades++; ts.given += back; ts.received += out;
     events.push({ t: "trade", from: giver, to: taker, give: clone(o.give), get: clone(o.get) });
     return null;
   }
@@ -1059,6 +1103,7 @@
     publicVP: publicVP,
     totalVP: totalVP,
     publicVPList: publicVPList,
+    standings: standings,
     playerHarbors: playerHarbors,
     tradeRate: tradeRate,
     longestRoadFor: longestRoadFor
@@ -1505,6 +1550,66 @@
       act({ type: "steal", seat: thief, target: victim });
       eq(g.stats.seats[victim].robber.victimized, vic + 1, "the victim's counter tracks the steal");
       ok(!("robbed" in g.stats.seats[victim].lost), "lost.robbed is gone");
+    })();
+
+    /* standings — competition ranking over totalVP, and the ptp trade
+       counters, which are the only record a player-to-player trade leaves */
+    (function () {
+      var g = createGame({ seats: [{}, {}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var geo = geoOf(g.board);
+      function vAt(i) { return Object.keys(geo.vertexHexes)[i]; }
+
+      // plant VP directly: standings reads totalVP, and hand-built buildings
+      // are the cheapest honest way to give four seats a 3/2/2/1 spread
+      g.buildings[vAt(0)] = { seat: 0, kind: "city" };        // 2
+      g.buildings[vAt(6)] = { seat: 0, kind: "settlement" };  // 3 total
+      g.buildings[vAt(12)] = { seat: 1, kind: "city" };       // 2
+      g.buildings[vAt(18)] = { seat: 2, kind: "city" };       // 2
+      g.buildings[vAt(24)] = { seat: 3, kind: "settlement" }; // 1
+      var st = standings(g);
+      eq(st.length, 4, "standings covers every seat");
+      eq(st[0].seat, 0, "standings puts the leader first");
+      eq(st[0].rank, 1, "the leader is 1st");
+      ok(!st[0].tied, "an outright leader is not tied");
+      eq(st[1].rank, 2, "the first of a tied pair takes the shared rank");
+      eq(st[2].rank, 2, "the second of a tied pair shares it");
+      ok(st[1].tied && st[2].tied, "both members of a tie are flagged");
+      eq(st[3].rank, 4, "competition ranking skips the rank a tie consumed");
+      ok(!st[3].tied, "a lone trailing seat is not tied");
+      eq(st[1].seat, 1, "a tie breaks to seat order for display only");
+
+      // hidden VP cards count: standings must read totalVP, not publicVP
+      g.players[3].vpCards = 3;
+      var st2 = standings(g);
+      eq(st2[0].seat, 3, "a hidden VP card can win the standings");
+
+      // every seat ranked, no gaps or duplicates beyond the tie itself
+      var seen = {};
+      st2.forEach(function (r) { seen[r.seat] = true; });
+      eq(Object.keys(seen).length, 4, "standings lists each seat exactly once");
+
+      // ptp: a 2-for-1 trade, counted from both sides
+      var g2 = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      g2.phase = "main";
+      g2.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null };
+      g2.players[0].hand.wood = 2; g2.players[1].hand.ore = 1;
+      var r1 = applyAction(g2, { type: "offer", seat: 0, give: { wood: 2 }, get: { ore: 1 }, to: [1] }, ctx);
+      ok(!r1.error, "ptp: offer opens");
+      g2 = r1.game;
+      var oid = g2.offers[0].id;
+      g2 = applyAction(g2, { type: "respond", seat: 1, offerId: oid, action: "accept" }, ctx).game;
+      var r2 = applyAction(g2, { type: "close", seat: 0, offerId: oid, accepter: 1 }, ctx);
+      ok(!r2.error, "ptp: the trade closes");
+      g2 = r2.game;
+      var p0 = g2.stats.seats[0].ptp, p1 = g2.stats.seats[1].ptp;
+      eq(p0.trades, 1, "the giver counts a trade");
+      eq(p1.trades, 1, "the taker counts the same trade");
+      eq(p0.given, 2, "the giver's cards out are counted");
+      eq(p0.received, 1, "the giver's cards in are counted");
+      eq(p1.given, 1, "one side's given is the other's received");
+      eq(p1.received, 2, "and the reverse");
+      eq(g2.stats.seats[2].ptp.trades, 0, "a bystander counts nothing");
+      eq(bundleSize(g2.stats.seats[0].gained.trades), 0, "a ptp trade stays out of gained.trades");
     })();
 
     // a plausible random legal action for the current game state (fuzz driver)

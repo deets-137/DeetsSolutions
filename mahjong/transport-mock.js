@@ -252,8 +252,13 @@
         if (t.turnEndsAt) view.handOverAt = t.turnEndsAt;
       }
       if (phase === "over") {
+        // standings ride the view so the client never sorts a finish itself
+        // (docs/stats.md) — competition ranking, ties shared, and honest about
+        // a tie that finishGame resolved to the lowest seat. Must stay
+        // identical to the worker's viewGame.
         view.over = {
           winner: g.winner,
+          standings: Engine.standings(g),
           scores: g.players.map(function (p) { return p.score; }),
           stats: g.players.map(function (p) { return p.stats; }),
           hands: g.stats.hands,

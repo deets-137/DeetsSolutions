@@ -258,6 +258,11 @@ window.CITIES_STRINGS = {
   superMostKnights:   "Most knights",
   superValue:  "[{n}x]",   // appended to a superlative winner — the value they topped
   statHidden:  "—",
+  // placement badge on the reveal (docs/stats.md). Competition ranking, so
+  // two tied 3rds are BOTH 3rd and the next seat is 4th; placeTied marks the
+  // shared ones. Indexed by rank - 1.
+  ordinals:    ["[ph]1st", "[ph]2nd", "[ph]3rd", "[ph]4th", "[ph]5th", "[ph]6th"],
+  placeTied:   "[ph]T-{place}",
 
   /* ── in-game attention toasts ────────────────────────────────────
      stolenFromYou is Aditya's wording (chat 2026-07-22), no [ph] — the
