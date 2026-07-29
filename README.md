@@ -16,8 +16,10 @@ tab's count and latest entry.
 - **Movies** — my Letterboxd film log: posters, star ratings, likes,
   rewatches, and reviews, with the same controls. Rewatches can be grouped
   per film or fanned out one card per sitting.
-- **DeetsRadio** — shared listening rooms (in progress; see
-  [docs/radio.md](docs/radio.md)).
+- **DeetsRadio** — shared listening rooms: one person plays, everyone
+  hears it in sync, with a queue, chat, and browsing the rest of the site
+  while the room keeps playing. Live against a Cloudflare Worker; `?mock`
+  is the dev opt-out. See [docs/radio.md](docs/radio.md).
 - **League** — live League of Legends stats for me and friends, served by
   the [DeetsLeague](https://github.com/deets-137/DeetsLeague) Cloudflare Worker (Riot API proxy +
   match database). The only tab that calls an API at runtime; champion and
@@ -68,7 +70,9 @@ auth/                 sign-in landing pad (talks to the DeetsAccounts worker)
 privacy/              privacy policy (the OAuth consent screen links here)
 cool-stuff/           project portfolio
 resume/               resume page + downloadable PDF (generated, see below)
-styles/               palette → themes → skin → main (the token tiers)
+styles/               token tiers (palette → themes → skin), then
+                      chrome.css (shared, every page) + main.css (per-tab)
+                      + table.css (games) — docs/css-split.md
 js/controls.js        settings menu
 js/account.js         sign-in chrome + the profile state (docs/accounts.md)
 js/toast.js           shared toast host (docs/ui.md, "Toasts")
