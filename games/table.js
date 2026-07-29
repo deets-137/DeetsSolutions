@@ -172,7 +172,7 @@
     var clockSkew = 0;                       // Date.now() - server clock
     var graceToasts = {};                    // seat -> red countdown toast
     var wantSit = false;
-    var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false, settingsPinned: false };
+    var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false, settingsPinned: false, sitPinned: false };
 
     function send(msg) { if (conn) conn.send(msg); }
     function mySeat() { return model && model.you ? model.you.seat : null; }
@@ -480,7 +480,8 @@
       } else if (model.phase !== "over") {
         // mid-game hop-out / hop-in (docs/games.md). Standing releases the
         // seat for good, so it two-steps like Close; sitting in exists only
-        // at an "anyone" table, one pill per adoptable (bot-held) seat.
+        // at an "anyone" table, and collapses every adoptable (bot-held)
+        // seat into one pill's popover.
         if (mine != null) {
           var sp = pill(S.standButton, function () {
             if (sp._armed) { send({ type: "stand" }); }
@@ -491,12 +492,13 @@
           });
           TOOLBAR.appendChild(sp);
         } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
-          (model.seats || []).forEach(function (s) {
-            if (!s || s.empty || !s.phantom || s.conceded) return;
-            TOOLBAR.appendChild(pill(fmt(S.sitInPill, { name: s.name }), function () {
-              send({ type: "sit", seat: s.seat });
-            }));
+          var open = (model.seats || []).filter(function (s) {
+            return s && !s.empty && s.phantom && !s.conceded;
           });
+          // no pill at all when nothing is adoptable — a permanently dead
+          // "Sit down" at a full human table is noise, not an affordance
+          if (open.length) TOOLBAR.appendChild(sitDownPill(open));
+          else ui.sitPinned = false;
         }
       }
       TOOLBAR.appendChild(pill(S.leavePill, function () { leaveTable(); }));
@@ -545,6 +547,40 @@
         openPop(entry);          // re-pin across the rebuild
         ui.settingsPinned = true;
       } else ui.settingsPinned = false;
+      return wrap;
+    }
+    // Mid-game sit-in: ONE pill, every adoptable seat inside its popover.
+    // A pill per seat blew the toolbar out at 5-6 open seats and shoved
+    // Leave off the row, so the row width now stands still no matter how
+    // many seats are up for adoption. Click-only (no hover peek — the
+    // settings pill peeks because reading it IS the point; this one acts).
+    function sitDownPill(seats) {
+      var wrap = el("span", "tb-ctrl");
+      var b = el("button", "tb-pill"); b.type = "button";
+      b.setAttribute("aria-haspopup", "true"); b.setAttribute("aria-expanded", "false");
+      b.appendChild(el("span", "tb-pill__label", S.sitDownPill));
+      b.appendChild(el("span", "tb-pill__caret", "▾"));
+      wrap.appendChild(b);
+      // no tb-pop__head: the pill's own label ("Take over for:") reads
+      // straight into the seat list, so a heading would say it twice
+      var pop = el("div", "tb-pop gt-sitpop"); pop.hidden = true;
+      seats.forEach(function (s) {
+        var o = el("button", "tb-pop__opt"); o.type = "button";
+        o.appendChild(seatDot(s.seat));
+        o.appendChild(el("span", null, s.name));
+        o.addEventListener("click", function () { closePop(); ui.sitPinned = false; send({ type: "sit", seat: s.seat }); });
+        pop.appendChild(o);
+      });
+      wrap.appendChild(pop);
+      var entry = { ctrl: wrap, pill: b, pop: pop, kind: "sit" };
+      b.addEventListener("click", function () {
+        togglePop(entry);
+        ui.sitPinned = openEntry === entry;
+      });
+      // survive the toolbar rebuild an incoming frame triggers — otherwise
+      // any table update while you're choosing snaps the popover shut
+      if (ui.sitPinned && openEntry && openEntry.kind === "sit") { openPop(entry); ui.sitPinned = true; }
+      else ui.sitPinned = false;
       return wrap;
     }
     function settingRow(label, value) {

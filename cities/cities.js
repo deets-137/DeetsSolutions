@@ -1963,11 +1963,13 @@
   }
   function renderDiscard(need) {
     var sel = {}; RES.forEach(function (r) { sel[r] = 0; });
+    function picked() { return RES.reduce(function (a, r) { return a + sel[r]; }, 0); }
     var wrap = el("div", "cities-discard");
     wrap.appendChild(el("p", "cities-role__note", fmt(S.discardPrompt, { n: need })));
     var hand = (model.you && model.you.hand) || {};
     var box = el("div", "cities-discard__box");
     var row = el("div", "cities-discard__cards");
+    var syncs = [];   // one per card: repaint its count + selected ring from sel
     RES.forEach(function (r) {
       var chip = el("button", "cities-card cities-card--btn"); chip.type = "button";
       dressResCard(chip, r);
@@ -1976,16 +1978,30 @@
       var cnt = document.createTextNode("0/" + (hand[r] || 0));
       nEl.appendChild(cnt);
       chip.appendChild(withArt(nEl, r)); chip.appendChild(el("span", "cities-card__lbl", resName(r)));
-      chip.addEventListener("click", function () {
-        var picked = Object.keys(sel).reduce(function (a, k) { return a + sel[k]; }, 0);
-        if (sel[r] < (hand[r] || 0) && picked < need) sel[r]++; else if (sel[r] > 0) sel[r]--;
+      var sync = function () {
         cnt.nodeValue = sel[r] + "/" + (hand[r] || 0);
         chip.classList.toggle("is-sel", sel[r] > 0);
-        confirm.disabled = Object.keys(sel).reduce(function (a, k) { return a + sel[k]; }, 0) !== need;
+      };
+      syncs.push(sync);
+      chip.addEventListener("click", function () {
+        if (sel[r] < (hand[r] || 0) && picked() < need) sel[r]++; else if (sel[r] > 0) sel[r]--;
+        sync(); refresh();
       });
       row.appendChild(chip);
     });
     box.appendChild(row);
+    // Clear sits LEFT of the confirm: a card only counts UP until it hits its
+    // holding or the owed total, so this is the way back down from a mis-click.
+    // Always rendered (inert at zero, never added on first pick) — the box
+    // can't change width mid-pick.
+    var clear = el("button", "cities-discard__clear"); clear.type = "button"; clear.disabled = true;
+    clear.appendChild(el("span", null, S.discardClear));
+    clear.addEventListener("click", function () {
+      RES.forEach(function (r) { sel[r] = 0; });
+      syncs.forEach(function (f) { f(); });
+      refresh();
+    });
+    box.appendChild(clear);
     var confirm = el("button", "cities-discard__go"); confirm.type = "button"; confirm.disabled = true;
     confirm.appendChild(el("span", null, S.discardGo));
     confirm.addEventListener("click", function () {
@@ -1993,6 +2009,11 @@
       send({ type: "discard", cards: sel });
     });
     box.appendChild(confirm);
+    function refresh() {
+      var n = picked();
+      confirm.disabled = n !== need;
+      clear.disabled = n === 0;
+    }
     wrap.appendChild(box);
     ROLE.appendChild(wrap);
   }

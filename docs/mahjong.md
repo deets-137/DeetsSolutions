@@ -362,11 +362,11 @@ at once.
 - **A real four-browser game** — the mock models no disconnects, so
   grace, bot takeover and rejoin are testable only live.
 
-**Copy: his pass is done, but nine newer strings await him.** Everything
+**Copy: his pass is done, but six newer strings await him.** Everything
 un-prefixed in `mahjong/strings.js` is Aditya's and Claude edits none of
-it. Nine entries added *after* that pass still carry `[ph]`: the re-join
-wiring (`rejoinButton`, `standConfirm`, `sitInPill`, `adoptedToast`) and
-the rename ARIA labels. Nothing carrying `[ph]` may ship.
+it. Six entries added *after* that pass still carry `[ph]`: the re-join
+wiring (`rejoinButton`, `adoptedToast`) and the four rename ARIA labels.
+Nothing carrying `[ph]` may ship.
 
 **Known gaps in the stats the engine keeps** — relevant to
 [stats.md](stats.md): there are no pung or chow counters (only kongs),

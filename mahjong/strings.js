@@ -76,8 +76,8 @@ window.MAHJONG_STRINGS = {
    rejoinLabel: "Re-joining",
    rejoinAnyone: "Anyone",
    rejoinRejoin: "Rejoin",
-   standConfirm: "[ph]For good?",
-   sitInPill: "[ph]Sit in for {name}",
+   standConfirm: "Confirm?",   // Aditya's wording (chat 2026-07-28), no [ph] — matches addBotGo
+   sitDownPill: "Take over for:",   // Aditya's wording (chat 2026-07-28), no [ph] — the pill reads INTO its popover's seat list
    adoptedToast: "[ph]{name} sat down.",
    addBotButton: "Add Bot",
    addBotGo: "Confirm?",

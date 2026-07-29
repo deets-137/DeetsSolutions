@@ -75,8 +75,8 @@ window.CITIES_STRINGS = {
   rejoinAnyone:    "Anyone",
   rejoinRejoin:    "Rejoin",
   rejoinNone:      "None",
-  standConfirm:    "[ph]For good?",
-  sitInPill:       "[ph]Sit in for {name}",
+  standConfirm:    "Confirm?",   // Aditya's wording (chat 2026-07-28), no [ph] — matches addBotGo
+  sitDownPill:     "Take over for:",   // Aditya's wording (chat 2026-07-28), no [ph] — the pill reads INTO its popover's seat list
   concededToast:   "[ph]{name} conceded.",
   adoptedToast:    "[ph]{name} sat down.",
   /* host-added bots (the addBot verb): "+ Bot" on an open seat opens an
@@ -237,6 +237,7 @@ window.CITIES_STRINGS = {
   discardPrompt: "Roll of 7 — discard {n} cards.",
   discardToast:  "You have {x} cards. Please discard {n}.",   // Aditya's wording (chat 2026-07-22), no [ph] — red toast when a 7 makes me discard
   discardGo:     "Discard",
+  discardClear:  "Clear",   // Aditya's wording (chat 2026-07-28), no [ph] — resets the selection
   discardWaiting: "Waiting on others to discard…",
   robberPrompt:  "Move the robber to a hex.",
   stealPrompt:   "Steal from a player on that hex.",

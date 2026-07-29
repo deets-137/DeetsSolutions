@@ -113,6 +113,11 @@
 .gt-setth__row { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-1) var(--space-2); font-size: 0.85rem; }
 .gt-setth__k { color: var(--subtext); }
 .gt-setth__v { color: var(--title); font-weight: 700; }
+/* ── Sit-down pill (toolbar, mid-game) ────────────────────────── */
+.gt-sitpop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 12rem; padding: var(--space-2); }
+/* dot then name, adjacent: the kit's option row is space-between — right for
+   a label pushed off from its value, wrong for a seat wearing its colour */
+.gt-sitpop .tb-pop__opt { justify-content: flex-start; }
 /* ── lobby (settings + seats) ─────────────────────────────────── */
 .gt-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
 .gt-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }

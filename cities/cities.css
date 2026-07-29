@@ -528,17 +528,25 @@
 .cities-discard { display: flex; flex-direction: column; gap: var(--space-2); }
 .cities-discard__box { display: flex; align-items: stretch; gap: var(--space-2); }
 .cities-discard__cards { display: flex; flex-wrap: wrap; gap: var(--space-2); flex: 1 1 auto; }
-/* the confirm sits as a square to the right of the sideways card row */
-.cities-discard__go {
+/* clear + confirm sit as two squares to the right of the sideways card row —
+   one shared silhouette, both stretched to the row's height so they size
+   themselves and each other. Clear is always present (inert with nothing
+   picked) so the box never changes width on the first pick. */
+.cities-discard__go,
+.cities-discard__clear {
   flex: 0 0 auto; align-self: stretch; aspect-ratio: 1;
   display: grid; place-items: center; text-align: center; padding: var(--space-1);
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border); border-radius: var(--radius-panel);
   cursor: pointer; font: inherit; font-weight: 700; font-size: 0.8rem; line-height: 1.1;
 }
+/* only the confirm promotes itself when live — clear stays the quieter one */
 .cities-discard__go:not(:disabled) { color: var(--title); border-color: var(--title); }
-.cities-discard__go:hover:not(:disabled) { background: var(--surface-hover); }
-.cities-discard__go:disabled { opacity: 0.45; cursor: default; }
+.cities-discard__clear { color: var(--subtext); }
+.cities-discard__go:hover:not(:disabled),
+.cities-discard__clear:hover:not(:disabled) { background: var(--surface-hover); }
+.cities-discard__go:disabled,
+.cities-discard__clear:disabled { opacity: 0.45; cursor: default; }
 .cities-steal { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .cities-menu {
   position: absolute; z-index: 40; min-width: 12rem;

@@ -148,7 +148,9 @@ the game's `REJOIN_MODES` (default `["anyone", "rejoin"]`; offering
 opted in, mahjong never offers it because the game needs its four seats):
 
 - **anyone** — a dark seat's bot holds it *and* any spectator may adopt
-  it mid-game (`sit {seat}`, one toolbar pill per adoptable seat); the
+  it mid-game (`sit {seat}`, one **Sit down** toolbar pill whose popover
+  lists every adoptable seat — a pill *per* seat used to shove Leave off
+  the row at a 6-player table; no pill renders when none qualify); the
   original player keeps reclaim rights until someone else takes it.
   Adoption keeps the seat's color and pieces and takes the adopter's
   name (the `adopted` event).
@@ -166,7 +168,7 @@ opted in, mahjong never offers it because the game needs its four seats):
 Standing mid-game is a voluntary release in every mode, and it is
 **one-way**: standing drops your token and uid, so unlike a disconnect it
 carries no reclaim right. At an `"anyone"` table you can sit back down
-through the ordinary adoption pill (any spectator could too, so the race
+through the ordinary **Sit down** popover (any spectator could too, so the race
 is real); at a `"rejoin"` table the bot keeps the seat for the rest of
 the game. That asymmetry is deliberate — the toolbar two-steps the pill
 because of it.

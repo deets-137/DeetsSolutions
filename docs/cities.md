@@ -478,7 +478,7 @@ before — mid-game stats would leak strategy). Per seat:
 ```
 gained:  {wood, brick, wheat, sheep, ore}   split by src:
            rolls / steals / trades / dev cards
-lost:    discards / robbed / spent
+lost:    discards / spent          (robbed lives on robber.victimized)
 rolls:   count + per-sum histogram (their own rolls)
 pieces:  roads, settlements, cities built; dev bought/played; knights
 robber:  times moved it, cards stolen, times victimized
@@ -1007,11 +1007,11 @@ lands in a later build." The design for the missing panel is in
 
 **Not built — Aditya's passes.**
 
-- **Copy**: 23 of 214 strings in `cities/strings.js` still carry `[ph]`.
-  They are the newer wiring — the re-join policy (`rejoinButton`,
-  `standConfirm`, `sitInPill`, `adoptedToast`, `concededToast`) and the
-  rename ARIA labels — added after his 2026-07-22 pass. Everything
-  un-prefixed is his; Claude edits none of it.
+- **Copy**: 7 of 213 strings in `cities/strings.js` still carry `[ph]`:
+  the two re-join toasts (`adoptedToast`, `concededToast`), the four
+  rename ARIA labels, and `bettingLabel` (which ships prefixed on
+  purpose — betting is unbuilt, his call). Everything un-prefixed is
+  his; Claude edits none of it.
 - **Art**: the board and cards are geometric placeholders under
   `assets/sprites/cities/`, swappable by landing a file at the same path
   and size.
