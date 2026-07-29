@@ -24,7 +24,8 @@ game itself.
 ```
 games/colors.js        seat-color contract (presets, hex validation, clash)
 games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
-games/table.js         the browser table shell (gate, lobby, toolbar, frame)
+games/table.js         the browser table shell (gate, lobby, toolbar, frame,
+                       seat accent, turn-timer readouts)
 games/table-do.js      the Durable Object base every worker subclasses
 games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
 styles/chrome.css      shared site chrome + the token @imports (every page)
@@ -242,10 +243,58 @@ omits every game field, so a game that doesn't list them paints the
 discarded game into its own lobby.
 
 **Provided:** `send`, `leave`, `render`, `renderLobby`, `buildToolbar`,
-`fitLog`, `mySeat`, `seatName`, `seatedCount`, `seatDot`, `pill`, `chip`,
+`fitLog`, `mySeat`, `seatName`, `seatedCount`, `seatDot`, `seatAccent`,
+`timerRing`, `timerText`, `timerLeftMs`, `fmtClock`, `pill`, `chip`,
 `setRow`, `choiceRow`, `toast`, `pop`, `skew`, `graceSecs`, `logLines`, `ui`,
 `code()`, `boot()`, and the utilities (`el`, `load`, `save`, `fmt`,
 `slugify`, `reduceMotion`).
+
+### Seat accent — `--gseat`
+
+`--gseat-0..5` are the six palette slots. `--gseat` (no index) is the same
+contract one step down: *whichever seat this element belongs to*. A game
+never writes the token by hand — it calls `TBL.seatAccent(node, seat)` and
+reads `var(--gseat, <fallback>)` in its own CSS:
+
+```js
+TBL.seatAccent(strip, i);                                 // in the game's JS
+```
+```css
+.cities-pstrip { border-left: 3px solid var(--gseat, var(--border)); }
+```
+
+**Always give the `var()` a fallback** — the accent is unset on nodes that
+belong to no seat. Cities and mahjong each invented this privately
+(`--cstrip` / `--mjstrip`) before it was promoted; a third name is a bug.
+
+### Turn timer
+
+**The clock is not a game's to build.** Three layers own three things:
+
+| Layer | Owns |
+| ----- | ---- |
+| `games/table-do.js` | The clock itself — arms `turnEndsAt` for whatever obligation is outstanding, fires `timerExpire` on its own alarm |
+| `games/table.js` | Both readouts, self-ticking at 250 ms |
+| the game | Only whether the clock runs (`settings.timerSec`) and where the readouts hang |
+
+```js
+head.appendChild(active && timed ? TBL.timerRing(i) : TBL.seatDot(i));
+TBL.timerText(el("div", "cities-timer"));    // a text node showing M:SS
+```
+
+`timerRing(seat)` returns a seat dot wearing a radial countdown; it drains
+in that seat's accent and turns `--stop` for the last ten seconds.
+`timerText(node)` drives a text node. Both stop on their own when their node
+leaves the DOM, and both read only public broadcast fields, so **spectators
+see exactly what players see** — don't reimplement either from `you`.
+
+Each readout keeps its tick handle **on its own node**, so any number run at
+once. That matters: mahjong's claim window waits on several seats
+simultaneously, and the per-game versions this replaced shared one module
+global, so every ring but the last silently froze.
+
+A game that wants no timer simply never offers `timerSec` — nothing else to
+turn off.
 
 ### Class prefixes
 
@@ -315,6 +364,62 @@ key/value storage.
 
 ---
 
+## Change radius — read this before you edit
+
+Most mistakes here are not bad code; they are **code in the wrong file**.
+A fix written one level too low gets duplicated into the next game; one
+level too high changes a game nobody asked you to touch. Find the row that
+matches what you're changing, and check the blast radius before you start.
+
+| I want to change… | Edit | Radius | Also required |
+| --- | --- | --- | --- |
+| One game's board, art, layout, copy | `<game>/<game>.{js,css}`, `<game>/strings.js` | That game only | — |
+| One game's rules | `<game>/engine.js` | That game only | **Re-vendor** into `../Deets<Game>/src/`, redeploy |
+| The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
+| Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
+| The turn timer, grace window, rejoin, bots, reconnect | `games/table-do.js` | **Every game** | **Re-vendor** into both game workers, redeploy |
+| Site header, nav, settings menu, toasts, `.page-bar`, `.sotd__bar`, the `tb-` kit | `styles/chrome.css` | **Every page on the site** | — |
+| A non-game tab's own styles | `styles/main.css` | That tab only | — |
+| Tokens (a colour role, a shape/motion value) | `themes.css` / `skin.css` | **Everything, all 30 combos** | — |
+
+Three rules that follow from the table:
+
+1. **Vendored files are contracts.** `games/table-do.js`, `games/colors.js`,
+   `cities/engine.js` + `board-data.js`, and `mahjong/engine.js` are copied
+   **byte-identically** into the sibling worker repos. Editing one here and
+   not re-vendoring means the mock and production run different code — the
+   worst class of bug this repo can produce, because it only shows up live.
+   Verify with a plain `diff` before you consider the change done.
+2. **A game page does not load `styles/main.css`.** It loads
+   `chrome.css` → `table.css` → `<game>.css`. If a game needs a rule that
+   lives in `main.css`, the rule is in the wrong file — promote it to
+   `chrome.css` rather than copying it.
+3. **When two games need the same thing, promote it — don't copy it.** The
+   promotion path is: game → `table.js`/`table.css` (if it's table shell) or
+   → `chrome.css` (if it's site chrome). The turn timer and `--gseat` are
+   both examples of a promotion that should have happened at the second
+   game and didn't; the duplication survived two games and a bug rode along
+   in it. If you find yourself pasting from cities into mahjong, stop.
+
+### Known duplication, not yet promoted
+
+Honest list, so the next session doesn't rediscover it:
+
+- **The players tile.** `.cities-pstrip` and `.mj-pstrip` have identical
+  anatomy — same flex geometry, padding, border, accent edge, radius,
+  `.is-active` and `.is-away` states. A `gt-pstrip` primitive is the obvious
+  next promotion; it was left alone because it means renaming classes in
+  both games' JS and CSS, which is a refactor rather than a move.
+- **The panel material** (`--menu-surface` + backdrop-filter + border +
+  `--radius-panel` + `--shadow-panel`) is written out six times across
+  `chrome.css` and `table.css`. A `.panel` primitive would collapse them,
+  but it touches `.page-bar`, `.sotd-toolbar`, `.tb-pop`, `.menu` and
+  `.gt-gate` at once — see [css-split.md](css-split.md).
+- **The text-field recipe** (`--surface` + border + `--radius-control`)
+  appears seven times across `chrome.css` and `table.css`.
+
+---
+
 ## Conventions a game inherits
 
 - **Copy is `[ph]`-convention.** Every user-facing string lives in
@@ -328,7 +433,12 @@ key/value storage.
   board/felt/tile art is a deliberate carve-out with fixed literals, scoped to
   the game's own root class. **Seat colors are not part of that carve-out** —
   they are the shared `--gseat-0..5` contract in `styles/table.css`, and
-  `table.js` overrides each slot with the seat's actual pick.
+  `table.js` overrides each slot with the seat's actual pick. Paint a
+  game-owned node with `TBL.seatAccent(node, seat)` and read `--gseat`;
+  never invent a per-game accent token.
+- **The turn timer is the shell's.** Offer `timerSec` in settings and hang
+  `TBL.timerRing(seat)` / `TBL.timerText(node)` where you want them. Don't
+  write a countdown.
 - **Desktop only.** Below 56 rem the table is replaced by a one-line note.
 - **Art ships as placeholders.** Geometric stand-ins under
   `assets/sprites/<game>/`, each probed once at load; a missing sprite costs
@@ -361,5 +471,9 @@ key/value storage.
 
 What you should NOT have to write: identity, recents, the code combobox, the
 gate, join/leave, reconnect, version resync, the lobby, bots, seat colors,
-kick, host fallback, the toolbar, grace countdowns, the alarm, the fuse, or
-any of their CSS.
+the seat accent, the turn timer and its readouts, kick, host fallback, the
+toolbar, grace countdowns, the alarm, the fuse, or any of their CSS.
+
+If you catch yourself writing one of those, the answer is already in
+`games/table.js`, `games/table-do.js` or `styles/table.css` — go find it
+rather than write a second copy. See "Change radius" above.

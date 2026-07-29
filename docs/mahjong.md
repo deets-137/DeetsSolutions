@@ -234,8 +234,11 @@ full-width role row). Contents:
   most kongs, most deal-ins).
 - **Dice tile**: cities' tumble/settle kit; shows the latest seating or
   wall-break roll, plus the countdown box when the table clock is armed.
-- **Players tile**: seat strips (accent edge, timer ring on the active
-  dot, Away dimming, bot tags, score + tile count, wind/dealer tag).
+- **Players tile**: seat strips (the shared `--gseat` accent edge, the
+  shell's `.gt-ring` timer on **every** active dot — a claim window waits
+  on several seats at once — Away dimming, bot tags, score + tile count,
+  wind/dealer tag). Accent and ring are both `games/table.js`
+  ([games.md](games.md), "Turn timer"), not mahjong's.
 - **Wall tile** (between Players and Log, in-hand only): a back icon,
   the live `wallLeft` count, and the round/hand line — the felt center
   carries no text so this panel is the numeric truth. The log flexes

@@ -295,8 +295,11 @@ emits `offerGone {id, declined: true}`; the client fades the card out.
 No trading away from the table (no gifts — every trade needs both sides
 non-empty; official rules).
 
-**Timers** (when enabled). One timer per turn, shown as a countdown box
-in the dice tile (see Page layout). Expiry auto-resolves the pending
+**Timers** (when enabled). One timer per turn. Both readouts — the
+countdown box in the dice tile and the ring on the active seat's dot —
+are the shell's (`TBL.timerText` / `TBL.timerRing`, see
+[games.md](games.md), "Turn timer"); cities only chooses to offer
+`timerSec` and where they hang. Expiry auto-resolves the pending
 obligation and ends the turn: unrolled → auto-roll; discard interrupt →
 random discard for stragglers (its own shorter 30 s window); robber
 pending → random legal hex, no steal; otherwise → end turn. Timer
@@ -659,10 +662,11 @@ change contents, never places:
   the shared engine contract stays untouched): a pulsing white overlay
   in the board SVG, one at a time, dropped by any re-render (the vhint
   idiom). When the table clock is armed the **active seat's dot wears
-  the timer ring** (`ringDot`) — a radial countdown draining in the seat
-  color, red under 10 s, the dice clock's 250 ms tick idiom on its own
-  handle; it reads only public fields (`settings.timerSec`,
-  `turnEndsAt`), so spectators see the identical ring. Inactive seats
+  the timer ring** — `TBL.timerRing(seat)`, the shell's `.gt-ring`
+  ([games.md](games.md), "Turn timer"): a radial countdown draining in
+  the seat accent, red under 10 s, ticking on its own node's handle; it
+  reads only public fields (`settings.timerSec`, `turnEndsAt`), so
+  spectators see the identical ring. Inactive seats
   keep the plain dot — nothing shifts on turn change. In the **lobby** the occupied
   seats already render as strips with the stat column and both award pills
   ghosted at in-game size, so Start fills the numbers in instead of

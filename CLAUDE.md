@@ -58,6 +58,15 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
   use it rather than start a seventh copy. The toast host
   (`js/toast.js`) is shared chrome like `controls.js`, one copy on every
   page ([docs/ui.md](docs/ui.md), "Toasts").
+- **Before editing anything game-related, read the "Change radius" table
+  in [docs/games.md](docs/games.md).** It maps what you want to change to
+  the one file that owns it, how far the change reaches, and whether it
+  needs re-vendoring into a worker repo. Most mistakes here are correct
+  code in the wrong file: one level too low and it gets duplicated into
+  the next game, one level too high and it changes a game nobody asked
+  you to touch. When two games need the same thing, **promote it, don't
+  copy it** — the turn timer and the `--gseat` accent were each written
+  twice before being promoted, and a bug rode along in the duplication.
 - **Games share a foundation — start at [docs/games.md](docs/games.md).**
   `games/table.js` (the browser table shell: gate, lobby, seats/bots/
   colors, toolbar, render frame), `games/table-do.js` (the Durable Object

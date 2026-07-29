@@ -103,6 +103,33 @@ never what decided it.
   (`.cities-token`, `.cities-vhint__bg`) are inside that file's **declared**
   board carve-out and are legal as-is.
 
+## The first promotion the split made visible
+
+Splitting the games into sibling files made it obvious that they had
+independently built the same two things. Both were promoted immediately
+after, in the same branch:
+
+- **The turn timer.** `timerLeftMs`, `fmtClock`, the clock-text tick and the
+  whole ring (`RING_R`/`RING_C`, `ringDot`, `tickRing`) were byte-identical
+  in both games, as was the CSS ring kit. All of it now lives in
+  `games/table.js` + `styles/table.css` as `TBL.timerRing` / `TBL.timerText`
+  and `.gt-ring` — see [games.md](games.md), "Turn timer". The Durable
+  Object always owned the clock itself; only the readouts were duplicated.
+- **The seat accent.** `--cstrip` and `--mjstrip` were the same token under
+  two names. Now `--gseat`, set through `TBL.seatAccent(node, seat)`.
+
+The promotion also **fixed a live bug**: both games kept the ring's tick
+handle in one module-global, so each new ring cancelled the previous one's
+timeout. Cities never noticed (one active seat at a time), but mahjong's
+claim window waits on several seats simultaneously — every ring but the
+last silently froze at its first frame. Handles now live on the node.
+
+Net: ~189 lines of duplicated game code replaced by ~124 shared lines.
+
+The general lesson is written up as the **"Change radius"** table in
+[games.md](games.md), which is where a session should start before editing
+anything game-related.
+
 ## What's left (phase 2, unscheduled)
 
 Still in `main.css`, one banner-delimited section each: Song of the Day,

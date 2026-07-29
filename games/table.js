@@ -654,6 +654,92 @@
     }
     function seatDot(i) { var d = el("span", "gt-dot"); d.style.background = "var(--gseat-" + i + ")"; return d; }
 
+    /* Paint a game-owned node in a seat's colour. The node then reads
+       `--gseat` in its own CSS (`border-left: 3px solid var(--gseat)`),
+       so a game never hardcodes a slot name and the shell can change how
+       seat colour is resolved without touching a game. This is the same
+       --gseat-N contract the dots use, one step down: --gseat-N are the
+       six slots, --gseat is "whichever seat THIS element belongs to". */
+    function seatAccent(node, i) {
+      if (node) node.style.setProperty("--gseat", "var(--gseat-" + i + ")");
+      return node;
+    }
+
+    /* ── Turn timer (shell-owned) ─────────────────────────────────
+       The Durable Object base owns the clock: it arms `turnEndsAt` for
+       whatever obligation is outstanding and fires `timerExpire` itself
+       (games/table-do.js). A game decides only WHETHER the clock runs
+       (its own `settings.timerSec`) and where to hang the readouts — the
+       readouts themselves live here so every game, present and future,
+       counts down identically.
+
+       Two readouts, both self-ticking at 250ms and both stopping on their
+       own when their node leaves the DOM:
+         timerRing(seat) → a seat dot wearing a radial countdown
+         timerText(node) → a text node showing M:SS
+
+       The handle lives ON each node, not in a module global, so any
+       number of rings can run at once — mahjong's claim window waits on
+       several seats simultaneously.
+
+       Both read only public broadcast fields, so spectators see exactly
+       what players see. */
+    var TICK_MS = 250, URGENT_MS = 10000;
+    var RING_R = 8.5, RING_C = 2 * Math.PI * RING_R;
+    function svgEl(name, attrs) {
+      var n = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (var k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+      return n;
+    }
+    /* ms left on the table clock, or null when it isn't counting — either
+       the game never armed it, or nothing is currently owed (a bot is
+       thinking, the hand is being scored). */
+    function timerLeftMs() {
+      if (!model || !model.settings || !model.settings.timerSec || model.turnEndsAt == null) return null;
+      return Math.max(0, model.turnEndsAt - (Date.now() - clockSkew));
+    }
+    function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
+    function timerRing(i) {
+      var wrap = el("span", "gt-ring");
+      var svg = svgEl("svg", { class: "gt-ring__svg", viewBox: "0 0 22 22", "aria-hidden": "true" });
+      svg.appendChild(svgEl("circle", { cx: 11, cy: 11, r: RING_R, class: "gt-ring__track" }));
+      var arc = svgEl("circle", {
+        cx: 11, cy: 11, r: RING_R, class: "gt-ring__arc", "stroke-dasharray": RING_C.toFixed(2)
+      });
+      svg.appendChild(arc);
+      wrap.appendChild(svg);
+      wrap.appendChild(seatDot(i));
+      seatAccent(wrap, i);
+      tickRing(arc);
+      return wrap;
+    }
+    function tickRing(arc) {
+      var ms = timerLeftMs();
+      if (ms == null) {
+        arc.style.strokeDashoffset = "0";
+        arc.classList.remove("is-urgent");
+      } else {
+        arc.style.strokeDashoffset = (RING_C * (1 - ms / (model.settings.timerSec * 1000))).toFixed(2);
+        arc.classList.toggle("is-urgent", ms <= URGENT_MS);
+      }
+      clearTimeout(arc.gtTick);
+      arc.gtTick = setTimeout(function () { if (arc.isConnected) tickRing(arc); }, TICK_MS);
+    }
+    function timerText(node) {
+      var ms = timerLeftMs();
+      if (ms == null) {                     // armed but not counting — show the full budget, at rest
+        node.textContent = fmtClock(((model.settings && model.settings.timerSec) || 0) * 1000);
+        node.classList.remove("is-live", "is-urgent");
+        return node;
+      }
+      node.textContent = fmtClock(ms);
+      node.classList.add("is-live");
+      node.classList.toggle("is-urgent", ms <= URGENT_MS);
+      clearTimeout(node.gtTick);
+      node.gtTick = setTimeout(function () { if (node.isConnected) timerText(node); }, TICK_MS);
+      return node;
+    }
+
     /* ── lobby setting rows (the chip-row primitive both games use) ──
        cfg.lobbySettings builds its rows out of these, so a new game
        declares its settings instead of re-implementing the widget. */
@@ -923,6 +1009,12 @@
       seatName: seatName,
       seatedCount: seatedCount,
       seatDot: seatDot,
+      seatAccent: seatAccent,
+      // turn timer — the DO owns the clock, the shell owns the readouts
+      timerLeftMs: timerLeftMs,
+      fmtClock: fmtClock,
+      timerRing: timerRing,
+      timerText: timerText,
       // chrome
       render: render,
       renderLobby: renderLobby,

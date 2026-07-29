@@ -149,9 +149,7 @@
   var LOGVIEW_KEY = "deets-cities-logview";
   var logView = load(LOGVIEW_KEY, "deck");   // log tile rail: "log" | "deck" — sticky across sessions, Deck by default
   var lastTurnSeat = null;   // players tile: scroll-to-active fires on change only
-  var timerHandle = null;
   var tumbleHandle = null;   // face-shuffle interval while the dice spin
-  var ringHandle = null;     // the active strip's timer-ring tick (dice clock's twin)
   var acceptToasts = {};   // "offerId:seat" -> sticky accepted-toast handle
   var offerCache = {};     // last-seen offer bundles (for the decline-fade ghost)
   var fadingOffers = {};   // id -> offer snapshot, briefly rendered fading out
@@ -1501,7 +1499,6 @@
     return el("div", "cities-die", v != null ? String(v) : "–");
   }
   function renderDice() {
-    if (timerHandle) { clearTimeout(timerHandle); timerHandle = null; }
     if (tumbleHandle) { clearInterval(tumbleHandle); tumbleHandle = null; }
     DICE.textContent = "";
     var d = model.turn && model.turn.dice;
@@ -1529,7 +1526,7 @@
       }, 70);
     }
     row.appendChild(dice);
-    if (timed) { var timer = el("div", "cities-timer"); row.appendChild(timer); tickTimer(timer); }
+    if (timed) { var timer = el("div", "cities-timer"); row.appendChild(timer); TBL.timerText(timer); }
     DICE.appendChild(row);
     var caption = model.phase === "main"
       ? (model.turn.rolled && d ? fmt(S.diceLast, { name: seatName(model.turn.seat), sum: d[0] + d[1] }) : fmt(S.diceWaiting, { name: seatName(model.turn.seat) }))
@@ -1537,55 +1534,11 @@
     DICE.appendChild(el("p", "cities-dice__cap", spinning ? S.diceRolling : caption));
     if (spinning) setTimeout(function () { if (Date.now() >= spinUntil) renderDice(); }, spinUntil - Date.now() + 20);
   }
-  // seconds left on the current actor's turn, or null when the clock isn't armed
-  function timerLeftMs() {
-    if (!model.settings || !model.settings.timerSec || model.turnEndsAt == null) return null;
-    return Math.max(0, model.turnEndsAt - (Date.now() - TBL.skew()));
-  }
-  function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
-  // turn timer ring: when the table clock is armed, the active seat's dot
-  // wears a radial countdown — draining in the seat color (the strip's
-  // --cstrip), red for the last 10s. Same 250ms self-tick + isConnected
-  // idiom as the dice clock, on its own handle (both run at once). Reads
-  // only public broadcast fields (settings.timerSec, turnEndsAt), so
-  // players and spectators see the identical ring.
-  var RING_R = 8.5, RING_C = 2 * Math.PI * RING_R;
-  function ringDot(i) {
-    var wrap = el("span", "cities-pstrip__ringwrap");
-    var svg = svgEl("svg", { class: "cities-pstrip__ring", viewBox: "0 0 22 22", "aria-hidden": "true" });
-    svg.appendChild(svgEl("circle", { cx: 11, cy: 11, r: RING_R, class: "cities-pstrip__ringtrack" }));
-    var arc = svgEl("circle", { cx: 11, cy: 11, r: RING_R, class: "cities-pstrip__ringarc", "stroke-dasharray": RING_C.toFixed(2) });
-    svg.appendChild(arc);
-    wrap.appendChild(svg);
-    wrap.appendChild(seatDot(i));
-    tickRing(arc);
-    return wrap;
-  }
-  function tickRing(arc) {
-    var ms = timerLeftMs();
-    if (ms == null) {                       // configured but not counting (a bot is thinking)
-      arc.style.strokeDashoffset = "0";
-      arc.classList.remove("is-urgent");
-    } else {
-      arc.style.strokeDashoffset = (RING_C * (1 - ms / (model.settings.timerSec * 1000))).toFixed(2);
-      arc.classList.toggle("is-urgent", ms <= 10000);
-    }
-    if (ringHandle) clearTimeout(ringHandle);
-    ringHandle = setTimeout(function () { if (arc.isConnected) tickRing(arc); }, 250);
-  }
-  function tickTimer(node) {
-    var ms = timerLeftMs();
-    if (ms == null) {                       // configured but not counting (e.g. a bot is thinking)
-      node.textContent = fmtClock(model.settings.timerSec * 1000);
-      node.classList.remove("is-live", "is-urgent");
-      return;
-    }
-    node.textContent = fmtClock(ms);
-    node.classList.add("is-live");
-    node.classList.toggle("is-urgent", ms <= 10000);
-    if (timerHandle) clearTimeout(timerHandle);
-    timerHandle = setTimeout(function () { if (node.isConnected) tickTimer(node); }, 250);
-  }
+  /* The turn timer — both readouts — belongs to the shell now
+     (games/table.js, "Turn timer"): TBL.timerRing(seat) for the active
+     strip's dot, TBL.timerText(node) for the clock beside the dice. The
+     DO owns the clock itself; cities only decides whether to arm it
+     (settings.timerSec) and where the readouts hang. */
 
   /* ── PLAYERS tile ─────────────────────────────────────────────── */
   function renderPlayers() {
@@ -1640,7 +1593,7 @@
       (model.seats || []).forEach(function (s, i) {
         if (s.empty) return;
         var strip = el("div", "cities-pstrip");
-        strip.style.setProperty("--cstrip", "var(--gseat-" + i + ")");
+        TBL.seatAccent(strip, i);
         var body = el("div", "cities-pstrip__body");
         var head = el("div", "cities-pstrip__head");
         head.appendChild(seatDot(i));
@@ -1663,12 +1616,12 @@
       var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") +
         (conceded ? " is-conceded" : model.seats[i] && !model.seats[i].connected ? " is-away" : ""));
       strip.dataset.seat = i;   // fly-in chips steer by this, re-queried per frame
-      strip.style.setProperty("--cstrip", "var(--gseat-" + i + ")");
+      TBL.seatAccent(strip, i);
       var body = el("div", "cities-pstrip__body");
       var head = el("div", "cities-pstrip__head");
       // the active seat's dot carries the timer ring when the clock is armed
       var timed = model.settings && model.settings.timerSec > 0;
-      head.appendChild(active && timed ? ringDot(i) : seatDot(i));
+      head.appendChild(active && timed ? TBL.timerRing(i) : seatDot(i));
       // a botted seat (host-added, grace expired, or kicked mid-game) wears the tag
       var sMeta = model.seats[i];
       var nm = sMeta && (sMeta.bot || sMeta.phantom) ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
@@ -2227,7 +2180,7 @@
       var mineOffer = o.from === seat;
       var incoming = seat != null && !mineOffer && !(o.responses && o.responses[seat]);
       var card = el("div", "cities-offer" + (mineOffer ? " is-mine" : "") + (incoming ? " is-incoming" : ""));
-      if (mineOffer) card.style.setProperty("--cstrip", "var(--gseat-" + o.from + ")");
+      if (mineOffer) TBL.seatAccent(card, o.from);
       var head = mineOffer ? fmt(S.offerFrom, { name: seatName(o.from) }) : fmt(S.offerToYou, { name: seatName(o.from) });
       card.appendChild(el("div", "cities-offer__head", head));
       card.appendChild(bundleView(S.tradeGive, o.give));
@@ -2246,7 +2199,7 @@
             if (emb) verdict = "decline";
             var row = el("button", "cities-offer__seat" + (verdict === "accept" ? " is-accept" : verdict === "decline" ? " is-decline" : ""));
             row.type = "button";
-            row.style.setProperty("--cstrip", "var(--gseat-" + s + ")");
+            TBL.seatAccent(row, s);
             row.appendChild(seatDot(s));
             row.appendChild(el("span", "cities-offer__seatname", seatName(s)));
             row.appendChild(el("span", "cities-offer__verdict", emb ? "🚫" : verdict === "accept" ? "✓" : verdict === "decline" ? "✕" : "…"));
@@ -2270,7 +2223,7 @@
     fadeIds.forEach(function (id) {
       var o = fadingOffers[id];
       var ghost = el("div", "cities-offer cities-offer--fading" + (o.from === seat ? " is-mine" : ""));
-      if (o.from === seat) ghost.style.setProperty("--cstrip", "var(--gseat-" + o.from + ")");
+      if (o.from === seat) TBL.seatAccent(ghost, o.from);
       ghost.appendChild(el("div", "cities-offer__head", o.from === seat ? fmt(S.offerFrom, { name: seatName(o.from) }) : fmt(S.offerToYou, { name: seatName(o.from) })));
       ghost.appendChild(bundleView(S.tradeGive, o.give));
       ghost.appendChild(bundleView(S.tradeGet, o.get));

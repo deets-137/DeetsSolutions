@@ -105,7 +105,7 @@
   ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
   var spinUntil = 0, spinDice = 2;
   var lastActor = null;
-  var timerHandle = null, ringHandle = null, tumbleHandle = null, nextHandTick = null;
+  var tumbleHandle = null, nextHandTick = null;
   var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
   var seen = null;        // previous render's ponds/melds/flowers — new pieces animate in
   var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
@@ -428,7 +428,7 @@
     var scope = st.reroll || [0, 1, 2, 3];
     (model.seats || []).forEach(function (s, i) {
       var pad = el("div", "mj-seating__pad" + (scope.indexOf(i) >= 0 && !st.rolls[i] ? " is-waiting" : ""));
-      pad.style.setProperty("--mjstrip", "var(--gseat-" + i + ")");
+      TBL.seatAccent(pad, i);
       var head = el("div", "mj-seating__head");
       head.appendChild(seatDot(i));
       head.appendChild(el("span", "mj-seating__name", seatName(i) + (i === mySeat() ? " ·" : "")));
@@ -467,7 +467,7 @@
       var pos = POS_CLS[displayPos(seat)];
       var zone = el("div", "mj-zone mj-zone--" + pos + (active.indexOf(seat) >= 0 ? " is-active" : ""));
       zone.setAttribute("data-zone", seat);
-      zone.style.setProperty("--mjstrip", "var(--gseat-" + seat + ")");
+      TBL.seatAccent(zone, seat);
       var p = model.players[seat];
 
       // head: dot + name + wind + dealer marker
@@ -907,7 +907,6 @@
   /* ── DICE tile (cities' tumble, verbatim idiom) ───────────────── */
   function dieFace(v) { return el("div", "mj-die", v != null ? String(v) : "–"); }
   function renderDice() {
-    if (timerHandle) { clearTimeout(timerHandle); timerHandle = null; }
     if (tumbleHandle) { clearInterval(tumbleHandle); tumbleHandle = null; }
     DICE.textContent = "";
     var d = lastDice ? lastDice.d : null;
@@ -927,7 +926,7 @@
       }, 70);
     }
     row.appendChild(dice);
-    if (timed) { var timer = el("div", "mj-timer"); row.appendChild(timer); tickTimer(timer); }
+    if (timed) { var timer = el("div", "mj-timer"); row.appendChild(timer); TBL.timerText(timer); }
     DICE.appendChild(row);
     var caption = "";
     if (lastDice && !spinning) {
@@ -939,60 +938,15 @@
     DICE.appendChild(el("p", "mj-dice__cap", caption));
     if (spinning) setTimeout(function () { if (Date.now() >= spinUntil) renderDice(); }, spinUntil - Date.now() + 20);
   }
-  function timerLeftMs() {
-    if (!model.settings || !model.settings.timerSec || model.turnEndsAt == null) return null;
-    return Math.max(0, model.turnEndsAt - (Date.now() - TBL.skew()));
-  }
-  function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
-  function tickTimer(node) {
-    var ms = timerLeftMs();
-    if (ms == null) {
-      node.textContent = fmtClock(model.settings.timerSec * 1000);
-      node.classList.remove("is-live", "is-urgent");
-      return;
-    }
-    node.textContent = fmtClock(ms);
-    node.classList.add("is-live");
-    node.classList.toggle("is-urgent", ms <= 10000);
-    if (timerHandle) clearTimeout(timerHandle);
-    timerHandle = setTimeout(function () { if (node.isConnected) tickTimer(node); }, 250);
-  }
+  /* The turn timer — both readouts — belongs to the shell now
+     (games/table.js, "Turn timer"): TBL.timerRing(seat) for an active
+     seat's dot, TBL.timerText(node) for the clock text. The DO owns the
+     clock; mahjong only decides whether to arm it (settings.timerSec)
+     and where the readouts hang. The shell keeps each ring's tick handle
+     on its own node, which matters here: a claim window waits on several
+     seats at once, so several rings run simultaneously. */
 
-  /* ── PLAYERS tile (strips + timer ring on the active seat) ────── */
-  var RING_R = 8.5, RING_C = 2 * Math.PI * RING_R;
-  function ringDot(i) {
-    var wrap = el("span", "mj-pstrip__ringwrap");
-    var svgNS = "http://www.w3.org/2000/svg";
-    var svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("class", "mj-pstrip__ring");
-    svg.setAttribute("viewBox", "0 0 22 22");
-    svg.setAttribute("aria-hidden", "true");
-    var track = document.createElementNS(svgNS, "circle");
-    track.setAttribute("cx", 11); track.setAttribute("cy", 11); track.setAttribute("r", RING_R);
-    track.setAttribute("class", "mj-pstrip__ringtrack");
-    svg.appendChild(track);
-    var arc = document.createElementNS(svgNS, "circle");
-    arc.setAttribute("cx", 11); arc.setAttribute("cy", 11); arc.setAttribute("r", RING_R);
-    arc.setAttribute("class", "mj-pstrip__ringarc");
-    arc.setAttribute("stroke-dasharray", RING_C.toFixed(2));
-    svg.appendChild(arc);
-    wrap.appendChild(svg);
-    wrap.appendChild(seatDot(i));
-    tickRing(arc);
-    return wrap;
-  }
-  function tickRing(arc) {
-    var ms = timerLeftMs();
-    if (ms == null) {
-      arc.style.strokeDashoffset = "0";
-      arc.classList.remove("is-urgent");
-    } else {
-      arc.style.strokeDashoffset = (RING_C * (1 - ms / (model.settings.timerSec * 1000))).toFixed(2);
-      arc.classList.toggle("is-urgent", ms <= 10000);
-    }
-    if (ringHandle) clearTimeout(ringHandle);
-    ringHandle = setTimeout(function () { if (arc.isConnected) tickRing(arc); }, 250);
-  }
+  /* ── PLAYERS tile (strips + timer ring on the active seats) ───── */
   function renderPlayers() {
     var st = PLAYERS.scrollTop;
     PLAYERS.textContent = "";
@@ -1003,10 +957,10 @@
       var isActive = active.indexOf(i) >= 0 && model.phase !== "lobby";
       var strip = el("div", "mj-pstrip" + (isActive ? " is-active" : "") + (!s.connected ? " is-away" : ""));
       strip.dataset.seat = i;
-      strip.style.setProperty("--mjstrip", "var(--gseat-" + i + ")");
+      TBL.seatAccent(strip, i);
       var body = el("div", "mj-pstrip__body");
       var head = el("div", "mj-pstrip__head");
-      head.appendChild(isActive && timed && model.turnEndsAt ? ringDot(i) : seatDot(i));
+      head.appendChild(isActive && timed && model.turnEndsAt ? TBL.timerRing(i) : seatDot(i));
       var nm = (s.bot || s.phantom) ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
       head.appendChild(el("span", "mj-pstrip__name", nm + (i === mySeat() ? " ·" : "")));
       body.appendChild(head);
