@@ -10,10 +10,12 @@ protocol, sync design, build phases), and
 **[docs/games.md](docs/games.md) (the shared game foundation — read this
 FIRST for anything game-related: the wire protocol, the table shell, the
 Durable Object base, and how to add a game)**, then
-[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game) and
+[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game),
 [docs/mahjong.md](docs/mahjong.md) (DeetsMahjong — four-seat Hong Kong
-mahjong), each covering only what makes that game itself. **Both games'
-workers are built and deployed**, and both transports default to prod — `?mock` is the dev
+mahjong), and [docs/ships.md](docs/ships.md) (DeetsShips — team
+Battleship on one fogged ocean; design record + build log), each
+covering only what makes that game itself. **All three games'
+workers are built and deployed**, and all transports default to prod — `?mock` is the dev
 opt-out, and the mocks do NOT model disconnects (no grace window, no bot
 takeover, no reconnect), so rejoin behavior can only be tested live.
 
@@ -96,6 +98,24 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
   (fixed game palette, ignores theme/skin); everything else survives all
   30 combos. Art ships as geometric placeholders until Aditya draws it,
   swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
+- **DeetsShips follows every cities convention** (copy is
+  `[ph]`-convention in `ships/strings.js` — Aditya's pass has NOT
+  happened, every entry is still `[ph]`; `ships/engine.js` is pure,
+  DOM-free, `node ships/engine.js` runs its self-checks, vendored
+  **verbatim** into the sibling repo `../DeetsShips`,
+  `ships-api.deets.solutions`, alongside `games/table-do.js` and
+  `games/colors.js`; the ocean + intel marks are the token carve-out,
+  `--sh-*` in `ships.css`) — plus three of its own invariants:
+  **hidden info is per TEAM** (positions, mounts, staged plans, sonar,
+  the calendar ride only a team's `you`; spectators are deliberately
+  omniscient; the engine's view builders — `teamYou`/`spectatorYou`/
+  `publicView`/`maskEventFor` — are the ONLY way worker and mock build
+  views); **red is reserved** (team colors come from
+  `Engine.makeColors(DeetsColors)`, which drops the red preset and
+  refuses red-band hexes — enemy intel owns red); and it is the site's
+  first **real-teams** game (the shell's TEAMS machinery —
+  docs/games.md, "Teams" — runs for real here: two-column lobby,
+  captains, one color per side, `team` on result rows).
 - **DeetsMahjong follows every cities convention:** copy is
   `[ph]`-convention in `mahjong/strings.js` (his copy pass is done, so
   edit no un-prefixed entry — but strings wired up *since* that pass do

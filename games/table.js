@@ -617,18 +617,41 @@
 
       // seats — your own dot (and, for the host, a bot's) is a button that
       // slides open the color picker below the row; colors lock at Start
-      // because `recolor` is a lobby command (the worker enforces it too)
+      // because `recolor` is a lobby command (the worker enforces it too).
+      // A real-teams game (cfg.teams) renders the roster as one COLUMN PER
+      // SIDE: sitting in a column is joining that team, so "switch team"
+      // is just sitting in the other column (docs/games.md, "Teams").
       var seatList = el("div", "gt-lobby__seats");
+      var teamCols = null;
+      if (cfg.teams) {
+        seatList = el("div", "gt-lobby__teams");
+        teamCols = [];
+        for (var tc = 0; tc < cfg.teams; tc++) {
+          var col = el("div", "gt-lobby__team");
+          col.appendChild(el("div", "gt-lobby__teamhead", hook("teamName") ? cfg.teamName(tc) : ""));
+          var colSeats = el("div", "gt-lobby__seats");
+          col.appendChild(colSeats);
+          teamCols.push(colSeats);
+          seatList.appendChild(col);
+        }
+      }
+      function seatInto(node, s) {
+        if (!teamCols) return seatList.appendChild(node);
+        teamCols[Math.max(0, Math.min(s.team || 0, teamCols.length - 1))].appendChild(node);
+      }
       (model.seats || []).forEach(function (s, i) {
         var isBot = !s.empty && s.phantom;
         var isMe = !s.empty && s.seat === mySeat();
+        // with real teams the color is the TEAM's, so only its captain
+        // (or the host, standing in for a bot captain) gets the picker
+        var isCaptain = !cfg.teams || (model.captains && model.captains[s.team] === i);
         // inline editor takes over the row (same height) — the host's bot
         // editor, or your own rename; a seat that stopped qualifying mid-edit
         // (claimed, kicked, stood up) drops it, like the color picker
         if (ui.botEdit === i && !(host && (s.empty || isBot)) && !isMe) { ui.botEdit = null; ui.botDraft = null; }
-        if (ui.botEdit === i) { seatList.appendChild(botEditorRow(i)); return; }
+        if (ui.botEdit === i) { seatInto(botEditorRow(i), s); return; }
         var row = el("div", "gt-seat" + (s.empty ? " gt-seat--empty" : ""));
-        var editable = !s.empty && (isMe || (host && s.phantom));
+        var editable = !s.empty && isCaptain && (isMe || (host && s.phantom));
         row.appendChild(editable ? dotButton(s, i) : seatDot(i));
         var label = s.empty ? S.seatOpen : isMe ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
         if ((host && isBot) || isMe) {
@@ -640,6 +663,16 @@
           row.appendChild(nameBtn);
         } else row.appendChild(el("span", "gt-seat__name", label));
         if (model.hostSeat === i) row.appendChild(el("span", "gt-seat__badge", S.hostBadge));
+        if (cfg.teams && !s.empty && isCaptain) row.appendChild(el("span", "gt-seat__badge", S.captainBadge));
+        if (s.empty && cfg.teams && mySeat() !== i) {
+          // sitting here IS joining this side; moving sides is stand + sit
+          var sit = el("button", "gt-seat__addbot", S.sitHereButton); sit.type = "button";
+          sit.addEventListener("click", function () {
+            if (mySeat() != null) send({ type: "stand" });
+            send({ type: "sit", seat: i });
+          });
+          row.appendChild(sit);
+        }
         if (host && s.empty) {
           var add = el("button", "gt-seat__addbot", S.addBotButton); add.type = "button";
           add.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = null; ui.botFocus = true; render(); });
@@ -651,8 +684,8 @@
           kick.addEventListener("click", function () { send({ type: "kickSeat", seat: i }); });
           row.appendChild(kick);
         }
-        seatList.appendChild(row);
-        if (editable) seatList.appendChild(colorPicker(s, i));
+        seatInto(row, s);
+        if (editable) seatInto(colorPicker(s, i), s);
       });
       if (ui.colorOpen != null) {
         // the open picker's seat stopped being editable (kicked, stood up,
@@ -669,7 +702,15 @@
         start.type = "button";
         start.appendChild(el("span", "tb-pill__label", S.startButton));
         var ready = seatedCount() >= cfg.minSeats;
-        start.disabled = !ready;
+        // real teams: even sides or no deal (the worker refuses too — this
+        // gate exists so the refusal never actually reaches a player)
+        var uneven = false;
+        if (cfg.teams) {
+          var counts = [];
+          (model.seats || []).forEach(function (s) { if (s && !s.empty) counts[s.team] = (counts[s.team] || 0) + 1; });
+          for (var ti = 0; ti < cfg.teams; ti++) if (!counts[ti] || counts[ti] !== counts[0]) uneven = true;
+        }
+        start.disabled = !ready || uneven;
         start.addEventListener("click", function () { send({ type: "start" }); });
         startRow.appendChild(start);
         var shuf = el("button", "tb-pill gt-lobby__start");
@@ -679,7 +720,8 @@
         shuf.addEventListener("click", function () { send({ type: "shuffle" }); });
         startRow.appendChild(shuf);
         wrap.appendChild(startRow);
-        wrap.appendChild(el("p", "gt-lobby__hint", ready ? S.startHint : cfg.startNeedsHint));
+        wrap.appendChild(el("p", "gt-lobby__hint",
+          !ready ? cfg.startNeedsHint : uneven ? (S.teamsUnevenHint || cfg.startNeedsHint) : S.startHint));
         // a seat that went dark in the lobby is dealt in as a bot (the worker
         // does the conversion at Start). Say so before the press, never after —
         // this counts only humans, since a seat view marks bots connected.
@@ -727,11 +769,19 @@
       for (var k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
       return n;
     }
+    /* The current clock budget in seconds. Default: the one shared
+       `settings.timerSec`. A game whose budget varies by phase (ships has
+       a clock per phase) supplies cfg.timerBudget() instead — the readouts
+       below are the only consumers, so nothing else has to know. */
+    function timerBudgetSec() {
+      if (hook("timerBudget")) return cfg.timerBudget() || 0;
+      return (model && model.settings && model.settings.timerSec) || 0;
+    }
     /* ms left on the table clock, or null when it isn't counting — either
        the game never armed it, or nothing is currently owed (a bot is
        thinking, the hand is being scored). */
     function timerLeftMs() {
-      if (!model || !model.settings || !model.settings.timerSec || model.turnEndsAt == null) return null;
+      if (!model || !timerBudgetSec() || model.turnEndsAt == null) return null;
       return Math.max(0, model.turnEndsAt - (Date.now() - clockSkew));
     }
     function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
@@ -755,7 +805,7 @@
         arc.style.strokeDashoffset = "0";
         arc.classList.remove("is-urgent");
       } else {
-        arc.style.strokeDashoffset = (RING_C * (1 - ms / (model.settings.timerSec * 1000))).toFixed(2);
+        arc.style.strokeDashoffset = (RING_C * (1 - ms / (timerBudgetSec() * 1000))).toFixed(2);
         arc.classList.toggle("is-urgent", ms <= URGENT_MS);
       }
       clearTimeout(arc.gtTick);
@@ -764,7 +814,7 @@
     function timerText(node) {
       var ms = timerLeftMs();
       if (ms == null) {                     // armed but not counting — show the full budget, at rest
-        node.textContent = fmtClock(((model.settings && model.settings.timerSec) || 0) * 1000);
+        node.textContent = fmtClock(timerBudgetSec() * 1000);
         node.classList.remove("is-live", "is-urgent");
         return node;
       }
@@ -930,8 +980,16 @@
       inner.appendChild(el("span", "gt-colorpick__label",
         s.seat === mySeat() ? S.colorYours : fmt(S.colorTheirs, { name: s.name })));
       // clash targets = every OTHER seat's color, positions preserved so a
-      // clash index maps straight back to a seat for the "{name} has it" line
+      // clash index maps straight back to a seat for the "{name} has it" line.
+      // Real teams: teammates share the pick by definition, so the targets
+      // are the OTHER sides' colors only — one representative seat per team.
+      var seenTeam = {};
       var others = (model.seats || []).map(function (o) {
+        if (cfg.teams) {
+          if (o.team === s.team || seenTeam[o.team]) return null;
+          seenTeam[o.team] = 1;
+          return o.color;
+        }
         return o.empty || o.seat === i ? null : o.color;
       });
       var sw = el("div", "gt-colorpick__swatches");

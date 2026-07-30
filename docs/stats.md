@@ -436,12 +436,17 @@ which is also how `humans` and `bots` are counted. Every other reading of
 above; a game supplies only what is game-shaped, through four small hooks in
 its own `src/index.js`:
 
-| Hook | Cities | Mahjong |
-| --- | --- | --- |
-| `gameName()` | `"cities"` | `"mahjong"` |
-| `seatStats(i)` | `g.stats.seats[i]` | `players[i].stats` |
-| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns |
-| `resultDetail()` | — | `g.results[]`, the per-hand history |
+| Hook | Cities | Mahjong | Ships |
+| --- | --- | --- | --- |
+| `gameName()` | `"cities"` | `"mahjong"` | `"ships"` |
+| `seatStats(i)` | `g.stats.seats[i]` | `players[i].stats` | `g.seatStats[i]` |
+| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns | → `ships_seats` columns |
+| `resultDetail()` | — | `g.results[]`, the per-hand history | — |
+
+Ships is the first **real-teams** game, so the base also stamps `team`
+onto each of its per-seat rows (`result_seats.team`, NULL for every other
+game) — the team outcome, and any future team Elo, hang on that column
+(docs/games.md, "Teams").
 
 `seatCounters()` is the one piece of this feature with **no runtime safety
 net**: it maps engine fields onto column names by hand, a wrong name resolves
@@ -502,6 +507,7 @@ CREATE TABLE result_seats (
   tied      INTEGER NOT NULL DEFAULT 0,
   score     INTEGER NOT NULL,
   stats     TEXT NOT NULL,            -- the game's blob, verbatim (the archive)
+  team      INTEGER,                  -- real-teams games (ships); NULL elsewhere
 
   -- denormalised from results; rows are write-once, so there is no update
   -- anomaly, and the profile's hot query stays single-table
@@ -548,6 +554,12 @@ CREATE TABLE mahjong_seats (
   key TEXT NOT NULL, seat INTEGER NOT NULL,
   score INTEGER, wins INTEGER, self_draws INTEGER, deal_ins INTEGER,
   kongs INTEGER, pungs INTEGER, chows INTEGER, best_faan INTEGER,
+  PRIMARY KEY (key, seat)
+);
+
+CREATE TABLE ships_seats (
+  key TEXT NOT NULL, seat INTEGER NOT NULL,
+  shots INTEGER, hits INTEGER, ships_sunk INTEGER,
   PRIMARY KEY (key, seat)
 );
 

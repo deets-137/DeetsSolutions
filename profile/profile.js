@@ -269,7 +269,8 @@
 
   var GAMES = {
     cities: { label: "DeetsCities", href: "/cities/" },
-    mahjong: { label: "DeetsMahjong", href: "/mahjong/" }
+    mahjong: { label: "DeetsMahjong", href: "/mahjong/" },
+    ships: { label: "DeetsShips", href: "/ships/" }
   };
   /* Counter labels. Order is the reading order, not the schema's — the
      things you'd actually want to know first. Anything the server sends
@@ -293,6 +294,9 @@
       ["score", "Net score"], ["wins", "Hands won"], ["self_draws", "Self-draws"],
       ["deal_ins", "Deal-ins"], ["best_faan", "Best hand"],
       ["pungs", "Pungs"], ["chows", "Chows"], ["kongs", "Kongs"]
+    ],
+    ships: [
+      ["shots", "Shots fired"], ["hits", "Hits landed"], ["ships_sunk", "Ships sunk"]
     ]
   };
 

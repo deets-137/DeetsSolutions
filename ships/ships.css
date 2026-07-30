@@ -1,0 +1,215 @@
+/* ============================================================
+   DeetsShips — the game's own stylesheet (docs/ships.md).
+
+   Loaded third: chrome.css → table.css → this. The table shell's gt-
+   classes are styled by table.css and never restyled here; everything
+   in this file wears the ships- prefix.
+
+   TOKEN DISCIPLINE: every rule below rides the semantic tokens and must
+   survive all 30 theme×skin combos — EXCEPT the board carve-out, the
+   fixed game palette scoped to .ships-board (the ocean, the grid, the
+   intel language, the smolder). Red belongs to enemy intel exclusively
+   (docs/ships.md, "Board art and the intel language"); team colors come
+   through --gseat-N exactly like every other game.
+   ============================================================ */
+
+/* ── the carve-out: the ocean's own palette ───────────────────── */
+.ships {
+  --sh-ocean:      #0e2a43;   /* deep water */
+  --sh-ocean-line: #1c4066;   /* grid lines */
+  --sh-band:       #16385a;   /* home-band tint (draft) */
+  --sh-intel:      #e03131;   /* THE red: phantom fill, ✕, lanes, bearings */
+  --sh-wreck:      #5a6470;   /* sunk hulls, both sides */
+  --sh-smolder:    #3a3f46;   /* damaged tiles on friendly hulls — never red */
+  --sh-ghost:      #cfe3f5;   /* staged-plan previews */
+  --sh-lit:        #ffd75e;   /* valid-tile highlight */
+  --sh-name:       #e8f1fa;   /* owner names under friendly hulls */
+}
+
+/* ── the bento (cities' grid, every slot repurposed) ──────────── */
+.ships-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-rows: auto auto minmax(6rem, 1fr) auto;
+  grid-template-areas:
+    "big phase"
+    "big players"
+    "big log"
+    "role role";
+  gap: var(--space-3);
+  position: relative;
+  align-items: start;
+}
+.ships-tile {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+}
+/* the big tile pins rows 1-3 at a flat height (cities' rule: a short
+   window scrolls the page, never compresses the board) */
+.ships-tile--big { grid-area: big; height: 42rem; position: relative; display: flex; overflow-y: auto; }
+.ships-tile--phase { grid-area: phase; }
+.ships-tile--players { grid-area: players; max-height: 18rem; overflow-y: auto; }
+.ships-tile--log { grid-area: log; min-height: 0; overflow-y: auto; }
+.ships-tile--role { grid-area: role; position: relative; }
+
+/* ── the ocean (board SVG) ────────────────────────────────────── */
+.ships-board { width: 100%; height: 100%; margin: auto; display: block; }
+.ships-board__sea { fill: var(--sh-ocean); }
+.ships-board__band { fill: var(--sh-band); }
+.ships-board__line { stroke: var(--sh-ocean-line); stroke-width: 1; }
+/* friendly hulls: team color through the shared contract */
+.ships-hull { stroke: rgba(0, 0, 0, 0.45); stroke-width: 1.5; }
+.ships-hull--sub { stroke-dasharray: 5 3; opacity: 0.85; }   /* submerged: dashed outline */
+.ships-hull__dmg { fill: var(--sh-smolder); opacity: 0.92; } /* gray smolder — never red */
+.ships-hull__mount { fill: none; stroke: var(--sh-name); stroke-width: 2; }  /* the colored circle */
+.ships-hull__name {
+  fill: var(--sh-name); font: 600 9px/1 var(--font-body);
+  paint-order: stroke; stroke: rgba(0, 0, 0, 0.6); stroke-width: 2px;
+  pointer-events: none;
+}
+.ships-wreck { fill: var(--sh-wreck); stroke: rgba(0, 0, 0, 0.5); stroke-width: 1; opacity: 0.8; }
+/* the intel language: one color, three marks */
+.ships-mark--phantom { fill: var(--sh-intel); opacity: 0.32; }
+.ships-mark--sweepbox { fill: none; stroke: var(--sh-intel); stroke-width: 1; opacity: 0.35; stroke-dasharray: 3 3; }
+.ships-mark--hit { stroke: var(--sh-intel); stroke-width: 3; stroke-linecap: round; }
+.ships-mark--lane { stroke: var(--sh-intel); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; opacity: 0.8; }
+.ships-mark--reveal { fill: none; stroke: var(--sh-intel); stroke-width: 2; }
+.ships-mark--bearing { fill: var(--sh-intel); }
+.ships-mark--zone { fill: var(--sh-intel); opacity: 0.2; stroke: var(--sh-intel); stroke-dasharray: 4 3; stroke-width: 1.5; }
+/* own-plan previews + interaction */
+.ships-ghost { fill: var(--sh-ghost); opacity: 0.35; stroke: var(--sh-ghost); stroke-dasharray: 4 3; stroke-width: 1.5; }
+.ships-lit { fill: var(--sh-lit); opacity: 0.28; cursor: pointer; }
+.ships-lit:hover { opacity: 0.55; }
+.ships-hulltarget { cursor: pointer; stroke: var(--sh-lit); stroke-width: 2; fill: var(--sh-lit); fill-opacity: 0.25; }
+.ships-hulltarget:hover { fill-opacity: 0.5; }
+.ships-selring { fill: none; stroke: var(--sh-lit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+
+/* history mode: unmistakably not live */
+.ships-tile--big.is-history { outline: 2px dashed var(--subtext); outline-offset: -6px; }
+.ships-histnote {
+  position: absolute; top: var(--space-3); left: 50%; transform: translateX(-50%);
+  z-index: 3; padding: var(--space-1) var(--space-3);
+  background: var(--menu-surface);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  color: var(--subtext); font-size: 0.8rem; white-space: nowrap;
+}
+
+/* ── board bottom-left: the Guide (cities' board-pop geometry) ── */
+.ships-boardbtns { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 3; display: flex; gap: var(--space-2); }
+.ships-bpop {
+  position: absolute; left: var(--space-3); bottom: 3.6rem; z-index: 4;
+  width: 30rem; max-width: calc(100% - var(--space-3) * 2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  visibility: hidden; opacity: 0;
+}
+.ships-bpop.is-open { visibility: visible; opacity: 1; }
+.ships-guide__title { margin: 0 0 var(--space-2); color: var(--title); font-family: var(--font-title); font-size: 1rem; }
+.ships-guide__tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-2); flex-wrap: wrap; }
+.ships-guide__body { color: var(--text); font-size: 0.85rem; line-height: 1.55; max-height: 22rem; overflow-y: auto; }
+.ships-guide__body p { margin: 0 0 var(--space-2); }
+.ships-guide__table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: var(--space-2); }
+.ships-guide__table th, .ships-guide__table td {
+  text-align: left; padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border); color: var(--text);
+}
+.ships-guide__table th { color: var(--subtext); font-weight: 600; }
+
+/* ── phase tile (the dice slot) ───────────────────────────────── */
+.ships-phase__round { color: var(--subtext); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.ships-phase__name { color: var(--title); font-family: var(--font-title); font-size: 1.5rem; line-height: 1.2; }
+.ships-phase__clock { font-variant-numeric: tabular-nums; color: var(--text); font-size: 1.1rem; }
+.ships-phase__clock.is-urgent { color: var(--stop); }
+.ships-phase__sides { margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); }
+.ships-phase__side { display: flex; align-items: center; gap: var(--space-2); font-size: 0.82rem; color: var(--subtext); }
+.ships-phase__side.is-in { color: var(--text); }
+
+/* ── players tile: the readiness board ────────────────────────── */
+.ships-pteam { margin-bottom: var(--space-2); }
+.ships-pteam__head {
+  display: flex; align-items: center; gap: var(--space-2);
+  color: var(--subtext); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: var(--space-1);
+}
+.ships-pstrip {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--gseat, var(--border));
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  margin-bottom: 2px;
+  font-size: 0.85rem; color: var(--text);
+}
+.ships-pstrip__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ships-pstrip__ready { color: var(--go); font-weight: 700; }
+.ships-pstrip__away { color: var(--subtext); font-size: 0.72rem; }
+.ships-pstrip__cap {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: 0 var(--space-1);
+}
+
+/* ── the calendar (log tile → grid of turns) ──────────────────── */
+.ships-cal__head { color: var(--subtext); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
+.ships-cal__grid { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.ships-cal__cell {
+  min-width: 2.1rem; height: 2.1rem; padding: 0 var(--space-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  font: inherit; font-size: 0.8rem; cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.ships-cal__cell:hover { background: var(--surface-hover); transform: var(--hover-lift); }
+.ships-cal__cell.is-current { border-color: var(--title); color: var(--title); font-weight: 700; }
+.ships-cal__empty { color: var(--subtext); font-size: 0.8rem; }
+
+/* ── the planning surface (role tile) ─────────────────────────── */
+.ships-plan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-4); align-items: start; }
+.ships-plan__head { color: var(--subtext); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
+.ships-fleet { display: flex; flex-direction: column; gap: var(--space-2); }
+.ships-shipbtn {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-left: 3px solid var(--gseat, var(--border));
+  border-radius: var(--radius-control);
+  font: inherit; text-align: left; cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.ships-shipbtn:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
+.ships-shipbtn:disabled { opacity: 0.55; cursor: default; }
+.ships-shipbtn.is-sel { border-color: var(--title); }
+.ships-shipbtn__cls { font-weight: 600; }
+.ships-shipbtn__meta { flex: 1 1 auto; text-align: right; color: var(--subtext); font-size: 0.78rem; }
+.ships-shipbtn__pips { display: inline-flex; gap: 2px; }
+.ships-pip { width: 0.5rem; height: 0.5rem; border-radius: 2px; background: var(--go); display: inline-block; }
+.ships-pip.is-dmg { background: var(--stop); opacity: 0.7; }
+.ships-plan__ctrl { display: flex; flex-direction: column; gap: var(--space-2); min-height: 8rem; }
+.ships-plan__row { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.ships-plan__hint { color: var(--subtext); font-size: 0.82rem; margin: 0; }
+.ships-plan__note { color: var(--text); font-size: 0.85rem; margin: 0; }
+.ships-plan__commitrow { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-2); flex-wrap: wrap; }
+
+/* ── game over ────────────────────────────────────────────────── */
+.ships-over { width: 100%; display: flex; flex-direction: column; gap: var(--space-3); }
+.ships-over__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); display: flex; justify-content: space-between; align-items: baseline; }
+.ships-over__turns { color: var(--subtext); font-size: 0.85rem; font-family: var(--font-body); }
+.ships-over__winner { margin: 0; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: var(--space-2); }
+.ships-over__table { border-collapse: collapse; font-size: 0.85rem; }
+.ships-over__table th, .ships-over__table td { text-align: left; padding: var(--space-1) var(--space-3); border-bottom: 1px solid var(--border); color: var(--text); }
+.ships-over__table th { color: var(--subtext); font-weight: 600; }
+
+/* ── desktop-only note ────────────────────────────────────────── */
+.ships-desktop-note { color: var(--subtext); }

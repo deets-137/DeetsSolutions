@@ -60,6 +60,7 @@
         var rec = {
           code: t.code, createdAt: t.createdAt, creatorToken: t.creatorToken,
           settings: t.settings, seats: t.seats, game: t.game,
+          teamColors: t.teamColors || null,
           log: t.log.slice(-LOG_MAX), v: t.v, touched: t.touched
         };
         EXTRA_KEYS.forEach(function (k) { rec[k] = t[k]; });
@@ -82,6 +83,7 @@
         var t = {
           code: s.code, createdAt: s.createdAt, creatorToken: s.creatorToken,
           settings: s.settings, seats: s.seats || [], game: s.game || null,
+          teamColors: s.teamColors || null,
           log: s.log || [], v: s.v || 1, touched: s.touched || 0,
           conns: [], timer: null, timerFor: null, turnEndsAt: null, driving: false
         };
@@ -130,6 +132,36 @@
     function otherColors(t, except) {
       return t.seats.map(function (s) { return s && s !== except ? s.color : null; });
     }
+
+    /* ── teams (the DO base's rules, byte-parallel — docs/games.md) ──
+       spec.teams is the real team count (ships: 2) or absent — teams of
+       one, teamOf(t, i) === i, nothing changes. */
+    function teamOf(t, i) {
+      if (!spec.teams) return i;
+      var s = t.seats[i];
+      if (s && s.team != null) return s.team;   // stamped at Start
+      var per = Math.max(1, Math.ceil(capacity(t) / spec.teams));
+      return Math.min(spec.teams - 1, Math.floor(i / per));
+    }
+    function captainSeat(t, team) {
+      var fb = null;
+      for (var i = 0; i < t.seats.length; i++) {
+        var s = t.seats[i];
+        if (!s || s.conceded || teamOf(t, i) !== team) continue;
+        if (fb == null) fb = i;
+        if (!(s.bot || s.phantom) && tokenConnected(t, s.token)) return i;
+      }
+      return fb;
+    }
+    function teamColor(t, team) {
+      return (t.teamColors && t.teamColors[team]) || Colors.PRESETS[team % Colors.PRESETS.length];
+    }
+    function teamSeatedCounts(t) {
+      var n = [];
+      for (var k = 0; k < (spec.teams || 0); k++) n[k] = 0;
+      t.seats.forEach(function (s, i) { if (s) n[teamOf(t, i)]++; });
+      return n;
+    }
     function spectatorCount(t) {
       return t.conns.filter(function (c) { return !c.closed && seatOfToken(t, c.token) == null; }).length;
     }
@@ -138,16 +170,21 @@
     function baseView(t, conn) {
       var token = conn.token, seat = seatOfToken(t, token);
       var hostTok = hostToken(t);
-      return {
+      var real = !!spec.teams;
+      var view = {
         code: t.code,
         phase: t.game ? t.game.phase : "lobby",
         settings: t.settings,
         host: token === hostTok,
         hostSeat: seatOfToken(t, hostTok),
         seats: t.seats.map(function (s, i) {
-          if (!s) return { seat: i, name: null, color: Colors.PRESETS[i], connected: false, empty: true };
+          var team = teamOf(t, i);
+          // team color replaces seat color when teams are real — including
+          // empty seats, so 8-seat tables never index past the six presets
+          var color = real ? teamColor(t, team) : (s ? s.color : Colors.PRESETS[i]);
+          if (!s) return { seat: i, team: team, name: null, color: color, connected: false, empty: true };
           var o = {
-            seat: i, name: s.name, color: s.color,
+            seat: i, team: team, name: s.name, color: color,
             connected: s.phantom ? true : tokenConnected(t, s.token),
             phantom: !!s.phantom, bot: !!s.bot
           };
@@ -157,6 +194,11 @@
         spectators: spectatorCount(t),
         you: { seat: seat, host: token === hostTok }
       };
+      if (real) {
+        view.captains = [];
+        for (var k = 0; k < spec.teams; k++) view.captains.push(captainSeat(t, k));
+      }
+      return view;
     }
     function buildView(t, conn) {
       var seat = seatOfToken(t, conn.token);
@@ -268,7 +310,8 @@
     var HELPERS = {
       tryAct: tryAct, broadcast: broadcast, errTo: errTo, postApply: postApply,
       seatOfToken: seatOfToken, isHost: isHost, seatedCount: seatedCount,
-      resizeSeats: resizeSeats, ctx: ctx, uid: uid, now: now, save: save
+      resizeSeats: resizeSeats, ctx: ctx, uid: uid, now: now, save: save,
+      teamOf: teamOf, captainSeat: captainSeat, teamColor: teamColor
     };
 
     /* ── command dispatch (client → table) ──────────────────────── */
@@ -436,6 +479,27 @@
         // your own seat, or the host recoloring a bot. Validation is the
         // colors.js contract — the DO runs this branch byte-identically.
         if (type === "recolor") {
+          if (spec.teams) {
+            // one color per SIDE, the captain's to set (the host covers a
+            // bot-captained team) — the DO base's branch, byte-parallel
+            var ttarget = msg.seat != null ? msg.seat : seatOfToken(t, token);
+            if (ttarget == null || !t.seats[ttarget]) return errTo(conn, "perm");
+            var team = teamOf(t, ttarget);
+            var capSeat = captainSeat(t, team);
+            var capBot = capSeat != null && !!(t.seats[capSeat].bot || t.seats[capSeat].phantom);
+            if (!(seatOfToken(t, token) === capSeat || (capBot && isHost(t, token)))) return errTo(conn, "perm");
+            var thex = Colors.norm(msg.color);
+            if (!thex) return errTo(conn, "color");
+            var tothers = [];
+            for (var tk = 0; tk < spec.teams; tk++) tothers.push(tk === team ? null : teamColor(t, tk));
+            if (Colors.clash(thex, tothers) >= 0) return errTo(conn, "color-taken");
+            if (!t.teamColors) {
+              t.teamColors = [];
+              for (var tk2 = 0; tk2 < spec.teams; tk2++) t.teamColors.push(teamColor(t, tk2));
+            }
+            t.teamColors[team] = thex;
+            return broadcast(t, []);
+          }
           var target = msg.seat != null ? msg.seat : seatOfToken(t, token);
           var ts = target != null ? t.seats[target] : null;
           if (!ts) return errTo(conn, "perm");
@@ -466,6 +530,15 @@
           resizeSeats(t);
           var seated = t.seats.filter(function (s) { return !!s; });
           if (seated.length < spec.minSeats()) return errTo(conn, "phase");
+          if (spec.teams) {
+            // even sides or no deal, and the structural column mapping is
+            // stamped onto the seats before compaction (the DO base's rule)
+            var counts = teamSeatedCounts(t);
+            for (var ck = 0; ck < counts.length; ck++) {
+              if (!counts[ck] || counts[ck] !== counts[0]) return errTo(conn, "teams");
+            }
+            t.seats.forEach(function (s, si) { if (s) s.team = teamOf(t, si); });
+          }
           t.seats = seated;   // COMPACT: seat index now === engine player index
           t.game = spec.createGame(t, seated, ctx());
           var extra = (spec.onStart ? spec.onStart(t) : []) || [];
@@ -520,6 +593,7 @@
                 code: code, createdAt: now(), creatorToken: token,
                 settings: Object.assign({ rejoin: "rejoin" }, spec.defaultSettings()),
                 seats: [], game: null, log: [],
+                teamColors: spec.teams ? Colors.PRESETS.slice(0, spec.teams) : null,
                 v: 1, touched: now(), conns: [], timer: null, timerFor: null,
                 turnEndsAt: null, driving: false
               };

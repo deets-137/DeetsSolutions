@@ -1,21 +1,24 @@
-# DeetsShips — design notes (pre-build)
+# DeetsShips — design notes + build log
 
 > **The shared half lives in [games.md](games.md)** — the wire protocol,
 > the table shell (`games/table.js`), the Durable Object base
 > (`games/table-do.js`), seat colors, and the conventions every game
 > inherits. This document covers only what makes DeetsShips itself.
 
-**Status: design, nothing built — the rules are closed.** As of pass ten,
-every question about *how the game plays* has an answer: simultaneous
-commit, the turn frame (draft as turn 0), first-thing-hit, the hull
-blocking its own fire, no friendly fire, the depth layer,
-destination-only collisions, 8 tiles as the single reveal threshold, the
-intel language. Exactly one rules question remains — whether disarming
-takes the cruiser's second move. Everything else outstanding (see "Open
-questions, collected") is shell plumbing, the shared-foundation work that
-teams require, or scope deliberately deferred past v1. This file stays the
-running record of Aditya's narration plus the questions that narration
-raised.
+**Status: BUILD IN PROGRESS — see "Build log" at the bottom for what
+exists so far.** The rules are closed and the table's face is drawn. As of pass ten, every question about *how the game
+plays* has an answer: simultaneous commit, the turn frame (draft as
+turn 0), first-thing-hit, the hull blocking its own fire, no friendly
+fire, the depth layer, destination-only collisions, 8 tiles as the
+single reveal threshold, the intel language. Pass eleven settled the
+UI/UX on top of it: the bento mapping, the ready/commit staging model,
+simultaneous playback, desktop-only, and the last marks (see "The table
+layout — the bento"). Exactly one rules question remains — whether
+disarming takes the cruiser's second move. Everything else outstanding
+(see "Open questions, collected") is shell plumbing, the
+shared-foundation work that teams require, or scope deliberately
+deferred past v1. This file stays the running record of Aditya's
+narration plus the questions that narration raised.
 
 Branch `DeetsShips` also carries a second, separate workstream:
 **parameterized bots** (difficulty as a knob rather than one hard-coded
@@ -144,9 +147,10 @@ once instead of twice.
   submarine and a surface ship may share tiles (see "The submarine's
   depth layer"). Collision is prevented by validation
   rather than modeled as an event: an illegal move commit is rejected.
-  The catch is that validation can only see what the mover knows — see
-  "The hidden-collision problem" below, the one genuinely unresolved
-  piece of the resolution model.
+  Validation can only see what the mover knows — the client prevents
+  known-geometry conflicts up front, and the server catches hidden ones
+  at resolve time (see "Collisions"; destination-only, settled in pass
+  eight).
 
 ## The fleet
 
@@ -256,8 +260,30 @@ because they are consequences of the choice rather than objections to it:
 ### Commit mechanics — the captain
 
 Each team has a **designated captain**, and the captain commits the
-team's phase. At a 1v1 table that's trivially the only player;
-at 2v2/4v4 the teammates plan together and the captain locks it in.
+team's phase. At a 1v1 table that's trivially the only player; at
+2v2/4v4 the teammates coordinate and the captain locks it in.
+
+**How a team's plan reaches the server — settled, pass eleven:**
+
+- **Coordination happens on voice, not in the UI.** Aditya's call: the
+  game builds no shared plan-preview — teammates talk. Each seat plans
+  its own ships client-side, and what teammates see of each other's
+  intentions is whatever gets said out loud.
+- **Ready stages, commit closes.** A seat presses **Ready**, which sends
+  that seat's planned moves to the server as the staged plan for its
+  ships; the players tile marks who's ready. Un-readying retracts the
+  stage. The captain's **commit** closes the phase over whatever is
+  staged — a ship with nothing staged holds still (move phase) or
+  passes (action phase).
+- **Uncommitting is allowed** while the enemy hasn't committed — once
+  both teams are in, resolution fires instantly and there is nothing
+  left to retract. A **lobby settings toggle** makes commits binding
+  for tables that want the pressure.
+- **Readiness is public.** The enemy sees the ready marks and the
+  committed state — pacing information, not position information;
+  hiding it just makes people wait blind.
+- **Timer expiry auto-commits the staged set** — exactly what a manual
+  commit at that moment would have taken.
 
 *(open: **how is the captain chosen** — host assigns, first-seated on
 each side, or the team picks? And can it be handed over mid-game?)*
@@ -269,12 +295,6 @@ almost certainly reuse that idiom, falling back to the longest-seated
 live seat on that team. Worth being explicit that a **bot captain**
 committing on behalf of live humans is a state that will occur, and
 needs to either work or be prevented by the fallback.)*
-
-Two riders: the enemy should see **that** a side has committed (a "West
-is ready" indicator — pacing information, not position information;
-hiding it just makes people wait blind), and **timer expiry
-auto-commits whatever is currently planned** — a ship with no plan
-doesn't move or act.
 
 **The timer is per phase, and each phase has its own setting**: draft,
 move and action are three separate clocks in table settings, not one
@@ -580,7 +600,10 @@ old cleared lanes is a map of where the enemy *isn't*.
 
 **Damaged tiles are marked, not removed.** A ship's footprint never
 changes shape: a 3-long destroyer with a destroyed middle is still a
-3-long destroyer, drawn normally with a red middle tile. It still
+3-long destroyer, drawn normally with the middle tile **grayed and
+smoldering — never red** (pass eleven). Red belongs to enemy intel
+exclusively, and every hull that gets drawn is friendly, so the two
+treatments never meet on one ship. It still
 occupies all three tiles, still blocks them, still collides with them.
 The ship sinks when every tile is marked. This is the whole board
 representation — a ship is a hull of fixed length with a per-tile
@@ -640,9 +663,10 @@ team's **intel record**, and reading it well is part of playing well.
   once, and correlating turn 4's sonar footprint with turn 7's hit is
   work the player does, not the UI.
 
-That reframes the tile: less a log, more a **calendar of turns** you
-scrub through. Each entry is a turn; selecting one swaps the board into
-a read-only historical view.
+That reframes the tile, and pass eleven fixed its shape: the log slot
+becomes a **grid of turns** — one cell per turn, and clicking a cell
+swaps the board into a read-only historical view of that turn. Not a
+scrolling list with a scrubber bolted on; the grid *is* the tile.
 
 **This changes where history lives.** Cities' since-your-last-turn
 ledger is client-only memory that a refresh wipes — an acceptable
@@ -713,10 +737,13 @@ connection's seat to a team and builds the team's view.
   can see it and only to them.
 - **Draft picks and placements** stay in the team's `you` until the
   draft closes; placements stay there permanently.
-- **Uncommitted plans never leave the client.** A planned move is not
-  sent until commit — so there is no window in which the server holds a
-  plan it could leak, and a disconnect mid-planning loses the plan
-  rather than exposing it.
+- **Plans ride only the team's staging.** A seat's plans reach the
+  server when that seat readies (pass eleven — see "Commit mechanics");
+  staged plans live in team-scoped state, are never broadcast, and the
+  enemy sees only the readiness bits — pacing, not position. A
+  disconnect after readying keeps the seat's staged plans; before
+  readying, it loses them — the right failure, since a plan the server
+  never saw is a plan it cannot leak.
 
 The mahjong test applies to every count: a public "ships alive" tally is
 fine, but a public per-ship hull-tile count leaks how much of a specific
@@ -740,6 +767,42 @@ shell lets a token spectate a table it holds a seat at, since refusing
 Anything that leaks position through a *count* (a public "ships alive"
 tally, a public move-length event) needs the mahjong test applied before
 it ships: could a careful client mine it for a position?
+
+### The table layout — the bento
+
+Pass eleven, all Aditya's calls. **Desktop-only: ships does not target
+mobile at all** — the first page on the site allowed to say that, and
+the 20 × 20 board is why. The page is cities' bento (big tile +
+dice/players/log right column + role tile), every slot repurposed:
+
+| Slot | Cities / mahjong | Ships |
+|---|---|---|
+| Dice tile | dice tumble | **Phase banner** — round number, MOVE / ACTION, the phase timer |
+| Players tile | seat strip | **Readiness board** — seats banded by team, a ready mark per seat, a captain marker |
+| Log tile | scrolling event log | **The calendar** — a grid of turn cells (see "The log is a calendar") |
+| Big tile | hex board / walls | Clean **20 × 20 ocean grid** |
+| Role tile | hand / rack | **The planning surface** — left half picks one of your ships, right half picks that ship's action |
+
+- **The planning loop is select → select → target.** Pick a ship (left
+  half of the role tile), pick an action (right half), and the board
+  lights **every valid tile** for it — destinations for a move, pivot
+  handles for a turn, lanes for a shot, strike zones for the plane.
+  Illegal tiles stay dark. The affordance is cosmetic, as always: the
+  server re-validates every commit from scratch.
+- **Resolution plays back simultaneously** — both teams' moves and
+  shots animate at once, smooth and elegant, not sequenced into a
+  cinematic. One renderer should serve both jobs: live playback and the
+  calendar's historical views are the same code path over different
+  data.
+- **The beyond-8 bearing is a compass glyph** — an arrow at the
+  revealed point aimed in one of eight directions (N/S/E/W and the
+  diagonals; missile deviation and nearest-tile measurement mean the
+  firing tile need not share the target's row or column).
+- **The weapon section is a colored circle** over its hull tile —
+  drawn on the teammate view only, riding the team's `you` like
+  everything else about the mount.
+- **Ally damage grays and smolders** — see "Damage and defeat." Red
+  never appears on a friendly hull.
 
 ### Board art and the intel language
 
@@ -842,6 +905,20 @@ if a table sets a clock, **each phase has its own timer setting**, **ships
 may pass**, **spectators see both fleets**, **teams are two columns of
 seats** in the lobby, and **no terrain in v1**.
 
+Pass eleven settled the table's face, all Aditya's calls:
+**desktop-only** (ships does not target mobile); the **bento mapping**
+(dice slot → phase banner, players tile → readiness + team bands +
+captain marker, log tile → the calendar's grid of turns, big tile → the
+20 × 20 ocean, role tile → ships left / actions right, with the board
+lighting every valid tile for the selected action); **planning
+coordination on VC** with per-seat **Ready** staging and the captain's
+commit closing the phase over whatever is staged; **uncommit allowed**
+until the enemy commits, with a lobby toggle to lock it;
+**simultaneous, smooth playback** rather than a sequenced cinematic;
+the beyond-8 bearing as an **8-direction compass glyph**; ally damage
+**grayed and smoldering, never red**; and the weapon section as a
+**colored circle** on the teammate view.
+
 **One rules question left:** whether disarming takes the cruiser's second
 move (above — recommend it survives).
 
@@ -868,19 +945,6 @@ move (above — recommend it survives).
    under fog, holding intel state, possibly captaining live humans. Harder
    than either existing game's bot, and it collides with the
    parameterized-bots workstream already on this branch.
-
-**Blocks the shell/plumbing, not the rules:**
-
-8. **Captain selection and captain-goes-dark fallback**, including
-   whether a bot may captain live humans.
-9. **What a calendar entry contains**, and whether it's per team or per
-   player. (Per team, almost certainly.)
-10. **Draft ordering** within a multi-player team.
-11. **Public or secret fleet lists** (recommend: a table setting).
-12. **The ships bot.** Not a question so much as unscoped work: a bot that
-    plans under fog, holds intel state, and may have to captain live
-    humans is a harder problem than either existing game's bot, and it
-    collides with the parameterized-bots workstream already on this branch.
 
 **Deferred past v1, on purpose:**
 
@@ -937,13 +1001,12 @@ waiting on Aditya — marked either way.
   playtesting: a mutual-destruction draw (simultaneous fire makes it
   reachable on its own) plus a cap, both one-line additions to the
   victory check that already lives in a single replaceable function.
-- **What shape is round 1?** Draft, then move, then action in the same
-  round — or does the draft round end after placement, so nobody shoots
-  on turn 1? Firing on the round you place, out of your own home band,
-  is a very different opening.
-- **Does the draft have a timer, and what does expiry pick?** The phase
-  timer auto-commits "whatever is planned" everywhere else, but an
-  unplanned draft has no fleet at all. Some auto-pick has to exist.
+- **What shape is round 1?** **Settled (pass ten):** the draft is
+  turn 0, a round of its own with no movement and no firing — nobody
+  shoots on the round they place.
+- **Does the draft have a timer, and what does expiry pick?** **Settled
+  (pass ten):** untimed by default; if a table sets a draft clock,
+  expiry auto-picks, since an unplanned draft is no fleet at all.
 - **Does disarming take the cruiser's second move?** *(open — the last
   rules question.)* Destroying a ship's weapon section disarms it: no
   firing, and no special action that *centres on that tile*. That second
@@ -963,8 +1026,118 @@ waiting on Aditya — marked either way.
   rule becomes "no firing and no special action," full stop.
 - **Phase timer lengths** — and whether MOVE and ACTION get the same
   clock. The shell's timer already exists; only the numbers are missing.
-- **May a ship decline to act?** Assumed yes (timer expiry already
-  implies a no-op is legal), but the engine should say so.
+- **May a ship decline to act?** **Settled (pass ten):** yes — passing
+  is a legal, ordinary choice, and often the right one.
 
 Aditya's to write, not Claude's to invent: the per-class attack designs,
 the modifier catalogue, and every user-facing string.
+
+---
+
+## Build log
+
+Running record so an interrupted session can pick up mid-stream. Each
+entry says what landed and what it still needs.
+
+- **Teams foundation — LANDED (site copy), pending re-vendor.**
+  `games/table-do.js` (the `TEAMS` getter, `teamOf`/`captainSeat`/
+  `teamColor`, team-resolved seat colors incl. empty seats, the captain
+  recolor rule, the `teams` Start refusal + stamping, `teamColors` in
+  state, per-seat `team` on results), `games/table-mock.js` (all of it,
+  byte-parallel), `games/table.js` (two-column lobby + Sit here +
+  captain badge + captain-gated picker + uneven-Start gate +
+  `cfg.timerBudget()` for per-phase clocks), `styles/table.css`
+  (`.gt-lobby__teams/__team/__teamhead`). Documented in
+  [games.md](games.md), "Teams". Cities/mahjong behavior unchanged by
+  design (teams of one); needs: browser load check of both games,
+  re-vendor `table-do.js` into `../DeetsCities` + `../DeetsMahjong`,
+  redeploy both.
+- **Build-time decisions taken** (were "plumbing, decidable at build
+  time"): captain = host idiom per team (lowest-indexed connected human,
+  else lowest live seat — a bot captain can occur and must work);
+  captain also owns the team color; per-seat **Ready** stages plans,
+  captain commits (pass eleven). Shell strings a real-teams game must
+  supply: `captainBadge`, `sitHereButton`, `teamsUnevenHint`.
+- **`ships/engine.js` — LANDED.** Pure, DOM-free, dual-export;
+  `node ships/engine.js` runs 170 self-checks. Implements the whole
+  closed rule set: draft as turn 0 (no dupes, home bands, auto-pick on
+  expiry), per-seat stage/ready + captain commit/uncommit (+ the
+  `lockCommit` table setting), destination-only per-layer collisions as
+  a revert-to-origin fixpoint, first-thing-hit lines, the carrier's
+  4×3 zone, the missile's four-rung ranking, the depth layer (cork-fail
+  surfacing, surfaced-for-the-phase exposure), mutual sonar, the 8-tile
+  reveal threshold (Chebyshev; bearing = 8-way compass), −2 move per
+  hit clamped at 0, pivot loss, disarm (cruiser's second move
+  survives — the recommended call, now implemented), per-turn team
+  history for the calendar, per-seat shot/hit/sunk counters, and
+  `checkVictory` as the one replaceable function. The engine also owns
+  the view builders (`teamYou`/`spectatorYou`/`publicView`/
+  `maskEventFor`) so worker and mock scrub hidden info identically.
+  Build decisions worth flagging: **sunk ships stop blocking** and
+  their wrecks are public; **mutual total destruction ends the game as
+  a shared rank-1 tie** (the state leaves no alternative — the doc's
+  own insurance note); **the cruiser's second move resolves after
+  fire** (you can be hit where you stood); **pivot sweeps are not
+  collision-checked** (destination-only supersedes the earlier
+  swept-arc language); private engine events ride ONE `news` envelope
+  per team so the enemy can't even count them. Engine error codes for
+  `errExtra`: `plan`, `dupe`, `band`, `move`, `aim`, `turn`,
+  `disarmed`, `locked`. The engine also owns `makeColors(base)` — the
+  ships-local red-band Colors wrapper (PRESETS without red, `norm()`
+  refusing the red hue band) — so browser and worker build it from the
+  same vendored code.
+- **The client — LANDED.** `ships/index.html` (bento; nav on all 10
+  pages links the tab), `ships/strings.js` (all `[ph]`, awaiting
+  Aditya's pass), `ships/ships.css` (bento + the board carve-out:
+  `--sh-*` literals, red = intel only, gray smolder for own damage),
+  `ships/transport-mock.js` (mock spec: captain-gated commit via
+  extraCommand, anchor bot, engine view builders), and `ships/ships.js`
+  (the planning surface: select ship → select action → the board lights
+  valid tiles; per-phase planning state; ghosts for staged plans; the
+  phase banner in the dice slot with per-side committed rows; the
+  readiness board; the calendar as a grid of turns with read-only
+  history views; the Guide popover bottom-left of the board — four
+  tabs, class table; the over screen with per-seat shots/hits/sunk and
+  Rematch). **Verified headlessly** (jsdom, `?mock`): a scripted
+  end-to-end game — lobby → add bot → start → full draft → move →
+  fire → round 2 → calendar scrub → guide — passes 34 UI assertions
+  with a clean console. Look-and-feel review is Aditya's, in his
+  browser at http://localhost:8787/ships/?mock.
+- **Draft-UI shape (build decision):** slots on the left; a slot walks
+  class → placement (rotate chip, anchors lit in the band) → mount
+  (hull tiles lit). Teammates' picks aren't previewed (VC rule), so a
+  duplicate class surfaces as the `dupe` refusal at Ready — the toast
+  says whose problem it is.
+- **The worker — LANDED, DEPLOYED, PRIVATE REPO.** `../DeetsShips`
+  (github.com/deets-137/DeetsShips, private), live at
+  `ships-api.deets.solutions` (peek answers). `ShipsTable extends
+  GameTable` with `TEAMS = 2`; `GAME_VERBS = {stage, unstage}`;
+  commit/uncommit run through `extraCommand` because captaincy is a
+  connectivity fact the engine can't see; per-phase `deadlineFor`;
+  the anchor bot in `needsPhantom`/`phantomOne`. Vendors `table-do.js`,
+  `colors.js`, `engine.js` verbatim (`scripts/vendor.mjs --check`);
+  `scripts/check.mjs` (47 checks) guards the results payload.
+  ⚠ **Aditya's two steps remain:** `npx wrangler secret put
+  SESSION_SECRET` and `... INGEST_SECRET` in `../DeetsShips`, same
+  values as DeetsAccounts — until then, seats are guests and finished
+  games wait in the DO outbox (both working degraded modes).
+- **Stats — LANDED + LIVE.** DeetsAccounts: `ships` counter whitelist
+  (`shots`, `hits`, `ships_sunk`), `ships_seats` table, and
+  `result_seats.team` (nullable — the predicted ALTER TABLE) applied to
+  the live D1 and deployed (repo pushed, its check suite at 56 green).
+  Site: profile page shows a DeetsShips box (labels are inline in
+  `profile.js` following that file's existing convention — flagging for
+  Aditya's review: "Shots fired", "Hits landed", "Ships sunk").
+- **Docs + nav:** all 10 pages' Games menus link `/ships/`; README,
+  CLAUDE.md, [games.md](games.md) ("Teams"), and [stats.md](stats.md)
+  (ships column mappings, `team`) updated.
+- **Still open after this build:** Aditya's copy pass over
+  `ships/strings.js` (everything is `[ph]`); the two worker secrets
+  (above); his look-and-feel pass at `http://localhost:8787/ships/?mock`
+  (headless checks passed, but visuals are his call); art (geometric
+  placeholders ship; sprites land under `assets/sprites/ships/`);
+  rejoin/disconnect behavior can only be tested live (the mock doesn't
+  model it — same caveat as both other games); the modifier catalogue,
+  terrain, draw rule — all still deferred per the design; and the
+  parameterized-bots/Elo workstream (the anchor bot is deliberately
+  minimal).

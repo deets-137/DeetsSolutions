@@ -35,6 +35,12 @@ tab's count and latest entry.
   faan scoring. Live multiplayer against a Cloudflare Worker;
   `mahjong/?mock` still runs the real rules engine in-page against bot
   seats as a dev tool. Desktop only. See [docs/mahjong.md](docs/mahjong.md).
+- **DeetsShips** — moving-ship Battleship on one shared 20×20 fogged
+  ocean: two teams of 1–4, simultaneous commits, hidden weapon mounts,
+  sonar, a depth layer, and a calendar of turns as the intel record.
+  Live multiplayer against a Cloudflare Worker; `ships/?mock` still runs
+  the real rules engine in-page against bot seats as a dev tool. Desktop
+  only. See [docs/ships.md](docs/ships.md).
 - **Cool Stuff I Did** — a portfolio of projects, hand-written cards.
 - **Resume** — the resume rendered in the site's design system, with a
   downloadable one-page PDF that is printed from the page itself.
@@ -65,6 +71,7 @@ games/                the shared game foundation (table shell, transport,
                       seat colors, the worker's DO base) — docs/games.md
 cities/               DeetsCities board game (talks to the DeetsCities worker)
 mahjong/              DeetsMahjong (talks to the DeetsMahjong worker)
+ships/                DeetsShips (talks to the DeetsShips worker)
 profile/              your account's home — name + color (docs/accounts.md)
 auth/                 sign-in landing pad (talks to the DeetsAccounts worker)
 privacy/              privacy policy (the OAuth consent screen links here)
@@ -112,6 +119,9 @@ by TMDB).
 - [docs/mahjong.md](docs/mahjong.md) — DeetsMahjong: the HK rules
   engine, faan table, claim windows, hidden-info wire protocol, the
   identity / disconnect-grace / rejoin rules, and what's still unbuilt.
+- [docs/ships.md](docs/ships.md) — DeetsShips: the full design record
+  (ten rules passes + the UI pass), the simultaneous-commit engine, the
+  teams foundation, hidden information per TEAM, and the build log.
 - [docs/stats.md](docs/stats.md) — game stats (accounts phase 2):
   standings, what each engine already counts and what it doesn't, the
   results pipeline and D1 schema. **Designed, not built.**

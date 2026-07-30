@@ -245,6 +245,15 @@
 .gt-colorpick__hexinput:focus { border-color: var(--title); outline: none; }
 .gt-colorpick__go { cursor: pointer; }
 .gt-colorpick__msg { color: var(--stop); font-size: 0.85rem; }
+/* ── teams (real-teams games only — docs/games.md, "Teams"): the lobby
+   renders one seat COLUMN per side, and sitting in a column is joining
+   that team. Games whose teams are of one never build these nodes. ── */
+.gt-lobby__teams { display: flex; gap: var(--space-4); align-items: flex-start; }
+.gt-lobby__team { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.gt-lobby__teamhead {
+  color: var(--subtext); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
 .gt-lobby__startrow { display: flex; gap: var(--space-2); align-self: flex-start; }   /* Start game · Shuffle */
 .gt-lobby__start { align-self: flex-start; cursor: pointer; }
 .gt-lobby__start:disabled { opacity: 0.5; cursor: default; }
