@@ -93,6 +93,8 @@ export class GameTable {
   // "none" makes leaving a concede). "none" needs the game's engine to
   // speak a `concede` action, so a game opts in by overriding (cities).
   get REJOIN_MODES() { return ["anyone", "rejoin"]; }
+  // real team count (DeetsShips: 2), or null — teams of one (see "Teams")
+  get TEAMS() { return null; }
   extraCommand() { return false; }         // game-specific verb; true = handled
   deadlineFor() { return null; }           // ms window for the table's one deadline
   dlSig() { return null; }                 // stable signature of that obligation
@@ -104,7 +106,7 @@ export class GameTable {
     if (this.t) return this.t;
     const extra = Object.keys(this.EXTRA_STATE);
     const keys = ["settings", "seats", "game", "log", "v", "meta",
-                  "turnEndsAt", "emptyAt", "timerFor",
+                  "turnEndsAt", "emptyAt", "timerFor", "teamColors",
                   "spans", "rematchIndex", "arcN", "arcBuf", "startedAt"].concat(extra);
     const v = await this.ctx.storage.get(keys);
     const meta = v.get("meta") || {};
@@ -119,6 +121,7 @@ export class GameTable {
       turnEndsAt: v.get("turnEndsAt") || null,
       emptyAt: v.get("emptyAt") || null,      // when sockets last hit zero (fuse)
       timerFor: v.get("timerFor") || null,    // signature of the obligation the timer is for
+      teamColors: v.get("teamColors") || null, // real-teams games: one color per SIDE
       // stats plumbing (docs/stats.md) — all of it resets with the game
       spans: v.get("spans") || [],            // occupancy ledger: who sat where, when, how they left
       rematchIndex: v.get("rematchIndex") || 0,   // monotonic; half the results idempotency key
@@ -136,6 +139,7 @@ export class GameTable {
     const rec = {
       settings: t.settings, seats: t.seats, game: t.game, log: t.log,
       v: t.v, turnEndsAt: t.turnEndsAt, emptyAt: t.emptyAt, timerFor: t.timerFor,
+      teamColors: t.teamColors,
       spans: t.spans, rematchIndex: t.rematchIndex, arcN: t.arcN, arcBuf: t.arcBuf,
       startedAt: t.startedAt,
       meta: { createdAt: t.createdAt, creatorToken: t.creatorToken },
@@ -279,7 +283,7 @@ export class GameTable {
     for (let i = 0; i < t.seats.length; i++) {
       const r = rank[i] || {}, fs = final[i];
       if (fs) { if (fs.kind === "bot") bots++; else humans++; }
-      seats.push({
+      const row = {
         seat: i,
         // NULL for a bot or a guest, which is why an orphan reads the same
         // as a bot rather than as a hole in the field
@@ -289,7 +293,9 @@ export class GameTable {
         score: r.score == null ? null : r.score,
         stats: this.seatStats(i),
         counters: this.seatCounters(i),
-      });
+      };
+      if (this.teamsReal()) row.team = this.teamOf(i);   // the team outcome hangs on this
+      seats.push(row);
     }
     return {
       key: this.resultKey(),
@@ -412,6 +418,53 @@ export class GameTable {
     return this.t.seats.map((s) => (s && s !== exceptSeat) ? s.color : null);
   }
 
+  /* ── teams (docs/games.md, "Teams") ─────────────────────────────────
+     Every seat always has a team. For most games teams are OF ONE —
+     teamOf(i) === i — and nothing about their model, wire or UX changes
+     beyond the additive `team` field on seat views. A game with REAL
+     teams (DeetsShips) overrides TEAMS with a count; then:
+       - the lobby maps seats to sides structurally (columns: the first
+         capacity/TEAMS seat indices are team 0, the next team 1, ...),
+         and sitting in a column IS joining that side;
+       - Start refuses uneven sides (error "teams") and stamps the
+         surviving mapping onto each seat before compaction;
+       - one color per SIDE (t.teamColors, the captain's to set via the
+         ordinary recolor verb) replaces per-seat colors — every seat
+         view's `color` resolves through its team, so the client's
+         --gseat contract needs no change and empty seats never read
+         past PRESETS at 8-seat tables;
+       - `captains` rides the public view: per team, the host idiom —
+         lowest-indexed connected human, else lowest-indexed live seat
+         (a bot captain is a real state, not an error). */
+  teamsReal() { return !!this.TEAMS; }
+  teamOf(i) {
+    if (!this.teamsReal()) return i;
+    const s = this.t.seats[i];
+    if (s && s.team != null) return s.team;   // stamped at Start
+    const per = Math.max(1, Math.ceil(this.capacity() / this.TEAMS));
+    return Math.min(this.TEAMS - 1, Math.floor(i / per));
+  }
+  captainSeat(team) {
+    let fb = null;
+    const seats = this.t.seats;
+    for (let i = 0; i < seats.length; i++) {
+      const s = seats[i];
+      if (!s || s.conceded || this.teamOf(i) !== team) continue;
+      if (fb == null) fb = i;
+      if (!this.isBot(s) && this.tokenConnected(s.token)) return i;
+    }
+    return fb;
+  }
+  teamColor(team) {
+    return (this.t.teamColors && this.t.teamColors[team]) ||
+           this.Colors.PRESETS[team % this.Colors.PRESETS.length];
+  }
+  teamSeatedCounts() {
+    const n = new Array(this.TEAMS || 0).fill(0);
+    this.t.seats.forEach((s, i) => { if (s) n[this.teamOf(i)]++; });
+    return n;
+  }
+
   // ---- views (hidden-info enforced) ----------------------------------------
   // The table-level half of every view; the game appends its own through
   // viewGame(). `you` is the only place per-seat secrets may ride.
@@ -419,16 +472,21 @@ export class GameTable {
     const t = this.t, seat = this.seatOfToken(token);
     const hostTok = this.hostToken();
     const Colors = this.Colors;
-    return {
+    const real = this.teamsReal();
+    const view = {
       code: t.code,
       phase: t.game ? t.game.phase : "lobby",
       settings: t.settings,
       host: token === hostTok,
       hostSeat: this.seatOfToken(hostTok),
       seats: t.seats.map((s, i) => {
-        if (!s) return { seat: i, name: null, color: Colors.PRESETS[i], connected: false, empty: true };
+        const team = this.teamOf(i);
+        // team color replaces seat color when teams are real — including
+        // empty seats, so 8-seat tables never index past the six presets
+        const color = real ? this.teamColor(team) : (s ? s.color : Colors.PRESETS[i]);
+        if (!s) return { seat: i, team, name: null, color, connected: false, empty: true };
         const o = {
-          seat: i, name: s.name, color: s.color,
+          seat: i, team, name: s.name, color,
           connected: this.isBot(s) ? true : this.tokenConnected(s.token),
           phantom: this.isBot(s), bot: !!s.bot,
         };
@@ -439,6 +497,8 @@ export class GameTable {
       spectators: this.spectatorCount(),
       you: { seat, host: token === hostTok },
     };
+    if (real) view.captains = Array.from({ length: this.TEAMS }, (_, k) => this.captainSeat(k));
+    return view;
   }
   viewFor(token) {
     return this.viewGame(this.baseView(token), token, this.seatOfToken(token));
@@ -789,6 +849,25 @@ export class GameTable {
         return;
       }
       if (type === "recolor") {
+        if (this.teamsReal()) {
+          // one color per SIDE, the captain's to set (the host covers a
+          // bot-captained team). The clash check runs against the OTHER
+          // sides' colors only — teammates share the pick by definition.
+          const target = msg.seat != null ? msg.seat : this.seatOfToken(token);
+          if (target == null || !t.seats[target]) return this.errTo(ws, "perm");
+          const team = this.teamOf(target);
+          const capSeat = this.captainSeat(team);
+          const capBot = capSeat != null && this.isBot(t.seats[capSeat]);
+          if (!(this.seatOfToken(token) === capSeat || (capBot && this.isHost(token)))) return this.errTo(ws, "perm");
+          const thex = this.Colors.norm(msg.color);
+          if (!thex) return this.errTo(ws, "color");
+          const others = Array.from({ length: this.TEAMS }, (_, k) => k === team ? null : this.teamColor(k));
+          if (this.Colors.clash(thex, others) >= 0) return this.errTo(ws, "color-taken");
+          if (!t.teamColors) t.teamColors = Array.from({ length: this.TEAMS }, (_, k) => this.teamColor(k));
+          t.teamColors[team] = thex;
+          await this.broadcast([]);
+          return;
+        }
         const target = msg.seat != null ? msg.seat : this.seatOfToken(token);
         const ts = target != null ? t.seats[target] : null;
         if (!ts) return this.errTo(ws, "perm");
@@ -823,6 +902,16 @@ export class GameTable {
         this.resizeSeats();
         const seated = t.seats.filter(Boolean);
         if (seated.length < this.minSeats()) return this.errTo(ws, "phase");
+        if (this.teamsReal()) {
+          // even sides or no deal — the shell disables Start for the same
+          // reason, so a "teams" refusal should never reach a player
+          const counts = this.teamSeatedCounts();
+          if (counts.some((c) => c !== counts[0] || !c)) return this.errTo(ws, "teams");
+          // stamp the lobby's structural mapping onto the seats BEFORE
+          // compaction — seat order is column order, so compacting keeps
+          // team 0's players first and teamOf reads the stamp from here on
+          t.seats.forEach((s, i) => { if (s) s.team = this.teamOf(i); });
+        }
         if (this.compactSeatsAtStart()) t.seats = seated;   // seat index === engine player index
         /* A lobby seat is held indefinitely by design, and onGone opens no
            grace window without a game — so a seat that went dark in the lobby
@@ -997,6 +1086,7 @@ export class GameTable {
         t.creatorToken = token;
         // rejoin is the base's own setting; the game's keys ride alongside
         t.settings = Object.assign({ rejoin: "rejoin" }, this.defaultSettings());
+        if (this.teamsReal()) t.teamColors = this.Colors.PRESETS.slice(0, this.TEAMS);
         t.seats = []; this.resizeSeats();
         t.game = null; t.log = []; t.v = 1;
         t.spans = []; t.rematchIndex = 0; t.startedAt = null;

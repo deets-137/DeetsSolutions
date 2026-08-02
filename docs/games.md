@@ -90,7 +90,8 @@ Every broadcast is a **full personalized view**, never a delta. `serverNow`
 rides along so clients can tick deadlines against the server's clock.
 
 **Refusal codes.** Table-level: `no-table`, `name-taken`, `full`, `perm`,
-`phase`, `turn`, `color`, `color-taken`, `flood`. A game adds its own through
+`phase`, `turn`, `color`, `color-taken`, `flood`, `teams` (real-teams games:
+Start refused on uneven sides). A game adds its own through
 `errExtra` (client) — the engine's `err(code)` codes.
 
 `no-table` / `name-taken` / `full` are **final when they answer a join**: the
@@ -195,7 +196,46 @@ hands mid-game (adoption) is unrated — its results attach to no one.
 see rides only that connection's `you`, and `maskEvent(e, seat)` scrubs
 events before delivery. Mahjong is the strict case (hands, the drawn tile,
 per-seat claim options) — see [mahjong.md](mahjong.md)'s hidden-info list
-before widening any broadcast field.
+before widening any broadcast field. A team game's `you` may be per TEAM
+(ships: teammates share everything) — `viewGame(view, token, seat)` already
+has what it needs to build that; nothing in the base assumes per-seat.
+
+### Teams
+
+**Every seat always has a team.** For cities and mahjong teams are *of
+one* — `teamOf(i) === i`, seat views carry an additive `team` field, and
+nothing else about their model, wire, or UX changes. A game with **real
+teams** (DeetsShips) declares a count — `get TEAMS() { return 2; }` on the
+DO subclass, `teams: 2` in the mock spec and the shell config — and that
+one flag gates everything below. Built for ships
+([ships.md](ships.md)); any future team game inherits it.
+
+- **Sides are structural in the lobby**: the first `capacity/TEAMS` seat
+  indices are team 0, the next team 1. The shell renders one seat column
+  per side (`.gt-lobby__team`, header via `cfg.teamName(k)`), every empty
+  seat gets a *Sit here* affordance (`S.sitHereButton`), and switching
+  sides is just standing and sitting in the other column.
+- **Start refuses uneven sides** (`teams` code) and **stamps** `s.team`
+  onto each seat before compaction, so `teamOf` reads the stamp from then
+  on and engine player index runs team 0 first. The shell disables Start
+  and shows `S.teamsUnevenHint` for the same condition, so the refusal
+  never actually reaches a player.
+- **One color per side** (`t.teamColors`) replaces per-seat colors: every
+  seat *view*'s `color` — empty seats included, which is why 8-seat tables
+  never index past the six presets — resolves through its team, so
+  `applySeatColors`, `seatAccent` and the whole `--gseat` contract are
+  untouched. `recolor` keeps its wire shape; the base maps the seat to its
+  team, requires the **captain** (or the host covering a bot captain), and
+  clashes against the other sides' colors only.
+- **Captains ride the public view** (`captains: [seat, ...]`): per team,
+  the host idiom — lowest-indexed connected human, else lowest-indexed
+  live seat. A bot captain is a real state, not an error. The shell shows
+  `S.captainBadge` on the captain's lobby row and gives them the picker.
+- **Results carry `team`** on each per-seat row when teams are real
+  ([stats.md](stats.md)) — the team outcome hangs on it.
+- **Per-phase clocks:** the readouts read one budget; a game whose budget
+  varies by phase supplies `cfg.timerBudget()` (seconds) and the ring and
+  text follow. Games with one `settings.timerSec` change nothing.
 
 ---
 
@@ -334,6 +374,7 @@ be tested live.
 `defaultSettings()`, `viewGame(view, token, seat)`, `applySettings(msg)`,
 `minSeats()`, `createGame(seated)`, `deadlineFor()`, `dlSig()`,
 `needsPhantom()`, `phantomOne()`, and — since results — `gameName()`.
+A real-teams game also overrides `TEAMS` (see "Teams").
 
 **Optional:** `EXTRA_STATE` (extra persisted keys as `{key: () => initial}`),
 `capacity()` (default: the `capacity` setting; a fixed-size table returns a
@@ -386,7 +427,7 @@ matches what you're changing, and check the blast radius before you start.
 | One game's rules | `<game>/engine.js` | That game only | **Re-vendor** into `../Deets<Game>/src/`, redeploy |
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
-| The turn timer, grace window, rejoin, bots, reconnect | `games/table-do.js` | **Every game** | **Re-vendor** into both game workers, redeploy |
+| The turn timer, grace window, rejoin, bots, reconnect, teams | `games/table-do.js` | **Every game** | **Re-vendor** into every game worker, redeploy |
 | The spans ledger, the event archive, the results POST | `games/table-do.js` | **Every game** | **Re-vendor**, redeploy; see [stats.md](stats.md) |
 | What a game records about a finished game | that worker's `src/index.js` (`seatCounters` et al.) | That game only | Redeploy · `node scripts/check.mjs` · maybe an `ALTER TABLE` in `../DeetsAccounts` |
 | Site header, nav, settings menu, toasts, `.page-bar`, `.sotd__bar`, the `tb-` kit | `styles/chrome.css` | **Every page on the site** | — |
