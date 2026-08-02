@@ -885,6 +885,189 @@
   };
 
   /* ═══ PUBLIC API ═══════════════════════════════════════════════ */
+  /* ═══ THE BOT ══════════════════════════════════════════════════
+     One brain, parameterized by TIER (docs/games.md, "Bots"). It used
+     to be two hand-ported copies — an ES5 `phantomOne` in
+     mahjong/transport-mock.js and an ES6 one in the worker's
+     src/index.js — so every tuning pass had to be written twice and
+     kept byte-parallel by hand. It lives here now for the same reason
+     the rules do: engine.js is vendored VERBATIM, so the mock and the
+     worker cannot drift.
+
+       botAct(game, isBot, opts, ctx) → action | null
+
+     One action per call (the drive loop calls again 700 ms later,
+     which is what makes a bot watchable), or null when no bot owes
+     anything. `isBot(seat)` is the caller's — the table owns who is a
+     bot, the engine owns what one does.
+
+     HIDDEN INFORMATION: the bot reads `g` directly, which holds every
+     hand. That is correct and is exactly why it lives in the engine
+     and not the client — it runs only inside the worker (or the mock,
+     which is the worker). Nothing it returns reveals a hand: the
+     action is a discard, a claim, or a roll, all of which are public
+     the moment they apply. Never call botAct from page code. */
+
+  /* The tiers ARE the difficulty knobs — there is no second brain.
+       kong/pung/chow  how often it takes each claim when offered
+       jitter          noise added to discard scoring; high = sloppy
+       shape           counts partial sets (pairs, runs, edges) when
+                       valuing a tile, instead of just counting copies
+       safe            prefers discarding tiles the pond already shows,
+                       which are the least likely to be waited on
+       chase           keeps honors/dragons that are worth faan even
+                       when they're slow, instead of shedding them */
+  var BOT_TIERS = {
+    easy:   { kong: 0.55, pung: 0.75, chow: 0.65, jitter: 3.0,
+              shape: false, safe: false, chase: false },
+    normal: { kong: 0.80, pung: 0.55, chow: 0.30, jitter: 0.5,
+              shape: true,  safe: false, chase: false },
+    hard:   { kong: 0.90, pung: 0.60, chow: 0.20, jitter: 0.1,
+              shape: true,  safe: true,  chase: true }
+  };
+  var BOT_TIER_LIST = ["easy", "normal", "hard"];
+  function botTier(name) { return BOT_TIERS[name] || BOT_TIERS.normal; }
+
+  // legal self-kong tiles for the seat holding the draw
+  function botSelfKongs(g, seat) {
+    var p = g.players[seat], pool = p.hand.slice();
+    if (g.turn && g.turn.drawn != null) pool.push(g.turn.drawn);
+    var c = {}, out = [];
+    pool.forEach(function (x) { c[x] = (c[x] || 0) + 1; });
+    Object.keys(c).forEach(function (k) { if (c[k] >= 4) out.push(k); });
+    p.melds.forEach(function (m) { if (m.kind === "pung" && c[m.tile]) out.push(m.tile); });
+    return out;
+  }
+  // how many of this tile the pond already shows — a tile with three
+  // copies face-up is nearly dead, so it's the safest thing to throw
+  function botPondCount(g, tile) {
+    var n = 0;
+    (g.pond || []).forEach(function (d) { if (d.tile === tile) n++; });
+    return n;
+  }
+
+  /* What a tile is worth to this hand. Higher = keep. The tier decides
+     how much shape it can actually see and how much noise blurs it. */
+  function botUsefulness(g, seat, tile, counts, T, rand) {
+    var v = (counts[tile] - 1) * 4;                 // pairs and triplets
+    if (isHonor(tile)) {
+      // a lone honor can only ever become a pung — it joins no run, so
+      // it is the cheapest thing in hand to shed and holding one is
+      // most of why an unturned hand drifts to a drawn wall
+      if (counts[tile] === 1) v -= 1.5;
+      if (T.chase) {
+        // honors are slow but they carry faan — a dragon or your own
+        // seat wind is worth holding a pair of, not shedding on sight
+        if (DRAGONS.indexOf(tile) >= 0) v += counts[tile] >= 2 ? 3 : 0.5;
+        var wi = WINDS.indexOf(tile);
+        if (wi >= 0 && (wi === seatWindIdx(g, seat) || wi === g.round.prevailing % 4)) {
+          v += counts[tile] >= 2 ? 2 : 0.5;
+        }
+      }
+    } else if (T.shape) {
+      var s = suitOf(tile), n = numOf(tile);
+      [-2, -1, 1, 2].forEach(function (d) {
+        var nb = n + d;
+        if (nb >= 1 && nb <= 9 && counts[s + nb]) v += Math.abs(d) === 1 ? 2 : 1;
+      });
+      // terminals sit on fewer runs than middle tiles
+      if (n === 1 || n === 9) v -= 0.5;
+    }
+    if (T.safe) v -= botPondCount(g, tile) * 1.5;   // dead tiles are cheap to throw
+    return v + rand() * T.jitter;
+  }
+
+  function botAct(g, isBot, opts, ctx) {
+    if (!g || g.phase === "over" || g.handOver) return null;   // the timer advances a finished hand
+    opts = opts || {};
+    ctx = ctx || { rand: Math.random, now: 0 };
+    var rand = ctx.rand;
+    var tierOf = typeof opts.tier === "function"
+      ? function (s) { return botTier(opts.tier(s)); }
+      : function () { return botTier(opts.tier); };
+
+    // 1. the seating roll — public theater, no judgement in it
+    if (g.phase === "seating") {
+      var scope = g.seating.reroll || [0, 1, 2, 3];
+      var s0 = null;
+      for (var i = 0; i < scope.length; i++) {
+        if (!g.seating.rolls[scope[i]] && isBot(scope[i])) { s0 = scope[i]; break; }
+      }
+      return s0 == null ? null : { type: "rollSeat", seat: s0 };
+    }
+
+    // 2. a claim window — every bot that hasn't answered owes one
+    if (g.claims) {
+      var ks = Object.keys(g.claims.can).filter(function (k) {
+        return !g.claims.responses[k] && isBot(+k);
+      });
+      if (!ks.length) return null;
+      var seat = +ks[0], T = tierOf(seat), o = g.claims.can[seat];
+      var act = "pass", tiles = null;
+      // a win is never declined — the hand is over and it scores
+      if (o.indexOf("win") >= 0) act = "win";
+      else if (o.indexOf("kong") >= 0 && rand() < T.kong) act = "kong";
+      else if (o.indexOf("pung") >= 0 && rand() < T.pung) act = "pung";
+      else if (o.indexOf("chow") >= 0 && rand() < T.chow) {
+        var cc = chowChoices(g.players[seat].hand, g.claims.tile);
+        if (cc.length) { act = "chow"; tiles = cc[Math.floor(rand() * cc.length)]; }
+      }
+      return { type: "claim", seat: seat, action: act, tiles: tiles };
+    }
+
+    // 3. breaking the wall — the dealer's, and equally mechanical
+    if (g.wall === null) {
+      var dealer = dealerSeat(g);
+      return isBot(dealer) ? { type: "rollBreak", seat: dealer } : null;
+    }
+
+    // 4. a bot's own turn
+    if (!g.turn || !isBot(g.turn.seat)) return null;
+    var me = g.turn.seat, TT = tierOf(me), p = g.players[me];
+
+    // win on the drawn tile, if it is one
+    if (g.turn.drawn != null) {
+      var wc = winCheck(g, me, g.turn.drawn, {
+        seat: me, selfDraw: true, discarder: null, robbing: false,
+        lastWall: g.wall.length === 0, replacement: !!g.turn.justKonged, firstTurn: false
+      });
+      if (wc) return { type: "win", seat: me };
+    }
+    // a kong draws a replacement tile, so it is close to free value
+    var kongs = botSelfKongs(g, me);
+    if (kongs.length && rand() < TT.kong) return { type: "kong", seat: me, tile: kongs[0] };
+
+    // otherwise shed the least useful tile in hand
+    var pool = p.hand.slice();
+    if (g.turn.drawn != null) pool.push(g.turn.drawn);
+    var counts = {};
+    pool.forEach(function (x) { counts[x] = (counts[x] || 0) + 1; });
+    var worst = null, worstV = Infinity;
+    pool.forEach(function (tile) {
+      var v = botUsefulness(g, me, tile, counts, TT, rand);
+      if (v < worstV) { worstV = v; worst = tile; }
+    });
+    return { type: "discard", seat: me, tile: worst };
+  }
+
+  /* Does any bot owe an action right now? The drive loop asks this on
+     every alarm, so it stays a cheap predicate. */
+  function botPending(g, isBot) {
+    if (!g || g.phase === "over" || g.handOver) return false;
+    if (g.phase === "seating") {
+      var scope = g.seating.reroll || [0, 1, 2, 3];
+      return scope.some(function (s) { return !g.seating.rolls[s] && isBot(s); });
+    }
+    if (g.claims) {
+      return Object.keys(g.claims.can).some(function (k) {
+        return !g.claims.responses[k] && isBot(+k);
+      });
+    }
+    if (g.wall === null) return isBot(dealerSeat(g));
+    if (g.turn) return isBot(g.turn.seat);
+    return false;
+  }
+
   var API = {
     KINDS: KINDS,
     FLOWERS: FLOWERS,
@@ -905,7 +1088,11 @@
     winCheck: winCheck,
     scoreHand: scoreHand,
     scoreProgress: scoreProgress,
-    standings: standings
+    standings: standings,
+    BOT_TIERS: BOT_TIERS,
+    BOT_TIER_LIST: BOT_TIER_LIST,
+    botAct: botAct,
+    botPending: botPending
   };
 
   API.selfTest = selfTest;
@@ -1120,6 +1307,65 @@
       // the counters survive the deal that destroys the melds themselves
       p.melds = [];
       eq(p.stats.pungs, before, "the pung counter outlives the meld array");
+    })();
+
+    /* ── the bot ─────────────────────────────────────────────────
+       The claims worth defending: every tier plays only legal moves
+       and drives a whole match to "over", and the tiers are ranked.
+       Strength here is measured by DEAL-INS, not by hands won: a
+       defensive hand wins less often and loses far less, so hand-win
+       rate ranks the tiers backwards. Points rank them correctly but
+       are heavy-tailed (a limit hand swings hundreds), which is why
+       the ladder check below counts deal-ins instead. */
+    (function botChecks() {
+      function drive(tierFn, seed, cap) {
+        var s = seed;
+        function r() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+        var c = { rand: r, now: 1000 };
+        var gg = createGame({
+          seats: [{ name: "a", color: "#ff0000" }, { name: "b", color: "#00ff00" },
+                  { name: "c", color: "#0000ff" }, { name: "d", color: "#ffff00" }],
+          settings: { minFaan: 3, capFaan: 13, winds: 1 }
+        }, c);
+        var isBot = function () { return true; };
+        var steps = 0, bad = 0;
+        while (gg.phase !== "over" && steps < (cap || 60000)) {
+          steps++;
+          var a = gg.handOver ? { type: "nextHand" } : botAct(gg, isBot, { tier: tierFn }, c);
+          if (!a) { bad++; break; }
+          var res = applyAction(gg, a, c);
+          if (res.error) { bad++; break; }
+          gg = res.game;
+        }
+        return { g: gg, steps: steps, bad: bad, over: gg.phase === "over" };
+      }
+
+      BOT_TIER_LIST.forEach(function (tier) {
+        var run = drive(function () { return tier; }, 20260802);
+        eq(run.bad, 0, tier + " bot plays only legal moves");
+        ok(run.over, tier + " bots finish a match (" + run.steps + " steps)");
+      });
+
+      eq(botAct({ phase: "over" }, function () { return true; }, {}, null), null, "no action once the match is over");
+      eq(botPending({ phase: "over" }, function () { return true; }), false, "nothing pending once it's over");
+      eq(botAct({ phase: "play", handOver: {} }, function () { return true; }, {}, null), null,
+         "a settled hand is the timer's to advance, not a bot's");
+
+      // the ladder: a hard seat should deal in far less than three easies
+      var dinHard = 0, dinEasy = 0, played = 0;
+      for (var n = 0; n < 6; n++) {
+        var hardSeat = n % 4;
+        var run2 = drive(function (seat) { return seat === hardSeat ? "hard" : "easy"; }, 313 + n * 977);
+        if (!run2.over) continue;
+        played++;
+        run2.g.players.forEach(function (p, i) {
+          if (i === hardSeat) dinHard += p.stats.dealIns; else dinEasy += p.stats.dealIns;
+        });
+      }
+      ok(played >= 4, "tier ladder: enough matches finished (" + played + "/6)");
+      // three easy seats share dinEasy, so compare per-seat
+      ok(dinHard < dinEasy / 3, "hard deals in less than an easy seat (" +
+         dinHard + " vs " + (dinEasy / 3).toFixed(1) + ")");
     })();
 
     var summary = "mahjong engine selfTest: " + pass + " passed, " + fail + " failed";

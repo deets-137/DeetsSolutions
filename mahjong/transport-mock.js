@@ -19,9 +19,9 @@
   var HANDOVER_MS = 9000;    // the settlement interstitial always auto-advances
   var CLAIM_CAP_MS = 10000;  // a claim window never waits longer than this (timed tables)
 
-  function phantom(t, s) { return t.seats[s] && t.seats[s].phantom; }
-
-  // legal self-kong tiles for the seat holding the draw
+  // legal self-kong tiles for the seat holding the draw (the VIEW's copy —
+  // `you.kongs` is what lights the client's Kong pill; the bot's own copy
+  // lives in the engine)
   function selfKongs(g, seat) {
     var p = g.players[seat];
     var pool = p.hand.slice();
@@ -67,80 +67,6 @@
     if (g.wall === null) return "break:" + hid;
     if (g.turn) return "turn:" + g.turn.seat + ":" + hid;
     return "x";
-  }
-
-  function needsPhantom(t) {
-    var g = t.game; if (!g || g.phase === "over") return false;
-    if (g.handOver) return false;                             // the timer advances it
-    if (g.phase === "seating") {
-      var scope = g.seating.reroll || [0, 1, 2, 3];
-      return scope.some(function (s) { return !g.seating.rolls[s] && phantom(t, s); });
-    }
-    if (g.claims) {
-      return Object.keys(g.claims.can).some(function (k) { return !g.claims.responses[k] && phantom(t, +k); });
-    }
-    if (g.wall === null) return phantom(t, Engine.dealerSeat(g));
-    if (g.turn) return phantom(t, g.turn.seat);
-    return false;
-  }
-
-  function phantomOne(t, H) {
-    var g = t.game;
-    if (g.phase === "seating") {
-      var scope = g.seating.reroll || [0, 1, 2, 3];
-      var s0 = scope.filter(function (s) { return !g.seating.rolls[s] && phantom(t, s); })[0];
-      if (s0 == null) return false;
-      return H.tryAct(t, { type: "rollSeat", seat: s0 });
-    }
-    if (g.claims) {
-      var ks = Object.keys(g.claims.can).filter(function (k) { return !g.claims.responses[k] && phantom(t, +k); });
-      if (!ks.length) return false;
-      var seat = +ks[0], opts = g.claims.can[seat];
-      var act = "pass", tiles = null;
-      if (opts.indexOf("win") >= 0) act = "win";
-      else if (opts.indexOf("kong") >= 0 && Math.random() < 0.8) act = "kong";
-      else if (opts.indexOf("pung") >= 0 && Math.random() < 0.55) act = "pung";
-      else if (opts.indexOf("chow") >= 0 && Math.random() < 0.3) {
-        act = "chow";
-        var cc = Engine.chowChoices(g.players[seat].hand, g.claims.tile);
-        tiles = cc[Math.floor(Math.random() * cc.length)];
-      }
-      return H.tryAct(t, { type: "claim", seat: seat, action: act, tiles: tiles });
-    }
-    if (g.wall === null && !g.handOver) {
-      var dealer = Engine.dealerSeat(g);
-      if (!phantom(t, dealer)) return false;
-      return H.tryAct(t, { type: "rollBreak", seat: dealer });
-    }
-    if (!g.turn || !phantom(t, g.turn.seat)) return false;
-    var me = g.turn.seat, p = g.players[me];
-    // 1) win if the drawn tile completes the hand
-    if (g.turn.drawn != null && H.tryAct(t, { type: "win", seat: me })) return true;
-    // 2) kong when available (keeps the replacement-draw machinery exercised)
-    var kongs = selfKongs(g, me);
-    if (kongs.length && Math.random() < 0.7 && H.tryAct(t, { type: "kong", seat: me, tile: kongs[0] })) return true;
-    // 3) discard the least useful tile
-    var pool = p.hand.slice();
-    if (g.turn.drawn != null) pool.push(g.turn.drawn);
-    var counts = {};
-    pool.forEach(function (x) { counts[x] = (counts[x] || 0) + 1; });
-    function usefulness(tile) {
-      var v = (counts[tile] - 1) * 4;
-      if (!Engine.isHonor(tile)) {
-        var s = Engine.suitOf(tile), n = Engine.numOf(tile);
-        [-2, -1, 1, 2].forEach(function (d) {
-          var nb = n + d;
-          if (nb >= 1 && nb <= 9 && counts[s + nb]) v += Math.abs(d) === 1 ? 2 : 1;
-        });
-      }
-      return v + Math.random() * 0.5;   // jitter breaks ties un-robotically
-    }
-    var worst = null, worstV = Infinity;
-    pool.forEach(function (tile) {
-      var v = usefulness(tile);
-      if (v < worstV) { worstV = v; worst = tile; }
-    });
-    return H.tryAct(t, { type: "discard", seat: me, tile: worst });
   }
 
   /* ── command handlers (client → table) ────────────────────────── */
@@ -297,7 +223,23 @@
 
     deadlineFor: deadlineFor,
     dlSig: dlSig,
-    needsPhantom: needsPhantom,
-    phantomOne: function (t, H) { return phantomOne(t, H); }
+    /* bot drive — the BRAIN LIVES IN engine.js (docs/games.md, "Bots").
+       This file used to carry its own ES5 copy of it while the worker
+       carried an ES6 one, so every tuning pass had to be written twice.
+       Both now call the vendored engine and cannot drift. */
+    needsPhantom: function (t) { return Engine.botPending(t.game, botAt(t)); },
+    phantomOne: function (t, H) {
+      var a = Engine.botAct(t.game, botAt(t), { tier: tierAt(t) }, H.ctx());
+      return a ? H.tryAct(t, a) : false;
+    }
   });
+
+  // who is a bot, and how hard each one plays — the table's half of the
+  // contract; the engine owns what a bot actually does with it
+  function botAt(t) {
+    return function (seat) { return !!(t.seats[seat] && t.seats[seat].phantom); };
+  }
+  function tierAt(t) {
+    return function (seat) { return (t.seats[seat] && t.seats[seat].tier) || "normal"; };
+  }
 })();
