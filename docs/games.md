@@ -67,7 +67,7 @@ One envelope for every game. Only the action verbs differ.
 | `join` | `{name, create, token}` | first message on every socket |
 | `sit` / `stand` | `{seat?}` | lobby; mid-game too under the re-join policy — `stand` releases your seat (two-stepped in the UI), `sit {seat}` adopts a bot-held one at an "anyone" table |
 | `rename` | `{name}` | own seat, lobby only (names lock at Start, like colors) |
-| `addBot` | `{seat, name}` | host, lobby only (re-adding at a bot's seat renames) |
+| `addBot` | `{seat, name, tier?}` | host, lobby only (re-adding at a bot's seat renames **and** re-tiers — see "Bots") |
 | `kickSeat` | `{seat}` | host; lobby opens the seat (bots included — this is how a lobby bot is removed), mid-game converts a **human** seat to a bot and refuses a bot-held one |
 | `shuffle` | — | host, lobby only |
 | `recolor` | `{seat?, color}` | own seat, or host on a bot seat; lobby only |
@@ -237,6 +237,67 @@ one flag gates everything below. Built for ships
   varies by phase supplies `cfg.timerBudget()` (seconds) and the ring and
   text follow. Games with one `settings.timerSec` change nothing.
 
+### Bots
+
+**A bot's brain lives in that game's `engine.js`, never in the mock and
+never in the worker's `src/index.js`.** Cities and mahjong each carried
+two hand-ported copies — an ES5 `phantomOne` in the mock and an ES6 one
+in the worker — so every tuning pass had to be written twice and kept
+byte-parallel by hand. `engine.js` is vendored VERBATIM into the worker
+repo, which is exactly the property a bot needs, for the same reason the
+rules need it.
+
+The engine exports two functions and one list:
+
+```js
+botAct(game, isBot, opts, ctx) → action | null   // ONE action, or null
+botPending(game, isBot)        → bool            // cheap: does anyone owe?
+BOT_TIER_LIST                  → ["easy", ...]   // the difficulty vocabulary
+```
+
+- **One action per call.** The drive loop calls again `BOT_STEP` (700 ms)
+  later, which is what makes a bot watchable rather than a flood.
+- **`isBot(seat)` and the tier lookup are the TABLE's.** The table owns
+  who is a bot and how hard each plays; the engine owns what one does
+  about it. `table-do.js` hands over `botAt()` / `tierOf()`, and
+  `table-mock.js` the same two through `HELPERS` — both drive hooks
+  (`needsPhantom`, `phantomOne`) receive them.
+- **`opts.tier` is a name or a seat → name function**, because a table
+  can mix tiers and *which* seat acts is decided inside `botAct`, not by
+  the caller. `opts.acts` carries a per-turn budget the caller counts,
+  where a game has one (cities' build budget).
+- **Hidden information is fine here.** The bot reads `game` directly,
+  hands and all. That is correct precisely because it runs only inside
+  the worker (and the mock, which *is* the worker) — never call `botAct`
+  from page code. What it returns is always a public act anyway.
+
+**Difficulty is a name, not a number.** `BOT_TIER_LIST` is the engine's
+vocabulary; the foundation only validates against it and the shell only
+renders it (`cfg.botTiers`, labels `S.botTier_<name>`). A game that
+declares no tiers gets no picker and changes nothing else — which is
+what ships does today. **An unknown or missing tier falls back to the
+middle of the list**, so a seat converted mid-game (grace expiry, a
+kick, a lobby seat that went dark) plays the default rather than
+inheriting whatever the host last typed. The tier rides every seat view:
+difficulty is public, because you should know what you're sitting
+across from.
+
+**Tuning is measured, not guessed.** Two findings worth not rediscovering:
+
+- **Difficulty belongs in judgement, not in refusing to play.** The
+  first cut of cities' `easy` placed randomly and hoarded roads; it ran
+  **23,583 turns without a winner**. A bot that won't expand doesn't
+  play badly, it stops the game converging. Weak tiers now make *worse
+  choices*, not fewer.
+- **Pick the metric before the tier.** In mahjong, hand-win rate ranks
+  the tiers **backwards** — a defensive hand wins less often (hard 29%,
+  easy 65%) and loses far less. Points rank them correctly but are
+  heavy-tailed enough that 40 matches separated nothing. **Deal-ins**
+  are the stable signal, and the self-test ladder counts those.
+
+Each engine's `selfTest()` covers legality per tier, that every tier
+finishes a game, and the ladder itself.
+
 ---
 
 ## The browser: `games/table.js`
@@ -374,6 +435,9 @@ be tested live.
 `defaultSettings()`, `viewGame(view, token, seat)`, `applySettings(msg)`,
 `minSeats()`, `createGame(seated)`, `deadlineFor()`, `dlSig()`,
 `needsPhantom()`, `phantomOne()`, and — since results — `gameName()`.
+Both drive hooks should delegate to the engine's `botPending` / `botAct`
+via the base's `botAt()` and `tierOf()` (see "Bots"); a worker that still
+carries its own copy of a brain is a bug waiting to drift.
 A real-teams game also overrides `TEAMS` (see "Teams").
 
 **Optional:** `EXTRA_STATE` (extra persisted keys as `{key: () => initial}`),
@@ -425,6 +489,8 @@ matches what you're changing, and check the blast radius before you start.
 | --- | --- | --- | --- |
 | One game's board, art, layout, copy | `<game>/<game>.{js,css}`, `<game>/strings.js` | That game only | — |
 | One game's rules | `<game>/engine.js` | That game only | **Re-vendor** into `../Deets<Game>/src/`, redeploy |
+| **How that game's bot plays, or its difficulty tiers** | `<game>/engine.js` (`botAct`, `BOT_TIERS`) | That game only | **Re-vendor**, redeploy — see "Bots" |
+| The tier's wire field, validation, and the lobby picker | `games/table-do.js` + `table-mock.js` + `table.js` | **Every game** | **Re-vendor** the base into every game worker, redeploy |
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
 | The turn timer, grace window, rejoin, bots, reconnect, teams | `games/table-do.js` | **Every game** | **Re-vendor** into every game worker, redeploy |

@@ -945,10 +945,17 @@ contract code twice, which is why one deploy now clears everything at once.
 
 Everything else is decided. What remains:
 
-1. **Bot difficulty tiers tied to Elo** — parked, no rush. The schema already
-   supports it: `kind = 'bot'` plus a stored `name` gives a per-bot rating
-   whenever it's wanted. Elo itself is still unbuilt, so this is parked behind
-   a parked thing.
+1. **Bot difficulty tiers tied to Elo** — half of this landed. The **tiers
+   exist** (`docs/games.md`, "Bots"): each engine publishes a
+   `BOT_TIER_LIST`, the host picks one per bot in the lobby, and it rides
+   the seat. What is still parked is the **Elo tie-in**, because Elo itself
+   is still unbuilt. When it arrives the tier should be part of a bot's
+   identity for rating — `kind = 'bot'` plus `name` was the plan, and a
+   tier now belongs beside them, since an easy bot and a hard bot under
+   the same name are not the same opponent. **The results row does not
+   carry the tier yet** — adding it is an `ALTER TABLE` in
+   `../DeetsAccounts` plus a `seatCounters` change, and it should be done
+   at the same time as Elo rather than speculatively.
 2. **Placement normalisation** — percentile, a 4.0 scale, or raw only. Stored
    raw either way; deferred until the stats view exists.
 3. ~~**Chunk size for the log archive.**~~ Settled at `ARC_CHUNK = 100`, and
