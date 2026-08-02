@@ -1093,6 +1093,356 @@
     return null;
   }
 
+  /* ═══ THE BOT ══════════════════════════════════════════════════
+     One brain, parameterized by TIER (docs/games.md, "Bots"). This
+     used to be two hand-ported copies — an ES5 `phantomOne` in
+     cities/transport-mock.js and an ES6 one in the worker's
+     src/index.js — which meant every tuning pass had to be written
+     twice and kept byte-parallel by hand. It lives here now for the
+     same reason the rules do: engine.js is vendored VERBATIM, so the
+     mock and the worker cannot drift.
+
+     `botAct` is as pure as the rest of the file. It returns ONE action
+     (the drive loop calls it again 700 ms later, which is what makes a
+     bot watchable) or null when no bot owes anything. It never mutates
+     `g`: candidate moves are probed through applyAction itself with a
+     zeroed rand, so legality is the engine's own answer rather than a
+     second, drifting copy of the rules.
+
+       botAct(game, isBot, opts, ctx) → action | null
+
+     `isBot(seat)` is the caller's — the table owns who is a bot, the
+     engine owns what one does. `opts.tier` names the tier;
+     `opts.acts` is how many build actions this bot already took this
+     turn (the caller counts, since a turn's budget outlives one call). */
+
+  /* The tiers ARE the difficulty knobs — there is no second brain.
+       pick       how many of the best-scoring legal spots it chooses
+                  among (1 = always the best it can see, 6 = careless)
+       knight     chance of playing a held knight before rolling
+       road       chance of spending on a road toward open ground
+       dev        chance of buying a development card
+       acts       build actions per turn before it ends the turn
+       robber     "random" | "steal" (anyone holding cards) | "leader"
+       evenPass   chance of declining an exactly-even trade
+       loss       worst net card loss it will still accept in a trade
+       trade      eagerness to bank-trade surplus toward a goal
+       keepPairs  sheds its deepest stacks on a discard instead of
+                  shedding blindly and breaking its own sets
+
+     Every tier EXPANDS — `road` is not a weakness knob. A bot that
+     won't build roads can't reach new ground, and the game stops
+     converging: the first cut of `easy` had road 0.85 with random
+     placement and ran 23,583 turns without a winner. Difficulty lives
+     in judgement (`pick`, `robber`, the trade terms), not in refusing
+     to play. */
+  var BOT_TIERS = {
+    easy:   { pick: 6, knight: 0.05, road: 0.55, dev: 0.25, acts: 10,
+              robber: "random", evenPass: 0.10, loss: 2,  trade: 0.40, keepPairs: false },
+    normal: { pick: 3, knight: 0.35, road: 0.65, dev: 0.45, acts: 14,
+              robber: "steal",  evenPass: 0.40, loss: 0,  trade: 0.75, keepPairs: true },
+    hard:   { pick: 1, knight: 0.85, road: 0.80, dev: 0.55, acts: 20,
+              robber: "leader", evenPass: 0.75, loss: -1, trade: 1.00, keepPairs: true }
+  };
+  var BOT_TIER_LIST = ["easy", "normal", "hard"];
+  function botTier(name) { return BOT_TIERS[name] || BOT_TIERS.normal; }
+
+  /* Probe: is this action legal right now? Deterministic and side-effect
+     free — a zeroed rand keeps a probe from consuming the caller's RNG.
+     applyAction CLONES, so this is only for the one-off verbs (buyDev,
+     playDev). Placement asks the engine's own predicates instead —
+     `occupied`, `touchesOwnRoad`, `roadConnects`, `canAfford` — which is
+     why the bot can rank every vertex on the board without cloning it
+     once, and why there is still exactly one copy of the rules. */
+  function botLegal(g, action, ctx) {
+    var r = applyAction(g, action, { rand: function () { return 0; }, now: ctx ? ctx.now : 0 });
+    return !r.error;
+  }
+  // Vertices where a settlement could stand at all: free, no occupied
+  // neighbour, and an adjoining edge left for the road.
+  function botOpenVerts(g, geo) {
+    return Object.keys(geo.vertexHexes).filter(function (v) {
+      if (occupied(g, v)) return false;
+      var nbrs = geo.vertexNeighbors[v] || [];
+      for (var i = 0; i < nbrs.length; i++) if (occupied(g, nbrs[i])) return false;
+      var es = geo.vertexEdges[v] || [];
+      for (var k = 0; k < es.length; k++) if (g.roads[es[k]] == null) return true;
+      return false;
+    });
+  }
+  // Choose among the `pick` best-scoring candidates, so the same bot
+  // doesn't replay an identical opening every game. Already sorted best-first.
+  function botChoose(list, pick, rand) {
+    if (!list.length) return null;
+    var n = pick === Infinity ? list.length : Math.min(pick, list.length);
+    return list[Math.floor(rand() * n)];
+  }
+  // A vertex's production value: pips over its hexes (6/8 are worth most),
+  // plus a nudge for touching more than one resource.
+  function botPipValue(g, geo, vid) {
+    var hexes = geo.vertexHexes[vid] || [], v = 0, kinds = {};
+    hexes.forEach(function (hk) {
+      var h = null;
+      for (var i = 0; i < g.board.hexes.length; i++) {
+        if (hkey(g.board.hexes[i].q, g.board.hexes[i].r) === hk) { h = g.board.hexes[i]; break; }
+      }
+      if (h && h.token != null) { v += 6 - Math.abs(7 - h.token); kinds[h.terrain] = 1; }
+    });
+    return v + Object.keys(kinds).length * 0.5;
+  }
+  // Free edges this seat may actually build on, best-first: a road is
+  // worth most when it reaches unclaimed ground worth settling.
+  function botRoadSpots(g, geo, seat) {
+    if (g.players[seat].supply.road <= 0) return [];
+    var list = Object.keys(geo.edgeVertices).filter(function (e) {
+      return g.roads[e] == null && roadConnects(g, geo, seat, e);
+    });
+    var score = {};
+    list.forEach(function (e) {
+      var ends = geo.edgeVertices[e] || [], v = 0;
+      ends.forEach(function (o) { if (!occupied(g, o)) v = Math.max(v, botPipValue(g, geo, o)); });
+      score[e] = v;
+    });
+    return list.sort(function (a, b) { return score[b] - score[a]; });
+  }
+  /* Trade surplus to the bank for the one card a goal is short of.
+     Without this a bot can only ever spend exactly what it rolls, and a
+     table of them deadlocks late: everyone holds the wrong five cards,
+     nobody can build, and the game rolls forever without a winner. It is
+     also most of what separates a bot that finishes from one that
+     wanders — so every tier does it, `trade` only sets how eagerly. */
+  function botBankTrade(g, geo, seat, T, rand) {
+    if (rand() >= T.trade) return null;
+    var p = g.players[seat], hand = p.hand;
+    var harbors = playerHarbors(g, geo, seat);
+    // what it's saving for, best VP first — skip goals it can't use
+    var goals = [];
+    var hasSettlement = Object.keys(g.buildings).some(function (v) {
+      return g.buildings[v].seat === seat && g.buildings[v].kind === "settlement";
+    });
+    if (p.supply.city > 0 && hasSettlement) goals.push(COST.city);
+    if (p.supply.settlement > 0) goals.push(COST.settlement);
+    goals.push(COST.dev);
+    if (p.supply.road > 0) goals.push(COST.road);
+
+    for (var gi = 0; gi < goals.length; gi++) {
+      var goal = goals[gi];
+      if (canAfford(hand, goal)) continue;              // already there
+      var want = null;
+      for (var k = 0; k < RES.length; k++) {
+        var r = RES[k];
+        if ((goal[r] || 0) > hand[r]) { want = r; break; }
+      }
+      if (want == null || g.bank[want] < 1) continue;
+      // spend only what this goal doesn't itself need
+      for (var j = 0; j < RES.length; j++) {
+        var give = RES[j];
+        if (give === want) continue;
+        var rate = tradeRate(harbors, give);
+        if (hand[give] - (goal[give] || 0) >= rate) {
+          return { type: "bankTrade", seat: seat, give: give, get: want, n: 1 };
+        }
+      }
+    }
+    return null;
+  }
+
+  // Which seat is most worth robbing: the public-VP leader among seats
+  // that aren't this bot. Ties break toward the bigger hand.
+  function botLeader(g, seat) {
+    var best = null, bv = -1;
+    for (var s = 0; s < g.players.length; s++) {
+      if (s === seat) continue;
+      var v = publicVP(g, s) * 100 + handSize(g.players[s].hand);
+      if (v > bv) { bv = v; best = s; }
+    }
+    return best;
+  }
+
+  function botAct(g, isBot, opts, ctx) {
+    if (!g || g.phase === "over") return null;
+    opts = opts || {};
+    ctx = ctx || { rand: Math.random, now: 0 };
+    // A table can mix tiers, and which seat acts is decided BELOW, not by
+    // the caller — so the tier is resolved per acting seat. `opts.tier` is
+    // either one name for every bot or a seat → name function.
+    var tierOf = typeof opts.tier === "function"
+      ? function (s) { return botTier(opts.tier(s)); }
+      : function () { return botTier(opts.tier); };
+    var rand = ctx.rand;
+    var geo = geoOf(g.board);
+
+    // 1. a forced discard, owed by any bot, whoever's turn it is
+    if (g.phase === "main" && g.turn.pending && g.turn.pending.kind === "discard") {
+      var owed = g.turn.pending.owed;
+      var pk = Object.keys(owed).filter(function (k) { return isBot(+k); })[0];
+      if (pk != null) {
+        // shed the deepest stacks first, keeping pairs a hand can still use;
+        // a sloppy bot just sheds in list order and breaks its own sets
+        var dseat = +pk, need = owed[dseat], hand = g.players[dseat].hand, cards = {}, left = need;
+        var order = tierOf(dseat).keepPairs
+          ? RES.slice().sort(function (a, b) { return hand[b] - hand[a]; })
+          : RES.slice();
+        for (var i = 0; i < order.length && left > 0; i++) {
+          var take = Math.min(hand[order[i]], left);
+          if (take > 0) { cards[order[i]] = take; left -= take; }
+        }
+        return { type: "discard", seat: dseat, cards: cards };
+      }
+    }
+
+    // 2. opening placement
+    if (g.phase === "setup") {
+      var cur = g.setup.seq[g.setup.i];
+      if (!isBot(cur)) return null;
+      var T = tierOf(cur);
+      if (g.setup.need === "settlement") {
+        if (g.players[cur].supply.settlement <= 0) return null;
+        var spots = botOpenVerts(g, geo).sort(function (a, b) {
+          return botPipValue(g, geo, b) - botPipValue(g, geo, a);
+        });
+        var loc = botChoose(spots, T.pick, rand);
+        return loc == null ? null : { type: "place", kind: "settlement", seat: cur, loc: loc };
+      }
+      // the road must touch the settlement just placed, so the only choice
+      // is which way it points — toward the best neighbouring vertex
+      var edges = (geo.vertexEdges[g.setup.lastVid] || []).filter(function (e) {
+        return g.roads[e] == null;
+      }).sort(function (a, b) {
+        function far(eid) {
+          var ends = geo.edgeVertices[eid] || [];
+          var o = ends[0] === g.setup.lastVid ? ends[1] : ends[0];
+          return o == null ? -1 : botPipValue(g, geo, o);
+        }
+        return far(b) - far(a);
+      });
+      var re = botChoose(edges, T.pick, rand);
+      return re == null ? null : { type: "place", kind: "road", seat: cur, loc: re };
+    }
+
+    if (g.phase !== "main") return null;
+
+    // 3. answer an open offer — bots respond even on a human's turn, so
+    //    this runs before the turn-seat check
+    var resp = botRespond(g, isBot, tierOf, rand);
+    if (resp) return resp;
+
+    var seat = g.turn.seat;
+    if (!isBot(seat)) return null;
+    var T = tierOf(seat);
+    var p = g.turn.pending;
+
+    if (p && p.kind === "robber") {
+      var hexes = g.board.hexes.filter(function (h) { return hkey(h.q, h.r) !== g.board.robber; });
+      var target = T.robber === "leader" ? botLeader(g, seat) : null;
+      var best = hexes[Math.floor(rand() * hexes.length)];
+      if (T.robber !== "random") {
+        for (var hh = 0; hh < hexes.length; hh++) {
+          var vv = geo.hexVertices[hkey(hexes[hh].q, hexes[hh].r)] || [];
+          var good = vv.some(function (x) {
+            var b = g.buildings[x];
+            if (!b || b.seat === seat || !handSize(g.players[b.seat].hand)) return false;
+            return target != null ? b.seat === target : !isBot(b.seat);
+          });
+          if (good) { best = hexes[hh]; break; }
+        }
+      }
+      return { type: "moveRobber", seat: seat, hex: hkey(best.q, best.r) };
+    }
+    if (p && p.kind === "steal") {
+      // a careful bot robs the fattest hand; a sloppy one grabs whoever
+      var tg = p.targets.slice();
+      if (T.robber === "random") return { type: "steal", seat: seat, target: tg[Math.floor(rand() * tg.length)] };
+      tg.sort(function (a, b) { return handSize(g.players[b].hand) - handSize(g.players[a].hand); });
+      return { type: "steal", seat: seat, target: botChoose(tg, T.pick, rand) };
+    }
+    if (p && p.kind === "roads") {
+      var free = botRoadSpots(g, geo, seat);
+      var road = botChoose(free, T.pick, rand);
+      // no legal road (boxed in, or out of supply) — bail the turn
+      return road == null ? { type: "endTurn" } : { type: "place", kind: "road", seat: seat, loc: road };
+    }
+    if (!g.turn.rolled) {
+      if (rand() < T.knight && g.players[seat].dev.some(function (d) {
+        return d.card === "knight" && d.turnBought !== g.stats.turns;
+      })) {
+        var kn = { type: "playDev", card: "knight" };
+        if (botLegal(g, kn, ctx)) return kn;
+      }
+      return { type: "roll" };
+    }
+
+    // 4. rolled, nothing pending: buy ONE thing, or end the turn.
+    //    Cities before settlements before roads — a city doubles a spot
+    //    already earned, which is the cheapest VP on the board.
+    if ((opts.acts || 0) < T.acts) {
+      var pl = g.players[seat];
+      if (pl.supply.city > 0 && canAfford(pl.hand, COST.city)) {
+        var mine = Object.keys(g.buildings).filter(function (x) {
+          return g.buildings[x].seat === seat && g.buildings[x].kind === "settlement";
+        }).sort(function (a, b) { return botPipValue(g, geo, b) - botPipValue(g, geo, a); });
+        var city = botChoose(mine, T.pick, rand);
+        if (city != null) return { type: "place", kind: "city", seat: seat, loc: city };
+      }
+      if (pl.supply.settlement > 0 && canAfford(pl.hand, COST.settlement)) {
+        var spots2 = botOpenVerts(g, geo).filter(function (v) {
+          return touchesOwnRoad(g, geo, seat, v);
+        }).sort(function (a, b) { return botPipValue(g, geo, b) - botPipValue(g, geo, a); });
+        var st = botChoose(spots2, T.pick, rand);
+        if (st != null) return { type: "place", kind: "settlement", seat: seat, loc: st };
+      }
+      if (rand() < T.road && canAfford(pl.hand, COST.road)) {
+        var open = botRoadSpots(g, geo, seat);
+        var r = botChoose(open, T.pick, rand);
+        if (r != null) return { type: "place", kind: "road", seat: seat, loc: r };
+      }
+      if (rand() < T.dev) {
+        var buy = { type: "buyDev" };
+        if (botLegal(g, buy, ctx)) return buy;
+      }
+      // nothing affordable — convert surplus and try again next tick
+      var bt = botBankTrade(g, geo, seat, T, rand);
+      if (bt) return bt;
+    }
+    return { type: "endTurn" };
+  }
+
+  /* One bot answers one open offer. It receives `give` and pays `get`;
+     a tier's `loss` is the worst net it will still take (hard demands
+     profit, easy will take a bath), and `evenPass` is how often it walks
+     away from a dead-even swap so trades aren't automatic. */
+  function botRespond(g, isBot, tierOf, rand) {
+    if (!g.offers || !g.offers.length) return null;
+    function bagSum(b) { var n = 0; for (var i = 0; i < RES.length; i++) n += b[RES[i]] || 0; return n; }
+    for (var oi = 0; oi < g.offers.length; oi++) {
+      var o = g.offers[oi];
+      for (var s = 0; s < g.players.length; s++) {
+        if (s === o.from || !isBot(s)) continue;
+        if (o.responses && o.responses[s] != null) continue;
+        if (o.toCurrent && s !== g.turn.seat) continue;
+        var T = tierOf(s);
+        var gets = bagSum(o.give), gives = bagSum(o.get);
+        var canPay = RES.every(function (r) { return (g.players[s].hand[r] || 0) >= (o.get[r] || 0); });
+        var action = (canPay && gets > 0 && gets - gives >= -T.loss) ? "accept" : "decline";
+        if (action === "accept" && gets === gives && rand() < T.evenPass) action = "decline";
+        return { type: "respond", seat: s, offerId: o.id, action: action };
+      }
+    }
+    return null;
+  }
+
+  /* Does any bot owe an action right now? The drive loop asks this on
+     every alarm, so it stays a cheap predicate — no applyAction probes. */
+  function botPending(g, isBot) {
+    if (!g || g.phase === "over") return false;
+    if (g.phase === "setup") return isBot(g.setup.seq[g.setup.i]);
+    if (g.phase !== "main") return false;
+    var p = g.turn.pending;
+    if (p && p.kind === "discard") return Object.keys(p.owed).some(function (k) { return isBot(+k); });
+    if (isBot(g.turn.seat)) return true;
+    return !!botRespond(g, isBot, function () { return botTier("normal"); }, function () { return 1; });
+  }
+
   /* ═══ PUBLIC API ═══════════════════════════════════════════════ */
   var API = {
     RES: RES,
@@ -1106,7 +1456,11 @@
     standings: standings,
     playerHarbors: playerHarbors,
     tradeRate: tradeRate,
-    longestRoadFor: longestRoadFor
+    longestRoadFor: longestRoadFor,
+    BOT_TIERS: BOT_TIERS,
+    BOT_TIER_LIST: BOT_TIER_LIST,
+    botAct: botAct,
+    botPending: botPending
   };
 
   API.selfTest = selfTest;
@@ -1667,6 +2021,71 @@
       }
       return { type: "endTurn" };
     }
+
+    /* ── the bot ─────────────────────────────────────────────────
+       The claims worth defending: every tier plays only legal moves,
+       every tier actually FINISHES a game (the first cut of `easy`
+       ran 23,583 turns without a winner), and the tiers are ranked —
+       hard beats easy convincingly at the same table. */
+    (function botChecks() {
+      // a fresh 3-seat game driven entirely by bots at one tier
+      function drive(tierFn, seed, cap) {
+        var s = seed;
+        function r() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+        var c = { rand: r, now: 1000 };
+        var gg = createGame({ seats: [{ name: "a", color: "#ff0000" },
+                                      { name: "b", color: "#00ff00" },
+                                      { name: "c", color: "#0000ff" }], settings: {} }, c);
+        var isBot = function () { return true; };
+        var steps = 0, acts = 0, mark = -1, bad = 0;
+        while (gg.phase !== "over" && steps < (cap || 20000)) {
+          steps++;
+          if (gg.stats.turns !== mark) { mark = gg.stats.turns; acts = 0; }
+          var a = botAct(gg, isBot, { tier: tierFn, acts: acts }, c);
+          if (!a) { bad++; break; }
+          var res = applyAction(gg, a, c);
+          if (res.error) { bad++; break; }
+          gg = res.game;
+          acts = a.type === "endTurn" ? 0 : acts + 1;
+        }
+        return { g: gg, steps: steps, bad: bad, over: gg.phase === "over" };
+      }
+
+      BOT_TIER_LIST.forEach(function (tier) {
+        var run = drive(function () { return tier; }, 20260802);
+        eq(run.bad, 0, tier + " bot plays only legal moves");
+        ok(run.over, tier + " bots finish a game (" + run.steps + " steps)");
+      });
+
+      // never acts for a seat that isn't a bot
+      var solo = drive(function () { return "normal"; }, 7, 40);
+      eq(botAct(solo.g, function () { return false; }, { tier: "normal" }, { rand: function () { return 0; }, now: 0 }), null,
+         "no action when no seat is a bot");
+
+      // botPending agrees with botAct: if one says there's work, so does the other
+      var probe = drive(function () { return "normal"; }, 991, 120);
+      var allBots = function () { return true; };
+      if (probe.g.phase !== "over") {
+        eq(botPending(probe.g, allBots), !!botAct(probe.g, allBots, { tier: "normal" }, { rand: Math.random, now: 0 }),
+           "botPending matches botAct mid-game");
+      }
+      eq(botPending({ phase: "over" }, allBots), false, "nothing pending once it's over");
+
+      // the tiers are ranked — hard should take the clear majority off easy
+      var hardWins = 0, played = 0;
+      for (var n = 0; n < 12; n++) {
+        var order = [n % 3, (n + 1) % 3, (n + 2) % 3];   // rotate so seat order isn't the cause
+        var tiers = ["easy", "easy", "hard"];
+        var byseat = {};
+        order.forEach(function (o, i) { byseat[o] = tiers[i]; });
+        var run2 = drive(function (seat) { return byseat[seat]; }, 4242 + n * 131);
+        if (!run2.over) continue;
+        played++;
+        if (byseat[run2.g.winner] === "hard") hardWins++;
+      }
+      ok(played >= 10, "tier ladder: enough games finished (" + played + "/12)");
+      ok(hardWins > played / 2, "hard out-wins two easies (" + hardWins + "/" + played + ")");
+    })();
 
     var line = "cities/engine.js self-test: " + pass + " passed, " + fail + " failed";
     if (typeof console !== "undefined") { console.log(line); msgs.forEach(function (m) { console.log("  " + m); }); }

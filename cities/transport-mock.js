@@ -198,138 +198,32 @@
       return actor + ":" + (p ? p.kind : (g.turn.rolled ? "act" : "roll")) + ":" + g.stats.turns;
     },
 
-    /* bot drive (the engine validates every attempt) */
+    /* bot drive — the BRAIN LIVES IN engine.js (docs/games.md, "Bots").
+       This file used to carry its own ES5 copy of it while the worker
+       carried an ES6 one, so every tuning pass had to be written twice.
+       Both now call the vendored engine and cannot drift. */
     needsPhantom: function (t) {
-      var g = t.game; if (!g) return false;
-      if (g.phase === "setup") return t.seats[g.setup.seq[g.setup.i]].phantom;
-      if (g.phase !== "main") return false;
-      var p = g.turn.pending;
-      if (p && p.kind === "discard") return Object.keys(p.owed).some(function (k) { return t.seats[+k].phantom; });
-      return t.seats[g.turn.seat].phantom || owesResponse(t);
+      return Engine.botPending(t.game, botAt(t));
     },
-    phantomOne: function (t, H) { return phantomOne(t, H); }
+    phantomOne: function (t, H) {
+      var g = t.game;
+      // the per-turn build budget is the caller's to count — one botAct
+      // call is one action, and a turn's budget outlives the call
+      if (!g || g.stats.turns !== t._botTurn) { t._botTurn = g ? g.stats.turns : -1; t._botActs = 0; }
+      var a = Engine.botAct(g, botAt(t), { tier: tierAt(t), acts: t._botActs }, H.ctx());
+      if (!a) return false;
+      t._botActs = a.type === "endTurn" ? 0 : t._botActs + 1;
+      return H.tryAct(t, a);
+    }
   });
 
-  // is a bot sitting on an open trade offer it hasn't answered? (runs even
-  // when it's a human's turn - the human offers, the bots must respond)
-  function owesResponse(t) {
-    var g = t.game;
-    if (!g || g.phase !== "main" || !g.offers || !g.offers.length) return false;
-    return g.offers.some(function (o) {
-      return g.players.some(function (_p, s) {
-        if (s === o.from || !t.seats[s] || !t.seats[s].phantom) return false;
-        if (o.responses && o.responses[s] != null) return false;
-        if (o.toCurrent && s !== g.turn.seat) return false;
-        return true;
-      });
-    });
+  // who is a bot, and how hard each one plays — the table's half of the
+  // contract; the engine owns what a bot actually does with it
+  function botAt(t) {
+    return function (seat) { return !!(t.seats[seat] && t.seats[seat].phantom); };
   }
-  // one bot answers one offer; accepts a fair-or-better deal it can afford
-  function respondOnce(t, H) {
-    var g = t.game;
-    if (!g.offers || !g.offers.length) return false;
-    function bagSum(b) { var n = 0; for (var i = 0; i < RES.length; i++) n += b[RES[i]] || 0; return n; }
-    for (var oi = 0; oi < g.offers.length; oi++) {
-      var o = g.offers[oi];
-      for (var s = 0; s < g.players.length; s++) {
-        if (s === o.from || !t.seats[s] || !t.seats[s].phantom) continue;
-        if (o.responses && o.responses[s] != null) continue;
-        if (o.toCurrent && s !== g.turn.seat) continue;
-        var gets = bagSum(o.give), gives = bagSum(o.get);   // responder receives give, pays get
-        var canPay = RES.every(function (r) { return (g.players[s].hand[r] || 0) >= (o.get[r] || 0); });
-        var action = (canPay && gets > 0 && gets >= gives) ? "accept" : "decline";
-        if (action === "accept" && gets === gives && Math.random() < 0.4) action = "decline";
-        return H.tryAct(t, { type: "respond", seat: s, offerId: o.id, action: action });
-      }
-    }
-    return false;
-  }
-
-  function phantomOne(t, H) {
-    var g = t.game, geo = Engine.geoOf(g.board);
-    // phantom discards (any owing phantom), regardless of whose turn
-    if (g.phase === "main" && g.turn.pending && g.turn.pending.kind === "discard") {
-      var owed = g.turn.pending.owed;
-      var pk = Object.keys(owed).filter(function (k) { return t.seats[+k].phantom; })[0];
-      if (pk != null) {
-        var seat = +pk, need = owed[seat], hand = g.players[seat].hand, cards = {}, left = need;
-        for (var i = 0; i < RES.length && left > 0; i++) { var take = Math.min(hand[RES[i]], left); if (take > 0) { cards[RES[i]] = take; left -= take; } }
-        return H.tryAct(t, { type: "discard", seat: seat, cards: cards });
-      }
-    }
-    if (g.phase === "setup") {
-      var cur = g.setup.seq[g.setup.i];
-      if (!t.seats[cur].phantom) return false;
-      if (g.setup.need === "settlement") {
-        var verts = Object.keys(geo.vertexHexes);
-        // prefer high-pip vertices for a slightly smarter bot
-        verts.sort(function (a, b) { return pipValue(g, geo, b) - pipValue(g, geo, a); });
-        for (var v = 0; v < verts.length; v++) if (H.tryAct(t, { type: "place", kind: "settlement", seat: cur, loc: verts[v] })) return true;
-        return false;
-      }
-      var edges = geo.vertexEdges[g.setup.lastVid] || [];
-      for (var e = 0; e < edges.length; e++) if (H.tryAct(t, { type: "place", kind: "road", seat: cur, loc: edges[e] })) return true;
-      return false;
-    }
-    if (g.phase !== "main") return false;
-    // answer any open trade offers first — bots respond even on a human's turn
-    if (respondOnce(t, H)) return true;
-    var seat = g.turn.seat;
-    if (!t.seats[seat].phantom) return false;
-    var p = g.turn.pending;
-    if (p && p.kind === "robber") {
-      // move to a hex with a human building if possible (to steal)
-      var hexes = g.board.hexes.filter(function (h) { return (h.q + "," + h.r) !== g.board.robber; });
-      var best = hexes[Math.floor(Math.random() * hexes.length)];
-      for (var hh = 0; hh < hexes.length; hh++) {
-        var vv = geo.hexVertices[hexes[hh].q + "," + hexes[hh].r] || [];
-        var steal = vv.some(function (x) { var b = g.buildings[x]; return b && b.seat !== seat && !t.seats[b.seat].phantom && handSize(g.players[b.seat].hand) > 0; });
-        if (steal) { best = hexes[hh]; break; }
-      }
-      return H.tryAct(t, { type: "moveRobber", seat: seat, hex: best.q + "," + best.r });
-    }
-    if (p && p.kind === "steal") return H.tryAct(t, { type: "steal", seat: seat, target: p.targets[Math.floor(Math.random() * p.targets.length)] });
-    if (p && p.kind === "roads") {
-      var re = Object.keys(geo.edgeVertices).filter(function (x) { return g.roads[x] == null; });
-      for (var r = 0; r < re.length; r++) if (H.tryAct(t, { type: "place", kind: "road", seat: seat, loc: re[r] })) return true;
-      return H.tryAct(t, { type: "endTurn" });     // no legal road — bail the turn
-    }
-    if (!g.turn.rolled) {
-      // occasionally play a knight before rolling if holding one
-      if (Math.random() < 0.3 && g.players[seat].dev.some(function (d) { return d.card === "knight" && d.turnBought !== g.stats.turns; })) {
-        if (H.tryAct(t, { type: "playDev", card: "knight" })) return true;
-      }
-      return H.tryAct(t, { type: "roll" });
-    }
-    // rolled, no pending: try to build/buy one thing, else end turn
-    t._acts = (t._acts || 0) + 1;
-    if (t._acts < 14) {
-      // city
-      var sv = Object.keys(g.buildings).filter(function (x) { return g.buildings[x].seat === seat && g.buildings[x].kind === "settlement"; });
-      for (var c = 0; c < sv.length; c++) if (H.tryAct(t, { type: "place", kind: "city", seat: seat, loc: sv[c] })) return true;
-      // settlement
-      var cand = Object.keys(geo.vertexHexes);
-      cand.sort(function (a, b) { return pipValue(g, geo, b) - pipValue(g, geo, a); });
-      for (var s2 = 0; s2 < cand.length; s2++) if (H.tryAct(t, { type: "place", kind: "settlement", seat: seat, loc: cand[s2] })) return true;
-      // road (toward expansion) — only sometimes, to conserve
-      if (Math.random() < 0.6) {
-        var re2 = Object.keys(geo.edgeVertices).filter(function (x) { return g.roads[x] == null; });
-        for (var r2 = 0; r2 < re2.length; r2++) if (H.tryAct(t, { type: "place", kind: "road", seat: seat, loc: re2[r2] })) return true;
-      }
-      // dev
-      if (Math.random() < 0.5 && H.tryAct(t, { type: "buyDev" })) return true;
-    }
-    t._acts = 0;
-    return H.tryAct(t, { type: "endTurn" });
-  }
-  // rough settlement value = Σ pips of adjacent non-desert hexes
-  function pipValue(g, geo, vid) {
-    var hexes = geo.vertexHexes[vid] || [], v = 0;
-    hexes.forEach(function (hk) {
-      var h = g.board.hexes.filter(function (x) { return (x.q + "," + x.r) === hk; })[0];
-      if (h && h.token != null) v += 6 - Math.abs(7 - h.token);
-    });
-    return v;
+  function tierAt(t) {
+    return function (seat) { return (t.seats[seat] && t.seats[seat].tier) || "normal"; };
   }
 
   /* ── betting (v1.1 designed; transport side wired, UI deferred) ── */
