@@ -227,9 +227,9 @@
        This file used to carry its own ES5 copy of it while the worker
        carried an ES6 one, so every tuning pass had to be written twice.
        Both now call the vendored engine and cannot drift. */
-    needsPhantom: function (t, H) { return Engine.botPending(t.game, H.botAt(t)); },
+    needsPhantom: function (t, H) { return Engine.botPending(t.game, H.botFn(t)); },
     phantomOne: function (t, H) {
-      var a = Engine.botAct(t.game, H.botAt(t), { tier: H.tierAt(t) }, H.ctx());
+      var a = Engine.botAct(t.game, H.botFn(t), { tier: H.tierFn(t) }, H.ctx());
       return a ? H.tryAct(t, a) : false;
     }
   });

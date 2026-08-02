@@ -384,9 +384,11 @@ export class GameTable {
     if (!list.length) return null;
     return list.indexOf(name) >= 0 ? name : list[Math.floor(list.length / 2)];
   }
-  // how hard each seat plays — the lookup the engine's botAct asks for
-  tierOf() { return (seat) => this.botTier(this.t.seats[seat] && this.t.seats[seat].tier); }
-  botAt() { return (seat) => this.isBot(this.t.seats[seat]); }
+  // The FUNCTION forms, which is what an engine's botAct/botPending take.
+  // `botAt(i)` below is the plain predicate and long predates these — do
+  // not merge the two names: a class body silently keeps only the last.
+  tierFn() { return (seat) => this.botTier(this.t.seats[seat] && this.t.seats[seat].tier); }
+  botFn() { return (seat) => this.isBot(this.t.seats[seat]); }
   botAt(i) { return this.isBot(this.t.seats[i]); }
   rejoinMode() { return (this.t.settings && this.t.settings.rejoin) || "rejoin"; }
   // the "none" exit: the engine concedes the seat, the roster severs it.

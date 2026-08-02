@@ -148,13 +148,13 @@
     // the two lookups every game's bot drive passes to its engine: who is
     // a bot, and how hard each one plays. The table owns both; the engine
     // owns what a bot does with them.
-    function botAt(t) {
+    function botFn(t) {
       return function (seat) {
         var s = t.seats[seat];
         return !!(s && (s.phantom || s.bot));
       };
     }
-    function tierAt(t) {
+    function tierFn(t) {
       return function (seat) { return botTier(t.seats[seat] && t.seats[seat].tier); };
     }
 
@@ -314,7 +314,7 @@
       var g = t.game;
       if (!g || g.phase === "over") return;
       // HELPERS rides both drive hooks, not just phantomOne — a game that
-      // asks the engine "does any bot owe a move?" needs the same botAt
+      // asks the engine "does any bot owe a move?" needs the same botFn
       // lookup here that it uses to take the move
       if (!spec.needsPhantom(t, HELPERS)) return;
       t.driving = true;
@@ -342,7 +342,7 @@
       seatOfToken: seatOfToken, isHost: isHost, seatedCount: seatedCount,
       resizeSeats: resizeSeats, ctx: ctx, uid: uid, now: now, save: save,
       teamOf: teamOf, captainSeat: captainSeat, teamColor: teamColor,
-      botAt: botAt, tierAt: tierAt
+      botFn: botFn, tierFn: tierFn
     };
 
     /* ── command dispatch (client → table) ──────────────────────── */

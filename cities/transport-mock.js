@@ -203,14 +203,14 @@
        carried an ES6 one, so every tuning pass had to be written twice.
        Both now call the vendored engine and cannot drift. */
     needsPhantom: function (t, H) {
-      return Engine.botPending(t.game, H.botAt(t));
+      return Engine.botPending(t.game, H.botFn(t));
     },
     phantomOne: function (t, H) {
       var g = t.game;
       // the per-turn build budget is the caller's to count — one botAct
       // call is one action, and a turn's budget outlives the call
       if (!g || g.stats.turns !== t._botTurn) { t._botTurn = g ? g.stats.turns : -1; t._botActs = 0; }
-      var a = Engine.botAct(g, H.botAt(t), { tier: H.tierAt(t), acts: t._botActs }, H.ctx());
+      var a = Engine.botAct(g, H.botFn(t), { tier: H.tierFn(t), acts: t._botActs }, H.ctx());
       if (!a) return false;
       t._botActs = a.type === "endTurn" ? 0 : t._botActs + 1;
       return H.tryAct(t, a);
