@@ -72,9 +72,13 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
   that `engine.js` already gets, so the mock and the worker cannot
   drift; both were carrying hand-ported copies before. Difficulty is a
   per-bot **tier**, a name from the engine's own `BOT_TIER_LIST`, set by
-  the host on `addBot`. See [docs/games.md](docs/games.md), "Bots" —
-  including why weak tiers must still play the game, and why mahjong's
-  tiers are measured in deal-ins rather than hands won.
+  the host on `addBot`. [docs/games.md](docs/games.md)'s "Bots" section
+  is the contract; **[docs/bots.md](docs/bots.md) is the deep dive and
+  the file to read before tuning anything** — decision orders, tier
+  tables, the measurement method, and why weak tiers must still play the
+  game (an early `easy` ran 23,583 turns without a winner) and why
+  mahjong's tiers are measured in deal-ins rather than hands won (hand-win
+  rate ranks them backwards).
 - **Games share a foundation — start at [docs/games.md](docs/games.md).**
   `games/table.js` (the browser table shell: gate, lobby, seats/bots/
   colors, toolbar, render frame), `games/table-do.js` (the Durable Object

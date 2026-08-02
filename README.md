@@ -106,6 +106,9 @@ by TMDB).
 - [docs/games.md](docs/games.md) — the shared game foundation: wire
   protocol, the table shell, the Durable Object base, and how to add a
   game. Read this first for anything game-related.
+- [docs/bots.md](docs/bots.md) — how the games play themselves: where a
+  bot's brain lives, the `botAct` contract, each game's decision order
+  and scoring, the difficulty tiers, and how they were measured.
 - [docs/cities.md](docs/cities.md) — the DeetsCities board game: rules
   engine, board data, wire protocol, the bento layout, the identity /
   disconnect-grace / rejoin rules, and what's still unbuilt.

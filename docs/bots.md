@@ -1,0 +1,424 @@
+# Bots
+
+How the Deets games play themselves: where a bot's brain lives, the
+contract it speaks, what each game's bot actually decides, how difficulty
+tiers are defined, and how they were measured.
+
+[games.md](games.md)'s "Bots" section is the **summary** — the contract
+and the rules a new game must follow. This file is the **deep dive**: the
+decision procedures, the tier tables, the measurement method, and the
+findings that shaped both.
+
+---
+
+## The rule
+
+**A bot's brain lives in that game's `engine.js`.** Never in the mock,
+never in a worker's `src/index.js`.
+
+This is not a style preference, it is the same rule the rules themselves
+follow. `engine.js` is vendored **VERBATIM** into the game's worker repo
+(`../Deets<Game>/src/engine.js`, guarded by that repo's
+`node scripts/vendor.mjs --check`). Anything living there is automatically
+one copy, run identically by the mock and the worker.
+
+### What it cost to learn this
+
+Cities and mahjong each carried **two hand-ported copies** of their bot:
+an ES5 `phantomOne` in `<game>/transport-mock.js` and an ES6 one in the
+worker's `src/index.js`. They were written to be equivalent, and mostly
+were — but every tuning pass meant writing the same change twice, in two
+dialects, in two repos, and keeping them parallel by eye. There was no
+guard: `vendor.mjs --check` covers vendored files, and neither copy was
+vendored.
+
+That is the same failure mode CLAUDE.md already warns about for the turn
+timer and the `--gseat` accent ("promote it, don't copy it"). Cities'
+`phantomOne` was ~110 lines. The promotion deleted both copies and
+replaced each with two lines that delegate.
+
+**A bot is also allowed to read hidden information**, which is the second
+reason it belongs in the engine and not the client. `botAct` receives the
+whole `game` — every hand in mahjong, every dev card in cities. That is
+correct *because it only ever runs inside the worker* (and the mock,
+which **is** the worker for dev purposes). Never call `botAct` from page
+code. What it returns is safe regardless: a discard, a claim, a
+placement, a roll — all public the instant they apply.
+
+---
+
+## The contract
+
+Each engine exports three things:
+
+```js
+botAct(game, isBot, opts, ctx) → action | null   // ONE action, or null
+botPending(game, isBot)        → bool            // cheap: does anyone owe a move?
+BOT_TIER_LIST                  → ["easy", "normal", "hard"]
+```
+
+### `botAct(game, isBot, opts, ctx)`
+
+Returns **one action**, or `null` when no bot owes anything right now.
+
+- **One action per call** is deliberate. The table's drive loop calls
+  again after `BOT_STEP` (700 ms in the worker, 650 ms in the mock),
+  which is what makes a bot *watchable* instead of a burst of state.
+- **`isBot(seat) → bool`** is the caller's. The table owns who is a bot;
+  the engine owns what one does. This matters for correctness, not just
+  taste — a bot decides differently depending on whether the seat it is
+  robbing is human.
+- **`opts.tier`** is either one tier name (every bot the same) or a
+  **`seat → name` function**. It must support the function form because a
+  table can mix tiers and *which* seat acts is decided **inside**
+  `botAct`, not by the caller — the caller cannot look up a tier for a
+  seat it has not chosen yet.
+- **`opts.acts`** is a per-turn budget the caller counts, for games that
+  have one (cities' build budget). A turn's budget outlives a single
+  call, so the engine cannot hold it without becoming stateful.
+- **`ctx`** is the usual `{ rand, now }`. `botAct` never mutates `game`.
+
+### `botPending(game, isBot)`
+
+The drive loop asks this on **every alarm**, so it stays a cheap
+predicate — no `applyAction` probes, no cloning. It answers only "does
+some bot owe a move?", which is exactly what the alarm scheduler needs.
+
+Invariant worth keeping: **`botPending` is true whenever `botAct` would
+return non-null.** Both engines' self-tests assert this mid-game. If they
+drift, the table either spins on a bot with nothing to do or stalls with
+one that has something.
+
+### Who supplies what
+
+| Piece | Owner | Where |
+|---|---|---|
+| Who is a bot | the table | `botFn()` (DO base) / `H.botFn(t)` (mock) |
+| How hard each plays | the table | `tierFn()` / `H.tierFn(t)` |
+| What a bot does about it | the engine | `botAct` |
+| The tier vocabulary | the engine | `BOT_TIER_LIST` |
+| Rendering the picker | the shell | `cfg.botTiers`, `S.botTier_<name>` |
+
+> **Naming trap.** The DO base has had `botAt(i) → bool` since it existed
+> — a plain predicate `deadlineFor` and others use. The function-form
+> lookups are `botFn()` / `tierFn()`. **Do not merge the names**: a JS
+> class body silently keeps only the last definition of a name, so a
+> second `botAt` either dead-ends or breaks every existing caller
+> depending on order. This branch shipped that bug and caught it in
+> testing, not review.
+
+Both drive hooks receive what they need: `needsPhantom(t, H)` and
+`phantomOne(t, H)` in the mock, and in the worker they are methods, so
+`this` carries it.
+
+A worker's hooks should be two lines:
+
+```js
+needsPhantom() { return Engine.botPending(this.t.game, this.botFn()); }
+phantomOne() {
+  const a = Engine.botAct(this.t.game, this.botFn(), { tier: this.tierFn() }, this.ctx2());
+  return a ? this.tryAct(a) : false;
+}
+```
+
+**A worker that still carries its own copy of a brain is a bug waiting to
+drift.**
+
+---
+
+## Difficulty tiers
+
+**A tier is a NAME, not a number**, and the vocabulary belongs to the
+engine. The foundation only *validates* against `BOT_TIER_LIST`; the
+shell only *renders* it.
+
+- Set by the host on **`addBot {seat, name, tier}`**. Re-adding at a
+  bot's seat re-tiers it, the same way it already renames.
+- Stored on the seat, and it **survives Start's seat compaction**.
+- **Public**: the tier rides every seat view and shows as a badge on the
+  lobby row, not just in the host's editor. You should know what you are
+  sitting across from.
+- **Unknown or missing falls back to the MIDDLE of the list.** This is
+  the important case: a seat converted mid-game — grace expiry, a
+  mid-game kick, a lobby seat that went dark at Start — has no tier,
+  because nobody chose one for it. It plays the default rather than
+  inheriting whatever the host last typed.
+- A game that declares **no** tiers gets no picker and nothing else
+  changes. That is DeetsShips today ([ships.md](ships.md)); its bot is a
+  deliberate v1 anchor.
+
+The tiers are **parameters over one brain**, never separate brains. A
+second brain would double the surface that has to stay correct, which is
+the problem this whole change exists to remove.
+
+---
+
+## Cities
+
+`cities/engine.js`, `botAct` → `BOT_TIERS`. The rules themselves are in
+[cities.md](cities.md).
+
+### Decision order
+
+Checked top to bottom; the first that applies produces the action.
+
+1. **A forced discard** owed by any bot, whoever's turn it is (a 7 was
+   rolled). Sheds deepest stacks first when `keepPairs`, else in list
+   order.
+2. **Opening placement** (setup snake draft) — settlement, then the road
+   off it.
+3. **Answer an open trade offer.** Runs *before* the turn-seat check,
+   because a human can offer on their own turn and the bots must answer.
+4. Then, only if it is this bot's turn:
+   - **robber** placement → **steal** target
+   - **road-building card** placements (bails the turn if boxed in)
+   - **before rolling**: maybe play a held knight, then **roll**
+   - **after rolling**: city → settlement → road → dev card →
+     **bank-trade** → **end turn**
+
+City before settlement before road is not arbitrary: a city doubles a
+spot already earned, which is the cheapest VP on the board.
+
+### Legality without cloning
+
+`applyAction` **clones the whole game**. The first cut of this bot probed
+every candidate placement through it — roughly 180 clones per action —
+and a single game took minutes. That is fine at a 700 ms cadence but
+absurd inside a Durable Object, and it made measurement impossible.
+
+The fix keeps exactly one copy of the rules: placement asks the engine's
+**own predicates** — `occupied`, `touchesOwnRoad`, `roadConnects`,
+`canAfford`, `COST`, supply counts. Those are the same functions
+`placeMain` calls, so this is *reuse*, not a parallel implementation.
+`applyAction` is still the final authority for the one-off verbs
+(`buyDev`, `playDev`), where a single probe is cheap.
+
+`botLegal` uses a **zeroed rand** so a probe never consumes the caller's
+RNG.
+
+### Scoring
+
+`botPipValue(vertex)` = Σ pips over adjacent hexes (`6 − |7 − token|`, so
+6 and 8 score highest) **+ 0.5 per distinct terrain** touched. Roads are
+scored by the best *unoccupied* vertex they reach, so a road points at
+ground worth settling.
+
+`botChoose(list, pick, rand)` takes a best-first list and picks randomly
+among the top `pick`. That single knob is most of the difficulty: `pick:
+1` always takes the best spot it can see, `pick: 6` is careless. It also
+stops a tier replaying an identical opening every game.
+
+### Tier table
+
+| | `pick` | `knight` | `road` | `dev` | `acts` | `robber` | `evenPass` | `loss` | `trade` | `keepPairs` |
+|---|---|---|---|---|---|---|---|---|---|---|
+| easy | 6 | 0.05 | 0.55 | 0.25 | 10 | `random` | 0.10 | 2 | 0.40 | no |
+| normal | 3 | 0.35 | 0.65 | 0.45 | 14 | `steal` | 0.40 | 0 | 0.75 | yes |
+| hard | 1 | 0.85 | 0.80 | 0.55 | 20 | `leader` | 0.75 | −1 | 1.00 | yes |
+
+- **`pick`** — choose among this many best-scoring legal spots.
+- **`knight`** — chance of playing a held knight before rolling.
+- **`road`** — chance of spending on a road toward open ground.
+- **`dev`** — chance of buying a development card.
+- **`acts`** — build actions per turn before ending it.
+- **`robber`** — `random`, `steal` (anyone holding cards), or `leader`
+  (the public-VP leader, ties to the bigger hand).
+- **`evenPass`** — chance of declining a dead-even trade.
+- **`loss`** — worst net card loss it will still accept. `−1` means hard
+  demands profit; `2` means easy will take a bath.
+- **`trade`** — eagerness to bank-trade surplus toward a goal.
+- **`keepPairs`** — sheds deepest stacks on a forced discard instead of
+  shedding blindly and breaking its own sets.
+
+### Bank trading
+
+`botBankTrade` picks the best goal the bot can still use (city →
+settlement → dev → road), finds the first resource that goal is short of,
+and trades away surplus **that the goal does not itself need**, at the
+seat's real `tradeRate` (harbors included).
+
+This was missing entirely, and its absence was the single worst bug in
+the old bots — see Findings below. Every tier does it; `trade` only sets
+how eagerly.
+
+---
+
+## Mahjong
+
+`mahjong/engine.js`, `botAct` → `BOT_TIERS`. Hong Kong rules, four seats;
+see [mahjong.md](mahjong.md).
+
+### Decision order
+
+1. **Seating roll** — mechanical, no judgement.
+2. **A claim window** — every bot that has not answered owes a response.
+   A **win is never declined**. Otherwise kong → pung → chow by tier
+   probability, else pass.
+3. **Breaking the wall** — the dealer's, equally mechanical.
+4. **Its own turn**: win on the drawn tile if it is one → self-kong (a
+   kong draws a replacement, so it is close to free value) → **discard
+   the least useful tile**.
+
+`botAct` returns `null` on `handOver` — a settled hand is the *table's*
+timer to advance, not a bot's.
+
+### Discard scoring
+
+`botUsefulness(tile)` — higher means keep:
+
+- `(count − 1) × 4` — pairs and triplets dominate.
+- **Lone honour: −1.5.** An honour joins no run, so a single one can only
+  ever become a pung. It is the cheapest thing in hand to shed, and
+  holding them is much of why an unturned hand drifts to a drawn wall.
+- **`shape`** — for suited tiles, +2 per adjacent neighbour held, +1 per
+  gap-of-two, and −0.5 for terminals (which sit on fewer runs).
+- **`chase`** — keeps honours that carry faan: a dragon pair, or a pair
+  of your own seat wind / the prevailing wind. Slow, but they score.
+- **`safe`** — subtracts `1.5 × pond count`. A tile already showing three
+  times face-up is nearly dead and therefore the safest thing to throw.
+  This is the defensive axis, and it is what separates the tiers most.
+- **`jitter`** — uniform noise added last. High jitter blurs a correct
+  evaluation into a sloppy one, which is a cleaner way to build a weak
+  bot than giving it a worse heuristic.
+
+### Tier table
+
+| | `kong` | `pung` | `chow` | `jitter` | `shape` | `safe` | `chase` |
+|---|---|---|---|---|---|---|---|
+| easy | 0.55 | 0.75 | 0.65 | 3.0 | no | no | no |
+| normal | 0.80 | 0.55 | 0.30 | 0.5 | yes | no | no |
+| hard | 0.90 | 0.60 | 0.20 | 0.1 | yes | yes | yes |
+
+Claim rates are **not** monotonic, and should not be. Easy chows
+constantly (0.65) and pungs freely; that wins more hands of *low value*,
+which under a `minFaan` table is bad play. Normal and hard decline most
+chows to protect hand value. Difficulty here is discipline, not appetite.
+
+---
+
+## Measurement
+
+Tuning bot difficulty by reading the code does not work. Both tier sets
+were set by simulation.
+
+**Method.** All-bot tables driven to completion, seeded deterministically,
+with **tiers rotated through seats** every game so turn-order advantage
+is not scored as tier strength. Cities: 60 games per table across 7
+tables. Mahjong: 200 matches per table (points are heavy-tailed enough
+that 40 separated nothing).
+
+### Cities — win share, 60 games per table
+
+| Table | avg turns | stuck | Result |
+|---|---|---|---|
+| easy ×3 | 135 | 0 | — |
+| normal ×3 | 109 | 0 | — |
+| hard ×3 | 106 | 0 | — |
+| easy / normal / hard | 105 | 0 | **8% / 17% / 75%** |
+| easy ×2 / hard | 104 | 0 | easy 7.5% each, **hard 85%** |
+| normal ×2 / hard | 104 | 0 | normal 26.5% each, **hard 47%** |
+| easy / normal ×2 | 120 | 0 | easy 8%, normal 46% each |
+
+Clean monotonic ladder, no stalls, and game length converged to ~105
+turns across every tier.
+
+### Mahjong — 200 matches per table
+
+| Table | pts/match | hand-win % | deal-ins/match |
+|---|---|---|---|
+| easy ×3 vs **hard** | −96 / **+96** | easy 65 / hard 35 | easy 4.7 / **hard 1.0** |
+| normal ×3 vs **hard** | −117 / **+117** | normal 71 / hard 29 | normal 4.5 / **hard 1.4** |
+| easy ×3 vs **normal** | −73 / **+73** | easy 71 / normal 29 | easy 4.2 / **normal 1.2** |
+
+Same-opponent comparison is the one that ranks them: against three easy
+seats, **normal earns +73 and hard +96**. Ladder confirmed.
+
+---
+
+## Findings
+
+Three results worth not rediscovering.
+
+### 1. Difficulty belongs in judgement, not in refusing to play
+
+The first cut of cities' `easy` placed settlements at random (`pick:
+Infinity`) and hoarded roads. It ran **23,583 turns without a winner**.
+
+A bot that will not expand does not play *badly* — it stops the game
+converging. There is nothing for a human to beat. Weak tiers must make
+**worse choices**, not fewer: `road` in particular is not a weakness
+knob, because roads are how a seat reaches new ground at all. Every tier
+now expands, bank-trades, and finishes.
+
+### 2. Not bank-trading deadlocks a table
+
+The old cities bots could only ever spend what they rolled. Late in a
+game every seat ends up holding the wrong five cards, nobody can build,
+and the table rolls forever. **~3% of games produced no winner at all**
+before bank trading was added; afterwards, zero stalls in 420 games, and
+average length dropped from 978 turns (easy) to ~105 across the board.
+
+### 3. Pick the metric before you tune the tier
+
+In mahjong, **hand-win rate ranks the tiers backwards**: hard wins 29–35%
+of hands, easy 65–71%. That is not a bug — a defensive hand wins less
+often and loses far less. Tuning against hand-win rate would have made
+every tier worse.
+
+Points rank the tiers correctly but are heavy-tailed (a limit hand swings
+hundreds), so 40 matches separated nothing and even 200 leaves noise.
+**Deal-ins are the stable signal** — hard 1.0–1.4 per match against
+easy's 4.2–4.7, consistent across every table — and the self-test ladder
+counts those.
+
+---
+
+## Self-tests
+
+`node cities/engine.js` (124 checks) and `node mahjong/engine.js` (68)
+both cover, per tier:
+
+- every tier plays **only legal moves** for a whole game;
+- every tier **finishes** — the guard against finding #1 again;
+- `botPending` agrees with `botAct` mid-game;
+- no action once the game is over (mahjong: nor on a settled hand);
+- **the ladder itself** — cities asserts hard out-wins two easies;
+  mahjong asserts a hard seat deals in less than an easy seat, for the
+  reason in finding #3.
+
+They run in ~3 s and ~1 s. Keep them fast enough that nobody skips them.
+
+---
+
+## Change radius
+
+| What you want to change | File | Reaches | After |
+|---|---|---|---|
+| How one game's bot plays, or its tiers | `<game>/engine.js` | that game | **Re-vendor** (`node scripts/vendor.mjs`), redeploy |
+| The tier wire field, validation, fallback | `games/table-do.js` + `table-mock.js` | **every game** | **Re-vendor the base into every game worker**, redeploy |
+| The lobby picker / seat badge | `games/table.js` + `styles/table.css` | every game | — (browser only) |
+| Tier labels | `<game>/strings.js` (`botTier_<name>`) | that game | — (Aditya's copy) |
+| Bot cadence | `BOT_STEP`, `games/table-do.js` | every game | **Re-vendor**, redeploy |
+
+---
+
+## Open
+
+- **Mahjong's ~51% draw rate is high.** Real HK play sits well below
+  that. Fixing it properly needs **shanten counting** (distance from a
+  winning hand) rather than the per-tile heuristic here; that is a
+  separate piece of work, not more tier constants.
+- **One match in 599 never reached `over`.** A drawn hand repeats the
+  dealer, so a pure-bot table can streak indefinitely. A human or the
+  turn timer breaks it, so this is a tail risk rather than a live bug —
+  but a hand cap would close it.
+- **The results row does not carry the tier.** An easy bot and a hard bot
+  under the same name are not the same opponent, so a tier belongs beside
+  `kind = 'bot'` and `name` when Elo arrives. That is an `ALTER TABLE` in
+  `../DeetsAccounts` plus a `seatCounters` change, and it should land
+  **with** Elo rather than speculatively — see [stats.md](stats.md).
+- **Cities bots never *initiate* player trades.** They answer offers but
+  never make one, so a bot-only table trades far less than a human one.
+- **DeetsShips has no tiers.** Its `botAct` is a v1 anchor that stages
+  legal minimums and never stalls a table. It gets tiers by adding a
+  `BOT_TIER_LIST` to `ships/engine.js` and nothing else.

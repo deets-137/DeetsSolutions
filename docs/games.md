@@ -271,6 +271,11 @@ BOT_TIER_LIST                  → ["easy", ...]   // the difficulty vocabulary
   the worker (and the mock, which *is* the worker) — never call `botAct`
   from page code. What it returns is always a public act anyway.
 
+> **Naming trap.** The DO base has had `botAt(i) → bool` since it
+> existed. The function-form lookups are **`botFn()` / `tierFn()`** —
+> don't merge the names, a JS class body silently keeps only the last
+> definition of a name.
+
 **Difficulty is a name, not a number.** `BOT_TIER_LIST` is the engine's
 vocabulary; the foundation only validates against it and the shell only
 renders it (`cfg.botTiers`, labels `S.botTier_<name>`). A game that
@@ -282,21 +287,15 @@ inheriting whatever the host last typed. The tier rides every seat view:
 difficulty is public, because you should know what you're sitting
 across from.
 
-**Tuning is measured, not guessed.** Two findings worth not rediscovering:
+**Tuning is measured, not guessed** — all-bot tables, tiers rotated
+through seats, driven to completion. Two findings that cost real time:
+difficulty belongs in *judgement*, not in refusing to play (the first
+`easy` ran **23,583 turns without a winner**), and pick the metric before
+the tier (mahjong's hand-win rate ranks the tiers **backwards**).
 
-- **Difficulty belongs in judgement, not in refusing to play.** The
-  first cut of cities' `easy` placed randomly and hoarded roads; it ran
-  **23,583 turns without a winner**. A bot that won't expand doesn't
-  play badly, it stops the game converging. Weak tiers now make *worse
-  choices*, not fewer.
-- **Pick the metric before the tier.** In mahjong, hand-win rate ranks
-  the tiers **backwards** — a defensive hand wins less often (hard 29%,
-  easy 65%) and loses far less. Points rank them correctly but are
-  heavy-tailed enough that 40 matches separated nothing. **Deal-ins**
-  are the stable signal, and the self-test ladder counts those.
-
-Each engine's `selfTest()` covers legality per tier, that every tier
-finishes a game, and the ladder itself.
+**→ [bots.md](bots.md)** is the deep dive: each game's decision order and
+scoring, the full tier tables, the measurement method and numbers, and
+the findings in full. Read it before tuning anything.
 
 ---
 
