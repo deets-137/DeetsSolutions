@@ -54,6 +54,8 @@
     api: "https://mahjong-api.deets.solutions",
     mock: window.MahjongTransport,       // transport-mock.js, selected by ?mock
     strings: S,
+    // the difficulty vocabulary is the ENGINE's; the shell only renders it
+    botTiers: window.MahjongEngine.BOT_TIER_LIST,
     rootSel: ".mj",
     capacity: 4,
     minSeats: 4,

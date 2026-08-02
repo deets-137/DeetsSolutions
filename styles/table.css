@@ -153,8 +153,28 @@
   color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
   padding: 0 var(--space-2);
 }
+/* a bot's difficulty, shown beside its name — quieter than the host badge
+   because it labels the seat rather than marking authority over the table */
+.gt-seat__badge--tier { color: var(--subtext); }
 .gt-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
 .gt-seat__kick:hover { color: var(--stop); }
+
+/* ── bot difficulty picker (docs/games.md, "Bots"): a segmented control
+   inside the host's bot editor row. Games whose engine declares no tiers
+   never build these nodes. ── */
+.gt-tierpick { display: flex; gap: 0; flex: 0 0 auto; }
+.gt-tierpick__opt {
+  background: none; cursor: pointer;
+  color: var(--subtext); border: 1px solid var(--border);
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0 var(--space-2);
+}
+.gt-tierpick__opt + .gt-tierpick__opt { border-left: none; }
+.gt-tierpick__opt:first-child { border-radius: var(--radius-control) 0 0 var(--radius-control); }
+.gt-tierpick__opt:last-child { border-radius: 0 var(--radius-control) var(--radius-control) 0; }
+.gt-tierpick__opt:hover { color: var(--title); }
+.gt-tierpick__opt.is-on { color: var(--title); border-color: var(--title); }
+.gt-tierpick__opt.is-on + .gt-tierpick__opt { border-left: none; }
 /* host-added bots: "+ Bot" on open seats, and the inline add/rename editor —
    the editor swaps into the row at the SAME height (input capped to the text
    line), so toggling it never resizes the roster (the universal layout rule) */

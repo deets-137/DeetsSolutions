@@ -227,19 +227,11 @@
        This file used to carry its own ES5 copy of it while the worker
        carried an ES6 one, so every tuning pass had to be written twice.
        Both now call the vendored engine and cannot drift. */
-    needsPhantom: function (t) { return Engine.botPending(t.game, botAt(t)); },
+    needsPhantom: function (t, H) { return Engine.botPending(t.game, H.botAt(t)); },
     phantomOne: function (t, H) {
-      var a = Engine.botAct(t.game, botAt(t), { tier: tierAt(t) }, H.ctx());
+      var a = Engine.botAct(t.game, H.botAt(t), { tier: H.tierAt(t) }, H.ctx());
       return a ? H.tryAct(t, a) : false;
     }
   });
 
-  // who is a bot, and how hard each one plays — the table's half of the
-  // contract; the engine owns what a bot actually does with it
-  function botAt(t) {
-    return function (seat) { return !!(t.seats[seat] && t.seats[seat].phantom); };
-  }
-  function tierAt(t) {
-    return function (seat) { return (t.seats[seat] && t.seats[seat].tier) || "normal"; };
-  }
 })();

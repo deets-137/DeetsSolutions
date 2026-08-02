@@ -370,6 +370,23 @@ export class GameTable {
   // host-added lobby bot (phantom — the mock's name, kept so the ported drive
   // code reads the same in both worlds).
   isBot(s) { return !!(s && (s.bot || s.phantom)); }
+  /* ── bot difficulty (docs/games.md, "Bots") ────────────────────────
+     A tier is a NAME, not a number: the engine owns what it means, and
+     BOT_TIER_LIST is its vocabulary. An engine that declares no tiers
+     has one difficulty and every seat reads the same, so a game gets
+     tiers by adding them to its engine and nothing else. Unknown or
+     missing names fall back to the middle of the list, which is what a
+     seat converted mid-game (grace expiry, a kick) gets — nobody chose
+     a difficulty for it, so it plays the default one. */
+  get BOT_TIERS() { return (this.Engine && this.Engine.BOT_TIER_LIST) || []; }
+  botTier(name) {
+    const list = this.BOT_TIERS;
+    if (!list.length) return null;
+    return list.indexOf(name) >= 0 ? name : list[Math.floor(list.length / 2)];
+  }
+  // how hard each seat plays — the lookup the engine's botAct asks for
+  tierOf() { return (seat) => this.botTier(this.t.seats[seat] && this.t.seats[seat].tier); }
+  botAt() { return (seat) => this.isBot(this.t.seats[seat]); }
   botAt(i) { return this.isBot(this.t.seats[i]); }
   rejoinMode() { return (this.t.settings && this.t.settings.rejoin) || "rejoin"; }
   // the "none" exit: the engine concedes the seat, the roster severs it.
@@ -490,6 +507,8 @@ export class GameTable {
           connected: this.isBot(s) ? true : this.tokenConnected(s.token),
           phantom: this.isBot(s), bot: !!s.bot,
         };
+        // difficulty is public — you should know what you're sitting across
+        if (this.isBot(s) && this.BOT_TIERS.length) o.tier = this.botTier(s.tier);
         if (s.conceded) o.conceded = true;
         if (s.graceUntil) o.graceUntil = s.graceUntil;
         return o;
@@ -819,10 +838,12 @@ export class GameTable {
         const taken = t.seats.some((s, si) => s && si !== bi && s.name.toLowerCase() === blower) ||
                       this.joinedSockets().some((s) => s.att.name.toLowerCase() === blower);
         if (taken) return this.errTo(ws, "name-taken");
-        if (bs) bs.name = bname;
+        const btier = this.botTier(msg.tier);
+        if (bs) { bs.name = bname; bs.tier = btier; }   // re-adding also re-tiers
         else {
           const bocc = t.seats.map((s, si) => (s && si !== bi) ? s.color : null);
-          t.seats[bi] = { token: "phantom:" + crypto.randomUUID().slice(0, 8), name: bname, color: this.Colors.freePreset(bocc), phantom: true };
+          t.seats[bi] = { token: "phantom:" + crypto.randomUUID().slice(0, 8), name: bname,
+                          color: this.Colors.freePreset(bocc), phantom: true, tier: btier };
         }
         this.resizeSeats();
         await this.broadcast([]);

@@ -68,6 +68,8 @@
     api: "https://cities-api.deets.solutions",
     mock: window.CitiesTransport,        // transport-mock.js, selected by ?mock
     strings: S,
+    // the difficulty vocabulary is the ENGINE's; the shell only renders it
+    botTiers: window.CitiesEngine.BOT_TIER_LIST,
     rootSel: ".cities",
     capacity: 6,
     minSeats: 3,

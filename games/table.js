@@ -663,6 +663,10 @@
           row.appendChild(nameBtn);
         } else row.appendChild(el("span", "gt-seat__name", label));
         if (model.hostSeat === i) row.appendChild(el("span", "gt-seat__badge", S.hostBadge));
+        // a bot's difficulty is public — you should know what you're facing
+        if (isBot && s.tier && botTiers().length > 1) {
+          row.appendChild(el("span", "gt-seat__badge gt-seat__badge--tier", tierLabel(s.tier)));
+        }
         if (cfg.teams && !s.empty && isCaptain) row.appendChild(el("span", "gt-seat__badge", S.captainBadge));
         if (s.empty && cfg.teams && mySeat() !== i) {
           // sitting here IS joining this side; moving sides is stand + sit
@@ -895,10 +899,10 @@
           // the local save wins over the profile fallback
           if (name !== myName) send({ type: "rename", name: name });
           save(NAME_KEY, name);
-        } else send({ type: "addBot", seat: i, name: name });
-        ui.botEdit = null; ui.botDraft = null; render();
+        } else send({ type: "addBot", seat: i, name: name, tier: botTierDraft(i) });
+        ui.botEdit = null; ui.botDraft = null; ui.botTier = null; render();
       };
-      var cancel = function () { ui.botEdit = null; ui.botDraft = null; render(); };
+      var cancel = function () { ui.botEdit = null; ui.botDraft = null; ui.botTier = null; render(); };
       input.addEventListener("keydown", function (ev) {
         if (ev.key === "Enter") go();
         else if (ev.key === "Escape") cancel();
@@ -926,9 +930,43 @@
       x.setAttribute("aria-label", mine ? S.renameCancelAria : S.addBotCancelAria);
       x.addEventListener("click", cancel);
       row.appendChild(x);
+      // difficulty picker — the host's editor only; renaming yourself has no
+      // tier to set. Games whose engine declares no tiers get no control.
+      if (!mine && botTiers().length > 1) row.appendChild(tierPicker(i));
       // focus only when the editor OPENS — broadcast re-renders must not steal it
       if (ui.botFocus) { ui.botFocus = false; setTimeout(function () { if (input.isConnected) { input.focus(); input.select(); } }, 0); }
       return row;
+    }
+
+    /* ── bot difficulty (docs/games.md, "Bots") ────────────────────
+       The tier vocabulary is the ENGINE's, published to the shell as
+       cfg.botTiers; a game that declares none simply has no picker and
+       nothing else about the lobby changes. Labels are the game's copy,
+       looked up as S.botTier_<name>, falling back to the raw name. */
+    function botTiers() { return cfg.botTiers || []; }
+    function tierLabel(name) { return S["botTier_" + name] || name; }
+    // what the editor will send: the explicit pick, else the tier already on
+    // the seat (re-adding a bot keeps its difficulty), else the middle one
+    function botTierDraft(i) {
+      if (ui.botTier) return ui.botTier;
+      var s = (model.seats || [])[i];
+      if (s && s.tier) return s.tier;
+      var list = botTiers();
+      return list[Math.floor(list.length / 2)];
+    }
+    function tierPicker(i) {
+      var wrap = el("div", "gt-tierpick");
+      wrap.setAttribute("role", "group");
+      wrap.setAttribute("aria-label", S.botTierAria || "");
+      var cur = botTierDraft(i);
+      botTiers().forEach(function (name) {
+        var b = el("button", "gt-tierpick__opt" + (name === cur ? " is-on" : ""), tierLabel(name));
+        b.type = "button";
+        b.setAttribute("aria-pressed", name === cur ? "true" : "false");
+        b.addEventListener("click", function () { ui.botTier = name; render(); });
+        wrap.appendChild(b);
+      });
+      return wrap;
     }
 
     // seat colors drive the --gseat-N slots (the game-palette carve-out holds

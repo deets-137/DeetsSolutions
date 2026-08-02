@@ -202,29 +202,21 @@
        This file used to carry its own ES5 copy of it while the worker
        carried an ES6 one, so every tuning pass had to be written twice.
        Both now call the vendored engine and cannot drift. */
-    needsPhantom: function (t) {
-      return Engine.botPending(t.game, botAt(t));
+    needsPhantom: function (t, H) {
+      return Engine.botPending(t.game, H.botAt(t));
     },
     phantomOne: function (t, H) {
       var g = t.game;
       // the per-turn build budget is the caller's to count — one botAct
       // call is one action, and a turn's budget outlives the call
       if (!g || g.stats.turns !== t._botTurn) { t._botTurn = g ? g.stats.turns : -1; t._botActs = 0; }
-      var a = Engine.botAct(g, botAt(t), { tier: tierAt(t), acts: t._botActs }, H.ctx());
+      var a = Engine.botAct(g, H.botAt(t), { tier: H.tierAt(t), acts: t._botActs }, H.ctx());
       if (!a) return false;
       t._botActs = a.type === "endTurn" ? 0 : t._botActs + 1;
       return H.tryAct(t, a);
     }
   });
 
-  // who is a bot, and how hard each one plays — the table's half of the
-  // contract; the engine owns what a bot actually does with it
-  function botAt(t) {
-    return function (seat) { return !!(t.seats[seat] && t.seats[seat].phantom); };
-  }
-  function tierAt(t) {
-    return function (seat) { return (t.seats[seat] && t.seats[seat].tier) || "normal"; };
-  }
 
   /* ── betting (v1.1 designed; transport side wired, UI deferred) ── */
   function grantChips(t, token) {

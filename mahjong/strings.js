@@ -84,6 +84,13 @@ window.MAHJONG_STRINGS = {
    addBotNameAria: "Bot name",
    addBotCancelAria: "Cancel adding a bot",
    renameBotAria: "Rename {name}",
+   /* bot difficulty (docs/games.md, "Bots"): the segmented picker in the
+      host's bot editor, and the badge on a bot's seat row. One entry per
+      name in the engine's BOT_TIER_LIST — botTier_<name>. */
+   botTierAria: "[ph]Bot difficulty",
+   botTier_easy: "[ph]Easy",
+   botTier_normal: "[ph]Normal",
+   botTier_hard: "[ph]Hard",
    /* renaming yourself (the rename verb): your own name is the same
       click-to-edit row; "Save" and "Reset" are Aditya's (chat 2026-07-27) */
    renameGo: "Save",

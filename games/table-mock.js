@@ -133,6 +133,31 @@
       return t.seats.map(function (s) { return s && s !== except ? s.color : null; });
     }
 
+    /* ── bot difficulty (the DO base's rules, byte-parallel) ────────
+       A tier is a NAME; the engine owns what it means and
+       BOT_TIER_LIST is its vocabulary. An engine that declares none
+       has one difficulty. Unknown or missing falls back to the middle
+       of the list — which is what a seat converted mid-game gets,
+       since nobody chose a difficulty for it. */
+    function BOT_TIERS() { return (Engine && Engine.BOT_TIER_LIST) || []; }
+    function botTier(name) {
+      var list = BOT_TIERS();
+      if (!list.length) return null;
+      return list.indexOf(name) >= 0 ? name : list[Math.floor(list.length / 2)];
+    }
+    // the two lookups every game's bot drive passes to its engine: who is
+    // a bot, and how hard each one plays. The table owns both; the engine
+    // owns what a bot does with them.
+    function botAt(t) {
+      return function (seat) {
+        var s = t.seats[seat];
+        return !!(s && (s.phantom || s.bot));
+      };
+    }
+    function tierAt(t) {
+      return function (seat) { return botTier(t.seats[seat] && t.seats[seat].tier); };
+    }
+
     /* ── teams (the DO base's rules, byte-parallel — docs/games.md) ──
        spec.teams is the real team count (ships: 2) or absent — teams of
        one, teamOf(t, i) === i, nothing changes. */
@@ -188,6 +213,8 @@
             connected: s.phantom ? true : tokenConnected(t, s.token),
             phantom: !!s.phantom, bot: !!s.bot
           };
+          // difficulty is public — you should know what you're sitting across
+          if ((s.phantom || s.bot) && BOT_TIERS().length) o.tier = botTier(s.tier);
           if (s.conceded) o.conceded = true;
           return o;
         }),
@@ -286,7 +313,10 @@
       if (t.driving) return;
       var g = t.game;
       if (!g || g.phase === "over") return;
-      if (!spec.needsPhantom(t)) return;
+      // HELPERS rides both drive hooks, not just phantomOne — a game that
+      // asks the engine "does any bot owe a move?" needs the same botAt
+      // lookup here that it uses to take the move
+      if (!spec.needsPhantom(t, HELPERS)) return;
       t.driving = true;
       setTimeout(function () { t.driving = false; driveStep(t); }, API.phantomStep);
     }
@@ -311,7 +341,8 @@
       tryAct: tryAct, broadcast: broadcast, errTo: errTo, postApply: postApply,
       seatOfToken: seatOfToken, isHost: isHost, seatedCount: seatedCount,
       resizeSeats: resizeSeats, ctx: ctx, uid: uid, now: now, save: save,
-      teamOf: teamOf, captainSeat: captainSeat, teamColor: teamColor
+      teamOf: teamOf, captainSeat: captainSeat, teamColor: teamColor,
+      botAt: botAt, tierAt: tierAt
     };
 
     /* ── command dispatch (client → table) ──────────────────────── */
@@ -451,10 +482,12 @@
           var taken = t.seats.some(function (s, si) { return s && si !== bi && s.name.toLowerCase() === blower; }) ||
                       t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === blower; });
           if (taken) return errTo(conn, "name-taken");
-          if (bs) bs.name = bname;
+          var btier = botTier(msg.tier);
+          if (bs) { bs.name = bname; bs.tier = btier; }   // re-adding also re-tiers
           else {
             var bocc = t.seats.map(function (s, si) { return s && si !== bi ? s.color : null; });
-            t.seats[bi] = { token: "phantom:" + uid(), name: bname, color: Colors.freePreset(bocc), connected: true, phantom: true };
+            t.seats[bi] = { token: "phantom:" + uid(), name: bname, color: Colors.freePreset(bocc),
+                            connected: true, phantom: true, tier: btier };
           }
           resizeSeats(t);
           return broadcast(t, []);
