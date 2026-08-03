@@ -117,6 +117,162 @@
   }
   function minChip(chips) { return Math.min.apply(null, chips); }
 
+  /* ── the settings cascade ─────────────────────────────────────
+     A real cash table doesn't pick its chips out of the air. The
+     buy-in fixes the blind (100 big blinds is the standard anchor),
+     the blind fixes the smallest chip (anything under the small blind
+     is unspendable), and the ladder is that rung plus N-1 more up the
+     values people actually mint. Every preset then lands with the top
+     chip at a tenth of the buy-in without anyone writing that rule
+     down — and because the smallest chip IS the small blind, a blind
+     that doesn't split into the ladder stops being possible.
+     Pure and exported, so the lobby, the mock and (phase 2) the worker
+     all derive the same table. */
+  var CANON = [5, 10, 25, 50, 100, 200, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+  function nearestCanon(v) {
+    var best = CANON[0];
+    for (var i = 1; i < CANON.length; i++) {
+      if (Math.abs(CANON[i] - v) < Math.abs(best - v)) best = CANON[i];
+    }
+    return best;
+  }
+  /* 100 BB, snapped so the SMALL blind lands on a canonical rung —
+     custom buy-ins round to the nearest, so odd numbers still produce a
+     table made of round money (his call, chat 2026-08-03). */
+  function suggestBlind(buyIn) { return nearestCanon(buyIn / 200) * 2; }
+  /* the ladder: the small blind, then count-1 rungs up the canonical
+     list. `count` is the lobby's 4|5 pill — it is the ONLY knob, which
+     is why there is no separate "top chip" rule to contradict it. */
+  function suggestChips(bigBlind, count) {
+    var sb = nearestCanon(bigBlind / 2);
+    var at = CANON.indexOf(sb);
+    if (at < 0) at = 0;
+    var n = Math.max(2, Math.min(8, count | 0 || 5));
+    if (at + n > CANON.length) at = Math.max(0, CANON.length - n);
+    return CANON.slice(at, at + n);
+  }
+
+  /* ── the tray: a stack drawn as the chips it's actually made of ──
+     `chipBreak` is a canonical breakdown, so it hands back one tall
+     column of the biggest chip — true, and useless to look at. A tray
+     is what the cage would deal you: even-ish stacks of the low rungs
+     (TRAY_SHARE of the buy-in between them) with the top chip
+     absorbing the rest, so a deep stack grows the tall column and a
+     rich seat reads as rich from across the felt.
+     Counts are chosen per rung by searching outward from the wanted
+     height for one whose remainder the HIGHER rungs can still pay —
+     that is what makes the tray land on the buy-in exactly, on any
+     ladder the host builds, instead of only on the tidy ones. */
+  var TRAY_SHARE = 0.6;
+  function trayRatio(i) { return i < 2 ? 1 : Math.max(0.3, 1 - 0.2 * (i - 1)); }
+  /* the largest representable amount ≤ cap; the rest is loose cents.
+     Odd cents are real — a three-way split of an odd pot leaves one —
+     and no ladder can draw them, so the tray carries them as a number
+     rather than pretending they're a chip. */
+  function fitDown(cap, chips) {
+    var floor = Math.max(0, cap - minChip(chips) * 2);
+    for (var v = cap; v >= floor; v--) if (representable(v, chips)) return v;
+    return 0;
+  }
+  function traySum(t) {
+    var s = 0;
+    for (var v in t) if (Object.prototype.hasOwnProperty.call(t, v)) s += (+v) * t[v];
+    return s;
+  }
+  function dealTray(amount, chips) {
+    var vals = chips.slice().sort(function (a, b) { return a - b; });
+    var target = fitDown(Math.max(0, amount), vals);
+    var odd = Math.max(0, amount) - target;
+    var flat = function () { return { chips: chipBreak(target, vals) || {}, odd: odd }; };
+    if (vals.length < 2 || !target) return flat();
+    var tray = {}, rem = target, i;
+    var denom = 0;
+    for (i = 0; i < vals.length - 1; i++) denom += trayRatio(i) * vals[i];
+    var k = denom > 0 ? Math.round(TRAY_SHARE * target / denom) : 0;
+    k = Math.max(1, Math.min(40, k));
+    for (i = 0; i < vals.length - 1; i++) {
+      var higher = vals.slice(i + 1);
+      var want = Math.max(0, Math.round(k * trayRatio(i)));
+      var max = Math.floor(rem / vals[i]);
+      var span = Math.max(want, max) + 1;
+      var pick = null;
+      for (var d = 0; d < span && pick === null; d++) {
+        var up = want + d, dn = want - d;
+        if (up <= max && representable(rem - up * vals[i], higher)) pick = up;
+        else if (dn >= 0 && dn <= max && representable(rem - dn * vals[i], higher)) pick = dn;
+      }
+      if (pick === null) return flat();
+      if (pick) tray[vals[i]] = pick;
+      rem -= pick * vals[i];
+    }
+    var top = vals[vals.length - 1];
+    if (rem % top) return flat();
+    if (rem) tray[top] = (tray[top] || 0) + rem / top;
+    return { chips: tray, odd: odd };
+  }
+  /* take `amount` OFF a tray, the way it happens at a table: push in the
+     biggest chips that fit, and when the last of it is smaller than
+     anything you're still holding, push one chip over and take the
+     change back. Breaking chips down in place looks equivalent and
+     isn't — a greedy break can strand you (a 50¢ split into two
+     quarters can no longer pay 45¢ on a ladder whose 20¢ chip it
+     skipped). Returns null only when the change itself won't split, and
+     the caller re-deals. */
+  function trayPay(tray, amount, chips) {
+    var vals = chips.slice().sort(function (a, b) { return b - a; });   // high → low
+    var t = {}, v, i;
+    for (v in tray) if (Object.prototype.hasOwnProperty.call(tray, v)) t[v] = tray[v];
+    var rem = amount;
+    for (i = 0; i < vals.length; i++) {
+      var take = Math.min(t[vals[i]] || 0, Math.floor(rem / vals[i]));
+      if (take > 0) { t[vals[i]] -= take; rem -= take * vals[i]; }
+    }
+    if (rem === 0) return t;
+    var over = null;                       // smallest chip still held, all too big
+    for (i = vals.length - 1; i >= 0 && over === null; i--) if (t[vals[i]] > 0) over = vals[i];
+    if (over === null) return null;
+    var back = chipBreak(over - rem, vals);
+    if (!back) return null;
+    t[over]--;
+    for (var bv in back) if (Object.prototype.hasOwnProperty.call(back, bv)) {
+      t[bv] = (t[bv] || 0) + back[bv];
+    }
+    return t;
+  }
+  /* the tray follows the stack. ADJUSTING rather than re-dealing is the
+     point: a bet takes chips off your tray (breaking one for change if
+     it must) and a pot adds the winnings as a fresh handful, so your
+     chips keep looking like your chips instead of re-composing under
+     you every hand. Chips never gate legality — `representable` already
+     does that at the betting line — so a payment can't fail the rules;
+     the worst case is a re-deal, and the invariant holds either way. */
+  function syncTray(p, chips) {
+    if (!p || p.left) return;
+    if (!p.tray) { p.tray = dealTray(p.stack, chips); return; }
+    var have = traySum(p.tray.chips) + p.tray.odd;
+    if (have === p.stack) return;
+    if (p.stack > have) {
+      var add = dealTray(p.stack - have + p.tray.odd, chips);
+      var merged = {}, v;
+      for (v in p.tray.chips) if (Object.prototype.hasOwnProperty.call(p.tray.chips, v)) {
+        merged[v] = p.tray.chips[v];
+      }
+      for (v in add.chips) if (Object.prototype.hasOwnProperty.call(add.chips, v)) {
+        merged[v] = (merged[v] || 0) + add.chips[v];
+      }
+      p.tray = { chips: merged, odd: add.odd };
+    } else {
+      var down = have - p.stack;
+      var oddUse = Math.min(p.tray.odd, down);
+      var next = trayPay(p.tray.chips, down - oddUse, chips);
+      p.tray = next ? { chips: next, odd: p.tray.odd - oddUse } : dealTray(p.stack, chips);
+    }
+    if (traySum(p.tray.chips) + p.tray.odd !== p.stack) p.tray = dealTray(p.stack, chips);
+  }
+  function syncTrays(g) {
+    for (var i = 0; i < g.players.length; i++) syncTray(g.players[i], g.settings.chips);
+  }
+
   /* ── hand evaluation ──────────────────────────────────────────
      evaluate5 → [category, kicker, ...] comparable lexicographically;
      bestOf(cards 5..7) → { score, name } over every 5-card subset.
@@ -574,6 +730,7 @@
     });
     var events = [];
     tryStartHand(g, ctx, events);
+    syncTrays(g);       // everyone's buy-in, dealt as chips
     g._boot = events;   // the caller broadcasts these as the start events
     return g;
   }
@@ -584,6 +741,7 @@
       betStreet: 0, betHand: 0,
       out: false, left: false, waiting: false,
       away: false, owesAnte: false,
+      tray: null,                       // {chips:{value:count}, odd} — syncTrays fills it
       stats: { hands: 0, wins: 0, biggestPot: 0 }
     };
   }
@@ -769,7 +927,11 @@
       return done();
     }
 
-    function done() { return { game: g, events: events }; }
+    /* ONE sync point for the trays: every stack change in the engine —
+       blinds, antes, calls, raises, refunds, awards, re-buys, the
+       mid-hand cancel — funnels through here, so the tray can never
+       drift from the stack it draws. */
+    function done() { syncTrays(g); return { game: g, events: events }; }
   }
 
   function foldSeat(g, i, events) {
@@ -838,6 +1000,77 @@
       var br = chipBreak(45, CHIPS);
       eq(br && (br[20] || 0) * 20 + (br[25] || 0) * 25, 45, "chipBreak sums back");
       eq(chipBreak(15, [10, 20]), null, "chipBreak refuses the unsplittable");
+    })();
+
+    (function cascade() {
+      /* the buy-in presets, each walked all the way down the chain:
+         buy-in → blind (100 BB, snapped) → ladder (SB + N-1 rungs). */
+      var presets = [[500, 10], [1000, 10], [2000, 20], [5000, 50], [10000, 100]];
+      presets.forEach(function (pr) {
+        var bb = suggestBlind(pr[0]);
+        eq(bb, pr[1], "$" + (pr[0] / 100) + " buy-in → " + pr[1] + "¢ big blind");
+        var lad = suggestChips(bb, 5);
+        eq(lad.length, 5, "five rungs");
+        eq(lad[0], bb / 2, "the smallest chip IS the small blind");
+        ok(representable(bb, lad) && representable(bb / 2, lad), "both blind halves split");
+        ok(representable(pr[0], lad), "the buy-in splits");
+        // the top chip lands on a tenth of the buy-in — nobody wrote that
+        // rule, it falls out of the cascade (the $5 short-buy is the one
+        // exception: it is a 50 BB table, so the ladder outruns it)
+        if (pr[0] >= 1000) eq(lad[4], pr[0] / 10, "top chip = buy-in ÷ 10");
+      });
+      eq(suggestChips(20, 4), [10, 25, 50, 100], "the 4-chip ladder drops the top rung");
+      eq(suggestBlind(3700), 50, "a custom buy-in snaps to round money");
+    })();
+
+    (function trays() {
+      /* a tray must land on the amount EXACTLY, on any ladder, and must
+         look like a staircase rather than one tall column. */
+      [[1000, CHIPS], [2000, CHIPS], [2000, suggestChips(20, 5)],
+       [10000, suggestChips(100, 5)], [500, suggestChips(10, 4)],
+       [1000, [10, 25]], [2000, [5, 100]]].forEach(function (c) {
+        var t = dealTray(c[0], c[1]);
+        eq(traySum(t.chips) + t.odd, c[0], "tray sums to " + c[0] + " on [" + c[1] + "]");
+        eq(t.odd, 0, "a representable amount leaves no loose cents");
+        var used = Object.keys(t.chips).length;
+        ok(used >= Math.min(3, c[1].length), "the tray spreads across the ladder (" + used + " rungs)");
+      });
+      // odd cents are real (an odd pot split three ways) and no ladder
+      // draws them — the tray carries them as a number, not a chip
+      var oddT = dealTray(1008, [10, 20, 50, 100]);
+      eq(traySum(oddT.chips) + oddT.odd, 1008, "loose cents ride along");
+      eq(oddT.odd, 8, "8¢ can't be a chip on a 10¢ ladder");
+      // paying off a tray makes change when it has to
+      var pay = trayPay({ 100: 3 }, 45, CHIPS);
+      ok(pay && traySum(pay) === 255, "a $1 chip broke down to pay 45¢");
+      eq(trayPay({ 25: 1 }, 10, [10, 25]), null, "an unbreakable rung refuses");
+    })();
+
+    (function trayFollowsStack() {
+      /* the invariant the whole feature rests on: after ANY action, every
+         tray still sums to the stack it draws. */
+      var g = mkGame(4, 11);
+      var chips = g.settings.chips;
+      g.players.forEach(function (p, i) {
+        eq(traySum(p.tray.chips) + p.tray.odd, p.stack, "seat " + i + " dealt a tray at start");
+      });
+      var acted = 0;
+      for (var n = 0; n < 40 && g.phase !== "over"; n++) {
+        if (!g.turn) { if (!g.handOver) break; g = step(g, { type: "nextHand", seat: g.handOver.seats ? 0 : 0 }, 3); continue; }
+        var i2 = g.turn.seat;
+        var o = options(g, i2);
+        if (!o) break;
+        var r = applyAction(g, { type: o.toCall > 0 ? "call" : "check", seat: i2 }, mkCtx(n + 5));
+        if (r.error) break;
+        g = r.game; acted++;
+        var bad = 0;
+        g.players.forEach(function (p) {
+          if (traySum(p.tray.chips) + p.tray.odd !== p.stack) bad++;
+        });
+        eq(bad, 0, "trays match stacks after action " + acted);
+      }
+      ok(acted > 3, "the loop actually played (" + acted + " actions)");
+      ok(chips.length > 1, "settings kept the ladder");
     })();
 
     (function evaluator() {
@@ -1204,6 +1437,11 @@
     representable: representable,
     chipBreak: chipBreak,
     minChip: minChip,
+    suggestBlind: suggestBlind,
+    suggestChips: suggestChips,
+    dealTray: dealTray,
+    traySum: traySum,
+    CANON_CHIPS: CANON,
     toCall: toCall,
     minRaiseTo: minRaiseTo,
     voteNeed: voteNeed,

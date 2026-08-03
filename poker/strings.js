@@ -85,6 +85,13 @@ window.POKER_STRINGS = {
    buyInCustom: "$#",
    chipsLabel: "Chips",
    chipsBad: "[ph]Chip values need to be positive amounts in cents.",
+   /* the settings cascade (buy-in → blind → ladder): the 4|5 pill picks
+      how many rungs, and each derived row wears autoMark */
+   chipCountTip: "[ph]Deal the table {n} denominations.",
+   /* a derived row carries NO mark — it was derived before anyone
+      touched it. Only an overridden one offers the way back. */
+   autoReset: "[ph]reset",
+   autoResetTip: "[ph]Go back to the suggested values.",
    blindLabel: "Big blind",
    /* the small-blind-is-half hint was cut (his call, chat 2026-08-03) —
       the settings panel has to fit the bento's big tile without an inner
@@ -147,7 +154,8 @@ window.POKER_STRINGS = {
 
    /* ── play: felt + seats ──────────────────────────────────────── */
    handLine: "[ph]Hand {n}",
-   potLine: "[ph]pot {amt}",
+   /* no pot LABEL: the pot is its chips with the amount under them, and
+      the word was doing no work a pile in the middle of a felt doesn't */
    /* the button badges — single characters, Aditya's call (chat 2026-08-03) */
    dealerTag: "D",
    smallBlindTag: "1",
@@ -177,6 +185,10 @@ window.POKER_STRINGS = {
    /* ── the hand panel (your cards + actions) — the four buttons,
       "Raise by", "Confirm" and "Your Hand" are Aditya's (chat 2026-08-03) ── */
    handTitle: "Your Hand",
+   /* the chip rail beside your cards, and the tray art on the felt.
+      The rail has no label — its heading is the cash total itself. */
+   chipCount: "×{n}",
+   chipTip: "[ph]{n} × {amt}",
    actionFold: "Fold",
    actionCheck: "Check",
    actionCall: "Call {amt}",

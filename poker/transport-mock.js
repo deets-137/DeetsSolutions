@@ -21,6 +21,17 @@
   var HANDOVER_MS = 6000;   // the settlement interstitial always auto-advances
 
   function chipVals(t) { return t.settings.chips.map(function (c) { return c.v; }); }
+
+  /* Chip colour follows RANK, not value: the ladder's values are derived
+     from the buy-in now, so the same green would otherwise mean 25¢ at
+     one table and $2 at the next. Rank-coloured, the bottom chip is
+     always white and the drag-reorder has a visible consequence — which
+     is the point of an order "the host's to mean something by". */
+  var RANK_HEX = ["#f2efe6", "#d94141", "#2fae66", "#3b7dd8", "#26221f",
+                  "#9b59d0", "#e08b3a", "#35b6b6"];
+  function rankLadder(vals) {
+    return vals.map(function (v, i) { return { v: v, hex: RANK_HEX[i % RANK_HEX.length] }; });
+  }
   function human(t, s) { return t.seats[s] && !t.seats[s].phantom; }
 
   /* a clash-free random hex for seats past the six presets (docs/poker.md,
@@ -75,18 +86,19 @@
     awayAction: "sitOut",
     adoptAction: "sitBack",
     defaultSettings: function () {
+      var buyIn = 2000, bb = Engine.suggestBlind(buyIn);
       return {
         rejoin: "rejoin",
         capacity: 6,
-        buyIn: 2000,                       // cents
-        bigBlind: 20,                      // cents; the small blind is half
-        chips: [                           // the ladder, lowest to highest
-          { v: 10, hex: "#f2efe6" },       // white
-          { v: 20, hex: "#d94141" },       // red
-          { v: 25, hex: "#2fae66" },       // green
-          { v: 50, hex: "#3b7dd8" },       // blue
-          { v: 100, hex: "#26221f" }       // black
-        ],
+        buyIn: buyIn,                      // cents
+        bigBlind: bb,                      // cents; the small blind is half
+        chipCount: 5,                      // the 4|5 pill — the ladder's only knob
+        chips: rankLadder(Engine.suggestChips(bb, 5)),
+        /* the cascade's dirty flags: buy-in derives the blind derives the
+           ladder, each stage until the host takes it over by hand. The
+           4|5 pill is a PARAMETER, not an override — it re-derives. */
+        blindManual: false,
+        chipsManual: false,
         timerSec: 0,
         minRaise: "prev"                   // "prev" | "double" | "none"
       };
@@ -113,6 +125,7 @@
           out: p.out, left: p.left, waiting: p.waiting,
           away: p.away, owesAnte: p.owesAnte,
           betStreet: p.betStreet,
+          tray: p.tray,                  // the stack, as the chips it's made of
           stats: p.stats
         };
       });
@@ -157,6 +170,17 @@
         var seated = t.seats.filter(function (s) { return !!s; }).length;
         st.capacity = Math.max(cap, Math.max(2, seated));
       }
+      /* ── the cascade ──────────────────────────────────────────────
+         buy-in → blind → ladder, each stage derived from the one above
+         until the host overrides it by hand. Because a derived stage
+         depends on a stage that may be changing in this very message,
+         the three are staged into a candidate and validated ONCE at the
+         end — validating field-by-field would refuse a perfectly good
+         buy-in for failing against a ladder about to be replaced. */
+      var nBuyIn = st.buyIn, nBlind = st.bigBlind, nChips = st.chips;
+      var nCount = st.chipCount || 5;
+      var blindManual = st.blindManual, chipsManual = st.chipsManual;
+
       if (msg.chips != null) {
         if (!Array.isArray(msg.chips) || msg.chips.length < 2 || msg.chips.length > 8) return "chips";
         var ladder = [];
@@ -169,27 +193,40 @@
         }
         // ORDER IS THE HOST'S — the lobby ladder is drag-reordered and the
         // wire keeps it verbatim (the engine only ever reads the values)
-        var lv = ladder.map(function (c) { return c.v; });
-        // the standing blind and buy-in must still split into the new ladder
-        if (!Engine.representable(st.bigBlind, lv) || !Engine.representable(st.bigBlind / 2, lv)) return "blind";
-        if (!Engine.representable(st.buyIn, lv)) return "buyin";
-        st.chips = ladder;
-        vals = lv;
+        nChips = ladder;
+        chipsManual = true;               // hand-built: the cascade lets go
+        nCount = ladder.length;
+      }
+      if (msg.chipCount != null) {        // the 4|5 pill re-derives, never freezes
+        var cnt = msg.chipCount | 0;
+        if (cnt < 2 || cnt > 8) return "chips";
+        nCount = cnt;
+        chipsManual = false;
       }
       if (msg.buyIn != null) {
         var b = msg.buyIn | 0;
         if (b < 100 || b > 1000000) return "buyin";
-        if (!Engine.representable(b, vals)) return "buyin";
-        if (b < st.bigBlind) return "buyin";
-        st.buyIn = b;
+        nBuyIn = b;
       }
       if (msg.bigBlind != null) {
-        var bb = msg.bigBlind | 0;
-        // even (the small blind is half), both halves must split into chips
-        if (bb < 2 || bb % 2 || bb > st.buyIn) return "blind";
-        if (!Engine.representable(bb, vals) || !Engine.representable(bb / 2, vals)) return "blind";
-        st.bigBlind = bb;
+        nBlind = msg.bigBlind | 0;
+        blindManual = true;
       }
+      if (msg.autoBlind) { blindManual = false; }   // "reset to suggested"
+      if (msg.autoChips) { chipsManual = false; }
+
+      if (!blindManual) nBlind = Engine.suggestBlind(nBuyIn);
+      if (!chipsManual) nChips = rankLadder(Engine.suggestChips(nBlind, nCount));
+
+      var nv = nChips.map(function (c) { return c.v; });
+      // even (the small blind is half), both halves must split into chips
+      if (nBlind < 2 || nBlind % 2 || nBlind > nBuyIn) return "blind";
+      if (!Engine.representable(nBlind, nv) || !Engine.representable(nBlind / 2, nv)) return "blind";
+      if (!Engine.representable(nBuyIn, nv) || nBuyIn < nBlind) return "buyin";
+      st.buyIn = nBuyIn; st.bigBlind = nBlind; st.chips = nChips;
+      st.chipCount = nChips.length;
+      st.blindManual = blindManual; st.chipsManual = chipsManual;
+      vals = nv;
       if (msg.timerSec != null) {
         var ts = msg.timerSec | 0;
         if (ts !== msg.timerSec || ts < 0 || ts > 600 || (ts > 0 && ts < 5)) return "phase";

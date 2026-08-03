@@ -127,6 +127,91 @@
     return (model.settings.chips || []).map(function (c) { return c.v; });
   }
 
+  /* ── chip art ─────────────────────────────────────────────────
+     One renderer, two placements. A tray is drawn one COLUMN per
+     denomination, columns capped so a stack can't grow without bound:
+     on the felt a column holds 10 and spills into a neighbour (up to
+     FELT_COLS of them) so a rich seat is visible from across the
+     table; in the hand panel a column holds 6 and stops, because the
+     rail is a readout, not a comparison. Either way the `×N` label
+     carries the true count, so nothing the cap hides is ever lost.
+     Colour comes from the ladder's own hex (rank-assigned, see
+     transport-mock.js) — chips are the ONE place a game may paint its
+     own art (docs/games.md, the `--pk*` carve-out). */
+  var FELT_STACK = 10, FELT_COLS = 3, RAIL_STACK = 6;
+  /* Sprite swap point (assets/sprites/poker/README.md), mahjong's
+     probe-once idiom: chip-side-N is the chip's RANK in the ladder,
+     never its value — values are derived from the buy-in but rank 1 is
+     always the smallest chip, so the filenames stay stable across every
+     table. A missing file costs one quiet 404 and the CSS bars stand in.
+     There is no top-of-stack sprite: a stack is side views the whole way
+     up (his call, chat 2026-08-03 — a face on top read as odd). */
+  var CHIP_SPRITE_DIR = "../assets/sprites/poker/";
+  var CHIP_SPRITE_RANKS = 5;
+  var chipSprites = {};
+  (function probeChips() {
+    for (var r = 1; r <= CHIP_SPRITE_RANKS; r++) {
+      (function (name) {
+        var probe = new Image();
+        probe.onload = function () { chipSprites[name] = true; if (model) render(); };
+        probe.src = CHIP_SPRITE_DIR + name + ".png";
+      })("chip-side-" + r);
+    }
+  })();
+  /* A column is ONE node, not one per chip: a single layer that tiles the
+     band once per chip. That is what stops the stack shimmering — N
+     adjacent boxes each round to a whole device pixel independently, so
+     at fractional zoom they disagree about their own width and the stack
+     appears to taper. One tiled background can't disagree with itself.
+     (Mahjong learned the same lesson about identical tiles —
+     assets/sprites/mahjong/README.md.) */
+  function chipColumn(rank, hex, n, unit) {
+    var col = el("div", "pk-tray__col");
+    col.style.height = (n * unit) + "px";
+    col.style.setProperty("--pkchip-color", hex);
+    if (chipSprites["chip-side-" + rank]) {
+      col.style.backgroundImage = "url(" + CHIP_SPRITE_DIR + "chip-side-" + rank + ".png)";
+      col.classList.add("is-art");
+    }
+    return col;
+  }
+  function chipStacks(tray, opts) {
+    var wrap = el("div", "pk-tray" + (opts.rail ? " pk-tray--rail" : ""));
+    if (!tray || !tray.chips) return wrap;
+    var per = opts.rail ? RAIL_STACK : FELT_STACK;
+    var unit = opts.rail ? 6 : 4;          // one band, in CSS px
+    /* EVERY denomination renders, even at zero. An empty column is
+       invisible but still holds its width, so a tray doesn't shuffle
+       sideways the moment a rung runs out — and on the rail the key
+       keeps saying what a chip is worth even when you hold none of it.
+       The reserved height lives in CSS; the stacks grow up from it. */
+    (model.settings.chips || []).forEach(function (chip, rank) {
+      var n = tray.chips[chip.v] || 0;
+      var group = el("div", "pk-tray__group");
+      var stack = el("div", "pk-tray__stack");
+      var cols = Math.max(1, Math.min(Math.ceil(n / per), opts.rail ? 1 : FELT_COLS));
+      var left = n;
+      for (var c = 0; c < cols; c++) {
+        var high = Math.min(left, per);
+        stack.appendChild(chipColumn(rank + 1, chip.hex, high, unit));
+        left -= high;
+      }
+      /* the count sits where the NEXT column would have started, so a
+         capped group reads as "and more of these" rather than as a
+         shorter stack (his call, chat 2026-08-03) */
+      if (n > per) stack.appendChild(el("span", "pk-tray__count", fmt(S.chipCount, { n: n })));
+      group.appendChild(stack);
+      /* the rail doubles as the table's KEY — what a white chip is worth
+         is otherwise nowhere on the page. The felt stays bare: twelve
+         seats' worth of denominations is noise, and the rail has already
+         said it (his call, chat 2026-08-03). */
+      if (opts.rail) group.appendChild(el("span", "pk-tray__val", fmtMoney(chip.v)));
+      group.title = fmt(S.chipTip, { n: n, amt: fmtMoney(chip.v) });
+      wrap.appendChild(group);
+    });
+    return wrap;
+  }
+
   /* ── cards ────────────────────────────────────────────────────── */
   var SUIT_GLYPH = { s: "♠", h: "♥", d: "♦", c: "♣" };
   function cardEl(card, big) {
@@ -328,6 +413,23 @@
       if (!ladder.contains(e.relatedTarget)) clearDrop();
     });
     chipRow.opts.appendChild(ladder);
+    /* the 4|5 pill: how many rungs the derived ladder takes. It is a
+       PARAMETER of the cascade, not an override — flipping it re-derives
+       (a hand-typed value is what freezes the ladder). */
+    var count = el("span", "pk-chipcount");
+    [4, 5].forEach(function (n) {
+      var b = el("button", "tb-pill pk-chipcount__pill" +
+        ((st.chips || []).length === n && !st.chipsManual ? " is-on" : ""));
+      b.type = "button";
+      b.disabled = !host;
+      b.appendChild(el("span", "tb-pill__label", String(n)));
+      b.title = fmt(S.chipCountTip, { n: n });
+      b.addEventListener("click", function () { send({ type: "setSettings", chipCount: n }); });
+      count.appendChild(b);
+    });
+    chipRow.opts.appendChild(count);
+    var chipReset = autoMark(st.chipsManual, host, "autoChips");
+    if (chipReset) chipRow.opts.appendChild(chipReset);
     wrap.appendChild(chipRow);
 
     // big blind: cent presets + a free box; the one rule is dictated below
@@ -335,6 +437,8 @@
       [[10, "10¢"], [20, "20¢"], [50, "50¢"], [100, "$1"]], st.bigBlind);
     // bare numbers in the blind box mean CENTS ("30" → 30¢, "$1" still works)
     blindRow.opts.appendChild(moneyChip("bigBlind", st.bigBlind, [10, 20, 50, 100], "¢", true));
+    var blindReset = autoMark(st.blindManual, host, "autoBlind");
+    if (blindReset) blindRow.opts.appendChild(blindReset);
     wrap.appendChild(blindRow);
 
     var timerRow = TBL.choiceRow(S.timerLabel, "timerSec",
@@ -429,6 +533,12 @@
 
   /* ═══ RENDER ═══════════════════════════════════════════════════ */
   function paint() {
+    /* the big tile's three boxes — see .pk-tile--big in poker.css: the
+       felt never scrolls, the cash-out table scrolls as a flex (it
+       centers itself), the lobby scrolls as a block (so its bottom
+       padding survives). */
+    BIG.classList.toggle("is-scroll", model.phase === "lobby" || model.phase === "over");
+    BIG.classList.toggle("is-lobby", model.phase === "lobby");
     if (model.phase === "lobby") {
       BIG.textContent = "";
       ROLE.textContent = "";          // reserved at full height by CSS
@@ -585,9 +695,17 @@
     if (model.waiting) {
       f.appendChild(el("div", "pk-feltline", S.waitingLine));
     } else {
+      /* The pot is its own chips with the amount under them — the word
+         "pot" was doing no work that a pile of chips in the middle of a
+         felt doesn't already do (his call, chat 2026-08-03). The pile is
+         the pot total broken into the table's ladder: the engine tracks
+         the pot in cents, not as the particular chips each player
+         pushed in, so this is what it WOULD be racked as. */
       var pot = el("div", "pk-pot");
-      pot.appendChild(el("span", null, fmt(S.potLine, { amt: "" })));
-      pot.appendChild(el("strong", null, fmtMoney(model.pot || 0)));
+      var cents = model.pot || 0;
+      // the pile renders even at zero, so the amount under it never moves
+      pot.appendChild(chipStacks(Engine.dealTray(cents, chipValsNow()), { rail: false }));
+      pot.appendChild(el("strong", null, fmtMoney(cents)));
       f.appendChild(pot);
     }
     if (model.handOver) f.appendChild(handOverCard());
@@ -615,9 +733,17 @@
     if (model.blinds && model.blinds.sb === i) head.appendChild(badge(S.smallBlindTag, S.smallBlindTip, true));
     if (model.blinds && model.blinds.bb === i) head.appendChild(badge(S.bigBlindTag, S.bigBlindTip, true));
     node.appendChild(head);
+    /* The tag and the bet pill are ALWAYS in the seat, blanked rather
+       than omitted. A seat is centered on its anchor (`translate(-50%,
+       -50%)`), so its height decides where it sits: drop the bet pill
+       when the street clears and the whole seat re-centers, sliding the
+       name and badges down half a pill. That was the flop's "jitter". */
     var tag = seatTag(p, away);
-    if (tag) node.appendChild(el("span", "pk-seat__tag", tag));
-    if (p.betStreet > 0) node.appendChild(el("span", "pk-seat__bet", fmtMoney(p.betStreet)));
+    node.appendChild(el("span", "pk-seat__tag" + (tag ? "" : " is-blank"), tag || " "));
+    if (p.tray && !p.left) node.appendChild(chipStacks(p.tray, { rail: false }));
+    var bet = p.betStreet > 0;
+    node.appendChild(el("span", "pk-seat__bet" + (bet ? "" : " is-blank"),
+      bet ? fmtMoney(p.betStreet) : " "));
     return node;
   }
   function badge(text, tip, blind) {
@@ -777,6 +903,27 @@
     });
     PLAYERS.appendChild(list);
   }
+  /* The cascade rewrites rows the host isn't looking at — pick a $50
+     buy-in and the blind and all five chips change underneath. Only the
+     OVERRIDDEN state gets a mark: a derived row needs no "auto" label,
+     because it was already derived before anyone touched it and the
+     values speak for themselves (his call, chat 2026-08-03). The reset
+     link is the dirty flag's only UI, and it appears exactly when
+     there's something to undo. */
+  function autoMark(manual, host, verb) {
+    if (!manual) return null;
+    var b = el("button", "pk-auto pk-auto--reset");
+    b.type = "button";
+    b.disabled = !host;
+    b.textContent = S.autoReset;
+    b.title = S.autoResetTip;
+    b.addEventListener("click", function () {
+      var msg = { type: "setSettings" };
+      msg[verb] = true;
+      send(msg);
+    });
+    return b;
+  }
   function stripBadge(text, tip) {
     var b = el("span", "pk-pstrip__badge", text);
     b.title = tip;
@@ -825,6 +972,18 @@
       handCol.appendChild(slots);
     }
     play.appendChild(handCol);
+
+    /* the chip rail: your own stack, drawn. The cash total IS the
+       heading — a label over your own chips only said what the chips
+       already say (his call, chat 2026-08-03). The rail is ALWAYS in the
+       layout (empty when you're bust) so the panel keeps cities'
+       no-jitter rule. */
+    var rail = el("div", "pk-play__chips");
+    var railHead = el("div", "pk-chips__head");
+    railHead.appendChild(el("span", "pk-chips__total", fmtMoney(p.stack)));
+    rail.appendChild(railHead);
+    rail.appendChild(chipStacks(p.tray, { rail: true }));
+    play.appendChild(rail);
 
     // controls column: the pills right-aligned (cities-actions), tray under
     var ctrl = el("div", "pk-play__ctrl");
@@ -885,26 +1044,34 @@
     slider.min = minBy; slider.max = maxBy; slider.step = step;
     slider.value = val;
     slider.disabled = !armed;
-    var out = el("span", "pk-raise__out", fmtMoney(val));
-    slider.addEventListener("input", function () {
-      ui.raiseDraft = +slider.value;
-      out.textContent = fmtMoney(+slider.value);
-      box.value = "";
-    });
-    tray.appendChild(slider);
-    tray.appendChild(out);
-    var box = el("input", "pk-raise__box");
+    /* The amount READS as text and IS the type-in — one element, styled
+       bare until you focus it, rather than a bold readout sitting beside
+       a box that says the same thing (his call, chat 2026-08-03). It
+       stays an <input> the whole time, so clicking it just puts a caret
+       where you clicked; swapping nodes on click would eat that click. */
+    var box = el("input", "pk-raise__amt");
     box.type = "text";
-    box.placeholder = fmtMoney(minBy);
+    box.value = fmtMoney(val);
     box.disabled = !armed;
     box.setAttribute("aria-label", S.raiseCustomAria);
+    slider.addEventListener("input", function () {
+      ui.raiseDraft = +slider.value;
+      box.value = fmtMoney(+slider.value);
+    });
+    box.addEventListener("focus", function () { box.select(); });
     box.addEventListener("input", function () {
       var v = parseMoney(box.value, true);   // bare numbers are cents here
-      if (v != null) { ui.raiseDraft = v; out.textContent = fmtMoney(v); }
+      if (v != null) { ui.raiseDraft = v; slider.value = v; }
+    });
+    // leaving the field re-prints whatever the engine will actually see
+    box.addEventListener("change", function () {
+      var v = parseMoney(box.value, true);
+      box.value = fmtMoney(v == null ? (ui.raiseDraft != null ? ui.raiseDraft : minBy) : v);
     });
     box.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
+    tray.appendChild(slider);
     tray.appendChild(box);
-    var go = el("button", "tb-pill");
+    var go = el("button", "tb-pill pk-raise__go");
     go.type = "button";
     go.disabled = !armed;
     go.appendChild(el("span", "tb-pill__label", S.raiseGo));

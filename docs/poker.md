@@ -12,6 +12,7 @@ poker/engine.js          the rules: pure, DOM-free, dual-export, self-tested
 poker/poker.js           the felt/hand-panel UI + the shell's hooks
 poker/transport-mock.js  the mock's game half (a spec on table-mock.js)
 poker/poker.css          the game's own art + layout
+assets/sprites/poker/    chip art (templates: scripts/build-poker-chips.py)
 ../DeetsPoker/           the worker repo — DOES NOT EXIST YET (phase 2)
 ```
 
@@ -35,16 +36,18 @@ spec is the DO subclass hook-for-hook.
   fails on 10/25). The ONE exception: a full all-in is always legal (your
   last chips are whatever they are). Stacks are plain cent totals; how a
   stack would be drawn as chips is display-only (`Engine.chipBreak`).
-- **Chip ladder**: default white 10¢ < red 20¢ < green 25¢ < blue 50¢ <
-  black $1. Host-editable values in the lobby, and **drag to reorder** —
+- **Chip ladder**: derived, not typed — see "The settings cascade"
+  below. Host-editable values in the lobby, and **drag to reorder** —
   no affordance by design (his call, chat 2026-08-03); the order is the
   host's to mean something by and the wire keeps it verbatim (the engine
-  only reads the values). On-felt chip ART is still deferred — bets and
-  stacks render as plain amounts.
-- **Blinds**: one `bigBlind` setting (default 20¢); the small blind is
-  half, so the big blind must be even and BOTH halves must split into the
-  chips — refused with the `blind` code, surfaced as a red toast. Blinds
-  post automatically.
+  only reads the values). Stacks render as CHIPS on the felt and in the
+  hand panel ("Chips on the table"); bet piles are still plain amounts.
+- **Blinds**: one `bigBlind` setting, derived from the buy-in; the small
+  blind is half, so the big blind must be even and BOTH halves must
+  split into the chips — refused with the `blind` code, surfaced as a
+  red toast. A derived ladder can't produce that refusal (its smallest
+  chip IS the small blind); only a hand-built one can. Blinds post
+  automatically.
 - **Buy-in**: $5/$10/$20/$50/$100 presets + any custom amount (also
   chip-splittable, ≥ the big blind). Everyone buys in at Start.
 - **Min raise** setting: `prev` (default — at least the previous raise,
@@ -95,6 +98,136 @@ spec is the DO subclass hook-for-hook.
   color clashes (one attempt per clash; profile colors get their shot
   first via the shell's own seeding). Known gap: two host-added dev bots
   past seat six can still share a preset — dev-only, lives with it.
+
+## The settings cascade (chat 2026-08-03)
+
+A real cash table doesn't pick its chips out of the air, so neither does
+this one. **Buy-in → blind → ladder**, each stage derived from the one
+above:
+
+| Buy-in | Blinds | Ladder (5 chips) |
+| --- | --- | --- |
+| $5 | 5¢ / 10¢ | 5¢ · 10¢ · 25¢ · 50¢ · $1 |
+| $10 | 5¢ / 10¢ | 5¢ · 10¢ · 25¢ · 50¢ · $1 |
+| $20 | 10¢ / 20¢ | 10¢ · 25¢ · 50¢ · $1 · $2 |
+| $50 | 25¢ / 50¢ | 25¢ · 50¢ · $1 · $2 · $5 |
+| $100 | 50¢ / $1 | 50¢ · $1 · $2 · $5 · $10 |
+
+Two real-world rules do all the work. The blind is **100 big blinds** of
+the buy-in, snapped so the small blind lands on a canonical money value
+(`Engine.CANON_CHIPS`) — a custom $37 buy-in still yields a table made of
+round money. The smallest chip **is** the small blind, because anything
+under it is unspendable. The ladder is that rung plus N-1 more up the
+canonical list.
+
+Notice what nobody wrote down: **the top chip lands on buy-in ÷ 10 at
+every preset** (÷ 20 at four chips). It falls out of the cascade. That is
+also why the old "top chip ≈ a tenth of the buy-in" heuristic is *not* in
+the code — it would be a second rule able to contradict the first.
+
+- `Engine.suggestBlind(buyIn)` and `Engine.suggestChips(bigBlind, count)`
+  are pure and exported, so the lobby, the mock and (phase 2) the worker
+  all derive the same table.
+- **`chipCount` is the lobby's `4 | 5` pill** — the ladder's only knob.
+  It is a *parameter* of the cascade, not an override: flipping it
+  re-derives. Typing a chip value is what freezes the ladder.
+- **Dirty flags**: `blindManual` / `chipsManual`. Each stage derives
+  until the host takes it over by hand; `autoBlind` / `autoChips` on
+  `setSettings` hand it back. A derived row carries **no mark** — it was
+  derived before anyone touched it, so an "auto" label told the host
+  something they already knew (his call, chat 2026-08-03). An overridden
+  row grows a **reset** link instead: the dirty flag's only UI, showing
+  up exactly when there is something to undo.
+- **`applySettings` validates ONCE, at the end.** A derived stage depends
+  on a stage that may be changing in the same message, so the three are
+  staged into a candidate first; validating field-by-field would refuse a
+  perfectly good buy-in for failing against a ladder about to be replaced.
+- **Chip colour follows RANK, not value** (`RANK_HEX` in
+  transport-mock.js). Values are derived now, so the same green would
+  otherwise mean 25¢ at one table and $2 at the next. Rank-coloured, the
+  bottom chip is always white — and the drag-reorder finally has a
+  visible consequence.
+
+## Chips on the table
+
+`chipBreak` is a canonical breakdown, so it returns one tall column of
+the biggest chip — true, and useless to look at ($21 is 21 blacks). A
+**tray** is what the cage would actually deal you, and it is real state:
+
+- `p.tray = { chips: {value: count}, odd }`, public on the seat view
+  (money is public at a poker table). The invariant, engine-self-checked
+  after every action: **`traySum(chips) + odd === stack`**.
+- `Engine.dealTray(amount, chips)` spreads `TRAY_SHARE` (60%) of the
+  amount in even-ish stacks across the low rungs and lets the **top chip
+  absorb the rest**, so a deep stack grows the tall column and a rich
+  seat reads as rich from across the felt. Counts are chosen per rung by
+  searching outward from the wanted height for one whose remainder the
+  *higher* rungs can still pay — that is what makes a tray land on the
+  buy-in exactly on **any** ladder the host builds, not just the tidy
+  ones. $20 deals 10 · 10 · 7 · 5 · 4.
+- **`odd`** is loose cents. A three-way split of an odd pot leaves one,
+  and no ladder can draw it, so the tray carries it as a number rather
+  than pretending it's a chip.
+- **Betting spends the tray, but chips never gate legality** —
+  `representable` already does that at the betting line, so a payment
+  cannot fail the rules. `trayPay` does what a table does: push in the
+  biggest chips that fit, and when the last of it is smaller than
+  anything you still hold, push one chip over and **take change back**.
+  Breaking chips down in place looks equivalent and isn't — a greedy
+  break strands you (a 50¢ split into two quarters can no longer pay 45¢
+  on a ladder whose 20¢ chip it skipped). Both self-checked.
+- `syncTrays` runs at **one** call site — `done()` inside `applyAction`,
+  plus `createGame`. Every stack change in the engine funnels through it,
+  so the tray can't drift. It *adjusts* rather than re-dealing, which is
+  the point: your chips keep looking like your chips instead of
+  re-composing under you every hand. A re-deal is the fallback when a
+  tray genuinely can't make change.
+
+Rendering is one function, `chipStacks`, in two placements: one group per
+denomination, each group one or more columns of edge-on chips. **On the
+felt** a column holds 10 and spills into a neighbour, up to 3 columns,
+with the `×N` label sitting where the fourth would have started — capped
+groups read as "and more of these" rather than as a shorter stack, and
+the tray wraps rather than shouldering into the seat beside it. **In the
+hand panel** a column holds 6 and stops, because the rail is a readout,
+not a comparison; the cash total **is** its heading — a label over your
+own chips only said what the chips already say. Both his call, chat
+2026-08-03.
+
+Two rules keep a stack from *looking* wrong, both learned the hard way:
+
+- `flex: none` runs all the way down the tray, over a `max-content`
+  width. A tray short of room would otherwise shrink its groups, and flex
+  spends that shortfall unevenly — the first groups hit their floor and
+  the last ones absorb the rest, so the ladder appears to taper from
+  white down to black. A chip is one size.
+- **A tray grows sideways and never wraps.** Wrapping hid the wealth in a
+  second row *and* made the seat taller, which moved everything under it.
+  A rich seat now spills past the felt, which is the intended read.
+- **Every denomination renders, even at zero**, and a tray reserves the
+  height of a full column (`--pkside × 10`, or × 6 on the rail) with its
+  stacks growing up from that baseline. Nothing below a tray moves as
+  chips come and go, no tray shuffles sideways when a rung runs out, and
+  the rail keeps saying what a chip is worth even when you hold none.
+  The pot pile renders at zero for the same reason — its amount sits
+  underneath it and must not move as the pot swells.
+- **A column is one node, not one per chip**: a single layer tiling the
+  band once per chip. N adjacent boxes each round to a whole device pixel
+  independently, so at fractional zoom they disagree about their own
+  width and the stack tapers again — one tiled background cannot disagree
+  with itself. Sizes are whole **px**, not rem, for the same reason, and
+  the sprite scales with plain smooth filtering (never
+  `image-rendering: pixelated`, which is what made mahjong's identical
+  tiles shimmer — a stack is nothing but identical tiles).
+
+**Sprite swap point**: `assets/sprites/poker/chip-side-{1..5}.png`,
+mahjong's probe-once idiom, templates from
+`scripts/build-poker-chips.py`. The number is the chip's **rank**, not
+its value — values are derived from the buy-in, but rank 1 is always the
+smallest chip and always white, which is what makes the filenames stable
+across every table. There is **no top-of-stack face sprite**: a face
+capping a column of bands read as odd (his call, chat 2026-08-03), so a
+stack is side views the whole way up. See that folder's README.
 
 ## Stepping away
 
@@ -225,7 +358,7 @@ broadcast without updating this list (mahjong's rule, same reason).
 `handNo dealer street board waiting blinds{sb,bb} pot players[] turn{seat}
 handOver handOverAt votes{n,need,seats} transfers turnEndsAt
 over{endedBy,standings,hands,results}` — per-player: `seat stack bought
-inHand folded allIn out left waiting away owesAnte betStreet stats`.
+inHand folded allIn out left waiting away owesAnte betStreet tray stats`.
 Seat views additionally carry `away` (public, like `conceded`).
 
 ## Winnings — the transfer ledger
@@ -267,6 +400,22 @@ cities' universal layout rule. The buy-in button appears in the card
 slot when bust). Card faces are geometric placeholders in the `--pk*`
 carve-out (felt, faces, backs); everything else rides the tokens, `gt-`
 nodes untouched.
+
+The big tile wears **three boxes**, toggled in `paint()`, because the
+three things it holds want different ones:
+
+| phase | box | why |
+| --- | --- | --- |
+| felt | flex, `overflow: visible` | a rich seat should spill past the edge; scrolling a poker table to find the chips is worse than the mess |
+| cash-out | flex, `.is-scroll` | `.pk-cashout` centers itself with `margin: auto`, which needs the flex parent |
+| lobby | block, `.is-scroll .is-lobby` | a **flex** scroll container drops its bottom padding once content overflows — that is what smushed the Start button into the panel edge |
+
+Seat jitter has one cause worth remembering: a seat is centered on its
+anchor (`translate(-50%, -50%)`), so its **height decides where it
+sits**. Drop the bet pill when a street clears and the whole seat
+re-centers, sliding the name and badges down half a pill — the "jitter"
+on the flop. The tag and the bet pill are therefore always in the seat,
+blanked with `visibility: hidden` rather than omitted.
 
 **The lobby reserves the bento at its in-game size** — cities' rule
 verbatim. The settings render into the big tile at its full `34rem`, and
@@ -320,8 +469,9 @@ under "Stepping away" → "Still to build in the worker".
 
 ## Deferred / open
 
-- Chip stack ART on the felt (his call once the scaffold is reviewed);
-  bet chips sweeping into the pot; the chip-ladder drag-reorder.
+- Bet piles as chips (still the plain `20¢` text pill), and bet chips
+  sweeping into the pot at settlement. The tray already rides the public
+  view, so the felt can animate real chips without a protocol change.
 - Muck/show choices at showdown (v1 reveals every live hand).
 - The worker repo + stats hooks (`poker_seats` counters, results POST) —
   [stats.md](stats.md) when phase 2 starts.
