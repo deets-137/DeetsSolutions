@@ -400,9 +400,12 @@
     // match length: one hand, one wind (default), or four winds
     wrap.appendChild(TBL.choiceRow(S.windsLabel, "winds",
       [[0, S.windsHand], [1, S.windsOne], [4, S.windsFour]], st.winds));
-    wrap.appendChild(TBL.choiceRow(S.timerLabel, "timerSec",
+    var timerRow = TBL.choiceRow(S.timerLabel, "timerSec",
       [[0, S.timerOff], [45, fmt(S.timerSecs, { n: 45 })], [60, fmt(S.timerSecs, { n: 60 })],
-       [90, fmt(S.timerSecs, { n: 90 })], [120, fmt(S.timerSecs, { n: 120 })]], st.timerSec));
+       [90, fmt(S.timerSecs, { n: 90 })], [120, fmt(S.timerSecs, { n: 120 })]], st.timerSec);
+    // plus a free box for any budget the presets don't offer (5–600s)
+    timerRow.opts.appendChild(TBL.numChip("timerSec", st.timerSec, [0, 45, 60, 90, 120], S.timerCustom, 5, 600));
+    wrap.appendChild(timerRow);
 
     // tile art: NOT a table setting — every viewer picks their own deck
     // (localStorage, mirrored by the toolbar pill), so these chips are

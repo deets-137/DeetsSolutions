@@ -521,9 +521,12 @@
     var st = model.settings;
     wrap.appendChild(TBL.choiceRow(S.capacityLabel, "capacity",
       [[3, "3"], [4, "4"], [5, "5"], [6, "6"]], st.capacity));
-    wrap.appendChild(TBL.choiceRow(S.timerLabel, "timerSec",
+    var timerRow = TBL.choiceRow(S.timerLabel, "timerSec",
       [[0, S.timerOff], [45, fmt(S.timerSecs, { n: 45 })], [60, fmt(S.timerSecs, { n: 60 })],
-       [90, fmt(S.timerSecs, { n: 90 })], [120, fmt(S.timerSecs, { n: 120 })]], st.timerSec));
+       [90, fmt(S.timerSecs, { n: 90 })], [120, fmt(S.timerSecs, { n: 120 })]], st.timerSec);
+    // plus a free box for any budget the presets don't offer (5–600s)
+    timerRow.opts.appendChild(TBL.numChip("timerSec", st.timerSec, [0, 45, 60, 90, 120], S.timerCustom, 5, 600));
+    wrap.appendChild(timerRow);
     wrap.appendChild(TBL.choiceRow(S.bettingLabel, "betting",
       [[true, S.bettingOn], [false, S.bettingOff]], !!st.betting));
     // in-game resources view (the board's Resources popover; default on)

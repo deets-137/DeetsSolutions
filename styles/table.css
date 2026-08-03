@@ -138,6 +138,11 @@
 .gt-chip:hover:not(:disabled) { background: var(--surface-hover); transform: var(--hover-lift); }
 .gt-chip:disabled { opacity: 0.55; cursor: default; }
 .gt-chip.is-active { border-color: var(--title); color: var(--title); }
+/* the free-number chip (custom turn timer): an input wearing the chip's
+   clothes — same padding/border/height, just wide enough for three digits */
+.gt-chip--num { width: 3.4rem; padding-left: var(--space-1); padding-right: var(--space-1); text-align: center; }
+.gt-chip--num:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.gt-chip--num::placeholder { color: var(--subtext); }
 .gt-lobby__seats { display: flex; flex-direction: column; gap: var(--space-2); }
 .gt-seat {
   display: flex; align-items: center; gap: var(--space-3);
@@ -149,32 +154,41 @@
 .gt-seat--empty { opacity: 0.6; border-style: dashed; }
 .gt-seat__name { flex: 1 1 auto; color: var(--text); }
 .gt-seat__badge {
-  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  font-size: inherit; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);
   padding: 0 var(--space-2);
+  height: 1.6em; display: inline-flex; align-items: center;
 }
-/* a bot's difficulty, shown beside its name — quieter than the host badge
-   because it labels the seat rather than marking authority over the table */
-.gt-seat__badge--tier { color: var(--subtext); }
 .gt-seat__kick { background: none; border: none; color: var(--subtext); cursor: pointer; font-size: 0.9rem; }
 .gt-seat__kick:hover { color: var(--stop); }
 
-/* ── bot difficulty picker (docs/games.md, "Bots"): a segmented control
-   inside the host's bot editor row. Games whose engine declares no tiers
-   never build these nodes. ── */
+/* ── bot difficulty picker (docs/games.md, "Bots"): a segmented E/M/H
+   control, ONE size everywhere it appears — the host's editor row and a
+   bot's seat row share the badge/input geometry (font inherit, 1.6em),
+   so nothing resizes when the editor swaps in. Games whose engine
+   declares no tiers never build these nodes. ── */
 .gt-tierpick { display: flex; gap: 0; flex: 0 0 auto; }
 .gt-tierpick__opt {
   background: none; cursor: pointer;
   color: var(--subtext); border: 1px solid var(--border);
-  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  font: inherit; text-transform: uppercase; letter-spacing: 0.05em;
   padding: 0 var(--space-2);
+  height: 1.6em; line-height: 1; display: inline-flex; align-items: center;
 }
 .gt-tierpick__opt + .gt-tierpick__opt { border-left: none; }
 .gt-tierpick__opt:first-child { border-radius: var(--radius-control) 0 0 var(--radius-control); }
 .gt-tierpick__opt:last-child { border-radius: 0 var(--radius-control) var(--radius-control) 0; }
-.gt-tierpick__opt:hover { color: var(--title); }
+.gt-tierpick__opt:not(:disabled):hover { color: var(--title); }
 .gt-tierpick__opt.is-on { color: var(--title); border-color: var(--title); }
 .gt-tierpick__opt.is-on + .gt-tierpick__opt { border-left: none; }
+/* disabled means "not yours to change", not "off" — non-hosts still read
+   the tier from it, so it stays full-color */
+.gt-tierpick__opt:disabled { cursor: default; }
+/* the editor row's confirm matches the same strip */
+.gt-seat--edit .gt-seat__addgo {
+  font-size: inherit; height: 1.6em; line-height: 1;
+  display: inline-flex; align-items: center;
+}
 /* host-added bots: "+ Bot" on open seats, and the inline add/rename editor —
    the editor swaps into the row at the SAME height (input capped to the text
    line), so toggling it never resizes the roster (the universal layout rule) */

@@ -56,6 +56,7 @@ window.CITIES_STRINGS = {
   timerLabel:      "Turn timer",
   timerOff:        "Off",
   timerSecs:       "{n}s",
+  timerCustom:     "#s",   /* the custom-seconds box — Aditya's, chat 2026-08-02 */
   bettingLabel:    "[ph]Spectator betting",   // [ph] OK to ship — betting is unbuilt (v1.1); Aditya's call (chat 2026-07-21)
   bettingOn:       "On",
   bettingOff:      "Off",
@@ -93,6 +94,12 @@ window.CITIES_STRINGS = {
   botTier_easy:     "[ph]Easy",
   botTier_normal:   "[ph]Normal",
   botTier_hard:     "[ph]Hard",
+  /* single-letter forms for the seat-row picker (falls back to the raw
+     tier name's first letter if an entry is missing) — Aditya's, chat
+     2026-08-02 */
+  botTierShort_easy:   "E",
+  botTierShort_normal: "M",
+  botTierShort_hard:   "H",
   /* renaming yourself (the rename verb): your own name is the same
      click-to-edit row; "Save" and "Reset" are Aditya's (chat 2026-07-27) */
   renameGo:         "Save",

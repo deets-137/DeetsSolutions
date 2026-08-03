@@ -648,7 +648,7 @@
         // inline editor takes over the row (same height) — the host's bot
         // editor, or your own rename; a seat that stopped qualifying mid-edit
         // (claimed, kicked, stood up) drops it, like the color picker
-        if (ui.botEdit === i && !(host && (s.empty || isBot)) && !isMe) { ui.botEdit = null; ui.botDraft = null; }
+        if (ui.botEdit === i && !(host && (s.empty || isBot)) && !isMe) { ui.botEdit = null; ui.botDraft = null; ui.botTier = null; }
         if (ui.botEdit === i) { seatInto(botEditorRow(i), s); return; }
         var row = el("div", "gt-seat" + (s.empty ? " gt-seat--empty" : ""));
         var editable = !s.empty && isCaptain && (isMe || (host && s.phantom));
@@ -663,10 +663,10 @@
           row.appendChild(nameBtn);
         } else row.appendChild(el("span", "gt-seat__name", label));
         if (model.hostSeat === i) row.appendChild(el("span", "gt-seat__badge", S.hostBadge));
-        // a bot's difficulty is public — you should know what you're facing
-        if (isBot && s.tier && botTiers().length > 1) {
-          row.appendChild(el("span", "gt-seat__badge gt-seat__badge--tier", tierLabel(s.tier)));
-        }
+        // a bot's difficulty is public — you should know what you're facing.
+        // It stays a LIVE control after the add: everyone sees E/M/H, but
+        // only the host's clicks land (re-adding at the seat re-tiers it)
+        if (isBot && botTiers().length > 1) row.appendChild(tierPicker(i, true));
         if (cfg.teams && !s.empty && isCaptain) row.appendChild(el("span", "gt-seat__badge", S.captainBadge));
         if (s.empty && cfg.teams && mySeat() !== i) {
           // sitting here IS joining this side; moving sides is stand + sit
@@ -860,6 +860,38 @@
       });
       return row;
     }
+    /* A free-number chip on the end of a choice row (the custom turn
+       timer): blank until used, Enter or leaving the box commits
+       setSettings {key: n} clamped to [min, max]. When the live value
+       isn't one of the row's presets it shows here, active. The draft
+       rides ui.numDraft so broadcasts don't wipe it mid-typing (the
+       name editor's idiom). */
+    function numChip(key, current, presets, placeholder, min, max) {
+      var isCustom = current > 0 && presets.indexOf(current) < 0;
+      var inp = el("input", "gt-chip gt-chip--num" + (isCustom ? " is-active" : ""));
+      inp.type = "text"; inp.inputMode = "numeric"; inp.maxLength = 3;
+      inp.placeholder = placeholder || "";
+      inp.disabled = !model.host;
+      var draft = ui.numDraft && ui.numDraft.key === key ? ui.numDraft.val : null;
+      inp.value = draft != null ? draft : isCustom ? String(current) : "";
+      inp.addEventListener("input", function () { ui.numDraft = { key: key, val: inp.value }; });
+      var commit = function () {
+        ui.numDraft = null;
+        var n = parseInt(inp.value, 10);
+        if (!isFinite(n) || n === current) { render(); return; }
+        var m = { type: "setSettings" };
+        m[key] = Math.max(min, Math.min(max, n));
+        send(m);
+      };
+      inp.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") commit();
+        else if (ev.key === "Escape") { ui.numDraft = null; render(); }
+      });
+      // leaving the box commits a typed draft (clicking a preset still wins:
+      // its setSettings lands after this one)
+      inp.addEventListener("blur", function () { if (ui.numDraft && ui.numDraft.key === key) commit(); });
+      return inp;
+    }
 
     /* ── lobby: the seat-name editor ────────────────────────────────
        One row, two owners. "+ Bot" on an open seat (or the bot's own
@@ -908,6 +940,9 @@
         else if (ev.key === "Escape") cancel();
       });
       row.appendChild(input);
+      // difficulty picker sits left of the confirm — the host's editor only;
+      // renaming yourself has no tier to set. No-tier games get no control.
+      if (!mine && botTiers().length > 1) row.appendChild(tierPicker(i));
       var ok = el("button", "gt-seat__addgo", mine ? S.renameGo : S.addBotGo); ok.type = "button";
       ok.addEventListener("click", go);
       row.appendChild(ok);
@@ -930,9 +965,6 @@
       x.setAttribute("aria-label", mine ? S.renameCancelAria : S.addBotCancelAria);
       x.addEventListener("click", cancel);
       row.appendChild(x);
-      // difficulty picker — the host's editor only; renaming yourself has no
-      // tier to set. Games whose engine declares no tiers get no control.
-      if (!mine && botTiers().length > 1) row.appendChild(tierPicker(i));
       // focus only when the editor OPENS — broadcast re-renders must not steal it
       if (ui.botFocus) { ui.botFocus = false; setTimeout(function () { if (input.isConnected) { input.focus(); input.select(); } }, 0); }
       return row;
@@ -945,25 +977,39 @@
        looked up as S.botTier_<name>, falling back to the raw name. */
     function botTiers() { return cfg.botTiers || []; }
     function tierLabel(name) { return S["botTier_" + name] || name; }
+    function tierShort(name) { return S["botTierShort_" + name] || name.charAt(0).toUpperCase(); }
+    // the middle of the list — the same default the worker falls back to
+    function tierDefault() { var list = botTiers(); return list[Math.floor(list.length / 2)]; }
     // what the editor will send: the explicit pick, else the tier already on
     // the seat (re-adding a bot keeps its difficulty), else the middle one
     function botTierDraft(i) {
       if (ui.botTier) return ui.botTier;
       var s = (model.seats || [])[i];
-      if (s && s.tier) return s.tier;
-      var list = botTiers();
-      return list[Math.floor(list.length / 2)];
+      return (s && s.tier) || tierDefault();
     }
-    function tierPicker(i) {
+    /* Two homes for the same control, single-letter labels in both (the
+       full label rides aria — "E" alone reads as nothing). In the host's
+       editor (live=false) it stages the pick into ui.botTier until Add
+       sends it. On a bot's seat row (live=true) it shows to EVERYONE —
+       a bot's difficulty is public — but only the host's clicks land:
+       a click re-adds the bot at its seat with the new tier, which is
+       the contract's way to re-tier (docs/games.md, "Bots"). */
+    function tierPicker(i, live) {
+      var s = (model.seats || [])[i];
       var wrap = el("div", "gt-tierpick");
       wrap.setAttribute("role", "group");
       wrap.setAttribute("aria-label", S.botTierAria || "");
-      var cur = botTierDraft(i);
+      var cur = live ? (s && s.tier) || tierDefault() : botTierDraft(i);
       botTiers().forEach(function (name) {
-        var b = el("button", "gt-tierpick__opt" + (name === cur ? " is-on" : ""), tierLabel(name));
+        var b = el("button", "gt-tierpick__opt" + (name === cur ? " is-on" : ""), tierShort(name));
         b.type = "button";
         b.setAttribute("aria-pressed", name === cur ? "true" : "false");
-        b.addEventListener("click", function () { ui.botTier = name; render(); });
+        b.setAttribute("aria-label", tierLabel(name));
+        if (live && !model.host) b.disabled = true;
+        b.addEventListener("click", function () {
+          if (!live) { ui.botTier = name; render(); }
+          else if (name !== cur) send({ type: "addBot", seat: i, name: s.name, tier: name });
+        });
         wrap.appendChild(b);
       });
       return wrap;
@@ -1156,6 +1202,7 @@
       chip: chip,
       setRow: setRow,
       choiceRow: choiceRow,
+      numChip: numChip,
       toast: toast,
       pop: { open: openPop, close: closePop, toggle: togglePop, current: function () { return openEntry; } },
       // utilities

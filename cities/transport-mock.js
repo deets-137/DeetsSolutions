@@ -139,8 +139,9 @@
         t.settings.capacity = cap;
       }
       if (msg.timerSec != null) {
-        var allowed = [0, 45, 60, 90, 120];
-        if (allowed.indexOf(msg.timerSec) >= 0) t.settings.timerSec = msg.timerSec;
+        // any whole 0–600s: the UI offers presets plus a custom box
+        var tsec = msg.timerSec | 0;
+        if (tsec >= 0 && tsec <= 600) t.settings.timerSec = tsec;
       }
       if (msg.betting != null) t.settings.betting = !!msg.betting;
       if (msg.resView != null) t.settings.resView = !!msg.resView;
