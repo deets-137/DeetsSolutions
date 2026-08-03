@@ -68,10 +68,20 @@
         toast(S.yourTurnToast, "info");
       }
     },
+    /* the world this broadcast is about to replace — the flights below
+       read it, because events are handled after the merge */
+    beforeMerge: function () {
+      var ps = (model && model.players) || [];
+      prevBets = ps.map(function (p) { return (p && p.betStreet) || 0; });
+      prevStacks = ps.map(function (p) { return (p && p.stack) || 0; });
+    },
     onEvent: handleEvent,
     logLine: logLine,
     render: paint,
-    postRender: seedDistinctColor,
+    postRender: function () {
+      seedDistinctColor();
+      FLY.flush();      // chips launch AFTER render: their targets exist now
+    },
     onLeave: resetGameUi,
     onRematch: resetGameUi,
     extraPills: extraPills,
@@ -105,11 +115,34 @@
   ui.boardPop = null;         // pinned felt popover ("win" | "log" | null)
   var colorSeeded = false;    // one auto-recolor attempt per clash
   var overTick = null;        // the interstitial's countdown handle
+  /* ── what the last paint saw (mahjong's `seen` idiom) ──────────
+     paint() clears the felt and rebuilds it, so a CSS animation on a
+     felt node fires on EVERY render — including renders the street
+     didn't cause (someone else's chat, a popover, a reconnect). These
+     two marks are what make the one-shots one-shot: a card pops only
+     when the board grew past what the last paint drew, and the
+     settlement card eases in only the first time a given hand-over is
+     painted. A new hand shrinks the board back, which resets the mark
+     on its own. */
+  var seenBoard = 0;          // board cards the last paint had already dealt
+  var seenOverAt = null;      // handOverAt of the interstitial already shown
+  /* ── the pre-merge snapshot (cities' prevHandCounts idiom) ─────
+     Events are handled AFTER the broadcast has merged, so by the time
+     one is read the model already holds the world it produced. Two
+     flights need the world it produced it FROM: a raise carries the
+     total owed this street rather than what the action cost, and the
+     street sweep has to know what each seat had on the line after the
+     model has already cleared it. */
+  var prevBets = [];          // betStreet per seat, before this broadcast
+  var prevStacks = [];        // stack per seat, before this broadcast
 
   function resetGameUi() {
     ui.raiseOpen = false; ui.raiseDraft = null;
     ui.chipDrafts = null; ui.chipDrag = null; ui.boardPop = null;
     popHover = null;
+    seenBoard = 0; seenOverAt = null;
+    prevBets = []; prevStacks = [];
+    FLY.clear();
     if (overTick) { clearTimeout(overTick); overTick = null; }
   }
 
@@ -139,6 +172,14 @@
      transport-mock.js) — chips are the ONE place a game may paint its
      own art (docs/games.md, the `--pk*` carve-out). */
   var FELT_STACK = 10, FELT_COLS = 3, RAIL_STACK = 6;
+  // the deck's drawn depth: a look, not a count. Tracking 52 minus what
+  // has been dealt would be a second source of truth for something the
+  // engine doesn't publish and nobody reads off the felt.
+  var DECK_DEPTH = 5;
+  /* the one stagger the whole game uses — board cards off the deck here,
+     and chips off a tray in the flights below, so everything that leaves
+     in a handful leaves at the same rhythm (cities' FLY_STEP) */
+  var DEAL_STEP = 90;
   /* Sprite swap point (assets/sprites/poker/README.md), mahjong's
      probe-once idiom: chip-side-N is the chip's RANK in the ladder,
      never its value — values are derived from the buy-in but rank 1 is
@@ -146,7 +187,7 @@
      table. A missing file costs one quiet 404 and the CSS bars stand in.
      There is no top-of-stack sprite: a stack is side views the whole way
      up (his call, chat 2026-08-03 — a face on top read as odd). */
-  var CHIP_SPRITE_DIR = "../assets/sprites/poker/";
+  var SPRITE_DIR = "../assets/sprites/poker/";
   var CHIP_SPRITE_RANKS = 5;
   var chipSprites = {};
   (function probeChips() {
@@ -154,10 +195,30 @@
       (function (name) {
         var probe = new Image();
         probe.onload = function () { chipSprites[name] = true; if (model) render(); };
-        probe.src = CHIP_SPRITE_DIR + name + ".png";
+        probe.src = SPRITE_DIR + name + ".png";
       })("chip-side-" + r);
     }
   })();
+  /* The card back is ONE sprite for every face-down card on the page —
+     the deck in front of the button, the burn pile, a hand being pitched,
+     a hand being mucked. There is no face sprite: a face is rank + suit
+     in the page's own type, so it follows the theme and the skin (and 52
+     hand-drawn faces is not a reasonable ask). Same probe-once idiom as
+     the chips — a missing file costs one quiet 404 and the CSS weave
+     stands in. */
+  var cardBackArt = false;
+  (function probeCardBack() {
+    var probe = new Image();
+    probe.onload = function () { cardBackArt = true; if (model) render(); };
+    probe.src = SPRITE_DIR + "card-back.png";
+  })();
+  function backArt(node) {
+    if (cardBackArt) {
+      node.style.backgroundImage = "url(" + SPRITE_DIR + "card-back.png)";
+      node.classList.add("is-art");
+    }
+    return node;
+  }
   /* A column is ONE node, not one per chip: a single layer that tiles the
      band once per chip. That is what stops the stack shimmering — N
      adjacent boxes each round to a whole device pixel independently, so
@@ -169,11 +230,17 @@
     var col = el("div", "pk-tray__col");
     col.style.height = (n * unit) + "px";
     col.style.setProperty("--pkchip-color", hex);
-    if (chipSprites["chip-side-" + rank]) {
-      col.style.backgroundImage = "url(" + CHIP_SPRITE_DIR + "chip-side-" + rank + ".png)";
-      col.classList.add("is-art");
-    }
+    chipArt(col, rank);
     return col;
+  }
+  // the ONE place a chip node takes its rung's art, so a flying chip and a
+  // chip standing in a tray can never disagree about what rank 3 looks like
+  function chipArt(node, rank) {
+    if (chipSprites["chip-side-" + rank]) {
+      node.style.backgroundImage = "url(" + SPRITE_DIR + "chip-side-" + rank + ".png)";
+      node.classList.add("is-art");
+    }
+    return node;
   }
   function chipStacks(tray, opts) {
     var wrap = el("div", "pk-tray" + (opts.rail ? " pk-tray--rail" : ""));
@@ -196,10 +263,18 @@
         stack.appendChild(chipColumn(rank + 1, chip.hex, high, unit));
         left -= high;
       }
-      /* the count sits where the NEXT column would have started, so a
-         capped group reads as "and more of these" rather than as a
-         shorter stack (his call, chat 2026-08-03) */
-      if (n > per) stack.appendChild(el("span", "pk-tray__count", fmt(S.chipCount, { n: n })));
+      /* The count rides OVER its stack, felt and rail alike (his call,
+         chat 2026-08-03 — it used to sit where the next column would
+         have started, which made a capped group wider than an uncapped
+         one and knocked the ladder off an even pitch).
+         The line is always ALLOCATED — blanked, never omitted. A group
+         that dropped it would lift its own chips off the tray's shared
+         baseline, and on the felt it would change the SEAT's height:
+         a seat is centered on its anchor, so it would re-center and
+         slide every time a rung crossed the cap. That is the same
+         jitter .pk-seat__tag is blanked to prevent. */
+      group.appendChild(el("span", "pk-tray__count" + (n > per ? "" : " is-blank"),
+        n > per ? fmt(S.chipCount, { n: n }) : " "));
       group.appendChild(stack);
       /* the rail doubles as the table's KEY — what a white chip is worth
          is otherwise nowhere on the page. The felt stays bare: twelve
@@ -214,6 +289,29 @@
 
   /* ── cards ────────────────────────────────────────────────────── */
   var SUIT_GLYPH = { s: "♠", h: "♥", d: "♦", c: "♣" };
+  function backEl(big) {
+    return backArt(el("span", "pk-card pk-card--back" + (big ? " pk-card--big" : "")));
+  }
+  /* A pile of face-down cards — the deck and the burn are the same object
+     at two spots on the felt. Cards are absolutely stacked with a small
+     offset each, so the pile has depth without changing size: the felt
+     positions both piles by their box, and a box that grew with its
+     contents would drift off the spot it is meant to mark.
+     No ghost slot under them (his call): a dashed outline behind the
+     offset stack made the pile's silhouette taller than one card, which
+     read as the pile being drawn at a different SIZE than the board.
+     The empty box still measures, which is all a flight aimed at it
+     needs — it just doesn't draw. */
+  var PILE_CAP = 6;
+  function cardPile(cls, n) {
+    var pile = el("div", "pk-pile " + cls);
+    for (var i = 0; i < Math.min(n, PILE_CAP); i++) {
+      var c = backEl(false);
+      c.style.transform = "translate(" + (i * 2) + "px," + (i * -2) + "px)";
+      pile.appendChild(c);
+    }
+    return pile;
+  }
   function cardEl(card, big) {
     var cls = "pk-card" + (big ? " pk-card--big" : "");
     if (!card) return el("span", cls + " pk-card--slot");
@@ -501,6 +599,199 @@
     if (e.t === "back") toast(fmt(S.backToast, { name: seatName(e.seat) }), "info");
     // your own ante is money leaving the stack — say so
     if (e.t === "blind" && e.kind === "ante" && e.seat === mine) toast(S.anteToast, "warn");
+    collectFlight(e);
+  }
+
+  /* ── chip flights (games/flights.js drives them) ───────────────
+     Client-only theater: every flight is derived from the same typed
+     events the log consumes, so nothing here needs a protocol change —
+     the tray already rides the public view. What poker adds to the
+     shared engine is only WHERE the money is on screen and WHICH
+     events move it.
+
+     The money is cents and the felt is chips, so an amount has to be
+     broken down before it can fly. `chipBreak` is the same canonical
+     breakdown the tray uses, walked high → low so a big bet shows its
+     big chips first, and capped like every other game's flight — the
+     log carries the true number, the felt carries the gesture. */
+  var FLY = GameFlights.create({
+    section: "section.pk",
+    layerClass: "pk-flylayer",
+    alive: function () { return !!model; },
+    catchClass: "pk-catch"
+  });
+  /* The rungs an amount is actually made of, high → low, capped. A flight
+     carries the RANK as well as the hex so the chip in the air is the same
+     object as the chip in the tray — same rung, same sprite, same
+     placeholder if the sprite hasn't landed. Money moving as anonymous
+     discs was the thing that made the felt read as a progress bar. */
+  function chipRungs(cents) {
+    var ladder = (model.settings && model.settings.chips) || [];
+    var br = (cents > 0 && Engine.chipBreak(cents, chipValsNow())) || {};
+    var out = [];
+    for (var i = ladder.length - 1; i >= 0 && out.length < FLY.CAP; i--) {
+      var n = br[ladder[i].v] || 0;
+      for (var k = 0; k < n && out.length < FLY.CAP; k++) {
+        out.push({ hex: ladder[i].hex, rank: i + 1 });
+      }
+    }
+    // an amount no ladder can draw (odd cents from a split pot) still moves —
+    // one chip of the smallest rung stands in for it
+    if (!out.length && ladder.length) out.push({ hex: ladder[0].hex, rank: 1 });
+    return out;
+  }
+  function flyChip(rung) {
+    var c = el("span", "pk-flychip");
+    c.style.setProperty("--pkchip-color", rung.hex);
+    return chipArt(c, rung.rank);
+  }
+  /* Points. Every one is a FUNCTION the loop re-queries per frame, and
+     every one falls back rather than returning null, because a seat can
+     leave the felt mid-flight (a bust, a cash-out, the hand-over card
+     covering the middle) and a chip with nowhere to go should still land
+     somewhere sane.
+
+     A fallback point is deliberately BARE — coordinates with no `el` —
+     so the catch bump can't reach it. The bump is a scale, and two of
+     the coarse fallbacks would be ruined by one: .pk-seat carries the
+     `translate(-50%, -50%)` that centers it on its rim anchor (a scale
+     would replace that transform and fling the seat to the corner), and
+     the felt and the roster tile are whole panels that have no business
+     twitching because one chip arrived. Only the small, transform-free
+     nodes a chip is actually aimed at are catchers. */
+  function bare(p) { return p ? { x: p.x, y: p.y } : null; }
+  function seatNode(seat) { return BIG.querySelector('.pk-seat[data-seat="' + seat + '"]'); }
+  function chipPoint(seat) {
+    // MY chips fly through MY rail — the thing I actually watch — and
+    // everyone else's through their seat on the felt (cities' seatPoint)
+    if (seat === mySeat()) {
+      var r = FLY.point(ROLE.querySelector("[data-pk-rail]"));
+      if (r) return r;
+    }
+    var s = seatNode(seat);
+    return (s && (FLY.point(s.querySelector(".pk-tray")) || bare(FLY.point(s)))) || potPoint();
+  }
+  function betPoint(seat) {
+    var s = seatNode(seat);
+    return (s && (FLY.point(s.querySelector(".pk-seat__bet")) || bare(FLY.point(s)))) || potPoint();
+  }
+  function potPoint() {
+    return FLY.point(BIG.querySelector("[data-pk-pot]")) ||
+      bare(FLY.point(BIG.querySelector(".pk-felt"))) || bare(FLY.point(BIG));
+  }
+  function stripPoint(seat) {
+    return FLY.point(PLAYERS.querySelector('.pk-pstrip[data-seat="' + seat + '"]')) ||
+      bare(FLY.point(PLAYERS));
+  }
+  /* where a seat's HOLE cards are for this viewer: mine are the two big
+     cards in the hand panel; nobody else's are drawn on the felt, so
+     theirs is simply their seat. Bare — a card is not a chip, and the
+     catch bump belongs to money landing on money. */
+  function seatSpot(seat) { return bare(FLY.point(seatNode(seat))) || potPoint(); }
+  function holePoint(seat) {
+    if (seat === mySeat()) {
+      var h = FLY.point(ROLE.querySelector(".pk-hole"));
+      if (h) return bare(h);
+    }
+    return seatSpot(seat);
+  }
+  /* the two piles cards come from and go to. Both are real nodes on the
+     felt, so a flight is aimed at the thing the eye is already looking at
+     rather than at a coordinate that happens to be near it. */
+  function deckPoint() { return bare(FLY.point(BIG.querySelector(".pk-deck"))) || potPoint(); }
+  function burnPoint() { return bare(FLY.point(BIG.querySelector(".pk-burn"))) || potPoint(); }
+  function flyCard() { return backArt(el("span", "pk-flycard")); }
+  /* The deal: two rounds of the table from the DECK, one card per seat
+     per round — the way a hand is actually pitched, and the reason it is
+     two passes rather than two cards at once. Backs only: the whole
+     point of a hole card is that the felt doesn't know it. Half the
+     usual stagger, because a deal is brisk and 24 cards at 90ms would
+     still be arriving when the blinds are posted. */
+  function dealCards(dealer) {
+    var ps = model.players || [];
+    if (!ps.length || dealer == null) return;
+    var order = [];
+    for (var k = 1; k <= ps.length; k++) {
+      var i = (dealer + k) % ps.length;
+      if (ps[i] && ps[i].inHand) order.push(i);
+    }
+    var n = 0;
+    for (var round = 0; round < 2; round++) {
+      order.forEach(function (seat) {
+        var delay = (n++) * (DEAL_STEP / 2);
+        FLY.push(function () {
+          FLY.launch(flyCard(), deckPoint, function () { return holePoint(seat); }, delay);
+        });
+      });
+    }
+  }
+  /* one payout = up to CAP chips leaving in a handful, on the shared
+     stagger, each aimed at a function rather than a point */
+  function flyChips(cents, fromFn, toFn, delay) {
+    chipRungs(cents).forEach(function (rung, i) {
+      FLY.push(function () { FLY.launch(flyChip(rung), fromFn, toFn, (delay || 0) + i * FLY.STEP); });
+    });
+  }
+  function collectFlight(e) {
+    if (TBL.reduceMotion()) return;
+    var seat = e.seat;
+    switch (e.t) {
+      // a new hand is pitched from the button, two rounds of the table
+      case "hand":
+        dealCards(e.dealer);
+        break;
+      /* the muck: the two cards you're giving up go face-down onto the
+         burn pile, which is where dead cards live. The seat is already
+         .is-folded by the time these fly, which is the point — the cards
+         leaving is what the fade means. */
+      case "fold":
+        [0, 1].forEach(function (k) {
+          FLY.push(function () {
+            FLY.launch(flyCard(), function () { return holePoint(seat); },
+              burnPoint, k * (DEAL_STEP / 2));
+          });
+        });
+        break;
+      /* money OUT of a stack and onto the betting line. A raise's event
+         carries the total this street, not what this action cost, so the
+         delta comes off the pre-merge snapshot — by the time an event is
+         handled the model has already moved on. */
+      case "blind":
+      case "call":
+        flyChips(e.amt, function () { return chipPoint(seat); }, function () { return betPoint(seat); });
+        break;
+      case "raise":
+        flyChips(Math.max(0, e.to - (prevBets[seat] || 0)),
+          function () { return chipPoint(seat); }, function () { return betPoint(seat); });
+        break;
+      /* the street closing sweeps EVERY live bet into the middle at once —
+         the one beat that says the money is now common. The bet pills are
+         already blanked by the time this flushes, but a blanked pill is
+         hidden, not gone, so it still measures. */
+      case "street":
+        prevBets.forEach(function (amt, i) {
+          if (amt > 0) flyChips(amt, function () { return betPoint(i); }, potPoint);
+        });
+        /* one burn per street, deck → burn pile, ahead of the cards it
+           precedes: the board's own pop is delayed by nothing, so the
+           burn leaving first is what makes the order read right */
+        FLY.push(function () { FLY.launch(flyCard(), deckPoint, burnPoint, 0); });
+        break;
+      /* the pot going home. A split pot fires one flight per award, so
+         two winners visibly halve the middle. */
+      case "win":
+        flyChips(e.amt, potPoint, function () { return chipPoint(seat); });
+        break;
+      /* Leaving the table WITH your money: the stack flies off the felt
+         and into your line on the roster, which is where you still are.
+         Only a cash-out — a bust has no flight, because those chips went
+         to the winner and the `win` above already flew them. Showing
+         them leave a second time would double-count the same money. */
+      case "cashout":
+        flyChips(prevStacks[seat] || 0, function () { return chipPoint(seat); },
+          function () { return stripPoint(seat); });
+        break;
+    }
   }
 
   /* ── the mechanical log (Claude-authored; names come from seats) ── */
@@ -688,10 +979,35 @@
       var y = 50 + 42 * Math.sin(theta);
       f.appendChild(feltSeat(seat, x, y));
     });
-    // board + pot in the middle
+    /* board + pot in the middle. Cards dealt SINCE the last paint pop in,
+       staggered left to right, so a flop arrives as three cards rather
+       than as a row that was suddenly there. The stagger is an
+       animation-delay; the CSS fills backwards so a waiting card is held
+       at scale 0 instead of standing full-size through its own delay. */
     var board = el("div", "pk-board");
-    for (var b = 0; b < 5; b++) board.appendChild(cardEl(model.board && model.board[b]));
+    var dealt = (model.board || []).length;
+    if (dealt < seenBoard) seenBoard = 0;      // a new hand cleared the felt
+    for (var b = 0; b < 5; b++) {
+      var bc = cardEl(model.board && model.board[b]);
+      if (b >= seenBoard && b < dealt && !TBL.reduceMotion()) {
+        bc.classList.add("is-dealt");
+        bc.style.animationDelay = ((b - seenBoard) * DEAL_STEP) + "ms";
+      }
+      board.appendChild(bc);
+    }
+    seenBoard = dealt;
     f.appendChild(board);
+    /* The two piles flank the dealt cards (his call): the DECK on the
+       left, where a hand comes from, the BURN on the right, where dead
+       cards go — so the felt reads left to right in the order the cards
+       actually move. The burn takes both kinds of dead card, one per
+       street plus every mucked hand, and its depth is DERIVED rather than
+       counted up: a reconnect mid-hand has to land on the same pile as
+       everyone else, and an accumulator would start from zero. */
+    if (!model.waiting) {
+      f.appendChild(cardPile("pk-deck", DECK_DEPTH));
+      f.appendChild(cardPile("pk-burn", burnDepth()));
+    }
     if (model.waiting) {
       f.appendChild(el("div", "pk-feltline", S.waitingLine));
     } else {
@@ -704,12 +1020,23 @@
       var pot = el("div", "pk-pot");
       var cents = model.pot || 0;
       // the pile renders even at zero, so the amount under it never moves
-      pot.appendChild(chipStacks(Engine.dealTray(cents, chipValsNow()), { rail: false }));
+      var potTray = chipStacks(Engine.dealTray(cents, chipValsNow()), { rail: false });
+      potTray.setAttribute("data-pk-pot", "");   // where a street sweeps to, and a win flies from
+      pot.appendChild(potTray);
       pot.appendChild(el("strong", null, fmtMoney(cents)));
       f.appendChild(pot);
     }
     if (model.handOver) f.appendChild(handOverCard());
     return f;
+  }
+  /* One burn per street dealt — flop, turn, river — plus the two cards of
+     every hand that has folded. Both are read straight off the model, so
+     the pile is the same for every viewer and survives a reconnect. */
+  function burnDepth() {
+    var b = (model.board || []).length;
+    var n = b >= 3 ? b - 2 : 0;
+    (model.players || []).forEach(function (p) { if (p && p.folded) n += 2; });
+    return n;
   }
   function feltSeat(i, x, y) {
     var p = model.players[i];
@@ -722,6 +1049,7 @@
       (p.folded ? " is-folded" : "") +
       (away ? " is-away" : "") +
       (i === mine ? " is-me" : ""));
+    node.setAttribute("data-seat", i);   // flights find a seat's tray and bet spot through this
     node.style.left = x + "%";
     node.style.top = y + "%";
     var head = el("span", "pk-seat__head");
@@ -768,10 +1096,16 @@
   function handOverCard() {
     var ho = model.handOver;
     var card = el("div", "pk-over");
+    /* the entrance fires ONCE per hand-over, not once per paint — a
+       broadcast while the card is up (someone cashing out, a vote) would
+       otherwise re-play it. handOverAt is the hand's own stamp. */
+    var fresh = model.handOverAt != null && model.handOverAt !== seenOverAt;
+    if (fresh && !TBL.reduceMotion()) card.classList.add("is-in");
+    seenOverAt = model.handOverAt;
     if (ho.reason === "folds") {
       var w = ho.awards[0];
       card.appendChild(line(fmt(S.foldWinLine, { name: seatName(w.seat) })));
-      card.appendChild(line(fmt(S.winLine, { name: seatName(w.seat), amt: fmtMoney(w.amt) })));
+      card.appendChild(line(fmt(S.winLine, { name: seatName(w.seat), amt: fmtMoney(w.amt) }), "is-win"));
     } else {
       // one line per distinct winner; reveal rides the felt via the board
       var seen = {};
@@ -783,7 +1117,7 @@
         var a = seen[seat];
         card.appendChild(line(a.name
           ? fmt(S.winLineHand, { name: seatName(+seat), amt: fmtMoney(a.amt), hand: handName(a.name) })
-          : fmt(S.winLine, { name: seatName(+seat), amt: fmtMoney(a.amt) })));
+          : fmt(S.winLine, { name: seatName(+seat), amt: fmtMoney(a.amt) }), "is-win"));
       });
       ho.reveal.forEach(function (r) {
         var row = el("div", "pk-over__sub");
@@ -802,7 +1136,7 @@
     next.appendChild(el("span", "tb-pill__label", S.nextHandButton));
     next.addEventListener("click", function () { send({ type: "nextHand" }); });
     card.appendChild(next);
-    function line(text) { return el("div", "pk-over__line", text); }
+    function line(text, cls) { return el("div", "pk-over__line" + (cls ? " " + cls : ""), text); }
     return card;
   }
   function tickInterstitial(node) {
@@ -874,6 +1208,7 @@
         (actor ? " is-active" : "") +
         (p.left ? " is-gone" : away ? " is-away" : "") +
         (p.folded ? " is-folded" : ""));
+      strip.setAttribute("data-seat", i);   // where a cashed-out stack flies to
       seatAccent(strip, i);
       var body = el("div", "pk-pstrip__body");
       var head = el("div", "pk-pstrip__head");
@@ -982,7 +1317,9 @@
     var railHead = el("div", "pk-chips__head");
     railHead.appendChild(el("span", "pk-chips__total", fmtMoney(p.stack)));
     rail.appendChild(railHead);
-    rail.appendChild(chipStacks(p.tray, { rail: true }));
+    var railTray = chipStacks(p.tray, { rail: true });
+    railTray.setAttribute("data-pk-rail", "");   // my chips fly through MY rail, not my felt seat
+    rail.appendChild(railTray);
     play.appendChild(rail);
 
     // controls column: the pills right-aligned (cities-actions), tray under

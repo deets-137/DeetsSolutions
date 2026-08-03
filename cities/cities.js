@@ -114,7 +114,7 @@
     },
     render: paint,
     postRender: function () {
-      flushFlights();   // chips launch AFTER render: their targets exist now
+      FLY.flush();      // chips launch AFTER render: their targets exist now
       // refresh AFTER handleEvent ran: the fade ghost needs the previous
       // broadcast's copy of an offer this broadcast just removed
       offerCache = {};
@@ -992,31 +992,24 @@
      carries — res-colored when the resource is known, the neutral "any"
      chip when it isn't (hidden steals, others' discards). The server
      already shaped each copy, so no visibility branching here.
-     Chips live in a document-FIXED overlay (broadcast re-renders wipe
-     tile interiors, never the overlay) and STEER: every rAF re-queries
-     the destination by seat, so a strip that re-renders or scrolls
-     mid-flight is tracked, not missed. */
-  var flights = [], flyRaf = null;   // live chips on the overlay
-  var pendingFlights = [];           // closures collected during event replay, run after render
+     The layer, the steering and the ease live in games/flights.js — the
+     shared tier, because mahjong and poker fly chips too. What stays
+     here is what only cities knows: which events fly, what a chip looks
+     like, and where a seat's resources live on THIS viewer's screen. */
+  var FLY = GameFlights.create({
+    section: "section.cities",
+    layerClass: "cities-flylayer",
+    alive: function () { return !!model; },
+    catchClass: "cities-catch"       // the destination bumps (the bank's minis flash instead — same class, different CSS)
+  });
   var setupBuildLoc = null;          // settlement vertex built THIS broadcast (setup-payout origins)
   var setupResCount = {};            // per-res gain counter, maps events onto same-terrain hexes
   var flashHexes = null;             // { keys, until } — setup-payout hex glow (rollFlash's cousin)
   var prevHandCounts = null;         // pre-merge public hand counts (monopoly victim attribution)
   var prevPhase = null;              // pre-merge phase — the final setup road merges to "main"
   var prevPendingKind = null;        // pre-merge pending — Road Building's roads are free
-  var FLY_MS = 800, FLY_STEP = 90, FLY_CAP = 5, SPIN_MS = 620;   // SPIN_MS mirrors the dice spin + party-CSS delay
-  function flyLayer() {
-    var l = document.querySelector(".cities-flylayer");
-    if (!l) {
-      l = el("div", "cities-flylayer");
-      // MUST live inside <section class="cities"> — the game palette
-      // (--cterr-*, --gseat-*) is scoped there, and a body-parented layer
-      // resolved every chip color to nothing. position:fixed still
-      // anchors to the viewport from here.
-      (document.querySelector("section.cities") || document.body).appendChild(l);
-    }
-    return l;
-  }
+  var FLY_STEP = FLY.STEP, FLY_CAP = FLY.CAP;
+  var SPIN_MS = 620;   // SPIN_MS mirrors the dice spin + party-CSS delay
   // board-svg user coords → viewport px (default preserveAspectRatio:
   // uniform "meet" scale, centered)
   function boardPoint(x, y) {
@@ -1127,53 +1120,20 @@
     pendingHand[res] = Math.max(0, (pendingHand[res] || 0) + d);
     patchHandCount(res);
   }
+  /* `pend` is the one thing cities adds to a plain flight: this chip
+     carries one of MY resources inward, so the hand count is held back
+     NOW — synchronously, in the same tick as the broadcast render, before
+     paint — and released when the chip lands, so the landing bump and the
+     increment are one beat. A chip that never launches has to give the
+     count back, which is what onAbort is for. */
   function launchChip(res, fromFn, toFn, delay, pend) {
-    // pend: this chip carries one of MY resources inward — hold it out of
-    // the hand count now (same tick as the broadcast render, pre-paint)
     if (pend) pendHand(res, 1);
-    setTimeout(function () {
-      if (!model) { if (pend) pendHand(res, -1); return; }   // left the table while this chip waited
-      var from = fromFn(); if (!from) { if (pend) pendHand(res, -1); return; }
-      var c = chipEl(res);
-      // a pinch of jitter so a multi-chip payout tumbles like a handful,
-      // not a conveyor: launch point ±6px, flight time ±100ms
-      var sx = from.x + (Math.random() - 0.5) * 12, sy = from.y + (Math.random() - 0.5) * 12;
-      c.style.transform = "translate(" + sx.toFixed(1) + "px," + sy.toFixed(1) + "px) scale(0)";
-      flyLayer().appendChild(c);
-      flights.push({ el: c, sx: sx, sy: sy, to: toFn, t0: performance.now(), dur: FLY_MS + (Math.random() - 0.5) * 200, pend: pend ? res : null });
-      if (flyRaf == null) flyRaf = requestAnimationFrame(stepFlights);
-    }, delay || 0);
-  }
-  function stepFlights(now) {
-    flights = flights.filter(function (f) {
-      var p = Math.min(1, (now - f.t0) / f.dur);
-      var e = 1 - Math.pow(1 - p, 3);                 // ease-out cubic
-      var to = f.to() || { x: f.sx, y: f.sy };        // steer: fresh target every frame
-      // full opacity end to end — the chip is BORN (pop past 1) and CAUGHT
-      // (shrinks into the target), never evaporates mid-air
-      var s;
-      if (p < 0.12) s = (p / 0.12) * 1.2;
-      else if (p < 0.24) s = 1.2 - ((p - 0.12) / 0.12) * 0.2;
-      else if (p > 0.85) s = 1 - ((p - 0.85) / 0.15) * 0.7;
-      else s = 1;
-      f.el.style.transform = "translate(" + (f.sx + (to.x - f.sx) * e).toFixed(1) + "px," + (f.sy + (to.y - f.sy) * e).toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
-      if (p >= 1) {
-        if (f.el.parentNode) f.el.parentNode.removeChild(f.el);
-        if (f.pend) pendHand(f.pend, -1);   // the catch reveals the count
-        if (to.el) {   // the destination acknowledges the catch with a bump
-          to.el.classList.remove("cities-catch");
-          void to.el.offsetWidth;   // restart the one-shot animation
-          to.el.classList.add("cities-catch");
-        }
-        return false;
-      }
-      return true;
-    });
-    flyRaf = flights.length ? requestAnimationFrame(stepFlights) : null;
+    var give = pend ? function () { pendHand(res, -1); } : null;
+    FLY.launch(chipEl(res), fromFn, toFn, delay, { onAbort: give, onLand: give });
   }
   function clearFlights() {
-    flights.forEach(function (f) { if (f.el.parentNode) f.el.parentNode.removeChild(f.el); });
-    flights = []; pendingFlights = []; pendingHand = {};
+    FLY.clear();
+    pendingHand = {};
     flashHexes = null; setupBuildLoc = null; setupResCount = {}; prevHandCounts = null;
     prevPhase = null; prevPendingKind = null;
   }
@@ -1193,7 +1153,7 @@
       var paid = prevPhase === "main" && !(e.kind === "road" && prevPendingKind === "roads");
       if (!paid || !BUILD_COST[e.kind]) return;
       (function (seat, kind) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           var i = 0, cost = BUILD_COST[kind];
           Object.keys(cost).forEach(function (r) {
             for (var k = 0; k < cost[r]; k++) (function (rr, ii) {
@@ -1214,7 +1174,7 @@
           var i = 0;
           RES.forEach(function (r) {
             for (var k = 0; k < (bundle[r] || 0) && i < FLY_CAP; k++) (function (rr, ii) {
-              pendingFlights.push(function () {
+              FLY.push(function () {
                 launchChip(rr, function () { return seatPoint(src, rr); },
                   function () { return seatPoint(dst, rr); }, ii * FLY_STEP, dst === mySeat());
               });
@@ -1230,7 +1190,7 @@
       // 4:1 exchanges with the bank pane; 2:1/3:1 route through the
       // harbor that earned the rate — you see the port working
       (function (seat, give, get, rate, n) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           var port = harborXY(seat, rate, give);
           var portFn = port ? function () { return boardPoint(port.x, port.y); } : null;
           var out = Math.min(rate * n, FLY_CAP), inn = Math.min(n, FLY_CAP);
@@ -1254,7 +1214,7 @@
       (function (kind, seat) {
         var was = prevAwards ? prevAwards[kind] : null;
         if (was === seat) return;
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip("award",
             was != null ? function () { return stripPoint(was); } : boardCenterPoint,
             seat != null ? function () { return stripPoint(seat); } : boardCenterPoint, 0);
@@ -1277,7 +1237,7 @@
       flashHexes.keys[hk0] = 1;
       flashHexes.until = Date.now() + SPIN_MS + 1700;
       (function (res, seat, kk) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip(res, function () { return boardPoint(c0.x, c0.y); },
             function () { return seatPoint(seat, res); }, SPIN_MS + kk * FLY_STEP, seat === mySeat());
         });
@@ -1300,7 +1260,7 @@
       });
       if (!hxs.length) return;
       (function (res, seat, n) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           var wait = Math.max(0, spinUntil - Date.now());
           for (var i = 0; i < n; i++) (function (i2) {
             var h = hxs[i2 % hxs.length], c = hexCenter(h.q, h.r);
@@ -1313,7 +1273,7 @@
     }
     if (e.t === "gain" && e.src === "dev") {   // Year of Plenty: bank → seat
       (function (res, seat, n) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           for (var i = 0; i < n; i++) (function (i2) {
             launchChip(res, function () { return bankPoint(res); },
               function () { return seatPoint(seat, res); }, i2 * FLY_STEP, seat === mySeat());
@@ -1329,7 +1289,7 @@
       // gliding from the dev deck into the buyer's hand (its identity is
       // rightly hidden — the blank card IS the correct amount of truth)
       (function (seat) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           var cost = Object.keys(BUILD_COST.dev);
           cost.forEach(function (r, i) {
             launchChip(r, function () { return seatPoint(seat, r); },
@@ -1345,7 +1305,7 @@
       // res rides only the two parties' event copies — everyone else flies
       // the neutral chip; what we're allowed to know decides what we show
       (function (from, to, res) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip(res, function () { return seatPoint(from, res); },
             function () { return seatPoint(to, res); }, 0, res != null && to === mySeat());
         });
@@ -1362,7 +1322,7 @@
         lost = Math.min(lost, FLY_CAP);
         if (!lost) return;
         (function (res, victim, n) {
-          pendingFlights.push(function () {
+          FLY.push(function () {
             for (var i = 0; i < n; i++) (function (i2) {
               launchChip(res, function () { return seatPoint(victim, res); },
                 function () { return seatPoint(caster, res); }, i2 * FLY_STEP, caster === mySeat());
@@ -1387,7 +1347,7 @@
       colors = colors.slice(0, FLY_CAP);
       if (!colors.length) return;
       (function (seat, cs) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           cs.forEach(function (r, i) {
             launchChip(r, function () { return seatPoint(seat, r); },
               function () { return bankPoint(r); }, i * FLY_STEP);
@@ -1395,10 +1355,6 @@
         });
       })(e.seat, colors);
     }
-  }
-  function flushFlights() {
-    var fl = pendingFlights; pendingFlights = [];
-    fl.forEach(function (go) { go(); });
   }
   function pieceShape(kind, p, seat) {
     var fill = "var(--gseat-" + seat + ")";

@@ -26,6 +26,7 @@ games/colors.js        seat-color contract (presets, hex validation, clash)
 games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
 games/table.js         the browser table shell (gate, lobby, toolbar, frame,
                        seat accent, turn-timer readouts)
+games/flights.js       the steering chip-flight layer (every game's fly-ins)
 games/table-do.js      the Durable Object base every worker subclasses
 games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
 styles/chrome.css      shared site chrome + the token @imports (every page)
@@ -427,6 +428,44 @@ global, so every ring but the last silently froze.
 
 A game that wants no timer simply never offers `timerSec` — nothing else to
 turn off.
+
+### Fly-ins: `games/flights.js`
+
+**A game does not write a flight loop.** Cities grew one, mahjong copied
+it (with a fix cities never got back — the two-pass frame), and poker
+would have been the third. The shared layer owns four things a game must
+not re-decide:
+
+| Layer | Owns |
+| ----- | ---- |
+| `games/flights.js` | The overlay, the rAF loop, the ease-out cubic, the born/caught scale curve, the launch jitter, `push`/`flush`/`clear` |
+| the game | Which events fly, what a chip node looks like, and where a point is on ITS screen |
+
+```js
+var FLY = GameFlights.create({
+  section: "section.pk", layerClass: "pk-flylayer",
+  alive: function () { return !!model; },
+  catchClass: "pk-catch"          // optional — the destination acknowledges
+});
+FLY.push(function () { FLY.launch(chipNode(), fromFn, toFn, i * FLY.STEP); });
+```
+
+- **Collect during event replay, `flush()` in `postRender`.** A flight
+  launched mid-replay measures a DOM that hasn't caught up with the
+  broadcast, so its target is the *old* layout or nothing at all.
+- **A target is a FUNCTION, never a point.** The loop re-queries it every
+  frame, so a panel that re-renders, scrolls or reflows mid-flight is
+  tracked rather than missed.
+- **The layer is parented inside the game's `<section>`.** Every game
+  palette is scoped there; a body-parented layer resolves each chip's
+  colour to nothing.
+- **`reduceMotion()` gates the game's `collectFlight`, not the engine.**
+  Motion is decoration over a state the DOM already carries, so dropping
+  every flight has to cost nothing but the theater.
+- `onAbort` / `onLand` exist for a count that lags its chip (cities holds
+  an inbound resource out of the hand until it lands, so the landing bump
+  and the increment are one beat). A chip that never launches has to give
+  the held count back — that is what `onAbort` is for.
 
 ### Class prefixes
 

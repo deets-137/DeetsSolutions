@@ -467,11 +467,103 @@ endGame, concede-as-cashout, away seats + uid reclaim) are phase-2 work
 in the DO subclass, shaped in transport-mock.js already and enumerated
 under "Stepping away" → "Still to build in the worker".
 
+## Motion
+
+Nothing here rides the wire — every beat is derived from the typed
+events the log already consumes, and the tray already rides the public
+view, so the felt animates real chips without a protocol change.
+
+**CSS one-shots** (`poker.css`, "motion"). The felt is rebuilt on every
+paint — `paint()` clears `BIG` and re-renders it — so a `transition` on
+a felt node can never fire (there is no previous value to move from) and
+an `@keyframes` fires on *every* render, including renders the street
+didn't cause. That is why the one-shots are gated on a diff in
+`poker.js` rather than on their class alone:
+
+| Beat | Class | Gate |
+| --- | --- | --- |
+| a board card arriving | `.pk-card.is-dealt` | `seenBoard` — cards past what the last paint drew, staggered by `DEAL_STEP` |
+| the actor's ring breathing | `.pk-seat.is-actor` | none needed (infinite) |
+| the settlement card easing up | `.pk-over.is-in` | `seenOverAt` — once per `handOverAt` |
+| the winning line pulsing | `.pk-over__line.is-win` | rides `.is-in` |
+| a chip landing | `.pk-catch` | the flight engine sets it |
+
+**Chip and card flights** ride `games/flights.js` (see games.md,
+"Fly-ins") — collected in `collectFlight`, flushed in `postRender`:
+
+| Event | Flight |
+| --- | --- |
+| `hand` | two rounds of card backs from the **deck**, one per seat per round |
+| `blind`, `call` | that seat's chips → its bet spot |
+| `raise` | the same, for `e.to` **minus the pre-merge bet** |
+| `street` | every live bet spot → the pot, at once; plus one burn, deck → burn pile |
+| `win` | the pot → the winner (one flight per award, so a split halves the middle) |
+| `fold` | two backs → the burn pile |
+| `cashout` | the stack → that seat's roster line |
+
+**A flying chip is the same object as a chip in a tray** — same rung,
+same hex, same sprite, via the one `chipArt` helper, and `.pk-flychip`
+is deliberately painted with the identical background rule as
+`.pk-tray__col`. `chipRungs` breaks an amount down high → low so a big
+bet leads with its big chips. Money moving as anonymous discs made the
+felt read as a progress bar.
+
+### The deck and the burn pile
+
+Two piles, one object (`cardPile`), both client-side theater — neither
+rides the wire. They **flank the dealt cards**: the deck on the left,
+where a hand comes from, the burn on the right, where dead cards go, so
+the felt reads left to right in the order the cards actually move. Both
+sit on the board's own line, offset by `--pkboardhalf` (half the dealt
+row plus a gap, derived from the card box so they track the board's
+width rather than guessing at it).
+
+- **The deck.** Its depth (`DECK_DEPTH`) is a look, not a count;
+  tracking 52 minus what has been dealt would be a second source of
+  truth for something the engine doesn't publish and nobody reads off
+  the felt.
+- **The burn pile** collects both kinds of dead card: one burn per
+  street, and every mucked hand. Its depth is **derived** (`burnDepth`:
+  `board.length - 2` once the flop is out, plus two per folded player),
+  never accumulated — a reconnect mid-hand has to land on the same pile
+  as everyone else, and a counter would start from zero.
+
+A pile is one card box with its cards absolutely stacked inside it and
+offset by JS, so depth costs no size — both piles are pinned by their
+box, and a box that grew with its contents would crawl off the spot it
+marks. There is **no ghost slot** under them: a dashed outline behind the
+offset stack made the pile's silhouette taller than one card, which read
+as the pile being drawn at a different size than the board. An empty pile
+draws nothing and still measures, which is all a flight aimed at it
+needs.
+
+> Card sizes are otherwise identical everywhere — one `--pkcardw` ×
+> `--pkcardh` box under a global `box-sizing: border-box`, so the slot's
+> 2px dashed border and the card's 1px solid one occupy the same space.
+> The one real discrepancy was the back sprite: at the default
+> `background-origin: padding-box` it landed a pixel short on each side
+> and left a hairline of felt around every back. `.is-art` sets
+> `border-box`.
+
+Two things are load-bearing:
+
+- **`beforeMerge` snapshots `betStreet` and `stack` per seat.** Events
+  are handled *after* the broadcast merges, so a raise's `to` (the total
+  owed this street) and the street sweep's per-seat bets are both gone
+  by the time the flight is collected.
+- **Fallback points are BARE** — coordinates with no `el`, so the catch
+  bump can't reach them. The bump is a `scale`, and `.pk-seat` carries
+  the `translate(-50%, -50%)` that pins it to its rim anchor; a scale
+  would replace that transform and fling the seat into the corner.
+
+A bust deliberately has **no** flight: those chips went to the winner
+and the `win` above already flew them.
+
 ## Deferred / open
 
-- Bet piles as chips (still the plain `20¢` text pill), and bet chips
-  sweeping into the pot at settlement. The tray already rides the public
-  view, so the felt can animate real chips without a protocol change.
+- Bet piles as chips — the bet spot is still the plain `20¢` text pill.
+  It is now a flight *target* (chips land on it and it bumps), but it
+  doesn't draw the pile itself.
 - Muck/show choices at showdown (v1 reveals every live hand).
 - The worker repo + stats hooks (`poker_seats` counters, results POST) —
   [stats.md](stats.md) when phase 2 starts.
