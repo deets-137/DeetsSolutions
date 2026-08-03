@@ -1,0 +1,285 @@
+/* ============================================================
+   DeetsPoker — no-limit hold'em, 2–12 seats (docs/poker.md).
+   Linked after styles/chrome.css and styles/table.css; the page
+   does NOT link styles/main.css.
+
+   Everything here rides the semantic theme/skin tokens and must
+   survive all 30 combos EXCEPT the --pk* carve-out below (felt,
+   card faces, card backs). Seat colours are the shared
+   --gseat-0..5 contract in table.css, NOT part of that carve-out,
+   and this file must never restyle a gt- node.
+   ============================================================ */
+
+/* poker game palette — deliberate token carve-out (docs/poker.md).
+   Fixed literals scoped to the felt well and the playing cards only.
+   Chip art is deferred (Aditya's call, chat 2026-08-03) — stacks and
+   bets render as plain amounts for now. */
+.pk {
+  --pkfelt:      #33584a;   /* the table well (mahjong's felt green) */
+  --pkfelt-edge: #26443a;
+  --pkface:      #f7f4ea;   /* card face ivory */
+  --pkface-edge: #d9cfae;
+  --pkback:      #7a3535;   /* card back weave */
+  --pkink-red:   #b3372e;   /* hearts, diamonds */
+  --pkink-black: #23303f;   /* spades, clubs */
+  --pkglow:      #ffd75e;   /* the actor's ring + celebration gold */
+  /* the ONE card rectangle (short × long): board and hole cards render
+     at exactly this size on the felt; your own two in the hand panel
+     render at 1.5x — same object, closer to your eyes */
+  --pkcardw: 2.1rem;
+  --pkcardh: 2.9rem;
+}
+
+/* ── the bento (cities' grid, with dice+log folded into players) ── */
+.pk-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "big players"
+    "role role";
+  gap: var(--space-3);
+  position: relative;
+  align-items: start;
+}
+.pk-tile {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+}
+.pk-tile--big { grid-area: big; height: 34rem; position: relative; display: flex; overflow-y: auto; scrollbar-gutter: stable; }
+/* one tall column where cities kept dice + players + log */
+.pk-tile--players { grid-area: players; height: 34rem; display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; position: relative; }
+.pk-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* ── the felt ─────────────────────────────────────────────────── */
+.pk-felt {
+  position: relative;
+  flex: 1;
+  margin: var(--space-2);
+  border-radius: 50%;
+  background: var(--pkfelt);
+  border: 6px solid var(--pkfelt-edge);
+  min-height: 26rem;
+}
+/* seats hang on the rim at %-positions poker.js computes */
+.pk-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 7.5rem;
+}
+.pk-seat__head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--menu-surface);
+  border: 1px solid var(--border);
+}
+.pk-seat.is-actor .pk-seat__head { box-shadow: 0 0 0 2px var(--pkglow); }
+.pk-seat.is-folded, .pk-seat.is-away { opacity: 0.55; }
+.pk-seat__name {
+  color: var(--text);
+  font-size: 0.85rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 5.5rem;
+}
+.pk-seat.is-me .pk-seat__name { color: var(--title); font-weight: 700; }
+/* D / 1 / 2 button badges */
+.pk-seat__badge {
+  flex: none;
+  width: 1.05rem; height: 1.05rem;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.62rem; font-weight: 700;
+  background: var(--pkface);
+  color: var(--pkink-black);
+  border: 1px solid var(--pkface-edge);
+}
+.pk-seat__badge--blind { background: transparent; color: var(--pkface); border-color: var(--pkface); }
+/* the seat's live bet, floated toward the middle of the felt */
+.pk-seat__bet {
+  font-size: 0.72rem;
+  color: var(--pkface);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+}
+.pk-seat__tag { font-size: 0.68rem; color: var(--pkface); opacity: 0.85; }
+
+/* board + pot, centered on the felt */
+.pk-board {
+  position: absolute; left: 50%; top: 44%;
+  transform: translate(-50%, -50%);
+  display: flex; gap: var(--space-1);
+}
+.pk-pot {
+  position: absolute; left: 50%; top: 60%;
+  transform: translate(-50%, 0);
+  color: var(--pkface);
+  font-size: 0.9rem;
+}
+.pk-pot strong { color: var(--pkglow); font-weight: 700; }
+.pk-feltline {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--pkface); opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+/* ── cards (geometric placeholders until sprites land) ────────── */
+.pk-card {
+  width: var(--pkcardw); height: var(--pkcardh);
+  border-radius: 4px;
+  background: var(--pkface);
+  border: 1px solid var(--pkface-edge);
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-weight: 700; line-height: 1;
+  font-size: 0.95rem;
+}
+.pk-card--red { color: var(--pkink-red); }
+.pk-card--black { color: var(--pkink-black); }
+.pk-card--hole { visibility: visible; }
+.pk-card--back {
+  background: var(--pkback);
+  border-color: var(--pkfelt-edge);
+}
+.pk-card--slot {
+  background: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+}
+.pk-card__suit { font-size: 0.8rem; }
+.pk-card--big { width: calc(var(--pkcardw) * 1.5); height: calc(var(--pkcardh) * 1.5); font-size: 1.4rem; }
+.pk-card--big .pk-card__suit { font-size: 1.15rem; }
+
+/* ── players tile (roster + this-hand log) ────────────────────── */
+.pk-ptitle { color: var(--subtext); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.pk-plist { display: flex; flex-direction: column; gap: 2px; }
+/* the pstrip anatomy (cities/mahjong's, third copy — see docs/games.md
+   "Known duplication": promoting it to gt- is queued, not done) */
+.pk-pstrip {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-control);
+  border-left: 3px solid var(--gseat, var(--border));
+}
+.pk-pstrip.is-active { background: var(--surface-hover); box-shadow: inset 0 0 0 1px var(--pkglow); }
+.pk-pstrip.is-away .pk-pstrip__name, .pk-pstrip.is-gone .pk-pstrip__name { color: var(--subtext); text-decoration: line-through; }
+.pk-pstrip.is-folded { opacity: 0.6; }
+.pk-pstrip__name {
+  color: var(--text); font-size: 0.85rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+}
+.pk-pstrip__name strong { color: var(--title); }
+.pk-pstrip__stack { color: var(--title); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.pk-pstrip__bet { color: var(--subtext); font-size: 0.72rem; font-variant-numeric: tabular-nums; min-width: 3rem; text-align: right; }
+.pk-pstrip__tag { color: var(--subtext); font-size: 0.68rem; }
+/* the hand log fills whatever the roster leaves */
+.pk-log { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-1); border-top: 1px solid var(--border); padding-top: var(--space-2); }
+.pk-log__list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.pk-log__line { color: var(--subtext); font-size: 0.78rem; }
+.pk-log__line strong { color: var(--text); font-weight: 700; }
+.pk-log__list::-webkit-scrollbar { width: var(--space-2); }
+.pk-log__list::-webkit-scrollbar-track { background: transparent; }
+.pk-log__list::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.pk-log__list::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
+
+/* ── the hand panel (your cards + the four actions) ───────────── */
+.pk-role { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.pk-hole { display: flex; gap: var(--space-2); }
+.pk-actions { display: flex; gap: var(--space-2); margin-left: auto; align-items: center; }
+.pk-actions .tb-pill { cursor: pointer; }
+.pk-actions .tb-pill:disabled { opacity: 0.5; cursor: default; }
+/* the hover blurb line — one slot, filled by whichever button is hovered */
+.pk-hint { color: var(--subtext); font-size: 0.8rem; text-align: right; min-height: 1.2em; }
+/* raise tray: slides under the buttons when Raise is armed */
+.pk-raise {
+  display: flex; align-items: center; gap: var(--space-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+  width: 100%;
+}
+.pk-raise__label { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
+.pk-raise__slider { flex: 1; accent-color: var(--title); }
+.pk-raise__out { color: var(--title); font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
+.pk-raise__box {
+  width: 5rem;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font: inherit;
+  text-align: center;
+}
+.pk-raise__box:focus { border-color: var(--title); outline: none; }
+.pk-roleline { color: var(--subtext); font-size: 0.85rem; }
+.pk-roleline strong { color: var(--title); }
+
+/* ── settings: the chip-ladder row (lobby only) ───────────────── */
+.pk-chiprow { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.pk-chip {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.pk-chip__dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; border: 2px solid var(--border); flex: none; }
+.pk-chip__val {
+  width: 3.2rem;
+  background: transparent; border: none; color: var(--text);
+  font: inherit; font-size: 0.85rem; text-align: center;
+}
+.pk-chip__val:focus { outline: 2px solid var(--title); outline-offset: 1px; border-radius: 4px; }
+.pk-sethint { color: var(--subtext); font-size: 0.78rem; }
+
+/* ── hand-over interstitial + the cash-out lobby ──────────────── */
+.pk-over {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-panel);
+  padding: var(--space-3) var(--space-5);
+  max-width: 80%;
+}
+.pk-over__line { color: var(--pkface); font-size: 1rem; text-align: center; }
+.pk-over__line strong { color: var(--pkglow); }
+.pk-over__sub { color: var(--pkface); opacity: 0.8; font-size: 0.8rem; }
+.pk-cashout { display: flex; flex-direction: column; gap: var(--space-3); align-items: center; margin: auto; width: 100%; }
+.pk-cashout__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.pk-cashout__sub { color: var(--subtext); font-size: 0.9rem; }
+.pk-cashout table { border-collapse: collapse; }
+.pk-cashout th {
+  color: var(--subtext); font-size: 0.72rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  text-align: right; padding: var(--space-1) var(--space-3);
+}
+.pk-cashout th:first-child, .pk-cashout td:first-child { text-align: left; }
+.pk-cashout td {
+  color: var(--text); font-size: 0.95rem; text-align: right;
+  padding: var(--space-1) var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+.pk-cashout__place { color: var(--subtext); font-size: 0.8rem; padding-right: var(--space-2); }
+.pk-cashout td.is-plus { color: var(--go); font-weight: 700; }
+.pk-cashout td.is-minus { color: var(--stop); }
+.pk-cashout__row--me td:first-child { color: var(--title); font-weight: 700; }
+
+/* ── desktop-only guard (the shell toggles it) ────────────────── */
+.pk-desktop-note { color: var(--subtext); }
+@media (max-width: 56rem) {
+  .pk-bento { display: none; }
+}

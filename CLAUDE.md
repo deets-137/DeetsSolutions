@@ -10,12 +10,16 @@ protocol, sync design, build phases), and
 **[docs/games.md](docs/games.md) (the shared game foundation — read this
 FIRST for anything game-related: the wire protocol, the table shell, the
 Durable Object base, and how to add a game)**, then
-[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game) and
+[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game),
 [docs/mahjong.md](docs/mahjong.md) (DeetsMahjong — four-seat Hong Kong
-mahjong), each covering only what makes that game itself. **Both games'
-workers are built and deployed**, and both transports default to prod — `?mock` is the dev
-opt-out, and the mocks do NOT model disconnects (no grace window, no bot
-takeover, no reconnect), so rejoin behavior can only be tested live.
+mahjong), and [docs/poker.md](docs/poker.md) (DeetsPoker — no-limit
+hold'em cash game, 2–12 seats), each covering only what makes that game
+itself. **Cities' and mahjong's workers are built and deployed**, and
+their transports default to prod — `?mock` is the dev opt-out, and the
+mocks do NOT model disconnects (no grace window, no bot takeover, no
+reconnect), so rejoin behavior can only be tested live. **Poker has no
+worker yet** (phase 1): its page runs the mock by default via the
+`mockDefault` shell flag — drop the flag when `../DeetsPoker` deploys.
 
 ## Working conventions
 
@@ -108,6 +112,19 @@ takeover, no reconnect), so rejoin behavior can only be tested live.
   (fixed game palette, ignores theme/skin); everything else survives all
   30 combos. Art ships as geometric placeholders until Aditya draws it,
   swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
+- **DeetsPoker follows every cities/mahjong convention:** copy is
+  `[ph]`-convention in `poker/strings.js` (the four action-button hover
+  lines, the small-blind hint, and the "Cash out" hover are Aditya's,
+  dictated in chat — section comments mark them; everything else awaits
+  his pass); `poker/engine.js` (pure, DOM-free, `node poker/engine.js`
+  runs its self-checks) is the shared-contract file the future worker
+  vendors verbatim; the felt/card faces are the `--pk*` token carve-out.
+  Poker-specific invariants: money is integer cents and every bet must
+  split into the table's chip ladder (full all-ins excepted); hole cards
+  and the actor's options ride only `you` (see docs/poker.md's
+  hidden-info list); rejoin is LOCKED to "none" — no bots in live play,
+  standing/kick/grace all cash the seat out, disconnects auto-fold
+  (worker-phase rule). The mock's host-added bots are a dev tool only.
 - **DeetsMahjong follows every cities convention:** copy is
   `[ph]`-convention in `mahjong/strings.js` (his copy pass is done, so
   edit no un-prefixed entry — but strings wired up *since* that pass do

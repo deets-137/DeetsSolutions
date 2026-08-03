@@ -22,13 +22,22 @@
    that seat's actual (possibly custom-hex) pick from the lobby picker, so
    every index-keyed render site follows along. Chosen to stay distinct for
    common color-vision deficiencies. */
-.cities, .mj {
+.cities, .mj, .pk {
   --gseat-0: #d94141;  /* red    */
   --gseat-1: #3b7dd8;  /* blue   */
   --gseat-2: #2fae66;  /* green  */
   --gseat-3: #e08a2e;  /* orange */
   --gseat-4: #9457c9;  /* purple */
   --gseat-5: #22b0b0;  /* teal   */
+  /* slots 6–11 exist for tables past six seats (poker's 12). colors.js
+     still knows only six presets: seats past them are server-assigned a
+     random clash-free hex, so these fallbacks paint only EMPTY seats. */
+  --gseat-6: #d05aa2;  /* pink   */
+  --gseat-7: #8fae2f;  /* olive  */
+  --gseat-8: #5b62d6;  /* indigo */
+  --gseat-9: #a4713a;  /* brown  */
+  --gseat-10: #5f7d95; /* slate  */
+  --gseat-11: #b0b043; /* citron */
 }
 
 /* --gseat (no index) is the same contract one step down: "whichever seat

@@ -49,7 +49,9 @@
     /* ── transport: the shared client, or the game's mock under ?mock ── */
     var useMock = false;
     try { useMock = new URLSearchParams(location.search).has("mock"); } catch (e) {}
-    var T = (useMock && cfg.mock) ? cfg.mock : window.DeetsTransport.create({ api: cfg.api });
+    // cfg.mockDefault: a game whose worker hasn't shipped yet runs the mock
+    // WITHOUT ?mock (poker, pre-phase-2) — drop the flag when the worker lands
+    var T = ((useMock || cfg.mockDefault) && cfg.mock) ? cfg.mock : window.DeetsTransport.create({ api: cfg.api });
 
     /* ── tiny utilities (every game page wants these) ────────────── */
     function el(tag, cls, text) {
@@ -490,6 +492,8 @@
               setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = S.standButton; } }, 2600);
             }
           });
+          // a game may gloss what standing means here (poker: "Cash out")
+          if (S.standHover) sp.title = S.standHover;
           TOOLBAR.appendChild(sp);
         } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
           var open = (model.seats || []).filter(function (s) {
@@ -528,9 +532,11 @@
       (hook("settingsRows") ? cfg.settingsRows() : []).forEach(function (r) {
         pop.appendChild(settingRow(r[0], r[1]));
       });
-      var rjV = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
-      var rjNow = (model.settings && model.settings.rejoin) || "rejoin";
-      pop.appendChild(settingRow(S.rejoinLabel, rjV[rjNow] || rjNow));
+      if ((cfg.rejoinModes || ["anyone", "rejoin"]).length > 1) {
+        var rjV = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
+        var rjNow = (model.settings && model.settings.rejoin) || "rejoin";
+        pop.appendChild(settingRow(S.rejoinLabel, rjV[rjNow] || rjNow));
+      }
       wrap.appendChild(pop);
       var entry = { ctrl: wrap, pill: b, pop: pop, kind: "setth" };
       function peek() { if (openEntry !== entry) pop.hidden = false; }
@@ -603,17 +609,21 @@
       // the shared re-join policy row — the base's own setting, one row on
       // every game's lobby (docs/games.md). Changing it also remembers the
       // choice for future tables this browser hosts, across all games.
-      var rjRow = setRow(S.rejoinLabel);
+      // one mode is no choice — a game that locks its policy (poker: "none")
+      // gets no row rather than a single dead chip
       var rjModes = cfg.rejoinModes || ["anyone", "rejoin"];
-      var rjCur = (model.settings && model.settings.rejoin) || "rejoin";
-      var rjLabels = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
-      rjModes.forEach(function (m) {
-        rjRow.opts.appendChild(chip(rjLabels[m] || m, rjCur === m, !model.host, function () {
-          save(REJOIN_PREF_KEY, m);
-          send({ type: "setSettings", rejoin: m });
-        }));
-      });
-      wrap.appendChild(rjRow);
+      if (rjModes.length > 1) {
+        var rjRow = setRow(S.rejoinLabel);
+        var rjCur = (model.settings && model.settings.rejoin) || "rejoin";
+        var rjLabels = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
+        rjModes.forEach(function (m) {
+          rjRow.opts.appendChild(chip(rjLabels[m] || m, rjCur === m, !model.host, function () {
+            save(REJOIN_PREF_KEY, m);
+            send({ type: "setSettings", rejoin: m });
+          }));
+        });
+        wrap.appendChild(rjRow);
+      }
 
       // seats — your own dot (and, for the host, a bot's) is a button that
       // slides open the color picker below the row; colors lock at Start
