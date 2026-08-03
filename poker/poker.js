@@ -424,6 +424,7 @@
   function buildBoardPops() {
     var row = el("div", "pk-boardbtns");
     var winPop = popPanel("win");
+    winPop.classList.add("pk-bpop--win");     // hugs the grid instead of 24rem
     winPop.appendChild(winningsGrid());
     BIG.appendChild(winPop);
     row.appendChild(popButton("win", S.winningsButton));

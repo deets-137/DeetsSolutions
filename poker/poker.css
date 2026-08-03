@@ -245,36 +245,42 @@
 .pk-log__list::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
 .pk-log__list::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
 /* the Winnings grid: rows win from columns; the Net column leads.
-   table-layout is FIXED and every cell keeps table display — the dot +
-   name pair flexes inside its cell — so the columns hold a straight
-   line at any roster size. Hairline row rules keep the eye on a row. */
+   Columns hug their content (auto layout, snug padding) and the panel
+   hugs the table. Vertical hairlines divide the money columns; the
+   header row carries extra TOP padding so those dividers poke a little
+   above the top row (his sketch, chat 2026-08-03 — a border can't
+   escape its cell, so the cell grows instead). */
+.pk-bpop--win { width: auto; min-width: 14rem; }
 .pk-win { overflow-x: auto; }
-.pk-win__table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.pk-win__table { border-collapse: collapse; }
 .pk-win__table th, .pk-win__table td {
-  padding: var(--space-1) var(--space-2);
+  padding: 2px var(--space-2);
   vertical-align: middle;
   border-bottom: 1px solid var(--border);
 }
 .pk-win__table tr:last-child th, .pk-win__table tr:last-child td { border-bottom: none; }
-.pk-win__corner { width: 6.5rem; }
+/* the money columns' dividers (the name column stays open) */
+.pk-win__table td, .pk-win__nethead, .pk-win__colhead { border-left: 1px solid var(--border); }
+.pk-win__corner, .pk-win__name { border-left: none; }
 .pk-win__nethead, .pk-win__colhead {
   color: var(--subtext); font-weight: 400;
   font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+  padding-top: var(--space-3);          /* the divider's rise above the row */
 }
-.pk-win__nethead { width: 3.6rem; text-align: right; }
+.pk-win__nethead { text-align: right; }
 .pk-win__colhead .gt-dot { margin: 0 auto; display: block; }
 .pk-win__name { text-align: left; font-weight: 400; }
 .pk-win__who { display: inline-flex; align-items: center; gap: var(--space-1); max-width: 100%; }
 .pk-win__who .gt-dot { flex: none; }
 .pk-win__whoname {
   color: var(--text); font-size: 0.78rem;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .pk-win__table td {
   font-size: 0.75rem; font-variant-numeric: tabular-nums;
   text-align: right; white-space: nowrap;
 }
-.pk-win__net { font-weight: 700; border-right: 1px solid var(--border); }
+.pk-win__net { font-weight: 700; }
 .pk-win__table td.is-plus { color: var(--go); }
 .pk-win__table td.is-minus { color: var(--stop); }
 .pk-win__table td.is-zero { color: var(--subtext); opacity: 0.6; }
