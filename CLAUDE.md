@@ -1,164 +1,146 @@
 # CLAUDE.md
 
-Personal static site (deets.solutions). Start with [README.md](README.md);
-deep dives in [docs/architecture.md](docs/architecture.md),
-[docs/ui.md](docs/ui.md) (the appearance picker + interactive chrome),
-[docs/data.md](docs/data.md), [docs/league.md](docs/league.md) (the
-League tab + its Cloudflare Worker backend),
-[docs/radio.md](docs/radio.md) (DeetsRadio — shared listening rooms:
-protocol, sync design, build phases), and
-**[docs/games.md](docs/games.md) (the shared game foundation — read this
-FIRST for anything game-related: the wire protocol, the table shell, the
-Durable Object base, and how to add a game)**, then
-[docs/cities.md](docs/cities.md) (DeetsCities — the hex board game),
-[docs/mahjong.md](docs/mahjong.md) (DeetsMahjong — four-seat Hong Kong
-mahjong), and [docs/poker.md](docs/poker.md) (DeetsPoker — no-limit
-hold'em cash game, 2–12 seats), each covering only what makes that game
-itself. **Cities' and mahjong's workers are built and deployed**, and
-their transports default to prod — `?mock` is the dev opt-out, and the
-mocks do NOT model disconnects (no grace window, no bot takeover, no
-reconnect), so rejoin behavior can only be tested live. **Poker has no
-worker yet** (phase 1): its page runs the mock by default via the
-`mockDefault` shell flag — drop the flag when `../DeetsPoker` deploys.
+Personal static site (deets.solutions). No build step — plain HTML/CSS/JS
+served flat.
 
-## Working conventions
+## Never
 
-- **No build step, no frameworks, no dependencies.** Plain HTML/CSS/JS,
-  served flat. Don't introduce npm, bundlers, or CDN scripts.
-- **Token discipline.** Every site rule — in `styles/chrome.css`,
-  `styles/main.css`, `styles/table.css` or a game's own
-  `<game>/<game>.css` — references only the semantic tokens from
-  `themes.css` (color roles) and `skin.css` (shape/type/motion).
-  Never write a hex code or hardcoded geometry into a site rule — if the
-  value doesn't exist as a token, add a role to the right tier instead.
-  Every component must survive all 30 theme×skin combos.
-- **The stylesheets are split by audience** ([docs/css-split.md](docs/css-split.md)).
-  `styles/chrome.css` is loaded FIRST by every page and carries the token
+- **Never add a dependency.** No npm, bundlers, frameworks, or CDN scripts.
+- **Never write a hex code or hardcoded geometry into a site rule.** Use the
+  semantic tokens from `themes.css` (color) and `skin.css` (shape/type/motion).
+  If the value has no token, add a role to the right tier. Every component
+  must survive all 30 theme×skin combos. Game art carve-outs are the only
+  exception (`--pk*`, `--mj*`, cities' fixed board palette).
+- **Never edit a string that lacks a `[ph]` prefix.** Those are Aditya's
+  words. See "Copy" below.
+- **Never hand-edit `sotd/songs.json` or `movies/movies.json`.** Generated in
+  the sibling [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo — regenerate instead (docs/data.md).
+- **Never reword `resume/index.html`.** It mirrors his master resume
+  word-for-word, plain hyphens (no em dashes). Phone and email stay off the
+  site. After any edit: `powershell -File scripts/build-resume-pdf.ps1`,
+  commit both.
+- **Never edit a vendored file without re-vendoring.** See "Games" below.
+
+## Docs map
+
+Start at [README.md](README.md). Then:
+
+| Topic | Doc |
+| --- | --- |
+| Site structure, tokens, chrome | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
+| **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
+| Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md) |
+| Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
+| Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
+| Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
+
+## CSS
+
+Split by audience ([css-split.md](docs/css-split.md)). Put a new rule in the
+narrowest file that needs it.
+
+- `styles/chrome.css` — loaded FIRST by every page; carries the token
   `@import`s plus everything shared (frame, header/nav, settings menu,
-  `.page-bar`, the `.sotd__bar` bar primitive, the `tb-` toolbar kit,
-  toasts, focus ring, `.account-btn`, `.prose`). `styles/main.css` holds
-  one section per non-game tab and has **no imports of its own** — never
-  link it without chrome. The games don't link it at all: they load
-  `chrome.css` → `table.css` → `<game>/<game>.css`. Put a new rule in the
-  narrowest file that needs it.
-- **Generated JSONs are read-only.** `sotd/songs.json` and
-  `movies/movies.json` come from generators in the sibling
-  [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo — regenerate (see docs/data.md), never
-  hand-edit.
-- **Resume text is verbatim.** `resume/index.html` mirrors Aditya's
-  master resume word-for-word: original punctuation (plain hyphens — no
-  em dashes), month names, capitalization. Never reword it; phone and
-  email stay off the site. After any resume edit, rebuild the PDF with
-  `powershell -File scripts/build-resume-pdf.ps1` and commit both.
-- **The page-bar is shared.** Home, Resume, and Cool Stuff open with
-  `.page-bar`, which mirrors the journals' `.sotd__bar` panel geometry —
-  keep the two visually in sync if either changes.
-- **The JOURNALS deliberately duplicate the toolbar/popover kit.**
-  `sotd.js`, `movies.js`, `league/league.js` and `radio/radio.js` each
-  carry their own copy (pills, facets, state persistence) to keep those
-  pages self-contained — a fix to that machinery in one must be mirrored
-  in the others. **The GAMES do not**: cities and mahjong share
-  `games/table.js` ([docs/games.md](docs/games.md)), and a new game must
-  use it rather than start a seventh copy. The toast host
-  (`js/toast.js`) is shared chrome like `controls.js`, one copy on every
-  page ([docs/ui.md](docs/ui.md), "Toasts").
-- **Before editing anything game-related, read the "Change radius" table
-  in [docs/games.md](docs/games.md).** It maps what you want to change to
-  the one file that owns it, how far the change reaches, and whether it
-  needs re-vendoring into a worker repo. Most mistakes here are correct
-  code in the wrong file: one level too low and it gets duplicated into
-  the next game, one level too high and it changes a game nobody asked
-  you to touch. When two games need the same thing, **promote it, don't
-  copy it** — the turn timer and the `--gseat` accent were each written
-  twice before being promoted, and a bug rode along in the duplication.
-- **A bot's brain lives in that game's `engine.js`** — never in a mock,
-  never in a worker's `src/index.js`. It rides the verbatim vendoring
-  that `engine.js` already gets, so the mock and the worker cannot
-  drift; both were carrying hand-ported copies before. Difficulty is a
-  per-bot **tier**, a name from the engine's own `BOT_TIER_LIST`, set by
-  the host on `addBot`. [docs/games.md](docs/games.md)'s "Bots" section
-  is the contract; **[docs/bots.md](docs/bots.md) is the deep dive and
-  the file to read before tuning anything** — decision orders, tier
-  tables, the measurement method, and why weak tiers must still play the
-  game (an early `easy` ran 23,583 turns without a winner) and why
-  mahjong's tiers are measured in deal-ins rather than hands won (hand-win
-  rate ranks them backwards).
-- **Games share a foundation — start at [docs/games.md](docs/games.md).**
-  `games/table.js` (the browser table shell: gate, lobby, seats/bots/
-  colors, toolbar, render frame), `games/table-do.js` (the Durable Object
-  base every worker subclasses), `games/transport.js`, `games/colors.js`
-  and `styles/table.css` are shared by every game; `table-do.js` and
-  `colors.js` are vendored VERBATIM into each worker repo alongside that
-  game's `engine.js`. Shell-rendered nodes use the `gt-` class prefix and
-  a game's CSS must never restyle them. Seat colors are the shared
-  `--gseat-0..5` contract, NOT part of a game's art carve-out.
-- **DeetsRadio copy is handwritten.** Every user-facing string on the
-  radio page lives in `radio/strings.js`; Aditya writes them. Claude may
-  only add `[ph]`-prefixed placeholders there and must never edit an
-  entry without the prefix or put copy inline in `radio/radio.js`. The
-  blank album cover is his hand-drawn sprite at
-  `assets/sprites/radio/cover-blank.svg` — keep the path, never redraw it.
-- **DeetsCities copy is `[ph]`-convention too** — every user-facing string
-  lives in `cities/strings.js`; Claude adds only `[ph]`-prefixed
-  placeholders, never inline copy in `cities.js`. Aditya's copy pass is
-  underway: un-prefixed entries are his (some dictated in chat — section
-  comments mark those); `[ph]` entries still await him. **The rules engine
-  is shared code:** `cities/engine.js` is a pure, DOM-free module and
-  `cities/board-data.js` its data; the deployed worker (sibling repo
-  `../DeetsCities`, `cities-api.deets.solutions`) vendors both
-  **verbatim** alongside `games/table-do.js` and `games/colors.js`,
-  exactly like the radio protocol — the mock and worker must run
-  byte-identical copies. The board + card art is a token carve-out
-  (fixed game palette, ignores theme/skin); everything else survives all
-  30 combos. Art ships as geometric placeholders until Aditya draws it,
-  swappable under `assets/sprites/cities/` ([docs/cities.md](docs/cities.md)).
-- **DeetsPoker follows every cities/mahjong convention:** copy is
-  `[ph]`-convention in `poker/strings.js` (the four action-button hover
-  lines, the small-blind hint, and the "Cash out" hover are Aditya's,
-  dictated in chat — section comments mark them; everything else awaits
-  his pass); `poker/engine.js` (pure, DOM-free, `node poker/engine.js`
-  runs its self-checks) is the shared-contract file the future worker
-  vendors verbatim; the felt/card faces are the `--pk*` token carve-out.
-  Poker-specific invariants: money is integer cents and every bet must
-  split into the table's chip ladder (full all-ins excepted); hole cards
-  and the actor's options ride only `you` (see docs/poker.md's
-  hidden-info list); rejoin is LOCKED to "none" — no bots in live play,
-  standing/kick/grace all cash the seat out, disconnects auto-fold
-  (worker-phase rule). The mock's host-added bots are a dev tool only.
-- **DeetsMahjong follows every cities convention:** copy is
-  `[ph]`-convention in `mahjong/strings.js` (his copy pass is done, so
-  edit no un-prefixed entry — but strings wired up *since* that pass do
-  carry `[ph]` and still await him); `mahjong/engine.js` (pure,
-  DOM-free, `node mahjong/engine.js` runs its self-checks) is a
-  shared-contract file the deployed worker (sibling repo
-  `../DeetsMahjong`, `mahjong-api.deets.solutions`) vendors **verbatim**
-  alongside `games/table-do.js` and `games/colors.js`; tile faces/backs/dice/felt are the token carve-out
-  (`--mj*`), everything else survives all 30 combos; placeholder tile art
-  swaps for hand-drawn sprites under `assets/sprites/mahjong/{deck}/`
-  (`tile-{id}.png`, `back.png`; two decks — `numeral/`, `traditional/` —
-  picked per VIEWER in localStorage, never on the wire, templates
-  regenerated by
-  `scripts/build-mahjong-tiles.py`). One extra invariant cities doesn't have:
-  **hidden information** — hands, the drawn tile, and per-seat claim
-  options ride only each connection's `you`; never widen a broadcast
-  field without checking [docs/mahjong.md](docs/mahjong.md)'s
-  hidden-info list.
-- **Two tabs have runtime backends, each a sibling Cloudflare Worker repo
-  deployed with `npx wrangler deploy`.** League:
-  [DeetsLeague](https://github.com/deets-137/DeetsLeague) (`api.deets.solutions`) proxies Riot
-  behind a 100-req/2-min key — all Riot traffic must flow through the
-  worker's `riotFetch` (call ledger + guardrails); never call Riot or
-  spend key budget from the browser; champion/augment art comes from Data
-  Dragon / Community Dragon CDNs directly
-  ([docs/league.md](docs/league.md)). DeetsRadio:
-  [DeetsRadio](https://github.com/deets-137/DeetsRadio) (`radio-api.deets.solutions`) holds a
-  Durable Object per listening room; the wire protocol is contract —
-  `radio/transport.js`, the in-page mock (`radio/transport-mock.js`,
-  selected with `?mock`), and the worker must keep speaking it verbatim
-  ([docs/radio.md](docs/radio.md)).
-- **Visual verification is the user's.** After UI changes, make sure the
-  page loads cleanly (console, DOM counts), then hand off — Aditya prefers
-  to test look-and-feel himself in his own browser at http://localhost:8787
-  (`.claude/launch.json` → `deets-site`). Don't drive extended click-through
-  sessions in the preview unless asked; if you do interact, restore any
-  localStorage state you changed (view/sort/filter) before handing off.
+  `.page-bar`, `.sotd__bar`, the `tb-` toolbar kit, toasts, focus ring,
+  `.account-btn`, `.prose`).
+- `styles/main.css` — one section per non-game tab. **No imports of its own**
+  — never link it without chrome.
+- Games never link `main.css`: `chrome.css` → `table.css` → `<game>/<game>.css`.
+- `.page-bar` (Home, Resume, Cool Stuff) mirrors the journals' `.sotd__bar`
+  geometry — keep the two in sync.
+
+## Duplication: deliberate in journals, forbidden in games
+
+- **Journals each carry their own toolbar/popover kit** — `sotd.js`,
+  `movies.js`, `league/league.js`, `radio/radio.js`. That keeps them
+  self-contained, so a fix to that machinery in one **must be mirrored in the
+  others**.
+- **Games share `games/table.js`** and must not start another copy.
+- `js/toast.js` is shared chrome like `controls.js` — one copy per page
+  ([ui.md](docs/ui.md), "Toasts").
+
+## Games
+
+**Read the "Change radius" table in [games.md](docs/games.md) before editing
+anything game-related.** Most mistakes here are correct code in the wrong
+file: one level too low and it duplicates into the next game, one too high
+and it changes a game nobody asked you to touch. When two games need the same
+thing, **promote it, don't copy it** — the turn timer and the `--gseat`
+accent were each written twice before being promoted, and a bug rode along in
+the duplication.
+
+- **Shared:** `games/table.js` (browser shell), `games/table-do.js` (the
+  Durable Object base), `games/transport.js`, `games/colors.js`,
+  `styles/table.css`.
+- **Vendored VERBATIM** into each worker repo: `table-do.js`, `colors.js`, and
+  that game's `engine.js` (+ `cities/board-data.js`). The mock and the worker
+  must run byte-identical copies.
+- Every `engine.js` is pure and DOM-free; `node <game>/engine.js` runs its
+  self-checks.
+- Shell-rendered nodes use the `gt-` prefix; a game's CSS must never restyle
+  them. Seat colors are the shared `--gseat-0..5` contract, **not** part of a
+  game's art carve-out.
+- **A bot's brain lives in that game's `engine.js`** — never in a mock, never
+  in a worker's `src/index.js`, so the two cannot drift. Difficulty is a
+  per-bot **tier** from the engine's `BOT_TIER_LIST`, set by the host on
+  `addBot`. Read [bots.md](docs/bots.md) before tuning anything.
+- **Mocks do NOT model disconnects** (no grace window, no bot takeover, no
+  reconnect), so rejoin behavior can only be tested live.
+
+Per-game invariants worth knowing before you touch them:
+
+- **Poker** (phase 1, no worker — the page runs the mock by default via the
+  `mockDefault` flag; drop it when `../DeetsPoker` deploys): money is integer
+  cents, and every bet must split into the table's chip ladder (full all-ins
+  excepted). Hole cards and the actor's options ride only `you`. No bots in
+  live play, ever — the three `rejoin` modes decide what *leaving* costs, not
+  who inherits the seat. See [poker.md](docs/poker.md), "Stepping away".
+- **Mahjong**: hidden info — hands, the drawn tile, and per-seat claim options
+  ride only each connection's `you`. Tile art is per-VIEWER (localStorage,
+  never on the wire); templates come from `scripts/build-mahjong-tiles.py`.
+- **Cities**: art ships as geometric placeholders under
+  `assets/sprites/cities/` until he draws it.
+
+## Copy
+
+Every user-facing string lives in that page's `strings.js` — never inline in
+the page's JS. **Claude may only add `[ph]`-prefixed placeholders.** An
+un-prefixed entry is Aditya's and is off-limits; section comments mark lines
+he dictated in chat.
+
+| Page | State of his pass |
+| --- | --- |
+| Radio | Done — handwritten throughout |
+| Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
+| Cities | Underway |
+| Poker | Barely started — most entries still `[ph]` |
+
+The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
+hand-drawn sprite: keep the path, never redraw it.
+
+## Backends
+
+Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
+
+| Worker | Host | Notes |
+| --- | --- | --- |
+| [DeetsLeague](https://github.com/deets-137/DeetsLeague) | `api.deets.solutions` | Riot proxy behind a 100-req/2-min key |
+| [DeetsRadio](https://github.com/deets-137/DeetsRadio) | `radio-api.deets.solutions` | one DO per listening room |
+| DeetsCities | `cities-api.deets.solutions` | |
+| DeetsMahjong | `mahjong-api.deets.solutions` | |
+| DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
+| DeetsPoker | — | **not built yet** |
+
+- **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
+  + guardrails). Never call Riot or spend key budget from the browser.
+  Champion/augment art comes from Data Dragon / Community Dragon directly.
+- Wire protocols are contract: the live transport, the in-page mock, and the
+  worker must keep speaking them verbatim.
+
+## Workflow
+
+**Visual verification is Aditya's.** After UI changes, confirm the page loads
+cleanly (console, DOM counts), then hand off — he tests look-and-feel himself
+at http://localhost:8787 (`.claude/launch.json` → `deets-site`). Don't drive
+extended click-through sessions unless asked; if you do interact, restore any
+localStorage state you changed (view/sort/filter) first.

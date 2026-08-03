@@ -143,7 +143,8 @@ sees the countdown from their first snapshot. The `leaving` / `returned` /
 ### The re-join policy (`settings.rejoin`)
 
 One shared host setting on every lobby — the base's own settings key,
-rendered by the shell as the "Re-joining" chip row and validated against
+rendered by the shell as a chip row (labelled per game — cities and
+mahjong say "Re-joining", poker "Mid-game Join") and validated against
 the game's `REJOIN_MODES` (default `["anyone", "rejoin"]`; offering
 `"none"` requires the game's engine to speak a `concede` action — cities
 opted in, mahjong never offers it because the game needs its four seats):
@@ -151,7 +152,8 @@ opted in, mahjong never offers it because the game needs its four seats):
 - **anyone** — a dark seat's bot holds it *and* any spectator may adopt
   it mid-game (`sit {seat}`, one **Sit down** toolbar pill whose popover
   lists every adoptable seat — a pill *per* seat used to shove Leave off
-  the row at a 6-player table; no pill renders when none qualify); the
+  the row at a 6-player table; no pill renders when none qualify, and an
+  `away` seat qualifies alongside a `phantom` one, see below); the
   original player keeps reclaim rights until someone else takes it.
   Adoption keeps the seat's color and pieces and takes the adopter's
   name (the `adopted` event).
@@ -166,13 +168,41 @@ opted in, mahjong never offers it because the game needs its four seats):
   the current roller concedes while others still owe 7-roll discards,
   those debts dissolve with the turn — a house-rule simplification.
 
-Standing mid-game is a voluntary release in every mode, and it is
-**one-way**: standing drops your token and uid, so unlike a disconnect it
-carries no reclaim right. At an `"anyone"` table you can sit back down
-through the ordinary **Sit down** popover (any spectator could too, so the race
-is real); at a `"rejoin"` table the bot keeps the seat for the rest of
-the game. That asymmetry is deliberate — the toolbar two-steps the pill
-because of it.
+Standing mid-game is a voluntary release in every mode, and for a game
+with bots in live play it is **one-way**: standing drops your token and
+uid, so unlike a disconnect it carries no reclaim right. At an
+`"anyone"` table you can sit back down through the ordinary **Sit down**
+popover (any spectator could too, so the race is real); at a `"rejoin"`
+table the bot keeps the seat for the rest of the game. That asymmetry is
+deliberate — the toolbar two-steps the pill because of it.
+
+#### Away seats — a released seat with no bot to catch it
+
+A game with **no bots in live play** (poker: the drive is a dev tool, not
+a player) has nowhere to put a released seat, so it gets a third
+destination between "a bot holds it" and "conceded": the seat goes
+**away**. The roster keeps the seat, its name, color and **token**; the
+engine stops dealing it in but the position survives intact; the same
+token — or, in the worker, the same uid from any device — walks back in.
+
+A game opts in with two spec keys naming its own engine verbs:
+
+| Key | When it fires | Poker's |
+|---|---|---|
+| `awayAction` | mid-game `stand` at a non-`"none"` table, instead of the bot handoff | `sitOut` |
+| `adoptAction` | someone adopts an `away` seat (`"anyone"` tables) | `sitBack` |
+
+If `awayAction` is absent, or the engine refuses it, the shell falls
+straight through to the normal bot takeover — so cities and mahjong are
+untouched. `away` rides the seat view as a public boolean (like
+`conceded`), and the adoption filter treats `phantom || away` as
+adoptable.
+
+The pill's wording has to change with the policy — at a `"none"` table
+standing cashes you out, everywhere else it just parks you — so a game
+may override it per render with the **`standCopy()`** hook, returning
+`{label, hover, confirm}` (any subset; null keeps the shell's own
+strings).
 
 **A seat only ever loses its hand when nobody can inherit it.** A bot
 takeover, an adoption, and a reclaim all keep the hand, dev cards,
@@ -493,6 +523,7 @@ matches what you're changing, and check the blast radius before you start.
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
 | The turn timer, grace window, rejoin, bots, reconnect, teams | `games/table-do.js` | **Every game** | **Re-vendor** into every game worker, redeploy |
+| Away seats (`awayAction`/`adoptAction`), the `standCopy()` wording hook | `games/table.js` + `table-mock.js`, **and `table-do.js` when the poker worker lands** | **Every game** (no-op without the spec keys) | **Re-vendor** once `table-do.js` carries it |
 | The spans ledger, the event archive, the results POST | `games/table-do.js` | **Every game** | **Re-vendor**, redeploy; see [stats.md](stats.md) |
 | What a game records about a finished game | that worker's `src/index.js` (`seatCounters` et al.) | That game only | Redeploy · `node scripts/check.mjs` · maybe an `ALTER TABLE` in `../DeetsAccounts` |
 | Site header, nav, settings menu, toasts, `.page-bar`, `.sotd__bar`, the `tb-` kit | `styles/chrome.css` | **Every page on the site** | — |

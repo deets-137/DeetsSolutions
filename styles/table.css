@@ -128,7 +128,10 @@
    a label pushed off from its value, wrong for a seat wearing its colour */
 .gt-sitpop .tb-pop__opt { justify-content: flex-start; }
 /* ── lobby (settings + seats) ─────────────────────────────────── */
-.gt-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+/* the trailing padding is the panel's own breathing room: the lobby is the
+   last thing in a scrolling tile, and without it Start/Shuffle (or a game's
+   hint line) sits flush on the bottom edge */
+.gt-lobby { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; padding-bottom: var(--space-4); }
 .gt-lobby__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
 .gt-set { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .gt-set__label { color: var(--subtext); min-width: 8rem; font-size: 0.9rem; }
@@ -193,19 +196,18 @@
 /* disabled means "not yours to change", not "off" — non-hosts still read
    the tier from it, so it stays full-color */
 .gt-tierpick__opt:disabled { cursor: default; }
-/* the editor row's confirm matches the same strip */
-.gt-seat--edit .gt-seat__addgo {
-  font-size: inherit; height: 1.6em; line-height: 1;
-  display: inline-flex; align-items: center;
-}
 /* host-added bots: "+ Bot" on open seats, and the inline add/rename editor —
    the editor swaps into the row at the SAME height (input capped to the text
    line), so toggling it never resizes the roster (the universal layout rule) */
+/* same 1.6em/font-inherit strip as the HOST badge, the tier picker and the
+   rename input — every control that can appear in a seat row is one size,
+   so no row changes height depending on what it happens to hold */
 .gt-seat__addbot,
 .gt-seat__addgo {
   background: none; border: 1px solid var(--border); border-radius: var(--radius-control);
-  color: var(--subtext); font: inherit; font-size: 0.78rem;
-  padding: 0 var(--space-2); line-height: 1.4; cursor: pointer;
+  color: var(--subtext); font: inherit;
+  padding: 0 var(--space-2); cursor: pointer;
+  height: 1.6em; line-height: 1; display: inline-flex; align-items: center;
 }
 .gt-seat__addbot:hover { color: var(--title); border-color: var(--title); }
 .gt-seat__addgo { color: var(--go); }

@@ -216,6 +216,7 @@
           // difficulty is public — you should know what you're sitting across
           if ((s.phantom || s.bot) && BOT_TIERS().length) o.tier = botTier(s.tier);
           if (s.conceded) o.conceded = true;
+          if (s.away) o.away = true;
           return o;
         }),
         spectators: spectatorCount(t),
@@ -413,6 +414,19 @@
           broadcast(t, sev);
           return postApply(t);
         }
+        // A game with no bots in live play (poker) can't hand a released
+        // seat to the drive, so it goes AWAY instead: the roster keeps the
+        // seat, its name, color and token; the engine stops dealing it in
+        // but the stake stays on the table. The same token walks back in
+        // later — in the worker, the same uid from any device.
+        if (spec.awayAction) {
+          var ar = applyEngine(t, { type: spec.awayAction, seat: ssi });
+          if (!ar.error) {
+            t.seats[ssi].away = true;
+            broadcast(t, ar.events || []);
+            return postApply(t);
+          }
+        }
         t.seats[ssi].bot = true; t.seats[ssi].phantom = true; delete t.seats[ssi].token;
         broadcast(t, [{ t: "takeover", seat: ssi }]);
         return postApply(t);
@@ -422,13 +436,21 @@
         if (seatOfToken(t, token) != null) return errTo(conn, "perm");
         var asi = msg.seat;
         var aseat = asi != null ? t.seats[asi] : null;
-        if (!aseat || !(aseat.bot || aseat.phantom)) return errTo(conn, "full");   // only a bot-held seat
+        // a bot-held seat, or an away seat nobody is sitting in
+        if (!aseat || !(aseat.bot || aseat.phantom || aseat.away)) return errTo(conn, "full");
         var alower = String(conn.name || "").toLowerCase();
         var ataken = t.seats.some(function (x, xi) { return x && xi !== asi && x.name.toLowerCase() === alower; });
         if (ataken) return errTo(conn, "name-taken");
         aseat.name = conn.name; aseat.token = token;
         aseat.bot = false; aseat.phantom = false;
-        broadcast(t, [{ t: "adopted", seat: asi }]);
+        // an away seat comes back to life with its stake intact (poker)
+        var adev = [];
+        if (aseat.away && spec.adoptAction) {
+          var adr = applyEngine(t, { type: spec.adoptAction, seat: asi });
+          if (!adr.error) adev = adr.events || [];
+        }
+        delete aseat.away;
+        broadcast(t, adev.concat([{ t: "adopted", seat: asi }]));
         return postApply(t);
       }
 

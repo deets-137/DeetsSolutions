@@ -37,13 +37,16 @@
     rootSel: ".pk",
     capacity: 12,
     minSeats: 2,
-    // locked to "none": no bots mid-game, ever — standing, kicks, and grace
-    // expiry all cash the seat out (engine `concede`). The shell hides the
-    // single-mode row.
-    rejoinModes: ["none"],
-    startNeedsHint: S.startNeedsTwo,
+    // No bots mid-game, ever. The three modes decide what leaving COSTS
+    // (docs/poker.md, "Stepping away"): "anyone"/"rejoin" send the seat
+    // away with its stack intact (engine `sitOut`), "none" cashes it out
+    // (engine `concede`) and you come back as a spectator only.
+    rejoinModes: ["anyone", "rejoin", "none"],
+    // no hint line under Start (his call, chat 2026-08-03): the lobby has
+    // to fit the bento's big tile, and the disabled button already says it
+    noStartHint: true,
     logCap: 150,
-    errExtra: { raise: S.errRaise, chips: S.errChips, seating: S.errSeating,
+    errExtra: { raise: S.errRaise, chips: S.errChips, midjoin: S.errMidJoin,
                 blind: S.blindBad, buyin: S.buyInBad },
     /* fields the worker omits when absent must clear, not linger — every
        broadcast is a full view, so an omission means genuinely gone. A
@@ -51,7 +54,7 @@
     clearFields: ["handNo", "dealer", "street", "board", "waiting", "blinds",
                   "players", "pot", "turn", "handOver", "handOverAt", "votes",
                   "over", "turnEndsAt"],
-    clearYouFields: ["hole", "options", "myVote", "canBuyIn"],
+    clearYouFields: ["hole", "options", "myVote", "canBuyIn", "away"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
       toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: null, desktop: DESKTOP
@@ -72,6 +75,7 @@
     onLeave: resetGameUi,
     onRematch: resetGameUi,
     extraPills: extraPills,
+    standCopy: standCopy,
     lobbySettings: lobbySettings,
     settingsRows: function () {
       var st = model.settings;
@@ -81,7 +85,6 @@
         [S.blindLabel, fmtMoney(st.bigBlind / 2) + " / " + fmtMoney(st.bigBlind)],
         [S.timerLabel, st.timerSec ? fmt(S.timerSecs, { n: st.timerSec }) : S.timerOff],
         [S.minRaiseLabel, minRaiseLabel(st.minRaise)],
-        [S.seatingLabel, st.seating === "open" ? S.seatingOpen : S.seatingLobby],
         [S.chipsLabel, st.chips.map(function (c) { return fmtMoney(c.v); }).join(" · ")]
       ];
     }
@@ -160,6 +163,24 @@
     }
   }
 
+  /* The majority "vote to end" pill is OFF. Everything behind it is intact
+     and untouched — the engine's `voteEnd` verb and majority check, the
+     `votes` / `you.myVote` wire fields, the vote toasts and the log line —
+     so flipping this back to true is the whole restore. */
+  var SHOW_END_VOTE = false;
+
+  /* Stand up is two different exits wearing one pill. Only at a "none"
+     table does it cash you out; everywhere else the stack stays on the
+     felt and you can walk back in (docs/poker.md, "Stepping away"). */
+  function joinMode() {
+    return (model && model.settings && model.settings.rejoin) || "rejoin";
+  }
+  function cashesOut() { return joinMode() === "none"; }
+  function standCopy() {
+    if (cashesOut()) return null;              // the shell's own wording is right
+    return { label: S.sitOutButton, hover: S.sitOutHover };
+  }
+
   /* ── toolbar: poker's own pills (docs/poker.md, "Ending a game") ── */
   function extraPills() {
     if (!model || model.phase === "lobby") return [];
@@ -168,7 +189,7 @@
     var seatedMe = mine != null;
     var live = model.players && mine != null && model.players[mine] && !model.players[mine].left;
     if (model.phase !== "over") {
-      if (live) {
+      if (SHOW_END_VOTE && live) {
         var v = model.votes || { n: 0, need: 1 };
         var vp = TBL.pill(S.voteEndPill, function () { send({ type: "voteEnd" }); });
         vp.appendChild(el("span", "tb-pill__label", " " + fmt(S.voteEndCount, { n: v.n, need: v.need })));
@@ -187,7 +208,16 @@
         });
         pills.push(ep);
       }
-      if (!seatedMe && model.settings.seating === "open" &&
+      // sitting out keeps the seat, so the way back is your own pill — the
+      // shell's adoption popover is for seats OTHER people can take
+      if (model.you && model.you.away) {
+        var bp = TBL.pill(S.sitBackPill, function () { send({ type: "sitBack" }); });
+        bp.title = S.sitBackHover;
+        pills.push(bp);
+      }
+      // a NEW seat mid-game is the "anyone" half of Mid-game Join; the
+      // other half (taking over an away seat) is the shell's own pill
+      if (!seatedMe && joinMode() === "anyone" &&
           (model.seats || []).length < model.settings.capacity) {
         pills.push(TBL.pill(S.sitInPill, function () { send({ type: "sitIn" }); }));
       }
@@ -215,23 +245,57 @@
     // to mean something by; the wire keeps it verbatim)
     var chipRow = TBL.setRow(S.chipsLabel);
     var ladder = el("span", "pk-chiprow");
+    /* Drag-to-reorder marks the GAP it would drop into, rather than the
+       token it is over — "before this one" and "after that one" are the
+       same place, and a divider says which without the user guessing. */
+    function clearDrop() {
+      var marked = ladder.querySelectorAll(".is-dropbefore, .is-dropafter");
+      for (var k = 0; k < marked.length; k++) {
+        marked[k].classList.remove("is-dropbefore", "is-dropafter");
+      }
+    }
+    function dropIndex() {                 // insertion point in the ORIGINAL list
+      var b = ladder.querySelector(".is-dropbefore");
+      if (b) return Number(b.getAttribute("data-i"));
+      var a = ladder.querySelector(".is-dropafter");
+      if (a) return Number(a.getAttribute("data-i")) + 1;
+      return null;
+    }
     (st.chips || []).forEach(function (chip, i) {
       var tok = el("span", "pk-chip");
+      tok.setAttribute("data-i", String(i));
       if (host) {
         tok.draggable = true;
         tok.addEventListener("dragstart", function (e) {
           ui.chipDrag = i;
+          tok.classList.add("is-dragging");
           if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(i)); }
         });
-        tok.addEventListener("dragover", function (e) { e.preventDefault(); });
+        tok.addEventListener("dragend", function () {
+          ui.chipDrag = null;
+          tok.classList.remove("is-dragging");
+          clearDrop();
+        });
+        tok.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          if (ui.chipDrag == null) return;
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          var r = tok.getBoundingClientRect();
+          var after = e.clientX > r.left + r.width / 2;
+          clearDrop();
+          tok.classList.add(after ? "is-dropafter" : "is-dropbefore");
+        });
         tok.addEventListener("drop", function (e) {
           e.preventDefault();
           var from = ui.chipDrag;
+          var to = dropIndex();
           ui.chipDrag = null;
-          if (from == null || from === i) return;
+          clearDrop();
+          if (from == null || to == null) return;
+          if (to > from) to--;             // the list closes up behind the lift
+          if (to === from) return;
           var next = st.chips.slice();
-          var moved = next.splice(from, 1)[0];
-          next.splice(i, 0, moved);
+          next.splice(to, 0, next.splice(from, 1)[0]);
           send({ type: "setSettings", chips: next });
         });
       }
@@ -259,9 +323,12 @@
       tok.appendChild(box);
       ladder.appendChild(tok);
     });
+    // drag the pointer clean out of the row and the divider goes with it
+    ladder.addEventListener("dragleave", function (e) {
+      if (!ladder.contains(e.relatedTarget)) clearDrop();
+    });
     chipRow.opts.appendChild(ladder);
     wrap.appendChild(chipRow);
-    wrap.appendChild(el("p", "pk-sethint", S.chipsHint));
 
     // big blind: cent presets + a free box; the one rule is dictated below
     var blindRow = TBL.choiceRow(S.blindLabel, "bigBlind",
@@ -269,7 +336,6 @@
     // bare numbers in the blind box mean CENTS ("30" → 30¢, "$1" still works)
     blindRow.opts.appendChild(moneyChip("bigBlind", st.bigBlind, [10, 20, 50, 100], "¢", true));
     wrap.appendChild(blindRow);
-    wrap.appendChild(el("p", "pk-sethint", S.blindHalfHint));
 
     var timerRow = TBL.choiceRow(S.timerLabel, "timerSec",
       [[0, S.timerOff], [15, fmt(S.timerSecs, { n: 15 })], [30, fmt(S.timerSecs, { n: 30 })],
@@ -279,9 +345,8 @@
 
     wrap.appendChild(TBL.choiceRow(S.minRaiseLabel, "minRaise",
       [["prev", S.minRaisePrev], ["double", S.minRaiseDouble], ["none", S.minRaiseNone]], st.minRaise));
-
-    wrap.appendChild(TBL.choiceRow(S.seatingLabel, "seating",
-      [["open", S.seatingOpen], ["lobby", S.seatingLobby]], st.seating));
+    // no Seating row: the shell's own "Mid-game Join" row below is that
+    // axis (docs/poker.md, "Stepping away") — one control, not two.
   }
   /* a money input wearing the chip's clothes (the numChip idiom, with
      cents): blank until used, Enter/blur commits, active when the live
@@ -328,6 +393,10 @@
     }
     if (e.t === "bust" && e.seat === mine) toast(S.bustToast, "warn");
     if (e.t === "cashout") toast(fmt(S.concededToast, { name: seatName(e.seat) }), "info");
+    if (e.t === "away") toast(fmt(S.awayToast, { name: seatName(e.seat) }), "info");
+    if (e.t === "back") toast(fmt(S.backToast, { name: seatName(e.seat) }), "info");
+    // your own ante is money leaving the stack — say so
+    if (e.t === "blind" && e.kind === "ante" && e.seat === mine) toast(S.anteToast, "warn");
   }
 
   /* ── the mechanical log (Claude-authored; names come from seats) ── */
@@ -335,7 +404,7 @@
     var n = function (s) { return seatName(s) || ("#" + s); };
     switch (e.t) {
       case "hand": return "— hand " + e.n + " —";
-      case "blind": return n(e.seat) + " posts " + fmtMoney(e.amt);
+      case "blind": return n(e.seat) + " posts " + fmtMoney(e.amt) + (e.kind === "ante" ? " (ante)" : "");
       case "fold": return n(e.seat) + " folds";
       case "check": return n(e.seat) + " checks";
       case "call": return n(e.seat) + " calls " + fmtMoney(e.amt) + (e.allIn ? " (all-in)" : "");
@@ -362,8 +431,8 @@
   function paint() {
     if (model.phase === "lobby") {
       BIG.textContent = "";
-      PLAYERS.textContent = "";
-      ROLE.textContent = "";
+      ROLE.textContent = "";          // reserved at full height by CSS
+      renderLobbyRoster();
       return TBL.renderLobby(BIG);
     }
     if (model.phase === "over") {
@@ -556,13 +625,16 @@
     b.title = tip;
     return b;
   }
-  function seatTag(p, away) {
+  // `dropped` is the socket dying; `p.away` is a deliberate sit-out. The
+  // sit-out outranks it — a disconnect while sitting out changes nothing.
+  function seatTag(p, dropped) {
     if (p.left) return S.leftTag;
     if (p.out) return S.outTag;
-    if (p.waiting) return S.waitingTag;
+    if (p.away) return S.sittingOutTag;
+    if (p.waiting) return p.owesAnte ? S.owesAnteTag : S.waitingTag;
     if (p.allIn) return S.allInTag;
     if (p.folded) return S.foldedTag;
-    if (away) return S.awayTag;
+    if (dropped) return S.awayTag;
     return null;
   }
 
@@ -621,6 +693,45 @@
   /* ── the roster (players tile) — full player cards, the cities-pstrip
      anatomy: seat dot (the clock, when acting) + name + badges up top,
      the seat's state pinned bottom-left, the money column on the right ── */
+  /* The lobby's own roster: the same pstrip anatomy the game uses, filled
+     from the SEAT list alone (there is no engine state yet). It fills in
+     as people sit down, so the tile that would otherwise sit empty until
+     Start previews exactly what it becomes. */
+  function renderLobbyRoster() {
+    PLAYERS.textContent = "";
+    PLAYERS.appendChild(el("div", "pk-ptitle", S.playersTitle));
+    var list = el("div", "pk-plist");
+    var mine = mySeat();
+    var buyIn = model.settings ? model.settings.buyIn : 0;
+    (model.seats || []).forEach(function (s, i) {
+      if (!s || s.empty) return;
+      var strip = el("div", "pk-pstrip");
+      seatAccent(strip, i);
+      var body = el("div", "pk-pstrip__body");
+      var head = el("div", "pk-pstrip__head");
+      head.appendChild(seatDot(i));
+      var nm = el("span", "pk-pstrip__name");
+      if (i === mine) nm.appendChild(el("strong", null, seatName(i)));
+      else nm.appendChild(el("span", null, seatName(i) || ""));
+      head.appendChild(nm);
+      if (model.hostSeat === i) {
+        var badges = el("span", "pk-pstrip__badges");
+        badges.appendChild(stripBadge(S.hostBadge, S.hostBadge));
+        head.appendChild(badges);
+      }
+      body.appendChild(head);
+      // the tags row stays present-but-empty, exactly as in game, so the
+      // strip is the same height before and after Start
+      body.appendChild(el("div", "pk-pstrip__tags"));
+      strip.appendChild(body);
+      var stat = el("div", "pk-pstrip__stat");
+      stat.appendChild(el("span", "pk-pstrip__stack", fmtMoney(buyIn)));
+      stat.appendChild(el("span", "pk-pstrip__bet", " "));
+      strip.appendChild(stat);
+      list.appendChild(strip);
+    });
+    PLAYERS.appendChild(list);
+  }
   function renderRoster() {
     PLAYERS.textContent = "";
     PLAYERS.appendChild(el("div", "pk-ptitle", S.playersTitle));

@@ -10,8 +10,9 @@
 
    No-limit Texas Hold'em as a CASH GAME: 2–12 seats, fixed buy-in, blinds,
    streets, side pots, the incomplete-raise rule, busts and re-buys, mid-game
-   sit-ins (open seating), stand-up cash-outs (concede), a majority vote to
-   end, and the host's endGame. There is no tournament clock and no blind
+   mid-game sit-ins, sit-outs that keep your stack (sitOut/sitBack,
+   ante to return), stand-up cash-outs (concede), a majority vote to end,
+   and the host's endGame. There is no tournament clock and no blind
    escalation — the game ends when the table decides it does.
 
    MONEY IS INTEGER CENTS everywhere. Chips are real at the betting line:
@@ -27,8 +28,9 @@
    file and its copy are contract, exactly like mahjong's engine.
 
    BOT_TIER_LIST is deliberately EMPTY: DeetsPoker has no difficulty tiers,
-   and live play has no bot takeover at all (rejoin is locked to "none";
-   a dark seat auto-folds — docs/poker.md, "Disconnects"). botAct exists
+   and live play has no bot takeover at all — a released seat either goes
+   AWAY with its stack or cashes out, never to a bot (docs/poker.md,
+   "Stepping away"). botAct exists
    for the mock's host-added dev bots only: a bot checks when it can,
    completes a small call (≤ one big blind), and folds to anything more.
    It never raises, votes, or re-buys.
@@ -174,7 +176,7 @@
   /* ── seat scans ───────────────────────────────────────────────── */
   function alive(p) { return p && !p.left; }                 // still owns a stake
   function eligible(p) {                                     // can be dealt in
-    return alive(p) && !p.out && !p.waiting && p.stack > 0;
+    return alive(p) && !p.out && !p.waiting && !p.away && p.stack > 0;
   }
   function inHand(p) { return p && p.inHand && !p.folded; }
   function nextSeat(g, from, pred) {
@@ -279,6 +281,23 @@
     order.forEach(function (i) { g.players[i].hole.push(g.deck.pop()); });
     var sbAmt = commit(g, sb, Math.floor(g.settings.bigBlind / 2));
     var bbAmt = commit(g, bb, g.settings.bigBlind);
+    /* The house rule for coming back: your first hand back costs you ONE
+       BIG BLIND, posted as an ante — unless you ARE the big blind that
+       hand, who is already paying it. No missed-blind ledger, no orbit
+       counting: you sat out, you buy back in. The cents leave the stack
+       into betHand (so the side-pot layering sees them) but never touch
+       betStreet, so the ante buys no call (docs/poker.md). */
+    var antes = [];
+    g.players.forEach(function (p, i) {
+      if (!p || !p.owesAnte || !inHand(p)) return;            // not dealt in — still owes
+      p.owesAnte = false;
+      if (i === bb) return;                                   // already posting it live
+      var amt = Math.min(g.settings.bigBlind, p.stack);
+      if (!amt) return;
+      p.stack -= amt; p.betHand += amt;
+      if (p.stack === 0) p.allIn = true;
+      antes.push({ seat: i, amt: amt });
+    });
     g.street = "preflop";
     g.bet = { current: g.settings.bigBlind, lastRaise: g.settings.bigBlind,
               pending: {}, capped: {} };
@@ -291,6 +310,9 @@
     events.push({ t: "hand", n: g.handNo, dealer: g.dealer });
     events.push({ t: "blind", seat: sb, kind: "sb", amt: sbAmt });
     events.push({ t: "blind", seat: bb, kind: "bb", amt: bbAmt });
+    antes.forEach(function (a) {
+      events.push({ t: "blind", seat: a.seat, kind: "ante", amt: a.amt });
+    });
     if (!g.turn) runOut(g, events);                          // everyone blind-all-in
   }
   var STREETS = { preflop: "flop", flop: "turn", turn: "river" };
@@ -561,6 +583,7 @@
       hole: null, inHand: false, folded: false, allIn: false,
       betStreet: 0, betHand: 0,
       out: false, left: false, waiting: false,
+      away: false, owesAnte: false,
       stats: { hands: 0, wins: 0, biggestPot: 0 }
     };
   }
@@ -609,8 +632,40 @@
       return done();
     }
 
+    /* stepping away at an "anyone"/"rejoin" table: fold out of the hand,
+       stop being dealt in, but KEEP the stack on the felt. This is the
+       non-permanent exit — `concede` above is the permanent one. */
+    if (type === "sitOut") {
+      var op = g.players[seat];
+      if (!alive(op)) return err("perm");
+      if (op.away) return err("phase");
+      if (inHand(op) && g.turn) foldSeat(g, seat, events);
+      else if (inHand(op)) { op.folded = true; }
+      op.away = true;
+      delete g.endVotes[seat];
+      events.push({ t: "away", seat: seat });
+      if (g.street && countBy(g, inHand) <= 1 && !g.handOver) settle(g, events, false);
+      else if (g.turn && g.turn.seat === seat) afterAction(g, ctx, events);
+      else if (!g.street && !g.handOver) tryStartHand(g, ctx, events);
+      return done();
+    }
+
+    /* ...and back. Mid-hand returns wait for the next deal, exactly like
+       a sit-in or a re-buy. Coming back costs one big blind, posted as an
+       ante on the first hand you're dealt (tryStartHand). */
+    if (type === "sitBack") {
+      var rp = g.players[seat];
+      if (!alive(rp) || !rp.away) return err("perm");
+      rp.away = false;
+      rp.owesAnte = true;
+      rp.waiting = !!g.street;
+      events.push({ t: "back", seat: seat });
+      if (!g.street && !g.handOver) tryStartHand(g, ctx, events);
+      return done();
+    }
+
     if (type === "sitIn") {
-      // open seating: a new seat appears mid-game, buys in, and waits for
+      // a NEW seat appears mid-game, buys in, and waits for
       // the next deal. The table validated the seat index and the policy.
       if (g.players[seat]) return err("perm");
       while (g.players.length < seat) g.players.push(null);
@@ -1005,6 +1060,59 @@
       var j = g.players.findIndex(function (p, k) { return alive(p) && k !== i && inHand(p); });
       g = applyAction(g, { type: "concede", seat: j }, mkCtx(1)).game;
       eq(g.phase, "over", "down to one live seat → over by attrition");
+    })();
+
+    (function sitOutKeepsTheStack() {
+      var g = mkGame(3, 93);
+      var i = g.turn.seat;
+      var before = g.players[i].stack + g.players[i].betHand;
+      g = applyAction(g, { type: "sitOut", seat: i }, mkCtx(1)).game;
+      ok(g.players[i].away, "sitting out flags the seat away");
+      ok(!g.players[i].left, "sitting out is NOT a cash-out");
+      ok(!eligible(g.players[i]), "an away seat is not dealt in");
+      ok(g.players[i].stack <= before, "the stack stays on the felt");
+      // a second sit-out is a no-op refusal, not a double-fold
+      ok(applyAction(g, { type: "sitOut", seat: i }, mkCtx(1)).error, "can't sit out twice");
+      // play on until a hand is dealt without them, then come back
+      var guard = 0, c = mkCtx(7);
+      while (g.phase === "play" && g.stats.hands < 3 && guard++ < 400) {
+        if (g.handOver) { g = applyAction(g, { type: "timerExpire" }, c).game; continue; }
+        if (!g.turn) break;
+        g = applyAction(g, { type: "timerExpire" }, c).game;
+      }
+      var r = applyAction(g, { type: "sitBack", seat: i }, mkCtx(1));
+      ok(!r.error, "sitBack is allowed from away");
+      g = r.game;
+      ok(!g.players[i].away, "sitBack clears away");
+      ok(g.players[i].owesAnte, "coming back owes an ante");
+      ok(applyAction(g, { type: "sitBack", seat: i }, mkCtx(1)).error, "can't return twice");
+    })();
+
+    (function anteOnReturn() {
+      var g = mkGame(3, 97);
+      var i = g.turn.seat;
+      var bb = g.settings.bigBlind;
+      g = applyAction(g, { type: "sitOut", seat: i }, mkCtx(1)).game;
+      g = applyAction(g, { type: "sitBack", seat: i }, mkCtx(1)).game;
+      ok(g.players[i].owesAnte, "ante owed the moment you sit back in");
+      // roll to the next deal and check the ante landed
+      var guard = 0, c = mkCtx(11);
+      while (g.phase === "play" && !g.street && guard++ < 80) {
+        g = applyAction(g, { type: "timerExpire" }, c).game;
+      }
+      if (g.street && inHand(g.players[i])) {
+        ok(!g.players[i].owesAnte, "the ante clears on the deal");
+        if (g.blinds.bb === i) {
+          eq(g.players[i].betHand, bb, "the big blind pays it as their blind, not twice");
+          eq(g.players[i].betStreet, bb, "...and it IS their live blind");
+        } else if (g.blinds.sb === i) {
+          eq(g.players[i].betHand, bb + Math.floor(bb / 2), "the small blind pays ante + SB");
+          eq(g.players[i].betStreet, Math.floor(bb / 2), "...only the SB is live");
+        } else {
+          eq(g.players[i].betHand, bb, "the ante sits in betHand");
+          eq(g.players[i].betStreet, 0, "...and buys no call");
+        }
+      }
     })();
 
     (function timeoutPolicy() {

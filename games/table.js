@@ -485,19 +485,26 @@
         // at an "anyone" table, and collapses every adoptable (bot-held)
         // seat into one pill's popover.
         if (mine != null) {
-          var sp = pill(S.standButton, function () {
+          // What standing MEANS can change with the re-join policy, so a
+          // game may re-word the pill per render (poker: "Cash out" at a
+          // "none" table, "Sit out" where the stack survives).
+          var sc = (hook("standCopy") ? cfg.standCopy() : null) || {};
+          var sLabel = sc.label || S.standButton;
+          var sp = pill(sLabel, function () {
             if (sp._armed) { send({ type: "stand" }); }
             else {
-              sp._armed = true; sp.querySelector(".tb-pill__label").textContent = S.standConfirm;
-              setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = S.standButton; } }, 2600);
+              sp._armed = true; sp.querySelector(".tb-pill__label").textContent = sc.confirm || S.standConfirm;
+              setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = sLabel; } }, 2600);
             }
           });
-          // a game may gloss what standing means here (poker: "Cash out")
-          if (S.standHover) sp.title = S.standHover;
+          var sHover = sc.hover || S.standHover;
+          if (sHover) sp.title = sHover;
           TOOLBAR.appendChild(sp);
         } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
+          // adoptable = the drive is holding it (cities/mahjong) or nobody
+          // is (an `away` seat at a game with no live bots — poker)
           var open = (model.seats || []).filter(function (s) {
-            return s && !s.empty && s.phantom && !s.conceded;
+            return s && !s.empty && (s.phantom || s.away) && !s.conceded;
           });
           // no pill at all when nothing is adoptable — a permanently dead
           // "Sit down" at a full human table is noise, not an affordance
@@ -734,13 +741,18 @@
         shuf.addEventListener("click", function () { send({ type: "shuffle" }); });
         startRow.appendChild(shuf);
         wrap.appendChild(startRow);
-        wrap.appendChild(el("p", "gt-lobby__hint",
-          !ready ? cfg.startNeedsHint : uneven ? (S.teamsUnevenHint || cfg.startNeedsHint) : S.startHint));
-        // a seat that went dark in the lobby is dealt in as a bot (the worker
-        // does the conversion at Start). Say so before the press, never after —
-        // this counts only humans, since a seat view marks bots connected.
-        var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
-        if (ready && dark) wrap.appendChild(el("p", "gt-lobby__hint", fmt(S.startBotWarn, { n: dark })));
+        // a game whose lobby has to fit a fixed tile can opt out of the hint
+        // line entirely (poker) — the Start button's disabled state already
+        // says "not yet", so the sentence is a nicety, not load-bearing
+        if (!cfg.noStartHint) {
+          wrap.appendChild(el("p", "gt-lobby__hint",
+            !ready ? cfg.startNeedsHint : uneven ? (S.teamsUnevenHint || cfg.startNeedsHint) : S.startHint));
+          // a seat that went dark in the lobby is dealt in as a bot (the worker
+          // does the conversion at Start). Say so before the press, never after —
+          // this counts only humans, since a seat view marks bots connected.
+          var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
+          if (ready && dark) wrap.appendChild(el("p", "gt-lobby__hint", fmt(S.startBotWarn, { n: dark })));
+        }
       }
       (into || BIG).appendChild(wrap);
     }

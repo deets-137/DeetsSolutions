@@ -54,7 +54,16 @@
 .pk-tile--big { grid-area: big; height: 34rem; position: relative; display: flex; overflow-y: auto; scrollbar-gutter: stable; }
 /* one tall column where cities kept dice + players + log */
 .pk-tile--players { grid-area: players; height: 34rem; display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; position: relative; }
-.pk-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+/* The hand panel reserves its FULL in-game height from the lobby onward,
+   the same way the felt and players tiles do: title + big cards + the
+   always-present raise tray. Otherwise the bento grows at Start and the
+   whole page jumps — cities' universal layout rule, applied to the one
+   tile whose content arrives last. */
+.pk-tile--role {
+  grid-area: role; position: relative;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  min-height: calc(var(--pkcardh) * 1.5 + var(--space-3) * 4 + 2.6rem);
+}
 
 /* ── the felt ─────────────────────────────────────────────────── */
 .pk-felt {
@@ -328,6 +337,7 @@
 /* ── settings: the chip-ladder row (lobby only) ───────────────── */
 .pk-chiprow { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
 .pk-chip {
+  position: relative;                    /* the drop divider hangs off this */
   display: inline-flex; align-items: center; gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   background: var(--surface);
@@ -337,6 +347,17 @@
 /* host-only: the ladder drags to reorder (no affordance by design) */
 .pk-chip[draggable="true"] { cursor: grab; }
 .pk-chip[draggable="true"]:active { cursor: grabbing; }
+.pk-chip.is-dragging { opacity: 0.4; }
+/* the drop divider: a rule down the middle of the gap the chip would land
+   in, so "before this one" and "after the last one" read differently */
+.pk-chip::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 2px;
+  background: var(--title); border-radius: 2px;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-ui);
+}
+.pk-chip.is-dropbefore::after { left: calc(var(--space-2) / -2 - 1px); opacity: 1; }
+.pk-chip.is-dropafter::after { right: calc(var(--space-2) / -2 - 1px); opacity: 1; }
 .pk-chip__dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; border: 2px solid var(--border); flex: none; }
 .pk-chip__val {
   width: 3.2rem;
@@ -344,7 +365,6 @@
   font: inherit; font-size: 0.85rem; text-align: center;
 }
 .pk-chip__val:focus { outline: 2px solid var(--title); outline-offset: 1px; border-radius: 4px; }
-.pk-sethint { color: var(--subtext); font-size: 0.78rem; }
 
 /* ── hand-over interstitial + the cash-out lobby ──────────────── */
 .pk-over {

@@ -17,8 +17,9 @@
      shell copy: gate, toolbar, lobby seats, color picker, refusals);
    - single-character badges (D / 1 / 2);
    - the four action buttons, "Raise by", "Confirm", "Your Hand";
-   - the action hover lines, the small-blind hint, and the Stand up hover,
-     dictated verbatim.
+   - the action hover lines and the Stand up hover, dictated verbatim;
+   - the LOBBY SETTINGS labels + the min-raise chips ("1x prev" / "2x prev"
+     / "No min") and "Mid-game Join", approved/renamed in chat 2026-08-03.
    Everything else still awaits his pass.
 
    {curly} tokens are filled by poker.js (fmt()). Money strings receive
@@ -50,15 +51,28 @@ window.POKER_STRINGS = {
    closePill: "Close Table",
    closeConfirm: "Confirm?",
    tableClosed: "The host closed the table.",
-   /* mid-game toolbar — poker's own pills. Stand up cashes you out
-      (rejoin is locked to "none"); the hover title is Aditya's, chat
-      2026-08-03. */
+   /* mid-game toolbar — poker's own pills. Stand up cashes you out at a
+      "none" table only; the hover title is Aditya's, chat 2026-08-03.
+      The sit-out wording below replaces it in the other two modes. */
    standButton: "Stand up",
    standConfirm: "Confirm?",
    standHover: "Cash out",   /* Aditya's, chat 2026-08-03 — hover on Stand up */
+   /* the same pill at an "anyone"/"rejoin" table, where the stack survives
+      the absence (docs/poker.md, "Stepping away") */
+   sitOutButton: "[ph]Sit out",
+   sitOutHover: "[ph]Keep your seat and your stack",
+   sitBackPill: "[ph]Sit back in",
+   sitBackHover: "[ph]Deal me in next hand",
+   /* NOT awayTag — that one (below, with the seat tags) means the socket
+      dropped. This is a deliberate sit-out, which is a different thing. */
+   sittingOutTag: "[ph]Sitting out",
+   owesAnteTag: "[ph]Posting ante",
+   awayToast: "[ph]{name} is sitting out.",
+   backToast: "[ph]{name} is back.",
+   anteToast: "[ph]You posted a big blind as an ante to sit back in.",
    voteEndPill: "[ph]Vote to end",
    voteEndCount: "[ph]{n}/{need}",
-   endGamePill: "[ph]End game",
+   endGamePill: "End game",   /* Aditya's, chat 2026-08-03 */
    endGameConfirm: "Confirm?",
    sitInPill: "[ph]Sit in",
    voteToast: "[ph]{name} votes to end ({n}/{need}).",
@@ -66,38 +80,41 @@ window.POKER_STRINGS = {
 
    /* ── lobby (big tile: settings) ──────────────────────────────── */
    lobbyTitle: "Table settings",
-   capacityLabel: "[ph]Seats",
-   buyInLabel: "[ph]Buy-in",
+   capacityLabel: "Seats",
+   buyInLabel: "Buy-in",
    buyInCustom: "$#",
-   chipsLabel: "[ph]Chips",
-   chipsHint: "[ph]Values are each chip's worth.",
+   chipsLabel: "Chips",
    chipsBad: "[ph]Chip values need to be positive amounts in cents.",
-   blindLabel: "[ph]Big blind",
-   /* the row's one hint line — Aditya's, chat 2026-08-03. The red toast
-      below (blindBad) fires when a blind doesn't split into the chips. */
-   blindHalfHint: "Small blind is half the Big blind",
+   blindLabel: "Big blind",
+   /* the small-blind-is-half hint was cut (his call, chat 2026-08-03) —
+      the settings panel has to fit the bento's big tile without an inner
+      scroller. blindBad fires when a blind doesn't split into the chips. */
    blindBad: "[ph]That blind doesn't split into the chips.",
    buyInBad: "[ph]That buy-in doesn't split into the chips.",
    timerLabel: "Turn timer",
-   timerOff: "[ph]None",
+   timerOff: "None",
    timerSecs: "{n}s",
    timerCustom: "#s",
-   minRaiseLabel: "[ph]Minimum raise",
-   minRaisePrev: "[ph]At least previous",
-   minRaiseDouble: "[ph]Double previous",
-   minRaiseNone: "[ph]No minimum",
-   seatingLabel: "[ph]Seating",
-   seatingOpen: "[ph]Anyone, any time",
-   seatingLobby: "[ph]Lobby only",
+   minRaiseLabel: "Minimum raise",
+   minRaisePrev: "1x prev",
+   minRaiseDouble: "2x prev",
+   minRaiseNone: "No min",
+   /* no Seating row — the shared "Mid-game Join" row IS that setting now
+      (rejoinLabel below); its three modes cover both halves of joining a
+      running table: a new seat, and taking over one left behind. */
    startButton: "Start game",
    shufflePill: "Shuffle",
-   startHint: "[ph]Everyone buys in on press.",
-   startNeedsTwo: "[ph]Poker needs at least 2 players.",
+   /* no hint line under Start (his call, chat 2026-08-03) — poker sets the
+      shell's `noStartHint`, so startHint/startNeedsTwo/startBotWarn are
+      gone. Cities and mahjong still render theirs. */
    seatOpen: "Open seat",
    seatYou: "{name} (you)",
    hostBadge: "Host",
    kickSeatAria: "Remove {name}",
-   rejoinLabel: "Re-joining",
+   /* Aditya's, chat 2026-08-03 — renamed from "Re-joining" when this row
+      absorbed the old Seating setting: it now governs every way of
+      joining a table already in play, not just coming back to one. */
+   rejoinLabel: "Mid-game Join",
    rejoinAnyone: "Anyone",
    rejoinRejoin: "Rejoin",
    rejoinNone: "None",
@@ -148,7 +165,7 @@ window.POKER_STRINGS = {
    awayTag: "[ph]Away",
    stackShort: "[ph]{amt}",
    betShort: "[ph]{amt}",
-   playersTitle: "[ph]Players",
+   playersTitle: "Players",
    /* the felt's popover buttons (cities' Odds/Resources idiom) — all
       four approved by Aditya in chat 2026-08-03, no [ph] */
    winningsButton: "Winnings",
@@ -215,7 +232,6 @@ window.POKER_STRINGS = {
    placeTied: "[ph]T-{place}",
 
    /* ── connection / refusals (carried from cities/mahjong) ─────── */
-   startBotWarn: "{n} disconnected seat(s) will be played by bots.",
    connDown: "Reconnecting…",
    connUp: "Back!",
    replacedToast: "You opened this table in another tab. Multiple tabs is no bueno, please close the other ones.",
@@ -237,7 +253,7 @@ window.POKER_STRINGS = {
    errFlood: "Slow down a moment.",
    errRaise: "[ph]That raise is too small.",
    errChips: "[ph]That amount doesn't split into the chips.",
-   errSeating: "[ph]This table only seats players from the lobby.",
+   errMidJoin: "[ph]This table isn't taking new players mid-game.",
 
    /* ── disconnect (poker's no-bot wording — still awaits his pass) ── */
    leavingToast: "[ph]{name} disconnected — their seat folds until they're back.",

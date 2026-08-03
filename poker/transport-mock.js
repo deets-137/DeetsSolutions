@@ -62,13 +62,21 @@
     Colors: Colors,
     gameVerbs: { fold: 1, check: 1, call: 1, raise: 1, buyIn: 1, voteEnd: 1, nextHand: 1 },
 
-    /* rejoin is LOCKED to "none": no bot ever takes a seat over. Standing,
-       a mid-game kick, and grace expiry all concede - which for poker means
-       fold out and cash out at the current stack (docs/poker.md). */
-    rejoinModes: ["none"],
+    /* No bot EVER takes a poker seat over — the drive is a dev tool, not a
+       player. So the three re-join modes mean something poker-specific
+       (docs/poker.md, "Stepping away"):
+         anyone - the seat goes AWAY with its stack; you can walk back in,
+                  and so can any spectator (they inherit the pile);
+         rejoin - the seat goes AWAY with its stack; only you come back
+                  (same token, or the same account from any device);
+         none   - the seat CASHES OUT, and you rejoin as a spectator only.
+       "away" is engine `sitOut`, the return is `sitBack`. */
+    rejoinModes: ["anyone", "rejoin", "none"],
+    awayAction: "sitOut",
+    adoptAction: "sitBack",
     defaultSettings: function () {
       return {
-        rejoin: "none",
+        rejoin: "rejoin",
         capacity: 6,
         buyIn: 2000,                       // cents
         bigBlind: 20,                      // cents; the small blind is half
@@ -80,8 +88,7 @@
           { v: 100, hex: "#26221f" }       // black
         ],
         timerSec: 0,
-        minRaise: "prev",                  // "prev" | "double" | "none"
-        seating: "open"                    // "open" | "lobby"
+        minRaise: "prev"                   // "prev" | "double" | "none"
       };
     },
     minSeats: function () { return 2; },
@@ -104,6 +111,7 @@
           seat: i, stack: p.stack, bought: p.bought,
           inHand: p.inHand, folded: p.folded, allIn: p.allIn,
           out: p.out, left: p.left, waiting: p.waiting,
+          away: p.away, owesAnte: p.owesAnte,
           betStreet: p.betStreet,
           stats: p.stats
         };
@@ -124,6 +132,8 @@
         if (o) view.you.options = o;
         view.you.myVote = !!g.endVotes[seat];
         view.you.canBuyIn = !p.left && p.out;
+        // the return pill only exists for the person actually sitting out
+        view.you.away = !!p.away;
       }
       if (g.phase === "over") {
         view.over = {
@@ -189,10 +199,6 @@
         if (["prev", "double", "none"].indexOf(msg.minRaise) < 0) return "phase";
         st.minRaise = msg.minRaise;
       }
-      if (msg.seating != null) {
-        if (["open", "lobby"].indexOf(msg.seating) < 0) return "phase";
-        st.seating = msg.seating;
-      }
       return null;
     },
     createGame: function (t, seated, ctx) {
@@ -212,14 +218,14 @@
     },
 
     /* the two verbs the shared core doesn't know (docs/poker.md):
-       sitIn - open seating lets a spectator take a NEW seat mid-game,
-       buy in, and wait for the next deal (the core's mid-game `sit` only
-       adopts bot-held seats, which poker never has);
+       sitIn - at an "anyone" table a spectator takes a NEW seat mid-game,
+       buys in, and waits for the next deal (the core's mid-game `sit`
+       only adopts an EXISTING seat, so it can't express this);
        endGame - the host closes the game to the cash-out screen. */
     extraCommand: function (t, conn, msg, H) {
       if (msg.type === "sitIn") {
         if (!t.game || t.game.phase === "over") { H.errTo(conn, "phase"); return true; }
-        if (t.settings.seating !== "open") { H.errTo(conn, "seating"); return true; }
+        if ((t.settings.rejoin || "rejoin") !== "anyone") { H.errTo(conn, "midjoin"); return true; }
         if (H.seatOfToken(t, conn.token) != null) { H.errTo(conn, "perm"); return true; }
         if (t.seats.length >= t.settings.capacity) { H.errTo(conn, "full"); return true; }
         var lower = String(conn.name || "").toLowerCase();
@@ -229,6 +235,20 @@
         if (!H.tryAct(t, { type: "sitIn", seat: idx })) { H.errTo(conn, "phase"); return true; }
         t.seats.push({ token: conn.token, name: conn.name, color: randColor(t, idx),
                        connected: true, phantom: false });
+        H.broadcast(t, t._ev || []); t._ev = null;
+        H.postApply(t);
+        return true;
+      }
+      /* sitBack - the away seat's own occupant returns. The core's mid-game
+         `sit` also lands here (via adoptAction) but only at an "anyone"
+         table and only from someone NOT already seated; this is the plain
+         "I'm back" for the person who never gave the seat up. */
+      if (msg.type === "sitBack") {
+        if (!t.game || t.game.phase === "over") { H.errTo(conn, "phase"); return true; }
+        var bsi = H.seatOfToken(t, conn.token);
+        if (bsi == null || !t.seats[bsi] || !t.seats[bsi].away) { H.errTo(conn, "perm"); return true; }
+        if (!H.tryAct(t, { type: "sitBack", seat: bsi })) { H.errTo(conn, "perm"); return true; }
+        delete t.seats[bsi].away;
         H.broadcast(t, t._ev || []); t._ev = null;
         H.postApply(t);
         return true;
