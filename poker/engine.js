@@ -323,9 +323,20 @@
     settle(g, events, true);
   }
 
+  /* the Winnings ledger's shape: one row and one column per seat —
+     sized lazily so a table persisted before the ledger existed heals */
+  function ensureLedger(g) {
+    if (!g.transfers) g.transfers = [];
+    while (g.transfers.length < g.players.length) g.transfers.push([]);
+    g.transfers.forEach(function (row) {
+      while (row.length < g.players.length) row.push(0);
+    });
+  }
+
   /* ── settlement: uncalled refund, side pots, awards ───────────── */
   function settle(g, events, showdown) {
     g.turn = null;
+    ensureLedger(g);
     var ps = g.players;
     // refund the uncalled top of the last bet
     var maxI = null, maxV = 0, secV = 0;
@@ -350,16 +361,24 @@
     var prev = 0;
     levels.forEach(function (L) {
       var amt = 0;
-      ps.forEach(function (p) { if (p && p.betHand) amt += Math.max(0, Math.min(p.betHand, L) - prev); });
+      var contrib = {};                 // per-seat cents in THIS layer (ledger)
+      ps.forEach(function (p, i) {
+        if (!p || !p.betHand) return;
+        var c = Math.max(0, Math.min(p.betHand, L) - prev);
+        if (c > 0) { amt += c; contrib[i] = c; }
+      });
       var elig = [];
       ps.forEach(function (p, i) { if (inHand(p) && p.betHand >= L) elig.push(i); });
-      if (amt > 0) pots.push({ amount: amt, elig: elig });
+      if (amt > 0) pots.push({ amount: amt, elig: elig, contrib: contrib });
       prev = L;
     });
     // merge layers with identical eligibility (display + fewer splits)
     for (var i = pots.length - 1; i > 0; i--) {
       if (pots[i].elig.join(",") === pots[i - 1].elig.join(",")) {
         pots[i - 1].amount += pots[i].amount;
+        Object.keys(pots[i].contrib).forEach(function (k) {
+          pots[i - 1].contrib[k] = (pots[i - 1].contrib[k] || 0) + pots[i].contrib[k];
+        });
         pots.splice(i, 1);
       }
     }
@@ -393,11 +412,31 @@
       });
       var share = Math.floor(pot.amount / winners.length);
       var rem = pot.amount - share * winners.length;
+      var awardBy = {};
       winners.forEach(function (w, k) {
         var take = share + (k === 0 ? rem : 0);
         ps[w].stack += take;
+        awardBy[w] = take;
         awards.push({ seat: w, amt: take, name: scores[w] ? scores[w].name : null });
       });
+      /* the transfer ledger (docs/poker.md, "Winnings"): every NON-winner's
+         contribution to this pot drains into the winners' PROFITS (award
+         minus their own contribution, which simply comes home) — walked in
+         seat order, integer-exact, so the ledger stays a zero-sum mirror
+         of every stack's net; the self-checks hold it to that. */
+      var profits = winners.map(function (w) { return awardBy[w] - (pot.contrib[w] || 0); });
+      var wi = 0;
+      Object.keys(pot.contrib).map(Number).sort(function (a, b) { return a - b; })
+        .forEach(function (from) {
+          if (winners.indexOf(from) >= 0) return;
+          var owe = pot.contrib[from];
+          while (owe > 0 && wi < winners.length) {
+            if (profits[wi] <= 0) { wi++; continue; }
+            var t = Math.min(owe, profits[wi]);
+            g.transfers[from][winners[wi]] += t;
+            owe -= t; profits[wi] -= t;
+          }
+        });
     });
     // fold-through awards carry no hand name
     if (!showdown) awards.forEach(function (a) { a.name = null; });
@@ -503,10 +542,14 @@
       blinds: null, bet: null, turn: null,
       handOver: null, waiting: false,
       endVotes: {},
+      transfers: [],                    // [from][to] cents, cumulative ("Winnings")
       stats: { hands: 0 },
       results: null, endedBy: null
     };
     for (var i = 0; i < opts.seats; i++) g.players.push(newPlayer(g));
+    g.players.forEach(function () {
+      g.transfers.push(g.players.map(function () { return 0; }));
+    });
     var events = [];
     tryStartHand(g, ctx, events);
     g._boot = events;   // the caller broadcasts these as the start events
@@ -574,6 +617,7 @@
       var np = newPlayer(g);
       np.waiting = !!g.street;                    // a hand is running — sit out until it ends
       g.players[seat] = np;
+      ensureLedger(g);                  // the ledger grows with the roster
       events.push({ t: "sitIn", seat: seat });
       if (!g.street && !g.handOver) tryStartHand(g, ctx, events);
       return done();
@@ -988,6 +1032,51 @@
       eq(badActs, 0, "dev bots only make legal moves");
       ok(g.stats.hands >= 6 || g.waiting, "dev bots play hands to completion (" + g.stats.hands + ")");
       eq(botAct({ phase: "over" }, everyoneBot, {}, null), null, "no bot act after over");
+      // the Winnings ledger is a zero-sum mirror of every stack's net —
+      // exactly, in cents, after any number of settled hands
+      var offLedger = 0, moved = 0;
+      g.players.forEach(function (p, i) {
+        var net = p.stack - p.bought;
+        var ledger = 0;
+        g.players.forEach(function (q, j) {
+          ledger += g.transfers[j][i] - g.transfers[i][j];
+          if (g.transfers[i][j] < 0) offLedger++;
+          moved += g.transfers[i][j];
+        });
+        if (ledger !== net) offLedger++;
+      });
+      eq(offLedger, 0, "ledger mirrors every net exactly (" + g.stats.hands + " hands)");
+      ok(moved > 0, "the ledger saw money move (" + moved + "c)");
+    })();
+
+    (function ledgerSidePots() {
+      // triple all-in with unequal stacks: nets and ledger must still agree
+      var g = mkGame(3, 33);
+      g.players.forEach(function (p, idx) {
+        var target = [100, 300, 1000][idx];
+        p.bought = target;                       // pretend these were the buy-ins
+        p.stack = target - p.betStreet;
+      });
+      var guard = 0;
+      var c = mkCtx(41);
+      while (!g.handOver && g.turn && guard++ < 20) {
+        var s = g.turn.seat;
+        var o = options(g, s);
+        var res = applyAction(g, { type: "raise", seat: s, to: o.maxTo }, c);
+        if (res.error) res = applyAction(g, { type: "call", seat: s }, c);
+        if (res.error) res = applyAction(g, { type: "check", seat: s }, c);
+        if (res.error) break;
+        g = res.game;
+      }
+      ok(!!g.handOver, "ledger side-pot hand settles");
+      var bad = 0;
+      g.players.forEach(function (p, i) {
+        var net = p.stack - p.bought;
+        var ledger = 0;
+        g.players.forEach(function (q, j) { ledger += g.transfers[j][i] - g.transfers[i][j]; });
+        if (ledger !== net) bad++;
+      });
+      eq(bad, 0, "ledger mirrors nets through side pots");
     })();
 
     var summary = "poker engine selfTest: " + pass + " passed, " + fail + " failed";

@@ -104,14 +104,9 @@
         <div class="pk-table" data-pk-table hidden>
           <div class="pk-bento">
             <section class="pk-tile pk-tile--big" data-pk-big aria-label="Table"></section>
-            <section class="pk-tile pk-tile--players" aria-label="Players">
-              <!-- roster on top, the hand log below — one tile where cities
-                   kept three (docs/poker.md, "Page layout") -->
-              <div class="pk-roster" data-pk-players></div>
-              <div class="pk-log" data-pk-log>
-                <div class="pk-log__list" data-pk-log-list></div>
-              </div>
-            </section>
+            <!-- the roster fills the tile; the log lives in the felt's
+                 Log popover (cities' Odds/Resources idiom) -->
+            <section class="pk-tile pk-tile--players" data-pk-players aria-label="Players"></section>
             <section class="pk-tile pk-tile--role" data-pk-role aria-label="Your hand"></section>
           </div>
         </div>

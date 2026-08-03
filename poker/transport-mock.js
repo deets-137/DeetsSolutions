@@ -116,6 +116,7 @@
       }
       var votes = Object.keys(g.endVotes).map(Number);
       view.votes = { n: votes.length, need: Engine.voteNeed(g), seats: votes };
+      view.transfers = g.transfers;              // the Winnings ledger — public, like the stacks
       if (seat != null && g.players[seat]) {
         var p = g.players[seat];
         if (p.hole) view.you.hole = p.hole.slice();

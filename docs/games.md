@@ -518,15 +518,58 @@ Three rules that follow from the table:
    game and didn't; the duplication survived two games and a bug rode along
    in it. If you find yourself pasting from cities into mahjong, stop.
 
+### Build style — mirror the siblings before inventing
+
+How a new game's UI stays indistinguishable from the ones beside it.
+These were applied verbatim while building DeetsPoker (chat 2026-08-03)
+and are the default for every game after it; deviate only when Aditya
+asks for the deviation.
+
+- **Copy a sibling's geometry, not its spirit.** When poker needed a
+  players tile, a hand/controls panel, or board popovers, the answer was
+  cities' actual rules — the pstrip card anatomy, the `1fr 1fr` play
+  grid with actions `justify-content: flex-end`, the board-popover kit
+  (pill row bottom-left, absolute panels, hover previews / click pins /
+  150ms grace), the log list's exact font, gap, and last-line highlight.
+  Open the sibling's CSS and take the numbers; don't approximate them.
+- **The universal layout rule: no piece may resize another.** Anything
+  that appears and disappears (a raise tray, a hover hint, a state chip
+  row, a popover) either lives in an absolute overlay or holds its space
+  when empty (`visibility: hidden` ghosts, fixed-height reserved rows,
+  min-heights). Cities wrote the rule; every game inherits it.
+- **Control glosses ride native tooltips** (`title=`), not visible hint
+  lines. A visible line is a layout liability and a second copy of the
+  same words.
+- **Strings carried VERBATIM from a sibling's handwritten pass may land
+  un-prefixed**, with a section comment naming the source — the [ph]
+  convention exists so Aditya reviews every word once, not so he reviews
+  the same word per game. Single-character labels (badge letters) and
+  strings he dictates in chat also land un-prefixed, provenance-marked.
+  Everything else still arrives as `[ph]`.
+- **Same-shaped data gets the sibling's presentation.** Timer chips,
+  custom-value boxes (`gt-chip--num`), choice rows, seat dots, accent
+  edges: if the shell or a sibling already renders the concept, a new
+  game re-uses the pattern (ideally the shell's own helper) rather than
+  designing a variant.
+
 ### Known duplication, not yet promoted
 
 Honest list, so the next session doesn't rediscover it:
 
-- **The players tile.** `.cities-pstrip` and `.mj-pstrip` have identical
-  anatomy — same flex geometry, padding, border, accent edge, radius,
-  `.is-active` and `.is-away` states. A `gt-pstrip` primitive is the obvious
-  next promotion; it was left alone because it means renaming classes in
-  both games' JS and CSS, which is a refactor rather than a move.
+- **The players tile.** `.cities-pstrip`, `.mj-pstrip`, and now
+  `.pk-pstrip` have identical anatomy — same flex geometry, padding,
+  border, accent edge, radius, `.is-active` and `.is-away` states. A
+  `gt-pstrip` primitive is the obvious next promotion; it was left alone
+  because it means renaming classes in the games' JS and CSS, which is a
+  refactor rather than a move.
+- **The board-popover kit.** `cities.js` and `poker.js` each carry the
+  hover-preview / click-pin / grace-timer popover machinery and the
+  `.cities-bpop` / `.pk-bpop` panel geometry. Third game that wants a
+  board popover promotes it into `table.js` + `table.css` instead.
+- **The log list's dress.** `.cities-log__list/__line` and
+  `.pk-log__list/__line` are the same rules (0.82rem, 2px gap, thin
+  scrollbars, last line in `--title`); mahjong's differs only in detail.
+  Rides along with whichever of the above gets promoted first.
 - **The panel material** (`--menu-surface` + backdrop-filter + border +
   `--radius-panel` + `--shadow-panel`) is written out six times across
   `chrome.css` and `table.css`. A `.panel` primitive would collapse them,

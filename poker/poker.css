@@ -213,15 +213,61 @@
 .pk-pstrip__stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; }
 .pk-pstrip__stack { color: var(--title); font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 .pk-pstrip__bet { color: var(--subtext); font-size: 0.72rem; font-variant-numeric: tabular-nums; min-height: 1em; }
-/* the hand log fills whatever the roster leaves */
-.pk-log { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-1); border-top: 1px solid var(--border); padding-top: var(--space-2); }
-.pk-log__list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
-.pk-log__line { color: var(--subtext); font-size: 0.78rem; }
-.pk-log__line strong { color: var(--text); font-weight: 700; }
+/* ── felt popovers, bottom-left: Winnings + Log ────────────────────
+   cities' board-popover kit, verbatim geometry (second copy — see
+   docs/games.md "Known duplication"): a pill row anchored to the big
+   tile's corner, absolute panels above it, is-open toggling visibility
+   so an opening panel can never move the board. */
+.pk-boardbtns { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 3; display: flex; gap: var(--space-2); }
+.pk-bpop {
+  position: absolute; left: var(--space-3); bottom: 3.6rem; z-index: 3;
+  width: 24rem; max-width: calc(100% - var(--space-3) * 2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  visibility: hidden; opacity: 0;
+}
+.pk-bpop.is-open { visibility: visible; opacity: 1; }
+/* the log pane — cities-log__list's styling, line for line */
+.pk-log__list {
+  height: 14rem; width: 100%; overflow-y: auto;
+  font-size: 0.82rem; color: var(--text); display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.pk-log__line { color: var(--text); opacity: 0.9; line-height: 1.4; }
+.pk-log__line:last-child { color: var(--title); opacity: 1; }
 .pk-log__list::-webkit-scrollbar { width: var(--space-2); }
 .pk-log__list::-webkit-scrollbar-track { background: transparent; }
 .pk-log__list::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
 .pk-log__list::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
+/* the Winnings grid: rows win from columns; the Net column leads */
+.pk-win { overflow-x: auto; }
+.pk-win__table { border-collapse: collapse; width: 100%; }
+.pk-win__table th { color: var(--subtext); font-weight: 400; padding: 2px var(--space-1); text-align: center; }
+.pk-win__table tr:first-child th {
+  font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pk-win__table th .gt-dot { margin: 0 auto; }
+.pk-win__name { display: flex; align-items: center; gap: var(--space-1); }
+.pk-win__name span {
+  color: var(--text); font-size: 0.78rem;
+  max-width: 5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pk-win__table td {
+  font-size: 0.72rem; font-variant-numeric: tabular-nums;
+  padding: 2px var(--space-1); text-align: right; white-space: nowrap;
+}
+.pk-win__net { font-weight: 700; border-right: 1px solid var(--border); }
+.pk-win__table td.is-plus { color: var(--go); }
+.pk-win__table td.is-minus { color: var(--stop); }
+.pk-win__table td.is-zero { color: var(--subtext); opacity: 0.6; }
+.pk-win__self { background: var(--surface); opacity: 0.4; }
+.pk-win__hint { margin-top: var(--space-2); font-size: 0.72rem; color: var(--subtext); }
 
 /* ── the hand panel (your cards + the four actions) ───────────────
    cities' play grid, verbatim geometry: hand column left (title, cards

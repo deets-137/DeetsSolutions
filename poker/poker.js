@@ -23,8 +23,6 @@
   var BIG = document.querySelector("[data-pk-big]");
   var PLAYERS = document.querySelector("[data-pk-players]");
   var ROLE = document.querySelector("[data-pk-role]");
-  var LOG = document.querySelector("[data-pk-log]");
-  var LOG_LIST = document.querySelector("[data-pk-log-list]");
   var DESKTOP = document.querySelector("[data-pk-desktop]");
 
   var model = null;
@@ -56,7 +54,7 @@
     clearYouFields: ["hole", "options", "myVote", "canBuyIn"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
-      toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
+      toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: null, desktop: DESKTOP
     },
     onModel: function (m) {
       var prevTurn = model && model.turn ? model.turn.seat : null;
@@ -70,10 +68,7 @@
     onEvent: handleEvent,
     logLine: logLine,
     render: paint,
-    postRender: function () {
-      seedDistinctColor();
-      fitLog();
-    },
+    postRender: seedDistinctColor,
     onLeave: resetGameUi,
     onRematch: resetGameUi,
     extraPills: extraPills,
@@ -98,19 +93,20 @@
   var logLines = TBL.logLines, ui = TBL.ui;
   function send(msg) { TBL.send(msg); }
   function render() { TBL.render(); }
-  function fitLog() { TBL.fitLog(".pk-log__list"); }
 
   /* ── page state (this game's own; broadcasts must not wipe drafts) ── */
   ui.raiseOpen = false;       // the tray under the action buttons
   ui.raiseDraft = null;       // cents OVER the current bet ("Raise by")
   ui.chipDrafts = null;       // the lobby chip-ladder inputs mid-typing
   ui.chipDrag = null;         // index of the ladder token being dragged
+  ui.boardPop = null;         // pinned felt popover ("win" | "log" | null)
   var colorSeeded = false;    // one auto-recolor attempt per clash
   var overTick = null;        // the interstitial's countdown handle
 
   function resetGameUi() {
     ui.raiseOpen = false; ui.raiseDraft = null;
-    ui.chipDrafts = null; ui.chipDrag = null;
+    ui.chipDrafts = null; ui.chipDrag = null; ui.boardPop = null;
+    popHover = null;
     if (overTick) { clearTimeout(overTick); overTick = null; }
   }
 
@@ -368,22 +364,125 @@
       BIG.textContent = "";
       PLAYERS.textContent = "";
       ROLE.textContent = "";
-      renderLog();
       return TBL.renderLobby(BIG);
     }
     if (model.phase === "over") {
       BIG.textContent = "";
       BIG.appendChild(cashoutLobby());
+      buildBoardPops();          // the ledger and the log outlive the felt
       renderRoster();
-      renderLog();
       renderRole();
       return;
     }
     BIG.textContent = "";
     BIG.appendChild(felt());
+    buildBoardPops();
     renderRoster();
-    renderLog();
     renderRole();
+  }
+
+  /* ── felt popovers, bottom-left: Winnings + Log ─────────────────
+     Cities' board-popover kit, verbatim idiom (second copy — noted in
+     docs/games.md "Known duplication"): each popover is an absolute
+     overlay paired with a pill in the button row. Hover previews,
+     click pins (ui.boardPop), a 150ms grace timer lets the cursor
+     cross the gap. Rebuilt every render; panels are fixed-size so
+     nothing ever resizes. */
+  var popHover = null, popTimer = null;
+  function popOpenName() { return popHover || ui.boardPop || null; }
+  function popSync() {
+    var open = popOpenName();
+    ["win", "log"].forEach(function (name) {
+      var p = BIG.querySelector('[data-pop="' + name + '"]');
+      var b = BIG.querySelector('[data-popbtn="' + name + '"]');
+      if (p) p.classList.toggle("is-open", open === name);
+      if (b) b.setAttribute("aria-expanded", open === name ? "true" : "false");
+    });
+  }
+  function popHoverIn(name) { return function () { clearTimeout(popTimer); popHover = name; popSync(); }; }
+  function popDelayClose() {
+    clearTimeout(popTimer);
+    popTimer = setTimeout(function () { popHover = null; popSync(); }, 150);
+  }
+  function popButton(name, label) {
+    var b = el("button", "tb-pill"); b.type = "button";
+    b.setAttribute("data-popbtn", name);
+    b.appendChild(el("span", "tb-pill__label", label));
+    b.setAttribute("aria-expanded", popOpenName() === name ? "true" : "false");
+    b.addEventListener("click", function () { ui.boardPop = ui.boardPop === name ? null : name; popSync(); });
+    b.addEventListener("mouseenter", popHoverIn(name));
+    b.addEventListener("mouseleave", popDelayClose);
+    return b;
+  }
+  function popPanel(name) {
+    var p = el("div", "pk-bpop" + (popOpenName() === name ? " is-open" : ""));
+    p.setAttribute("data-pop", name);
+    p.addEventListener("mouseenter", popHoverIn(name));
+    p.addEventListener("mouseleave", popDelayClose);
+    return p;
+  }
+  function buildBoardPops() {
+    var row = el("div", "pk-boardbtns");
+    var winPop = popPanel("win");
+    winPop.appendChild(winningsGrid());
+    BIG.appendChild(winPop);
+    row.appendChild(popButton("win", S.winningsButton));
+    var logPop = popPanel("log");
+    var list = el("div", "pk-log__list");
+    logLines.slice(-40).forEach(function (entry) {
+      list.appendChild(el("div", "pk-log__line", typeof entry === "string" ? entry : entry.text || ""));
+    });
+    logPop.appendChild(list);
+    BIG.appendChild(logPop);
+    row.appendChild(popButton("log", S.logButton));
+    BIG.appendChild(row);
+    list.scrollTop = list.scrollHeight;
+    requestAnimationFrame(function () { list.scrollTop = list.scrollHeight; });
+  }
+  /* the Winnings grid: rows win FROM columns — cell (i, j) is the net
+     cents seat i has taken off seat j so far, from the engine's transfer
+     ledger. The first column is each player's overall net. */
+  function winningsGrid() {
+    var wrap = el("div", "pk-win");
+    var tr = model.transfers;
+    var ps = model.players || [];
+    var idx = [];
+    ps.forEach(function (p, i) { if (p) idx.push(i); });
+    if (!tr || !idx.length) return wrap;
+    var table = el("table", "pk-win__table");
+    var head = el("tr");
+    head.appendChild(el("th", null, ""));
+    head.appendChild(el("th", null, S.winningsNet));
+    idx.forEach(function (j) {
+      var th = el("th");
+      th.appendChild(seatDot(j));
+      th.title = seatName(j) || "";
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    idx.forEach(function (i) {
+      var row = el("tr");
+      var nameCell = el("th", "pk-win__name");
+      nameCell.appendChild(seatDot(i));
+      nameCell.appendChild(el("span", null, seatName(i) || ""));
+      row.appendChild(nameCell);
+      var netTotal = 0;
+      idx.forEach(function (j) { netTotal += tr[j][i] - tr[i][j]; });
+      row.appendChild(winCell(netTotal, "pk-win__net"));
+      idx.forEach(function (j) {
+        if (i === j) { row.appendChild(el("td", "pk-win__self", "")); return; }
+        row.appendChild(winCell(tr[j][i] - tr[i][j]));
+      });
+      table.appendChild(row);
+    });
+    wrap.appendChild(table);
+    wrap.appendChild(el("div", "pk-win__hint", S.winningsHint));
+    return wrap;
+  }
+  function winCell(v, extra) {
+    var td = el("td", (extra ? extra + " " : "") + (v > 0 ? "is-plus" : v < 0 ? "is-minus" : "is-zero"));
+    td.textContent = v === 0 ? "—" : (v > 0 ? "+" : "−") + fmtMoney(Math.abs(v));
+    return td;
   }
 
   /* ── the felt (big tile) ──────────────────────────────────────── */
@@ -566,13 +665,6 @@
     b.title = tip;
     return b;
   }
-  function renderLog() {
-    LOG_LIST.textContent = "";
-    logLines.slice(-60).forEach(function (entry) {
-      LOG_LIST.appendChild(el("div", "pk-log__line", typeof entry === "string" ? entry : entry.text || ""));
-    });
-  }
-
   /* ── the hand panel (role tile) — cities' play grid, verbatim geometry:
      the hand column left ("Your Hand" title, cards under), the controls
      column right (the four pills top-right, the raise tray beneath). The

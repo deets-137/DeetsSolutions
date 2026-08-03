@@ -149,6 +149,11 @@ window.POKER_STRINGS = {
    stackShort: "[ph]{amt}",
    betShort: "[ph]{amt}",
    playersTitle: "[ph]Players",
+   /* the felt's popover buttons (cities' Odds/Resources idiom) */
+   winningsButton: "[ph]Winnings",
+   logButton: "[ph]Log",
+   winningsNet: "[ph]Net",
+   winningsHint: "[ph]Rows win from columns.",
    spectatingNote: "[ph]You're spectating. Sit in if there's a seat and you'd like to play!",
 
    /* ── the hand panel (your cards + actions) — the four buttons,

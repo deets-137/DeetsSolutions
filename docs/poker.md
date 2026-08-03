@@ -132,19 +132,39 @@ broadcast without updating this list (mahjong's rule, same reason).
 ## The view (public fields)
 
 `handNo dealer street board waiting blinds{sb,bb} pot players[] turn{seat}
-handOver handOverAt votes{n,need,seats} turnEndsAt over{endedBy,standings,
-hands,results}` — per-player: `seat stack bought inHand folded allIn out
-left waiting betStreet stats`.
+handOver handOverAt votes{n,need,seats} transfers turnEndsAt
+over{endedBy,standings,hands,results}` — per-player: `seat stack bought
+inHand folded allIn out left waiting betStreet stats`.
+
+## Winnings — the transfer ledger
+
+`g.transfers[from][to]` accumulates cents across the whole game: at every
+settlement, each pot drains every NON-winner's contribution into the
+winners' profits (award minus their own returned contribution), walked in
+seat order, integer-exact. Within one pot layer every eligible seat
+contributed the same amount, which is what makes the accounting exact —
+the ledger is a **zero-sum mirror of every stack's net**, and the engine
+self-checks hold it to that equality in cents, side pots included. The
+matrix grows with sit-ins (`ensureLedger`) and rides the public view
+(money is public at a poker table).
+
+The **Winnings** felt popover renders it as the n×n grid: rows win from
+columns, cell (i, j) = net cents seat i has taken off seat j, the leading
+column each player's overall net, diagonal blanked. Sits FIRST, left of
+**Log** — both are cities' board-popover kit (hover previews, click
+pins), bottom-left of the felt. The Log popover carries the mechanical
+hand log in cities' exact log dress; the players tile is roster only.
 
 ## Page layout — the bento
 
 Three tiles where cities keeps five: the **felt** (big — circular table,
 dealer seat at 12 o'clock, seats around the rim with D/1/2 badges, the
 actor glowing through the shared timer ring when timed, board + pot
-centered, the settlement card floating over), the **players tile** (FULL
+centered, the settlement card floating over, and the **Winnings + Log
+popovers** on its bottom-left corner), the **players tile** (FULL
 player cards in the cities-pstrip anatomy — accent edge, name + D/1/2
-badges, state chip, stack + live bet in the money column — then the hand
-log; one tall column over cities' dice+players+log slots), and the
+badges, state chip, stack + live bet in the money column — one tall
+column over cities' dice+players+log slots), and the
 **hand panel** (role — cities' play grid verbatim: "Your Hand" title
 with the two cards at 1.5× in the left column, the Fold/Check/Call/Raise
 pills top-right with their dictated hover lines as NATIVE TOOLTIPS only,
