@@ -451,10 +451,10 @@
     if (!tr || !idx.length) return wrap;
     var table = el("table", "pk-win__table");
     var head = el("tr");
-    head.appendChild(el("th", null, ""));
-    head.appendChild(el("th", null, S.winningsNet));
+    head.appendChild(el("th", "pk-win__corner", ""));
+    head.appendChild(el("th", "pk-win__nethead", S.winningsNet));
     idx.forEach(function (j) {
-      var th = el("th");
+      var th = el("th", "pk-win__colhead");
       th.appendChild(seatDot(j));
       th.title = seatName(j) || "";
       head.appendChild(th);
@@ -462,9 +462,14 @@
     table.appendChild(head);
     idx.forEach(function (i) {
       var row = el("tr");
+      // a table cell must stay a table cell — the dot + name pair flexes
+      // INSIDE it, or every column walks out of line
       var nameCell = el("th", "pk-win__name");
-      nameCell.appendChild(seatDot(i));
-      nameCell.appendChild(el("span", null, seatName(i) || ""));
+      var who = el("span", "pk-win__who");
+      who.appendChild(seatDot(i));
+      who.appendChild(el("span", "pk-win__whoname", seatName(i) || ""));
+      nameCell.appendChild(who);
+      nameCell.title = seatName(i) || "";
       row.appendChild(nameCell);
       var netTotal = 0;
       idx.forEach(function (j) { netTotal += tr[j][i] - tr[i][j]; });
