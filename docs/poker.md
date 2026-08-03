@@ -36,10 +36,11 @@ spec is the DO subclass hook-for-hook.
   last chips are whatever they are). Stacks are plain cent totals; how a
   stack would be drawn as chips is display-only (`Engine.chipBreak`).
 - **Chip ladder**: default white 10¢ < red 20¢ < green 25¢ < blue 50¢ <
-  black $1. Host-editable values in the lobby (order auto-sorts lowest →
-  highest). Drag-reorder and on-felt chip ART are deliberately deferred —
-  Aditya wants to see the scaffold first; bets and stacks render as plain
-  amounts.
+  black $1. Host-editable values in the lobby, and **drag to reorder** —
+  no affordance by design (his call, chat 2026-08-03); the order is the
+  host's to mean something by and the wire keeps it verbatim (the engine
+  only reads the values). On-felt chip ART is still deferred — bets and
+  stacks render as plain amounts.
 - **Blinds**: one `bigBlind` setting (default 20¢); the small blind is
   half, so the big blind must be even and BOTH halves must split into the
   chips — refused with the `blind` code, surfaced as a red toast. Blinds
@@ -140,14 +141,20 @@ left waiting betStreet stats`.
 Three tiles where cities keeps five: the **felt** (big — circular table,
 dealer seat at 12 o'clock, seats around the rim with D/1/2 badges, the
 actor glowing through the shared timer ring when timed, board + pot
-centered, the settlement card floating over), the **players tile** (the
-roster with stacks/bets/state, then the hand log — one tall column over
-cities' dice+players+log slots), and the **hand panel** (role — your two
-cards at 1.5×, Fold/Check/Call/Raise pills with Aditya's dictated hover
-lines in a single hint slot, the raise tray with slider + type-in +
-Confirm, the buy-in button when bust). Card faces are geometric
-placeholders in the `--pk*` carve-out (felt, faces, backs); everything
-else rides the tokens, `gt-` nodes untouched.
+centered, the settlement card floating over), the **players tile** (FULL
+player cards in the cities-pstrip anatomy — accent edge, name + D/1/2
+badges, state chip, stack + live bet in the money column — then the hand
+log; one tall column over cities' dice+players+log slots), and the
+**hand panel** (role — cities' play grid verbatim: "Your Hand" title
+with the two cards at 1.5× in the left column, the Fold/Check/Call/Raise
+pills top-right with their dictated hover lines as NATIVE TOOLTIPS only,
+and the "Raise by" tray beneath them — slider + type-in speak in the
+amount over the current bet, the wire still says raise-to. The tray is
+always in the layout, ghosted when unarmed, so the panel never jitters —
+cities' universal layout rule. The buy-in button appears in the card
+slot when bust). Card faces are geometric placeholders in the `--pk*`
+carve-out (felt, faces, backs); everything else rides the tokens, `gt-`
+nodes untouched.
 
 ## Bots (dev-only)
 

@@ -156,7 +156,8 @@
           if (ladder.some(function (c) { return c.v === v; })) return "chips";
           ladder.push({ v: v, hex: hex });
         }
-        ladder.sort(function (a, b) { return a.v - b.v; });
+        // ORDER IS THE HOST'S — the lobby ladder is drag-reordered and the
+        // wire keeps it verbatim (the engine only ever reads the values)
         var lv = ladder.map(function (c) { return c.v; });
         // the standing blind and buy-in must still split into the new ladder
         if (!Engine.representable(st.bigBlind, lv) || !Engine.representable(st.bigBlind / 2, lv)) return "blind";

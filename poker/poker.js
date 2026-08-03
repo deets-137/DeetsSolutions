@@ -102,16 +102,15 @@
 
   /* ── page state (this game's own; broadcasts must not wipe drafts) ── */
   ui.raiseOpen = false;       // the tray under the action buttons
-  ui.raiseDraft = null;       // cents while the slider/box is being worked
-  ui.hintKey = null;          // which action's hover blurb shows
+  ui.raiseDraft = null;       // cents OVER the current bet ("Raise by")
   ui.chipDrafts = null;       // the lobby chip-ladder inputs mid-typing
-  ui.buyDraft = null; ui.blindDraft = null;
+  ui.chipDrag = null;         // index of the ladder token being dragged
   var colorSeeded = false;    // one auto-recolor attempt per clash
   var overTick = null;        // the interstitial's countdown handle
 
   function resetGameUi() {
-    ui.raiseOpen = false; ui.raiseDraft = null; ui.hintKey = null;
-    ui.chipDrafts = null; ui.buyDraft = null; ui.blindDraft = null;
+    ui.raiseOpen = false; ui.raiseDraft = null;
+    ui.chipDrafts = null; ui.chipDrag = null;
     if (overTick) { clearTimeout(overTick); overTick = null; }
   }
 
@@ -215,12 +214,31 @@
     buyRow.opts.appendChild(moneyChip("buyIn", st.buyIn, [500, 1000, 2000, 5000, 10000], S.buyInCustom, false));
     wrap.appendChild(buyRow);
 
-    // the chip ladder: one token per denomination, value editable in place;
-    // order is always lowest → highest (values re-sort on commit)
+    // the chip ladder: one token per denomination, value editable in place,
+    // DRAG to reorder (host only, no affordance — the order is the host's
+    // to mean something by; the wire keeps it verbatim)
     var chipRow = TBL.setRow(S.chipsLabel);
     var ladder = el("span", "pk-chiprow");
     (st.chips || []).forEach(function (chip, i) {
       var tok = el("span", "pk-chip");
+      if (host) {
+        tok.draggable = true;
+        tok.addEventListener("dragstart", function (e) {
+          ui.chipDrag = i;
+          if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(i)); }
+        });
+        tok.addEventListener("dragover", function (e) { e.preventDefault(); });
+        tok.addEventListener("drop", function (e) {
+          e.preventDefault();
+          var from = ui.chipDrag;
+          ui.chipDrag = null;
+          if (from == null || from === i) return;
+          var next = st.chips.slice();
+          var moved = next.splice(from, 1)[0];
+          next.splice(i, 0, moved);
+          send({ type: "setSettings", chips: next });
+        });
+      }
       var dot = el("span", "pk-chip__dot");
       dot.style.background = chip.hex;
       tok.appendChild(dot);
@@ -495,7 +513,9 @@
     step();
   }
 
-  /* ── the roster (players tile) ────────────────────────────────── */
+  /* ── the roster (players tile) — full player cards, the cities-pstrip
+     anatomy: seat dot (the clock, when acting) + name + badges up top,
+     the seat's state pinned bottom-left, the money column on the right ── */
   function renderRoster() {
     PLAYERS.textContent = "";
     PLAYERS.appendChild(el("div", "pk-ptitle", S.playersTitle));
@@ -513,19 +533,38 @@
         (p.left ? " is-gone" : away ? " is-away" : "") +
         (p.folded ? " is-folded" : ""));
       seatAccent(strip, i);
+      var body = el("div", "pk-pstrip__body");
+      var head = el("div", "pk-pstrip__head");
       var timed = model.settings.timerSec > 0;
-      strip.appendChild(actor && timed ? TBL.timerRing(i) : seatDot(i));
+      head.appendChild(actor && timed ? TBL.timerRing(i) : seatDot(i));
       var nm = el("span", "pk-pstrip__name");
       if (i === mine) nm.appendChild(el("strong", null, seatName(i)));
       else nm.appendChild(el("span", null, seatName(i) || ""));
-      strip.appendChild(nm);
+      head.appendChild(nm);
+      var badges = el("span", "pk-pstrip__badges");
+      if (model.dealer === i) badges.appendChild(stripBadge(S.dealerTag, S.dealerTip));
+      if (model.blinds && model.blinds.sb === i) badges.appendChild(stripBadge(S.smallBlindTag, S.smallBlindTip));
+      if (model.blinds && model.blinds.bb === i) badges.appendChild(stripBadge(S.bigBlindTag, S.bigBlindTip));
+      if (badges.childNodes.length) head.appendChild(badges);
+      body.appendChild(head);
       var tag = seatTag(p, away);
-      if (tag) strip.appendChild(el("span", "pk-pstrip__tag", tag));
-      if (p.betStreet > 0 && !model.handOver) strip.appendChild(el("span", "pk-pstrip__bet", fmtMoney(p.betStreet)));
-      strip.appendChild(el("span", "pk-pstrip__stack", fmtMoney(p.stack)));
+      var tags = el("div", "pk-pstrip__tags");
+      if (tag) tags.appendChild(el("span", "pk-pstrip__state", tag));
+      body.appendChild(tags);                 // present even empty — no resize
+      strip.appendChild(body);
+      var stat = el("div", "pk-pstrip__stat");
+      stat.appendChild(el("span", "pk-pstrip__stack", fmtMoney(p.stack)));
+      stat.appendChild(el("span", "pk-pstrip__bet",
+        p.betStreet > 0 && !model.handOver ? fmtMoney(p.betStreet) : " "));
+      strip.appendChild(stat);
       list.appendChild(strip);
     });
     PLAYERS.appendChild(list);
+  }
+  function stripBadge(text, tip) {
+    var b = el("span", "pk-pstrip__badge", text);
+    b.title = tip;
+    return b;
   }
   function renderLog() {
     LOG_LIST.textContent = "";
@@ -534,7 +573,11 @@
     });
   }
 
-  /* ── the hand panel (role tile) ───────────────────────────────── */
+  /* ── the hand panel (role tile) — cities' play grid, verbatim geometry:
+     the hand column left ("Your Hand" title, cards under), the controls
+     column right (the four pills top-right, the raise tray beneath). The
+     tray is ALWAYS in the layout and only turns visible when armed, so
+     nothing in the panel ever jitters (cities' universal layout rule). ── */
   function renderRole() {
     ROLE.textContent = "";
     var mine = mySeat();
@@ -545,29 +588,37 @@
     }
     var p = model.players && model.players[mine];
     if (!p || p.left) return;
-    var row = el("div", "pk-role");
-    // your two cards — or the buy-in button where they'd be, when bust
+    var play = el("div", "pk-play");
+
+    // hand column: the title, then your two cards (or the buy-in button
+    // where they'd be, when bust; empty slots otherwise, so the column
+    // never changes size)
+    var handCol = el("div", "pk-play__hand");
+    handCol.appendChild(el("h3", "pk-role__title", S.handTitle));
     if (model.you && model.you.hole) {
       var hole = el("div", "pk-hole");
       model.you.hole.forEach(function (c) { hole.appendChild(cardEl(c, true)); });
-      row.appendChild(hole);
+      handCol.appendChild(hole);
     } else if (model.you && model.you.canBuyIn) {
-      var buyWrap = el("div", "pk-hole");
+      var buyWrap = el("div", "pk-hole pk-hole--buyin");
       var buy = el("button", "tb-pill gt-lobby__start");
       buy.type = "button";
       buy.appendChild(el("span", "tb-pill__label", fmt(S.buyInButton, { amt: fmtMoney(model.settings.buyIn) })));
       buy.addEventListener("click", function () { send({ type: "buyIn" }); });
       buyWrap.appendChild(buy);
-      row.appendChild(buyWrap);
-      row.appendChild(el("span", "pk-roleline", S.buyInNote));
+      buyWrap.appendChild(el("span", "pk-roleline", S.buyInNote));
+      handCol.appendChild(buyWrap);
     } else {
       var slots = el("div", "pk-hole");
       slots.appendChild(cardEl(null, true));
       slots.appendChild(cardEl(null, true));
-      row.appendChild(slots);
-      if (p.waiting) row.appendChild(el("span", "pk-roleline", S.waitingNote));
+      if (p.waiting) slots.appendChild(el("span", "pk-roleline", S.waitingNote));
+      handCol.appendChild(slots);
     }
-    // the four actions
+    play.appendChild(handCol);
+
+    // controls column: the pills right-aligned (cities-actions), tray under
+    var ctrl = el("div", "pk-play__ctrl");
     var o = model.you && model.you.options;
     var acting = !!o && !model.handOver;
     var acts = el("div", "pk-actions");
@@ -586,50 +637,45 @@
       ui.raiseDraft = null;
       render();
     }));
-    row.appendChild(acts);
-    ROLE.appendChild(row);
-    // the hover blurb (one line, whichever button was last hovered)
-    ROLE.appendChild(el("div", "pk-hint", ui.hintKey ? S[ui.hintKey] : " "));
-    if (!acting && p.inHand && model.turn && !model.handOver) {
-      ROLE.appendChild(el("p", "pk-roleline", fmt(S.notYourTurn, { name: seatName(model.turn.seat) })));
-    }
-    if (ui.raiseOpen && acting && o.canRaise) ROLE.appendChild(raiseTray(o));
-    else { ui.raiseOpen = false; }
+    ctrl.appendChild(acts);
+    var armed = !!(ui.raiseOpen && acting && o.canRaise);
+    if (!armed) ui.raiseOpen = false;
+    ctrl.appendChild(raiseTray(acting && o.canRaise ? o : null, armed));
+    play.appendChild(ctrl);
+    ROLE.appendChild(play);
   }
   function actionBtn(label, hintKey, enabled, onClick) {
     var b = el("button", "tb-pill");
     b.type = "button";
     b.disabled = !enabled;
     b.appendChild(el("span", "tb-pill__label", label));
-    b.title = S[hintKey];
-    b.addEventListener("mouseenter", function () {
-      if (ui.hintKey !== hintKey) {
-        ui.hintKey = hintKey;
-        var hint = ROLE.querySelector(".pk-hint");
-        if (hint) hint.textContent = S[hintKey];
-      }
-    });
-    b.addEventListener("mouseleave", function () {
-      ui.hintKey = null;
-      var hint = ROLE.querySelector(".pk-hint");
-      if (hint) hint.textContent = " ";
-    });
+    b.title = S[hintKey];                    // native tooltip only (his call)
     if (onClick) b.addEventListener("click", onClick);
     return b;
   }
-  /* the raise tray: slider from the table minimum to all-in, a type-in box
-     with the same chip rule, Confirm sends `raise {to}`. The engine is the
-     judge; the client only snaps the slider to the smallest chip. */
-  function raiseTray(o) {
-    var tray = el("div", "pk-raise");
-    tray.appendChild(el("span", "pk-raise__label", S.raiseTo));
+  /* the raise tray: "Raise by" — the slider and box speak in the amount
+     OVER the current bet; the wire still says raise-to (the engine's
+     shape). Rendered ghosted whenever it isn't armed, so the panel never
+     changes height. The engine is the judge; the client only snaps to the
+     smallest chip and pre-checks the split. */
+  function raiseTray(o, armed) {
+    var tray = el("div", "pk-raise" + (armed ? "" : " pk-raise--ghost"));
+    tray.appendChild(el("span", "pk-raise__label", S.raiseBy));
     var step = Engine.minChip(chipValsNow());
-    var val = ui.raiseDraft != null ? ui.raiseDraft : o.minTo;
-    val = Math.max(o.minTo, Math.min(o.maxTo, val));
+    var cur = 0, minBy = step, maxBy = step;
+    if (o) {
+      // the table's current bet, seen from my side of it
+      cur = (model.players[mySeat()].betStreet || 0) + o.toCall;
+      minBy = Math.max(1, o.minTo - cur);
+      maxBy = Math.max(minBy, o.maxTo - cur);
+    }
+    var val = ui.raiseDraft != null ? ui.raiseDraft : minBy;
+    val = Math.max(minBy, Math.min(maxBy, val));
     var slider = el("input", "pk-raise__slider");
     slider.type = "range";
-    slider.min = o.minTo; slider.max = o.maxTo; slider.step = step;
+    slider.min = minBy; slider.max = maxBy; slider.step = step;
     slider.value = val;
+    slider.disabled = !armed;
     var out = el("span", "pk-raise__out", fmtMoney(val));
     slider.addEventListener("input", function () {
       ui.raiseDraft = +slider.value;
@@ -640,20 +686,24 @@
     tray.appendChild(out);
     var box = el("input", "pk-raise__box");
     box.type = "text";
-    box.placeholder = fmtMoney(o.minTo);
+    box.placeholder = fmtMoney(minBy);
+    box.disabled = !armed;
     box.setAttribute("aria-label", S.raiseCustomAria);
     box.addEventListener("input", function () {
-      var v = parseMoney(box.value);
+      var v = parseMoney(box.value, true);   // bare numbers are cents here
       if (v != null) { ui.raiseDraft = v; out.textContent = fmtMoney(v); }
     });
     box.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
     tray.appendChild(box);
     var go = el("button", "tb-pill");
     go.type = "button";
+    go.disabled = !armed;
     go.appendChild(el("span", "tb-pill__label", S.raiseGo));
     go.addEventListener("click", function () {
-      var to = ui.raiseDraft != null ? ui.raiseDraft : o.minTo;
-      to = Math.max(o.minTo, Math.min(o.maxTo, to));
+      if (!o) return;
+      var by = ui.raiseDraft != null ? ui.raiseDraft : minBy;
+      by = Math.max(minBy, Math.min(maxBy, by));
+      var to = cur + by;
       if (to !== o.maxTo && !Engine.representable(to, chipValsNow())) {
         toast(S.raiseBad, "error");
         return;

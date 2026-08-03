@@ -163,28 +163,56 @@
 .pk-card--big .pk-card__suit { font-size: 1.15rem; }
 
 /* ── players tile (roster + this-hand log) ────────────────────── */
-.pk-ptitle { color: var(--subtext); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.pk-plist { display: flex; flex-direction: column; gap: 2px; }
-/* the pstrip anatomy (cities/mahjong's, third copy — see docs/games.md
-   "Known duplication": promoting it to gt- is queued, not done) */
+.pk-ptitle { color: var(--subtext); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
+.pk-plist { display: flex; flex-direction: column; }
+/* the full player card — cities-pstrip's anatomy, fourth copy (see
+   docs/games.md "Known duplication": promoting to gt- is queued, not
+   done): bordered card, seat-accent left edge, head + state in the body,
+   the money column pinned right */
 .pk-pstrip {
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-control);
+  display: flex; align-items: stretch; gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
   border-left: 3px solid var(--gseat, var(--border));
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-2);
+  position: relative;
 }
-.pk-pstrip.is-active { background: var(--surface-hover); box-shadow: inset 0 0 0 1px var(--pkglow); }
-.pk-pstrip.is-away .pk-pstrip__name, .pk-pstrip.is-gone .pk-pstrip__name { color: var(--subtext); text-decoration: line-through; }
+.pk-pstrip.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.pk-pstrip.is-away { opacity: 0.5; }
+.pk-pstrip.is-gone { opacity: 0.45; filter: grayscale(0.8); }
+.pk-pstrip.is-gone .pk-pstrip__name { text-decoration: line-through; }
 .pk-pstrip.is-folded { opacity: 0.6; }
+.pk-pstrip__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.pk-pstrip__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.pk-pstrip__head > .gt-dot { flex: none; }
 .pk-pstrip__name {
-  color: var(--text); font-size: 0.85rem;
+  color: var(--text); font-size: 0.9rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  flex: 1; min-width: 0;
 }
 .pk-pstrip__name strong { color: var(--title); }
-.pk-pstrip__stack { color: var(--title); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-.pk-pstrip__bet { color: var(--subtext); font-size: 0.72rem; font-variant-numeric: tabular-nums; min-width: 3rem; text-align: right; }
-.pk-pstrip__tag { color: var(--subtext); font-size: 0.68rem; }
+.pk-pstrip__badges { display: inline-flex; gap: 2px; }
+.pk-pstrip__badge {
+  flex: none;
+  width: 1rem; height: 1rem;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; font-weight: 700;
+  color: var(--subtext);
+  border: 1px solid var(--border);
+}
+/* the state chip sits where cities pins its award pills */
+.pk-pstrip__tags { margin-top: auto; min-height: 1rem; display: flex; align-items: flex-end; }
+.pk-pstrip__state {
+  font-size: 0.6rem; line-height: 1.1; white-space: nowrap;
+  padding: 0 var(--space-2);
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.pk-pstrip__stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; }
+.pk-pstrip__stack { color: var(--title); font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.pk-pstrip__bet { color: var(--subtext); font-size: 0.72rem; font-variant-numeric: tabular-nums; min-height: 1em; }
 /* the hand log fills whatever the roster leaves */
 .pk-log { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-1); border-top: 1px solid var(--border); padding-top: var(--space-2); }
 .pk-log__list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
@@ -195,21 +223,27 @@
 .pk-log__list::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
 .pk-log__list::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
 
-/* ── the hand panel (your cards + the four actions) ───────────── */
-.pk-role { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
-.pk-hole { display: flex; gap: var(--space-2); }
-.pk-actions { display: flex; gap: var(--space-2); margin-left: auto; align-items: center; }
+/* ── the hand panel (your cards + the four actions) ───────────────
+   cities' play grid, verbatim geometry: hand column left (title, cards
+   under), controls column right (pills top-right, tray beneath). The
+   tray is always in the layout — ghosted when unarmed — so the panel
+   never changes height (cities' universal layout rule). */
+.pk-play { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: start; }
+.pk-play__hand { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.pk-role__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1rem; }
+.pk-play__ctrl { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.pk-hole { display: flex; gap: var(--space-2); align-items: center; }
+.pk-hole--buyin { gap: var(--space-3); }
+.pk-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
 .pk-actions .tb-pill { cursor: pointer; }
 .pk-actions .tb-pill:disabled { opacity: 0.5; cursor: default; }
-/* the hover blurb line — one slot, filled by whichever button is hovered */
-.pk-hint { color: var(--subtext); font-size: 0.8rem; text-align: right; min-height: 1.2em; }
-/* raise tray: slides under the buttons when Raise is armed */
+/* raise tray: lives under the pills; invisible until Raise arms it, but
+   always occupying its row */
 .pk-raise {
   display: flex; align-items: center; gap: var(--space-3);
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-3);
   width: 100%;
 }
+.pk-raise--ghost { visibility: hidden; }
 .pk-raise__label { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
 .pk-raise__slider { flex: 1; accent-color: var(--title); }
 .pk-raise__out { color: var(--title); font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
@@ -236,6 +270,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
 }
+/* host-only: the ladder drags to reorder (no affordance by design) */
+.pk-chip[draggable="true"] { cursor: grab; }
+.pk-chip[draggable="true"]:active { cursor: grabbing; }
 .pk-chip__dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; border: 2px solid var(--border); flex: none; }
 .pk-chip__val {
   width: 3.2rem;

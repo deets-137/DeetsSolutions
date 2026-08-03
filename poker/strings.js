@@ -10,60 +10,67 @@
    wiring new UI, but every Claude-authored value must be prefixed "[ph]" — a
    placeholder Aditya rewrites, deleting the prefix as he goes. Claude never
    edits an un-prefixed (handwritten) value, and nothing still carrying
-   "[ph]" may ship. The action-button hover lines, the small-blind hint, and
-   the Stand up hover were DICTATED BY ADITYA IN CHAT (2026-08-03) and are
-   un-prefixed from birth — section comments mark them.
+   "[ph]" may ship.
+
+   Un-prefixed provenance in THIS file (all per Aditya, chat 2026-08-03):
+   - strings CARRIED VERBATIM from his cities/mahjong passes (the shared
+     shell copy: gate, toolbar, lobby seats, color picker, refusals);
+   - single-character badges (D / 1 / 2);
+   - the four action buttons, "Raise by", "Confirm", "Your Hand";
+   - the action hover lines, the small-blind hint, and the Stand up hover,
+     dictated verbatim.
+   Everything else still awaits his pass.
 
    {curly} tokens are filled by poker.js (fmt()). Money strings receive
    already-formatted amounts ("$1.20"). */
 window.POKER_STRINGS = {
-   /* ── bar ─────────────────────────────────────────────────────── */
-   tableCodePlaceholder: "[ph]Table Code",
-   yourTables: "[ph]Recents",
+   /* ── bar (carried from cities) ───────────────────────────────── */
+   tableCodePlaceholder: "Table Code",
+   yourTables: "Recents",
 
-   /* ── peek / create gate ──────────────────────────────────────── */
-   peekFull: "[ph]Table full | {spectators} spectating",
-   peekPlayers: "[ph]{seated} players | {spectators} spectating",
-   sitButton: "[ph]Sit down",
-   watchButton: "[ph]Spectate",
-   rejoinButton: "[ph]Rejoin or spectate",
-   createLine: "[ph]The '{code}' Table doesn't exist yet. Open it?",
-   createButton: "[ph]Open the Table",
-   nameLabel: "[ph]Your name",
-   nameNeeded: "[ph]Enter a name first.",
-   joinRefused: "[ph]Table no longer exists.",
-   peekFailed: "[ph]Couldn't join the table. Try again soon!",
+   /* ── peek / create gate (carried from cities) ────────────────── */
+   peekFull: "Table full | {spectators} spectating",
+   peekPlayers: "{seated} players | {spectators} spectating",
+   sitButton: "Sit down",
+   watchButton: "Spectate",
+   rejoinButton: "Rejoin or spectate",
+   createLine: "The '{code}' Table doesn't exist yet. Open it?",
+   createButton: "Open the Table",
+   nameLabel: "Your name",
+   nameNeeded: "Enter a name first.",
+   joinRefused: "Table no longer exists.",
+   peekFailed: "Couldn't join the table. Try again soon!",
 
-   /* ── toolbar pills ───────────────────────────────────────────── */
-   invitePill: "[ph]Invite",
-   settingsPill: "[ph]Table Settings",
-   shareToast: "[ph]Invite link copied!",
-   sitPill: "[ph]Sit down",
-   leavePill: "[ph]Leave",
-   closePill: "[ph]Close Table",
-   closeConfirm: "[ph]Confirm?",
-   tableClosed: "[ph]The host closed the table.",
+   /* ── toolbar pills (carried from cities/mahjong) ─────────────── */
+   invitePill: "Invite",
+   settingsPill: "Table Settings",
+   shareToast: "Invite link copied!",
+   sitPill: "Sit down",
+   leavePill: "Leave",
+   closePill: "Close Table",
+   closeConfirm: "Confirm?",
+   tableClosed: "The host closed the table.",
    /* mid-game toolbar — poker's own pills. Stand up cashes you out
       (rejoin is locked to "none"); the hover title is Aditya's, chat
       2026-08-03. */
-   standButton: "[ph]Stand up",
-   standConfirm: "[ph]Confirm?",
+   standButton: "Stand up",
+   standConfirm: "Confirm?",
    standHover: "Cash out",   /* Aditya's, chat 2026-08-03 — hover on Stand up */
    voteEndPill: "[ph]Vote to end",
    voteEndCount: "[ph]{n}/{need}",
    endGamePill: "[ph]End game",
-   endGameConfirm: "[ph]Confirm?",
+   endGameConfirm: "Confirm?",
    sitInPill: "[ph]Sit in",
    voteToast: "[ph]{name} votes to end ({n}/{need}).",
    unvoteToast: "[ph]{name} withdrew their vote ({n}/{need}).",
 
    /* ── lobby (big tile: settings) ──────────────────────────────── */
-   lobbyTitle: "[ph]Table settings",
+   lobbyTitle: "Table settings",
    capacityLabel: "[ph]Seats",
    buyInLabel: "[ph]Buy-in",
    buyInCustom: "$#",
    chipsLabel: "[ph]Chips",
-   chipsHint: "[ph]Lowest to highest — values are each chip's worth.",
+   chipsHint: "[ph]Values are each chip's worth.",
    chipsBad: "[ph]Chip values need to be positive amounts in cents.",
    blindLabel: "[ph]Big blind",
    /* the row's one hint line — Aditya's, chat 2026-08-03. The red toast
@@ -71,9 +78,9 @@ window.POKER_STRINGS = {
    blindHalfHint: "Small blind is half the Big blind",
    blindBad: "[ph]That blind doesn't split into the chips.",
    buyInBad: "[ph]That buy-in doesn't split into the chips.",
-   timerLabel: "[ph]Turn timer",
+   timerLabel: "Turn timer",
    timerOff: "[ph]None",
-   timerSecs: "[ph]{n}s",
+   timerSecs: "{n}s",
    timerCustom: "#s",
    minRaiseLabel: "[ph]Minimum raise",
    minRaisePrev: "[ph]At least previous",
@@ -82,55 +89,56 @@ window.POKER_STRINGS = {
    seatingLabel: "[ph]Seating",
    seatingOpen: "[ph]Anyone, any time",
    seatingLobby: "[ph]Lobby only",
-   startButton: "[ph]Start game",
-   shufflePill: "[ph]Shuffle",
+   startButton: "Start game",
+   shufflePill: "Shuffle",
    startHint: "[ph]Everyone buys in on press.",
    startNeedsTwo: "[ph]Poker needs at least 2 players.",
-   seatOpen: "[ph]Open seat",
-   seatYou: "[ph]{name} (you)",
-   hostBadge: "[ph]Host",
-   kickSeatAria: "[ph]Remove {name}",
-   rejoinLabel: "[ph]Re-joining",
-   rejoinAnyone: "[ph]Anyone",
-   rejoinRejoin: "[ph]Rejoin",
-   rejoinNone: "[ph]None",
-   sitDownPill: "[ph]Take over for:",
+   seatOpen: "Open seat",
+   seatYou: "{name} (you)",
+   hostBadge: "Host",
+   kickSeatAria: "Remove {name}",
+   rejoinLabel: "Re-joining",
+   rejoinAnyone: "Anyone",
+   rejoinRejoin: "Rejoin",
+   rejoinNone: "None",
+   sitDownPill: "Take over for:",
    adoptedToast: "[ph]{name} sat down.",
-   addBotButton: "[ph]Add Bot",
-   addBotGo: "[ph]Confirm?",
-   addBotNameAria: "[ph]Bot name",
-   addBotCancelAria: "[ph]Cancel adding a bot",
-   renameBotAria: "[ph]Rename {name}",
+   addBotButton: "Add Bot",
+   addBotGo: "Confirm?",
+   addBotNameAria: "Bot name",
+   addBotCancelAria: "Cancel adding a bot",
+   renameBotAria: "Rename {name}",
    botTierAria: "[ph]Bot difficulty",
-   renameGo: "[ph]Save",
-   renameReset: "[ph]Reset",
+   renameGo: "Save",
+   renameReset: "Reset",
    renameYouAria: "[ph]Edit your name",
    renameNameAria: "[ph]Your name",
    renameResetAria: "[ph]Reset to your profile name",
    renameCancelAria: "[ph]Cancel renaming",
-   botSeatTag: "[ph]{name} (bot)",
-   /* seat-color picker */
-   colorYours: "[ph]Your color",
-   colorTheirs: "[ph]{name}'s color",
-   colorBecome: "[ph]Become...",
-   colorDotAria: "[ph]Change color for {name}",
-   colorSwatchAria: "[ph]Claim this color",
-   colorCustomAria: "[ph]Your custom color",
-   colorTakenBy: "[ph]{name} has this one",
-   colorHexLabel: "[ph]Custom:",
-   colorBadHex: "[ph]Six hex digits, like #1fb0aa",
-   colorClashWith: "[ph]Too close to {name}",
+   botSeatTag: "{name} (bot)",
+   /* seat-color picker (carried from cities) */
+   colorYours: "Your color",
+   colorTheirs: "{name}'s color",
+   colorBecome: "Become...",
+   colorDotAria: "Change color for {name}",
+   colorSwatchAria: "Claim this color",
+   colorCustomAria: "Your custom color",
+   colorTakenBy: "{name} has this one",
+   colorHexLabel: "Custom:",
+   colorBadHex: "Six hex digits, like #1fb0aa",
+   colorClashWith: "Too close to {name}",
 
    /* ── play: felt + seats ──────────────────────────────────────── */
    handLine: "[ph]Hand {n}",
    potLine: "[ph]pot {amt}",
-   dealerTag: "[ph]D",
-   smallBlindTag: "[ph]1",
-   bigBlindTag: "[ph]2",
+   /* the button badges — single characters, Aditya's call (chat 2026-08-03) */
+   dealerTag: "D",
+   smallBlindTag: "1",
+   bigBlindTag: "2",
    dealerTip: "[ph]Dealer button",
    smallBlindTip: "[ph]Small blind",
    bigBlindTip: "[ph]Big blind",
-   yourTurnToast: "[ph]Your turn!",
+   yourTurnToast: "Your turn!",
    waitingLine: "[ph]Waiting for players…",
    foldedTag: "[ph]Folded",
    allInTag: "[ph]All-in",
@@ -143,20 +151,21 @@ window.POKER_STRINGS = {
    playersTitle: "[ph]Players",
    spectatingNote: "[ph]You're spectating. Sit in if there's a seat and you'd like to play!",
 
-   /* ── the hand panel (your cards + actions) ───────────────────── */
-   handTitle: "[ph]Your hand",
-   actionFold: "[ph]Fold",
-   actionCheck: "[ph]Check",
-   actionCall: "[ph]Call {amt}",
-   actionRaise: "[ph]Raise",
-   /* hover lines under the four action buttons — Aditya's, dictated in
-      chat 2026-08-03, verbatim. */
+   /* ── the hand panel (your cards + actions) — the four buttons,
+      "Raise by", "Confirm" and "Your Hand" are Aditya's (chat 2026-08-03) ── */
+   handTitle: "Your Hand",
+   actionFold: "Fold",
+   actionCheck: "Check",
+   actionCall: "Call {amt}",
+   actionRaise: "Raise",
+   /* hover lines on the four action buttons — Aditya's, dictated in
+      chat 2026-08-03, verbatim. Native tooltips only (his call). */
    hoverCheck: "bet 0, to stay in the game without placing any money if everyone agrees",
    hoverRaise: "increase everyone's minimum bet to stay in",
    hoverCall: "match the last bet to stay in",
    hoverFold: "call your losses, if any.",
-   raiseTo: "[ph]Raise to",
-   raiseGo: "[ph]Confirm",
+   raiseBy: "Raise by",
+   raiseGo: "Confirm",
    raiseBad: "[ph]That amount doesn't split into the chips.",
    raiseCustomAria: "[ph]Type a raise amount",
    buyInButton: "[ph]Buy in ({amt})",
@@ -193,41 +202,42 @@ window.POKER_STRINGS = {
    colBought: "[ph]Bought in",
    colStack: "[ph]Walked with",
    colNet: "[ph]Net",
-   handCount: "[ph]{n} hands",
-   rematchButton: "[ph]Rematch",
+   handCount: "{n} hands",
+   rematchButton: "Rematch",
    ordinals: ["[ph]1st", "[ph]2nd", "[ph]3rd", "[ph]4th", "[ph]5th", "[ph]6th",
               "[ph]7th", "[ph]8th", "[ph]9th", "[ph]10th", "[ph]11th", "[ph]12th"],
    placeTied: "[ph]T-{place}",
 
-   /* ── connection / refusals ───────────────────────────────────── */
-   startBotWarn: "[ph]{n} disconnected seat(s) will be played by bots.",
-   connDown: "[ph]Reconnecting…",
-   connUp: "[ph]Back!",
-   replacedToast: "[ph]You opened this table in another tab. Multiple tabs is no bueno, please close the other ones.",
-   kickedMeta: "[ph]The host removed you from the table.",
-   tableFull: "[ph]Table is full.",
-   nameTaken: "[ph]That name is taken at the table.",
-   noTable: "[ph]No such table.",
-   toastDismiss: "[ph]Dismiss",
+   /* ── connection / refusals (carried from cities/mahjong) ─────── */
+   startBotWarn: "{n} disconnected seat(s) will be played by bots.",
+   connDown: "Reconnecting…",
+   connUp: "Back!",
+   replacedToast: "You opened this table in another tab. Multiple tabs is no bueno, please close the other ones.",
+   kickedMeta: "The host removed you from the table.",
+   tableFull: "Table is full.",
+   nameTaken: "That name is taken at the table.",
+   noTable: "No such table.",
+   toastDismiss: "Dismiss",
    concededToast: "[ph]{name} cashed out.",
 
-   /* ── error codes → friendly lines (engine denials) ───────────── */
-   errTurn: "[ph]Not your turn.",
-   errPhase: "[ph]Can't do that right now.",
-   errPerm: "[ph]You can't do that.",
-   errFull: "[ph]Table's full.",
-   errColor: "[ph]That's not a hex color.",
-   errColorTaken: "[ph]Too close to another player's color.",
-   errFlood: "[ph]Slow down a moment.",
+   /* ── error codes → friendly lines (carried where the code is shared;
+      poker's own codes still [ph]) ───────────────────────────────── */
+   errTurn: "Not your turn.",
+   errPhase: "Can't do that right now.",
+   errPerm: "You can't do that.",
+   errFull: "Table's full.",
+   errColor: "That's not a hex color.",
+   errColorTaken: "Too close to another player's color.",
+   errFlood: "Slow down a moment.",
    errRaise: "[ph]That raise is too small.",
    errChips: "[ph]That amount doesn't split into the chips.",
    errSeating: "[ph]This table only seats players from the lobby.",
 
-   /* ── disconnect grace ────────────────────────────────────────── */
+   /* ── disconnect (poker's no-bot wording — still awaits his pass) ── */
    leavingToast: "[ph]{name} disconnected — their seat folds until they're back.",
-   returnedToast: "[ph]{name} is back.",
+   returnedToast: "{name} is back.",
    takeoverToast: "[ph]{name}'s seat is folding on its own.",
 
-   /* ── desktop-only guard ──────────────────────────────────────── */
-   desktopOnly: "[ph]DeetsPoker needs a wider screen."
+   /* ── desktop-only guard (the sibling pages' sentence) ────────── */
+   desktopOnly: "DeetsPoker needs a wider screen."
 };
