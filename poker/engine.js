@@ -471,6 +471,7 @@
       p.betStreet = 0; p.betHand = 0; p.hole = null;
     });
     g.handOver = null; g.board = []; g.turn = null; g.street = null;
+    g.showTo = {};                    // private shows die with their hand
     var n = countBy(g, eligible);
     if (n < 2) { g.waiting = true; return; }                 // the felt idles until it can deal
     g.waiting = false;
@@ -518,6 +519,13 @@
       antes.push({ seat: i, amt: amt });
     });
     g.street = "preflop";
+    /* Who tables first at showdown: the last player to bet or raise on the
+       final street. Preflop that is the BIG BLIND until someone raises —
+       the forced bet is still a bet — which is what makes a limped pot
+       show from the blind rather than from the button. Reset on every new
+       street; null means nobody bet, and the walk starts left of the
+       button instead (docs/poker.md, "Showdown order"). */
+    g.aggr = bb;
     g.bet = { current: g.settings.bigBlind, lastRaise: g.settings.bigBlind,
               pending: {}, capped: {} };
     openPending(g);
@@ -548,6 +556,7 @@
     // one player left standing → the pot walks over uncontested
     if (countBy(g, inHand) <= 1) return settle(g, events, false);
     g.players.forEach(function (p) { if (p) p.betStreet = 0; });
+    g.aggr = null;                    // a new street has no aggressor yet
     g.bet.current = 0; g.bet.lastRaise = g.settings.bigBlind; g.bet.capped = {};
     if (!STREETS[g.street]) return settle(g, events, true);  // river closed → showdown
     dealStreet(g, events);
@@ -626,13 +635,10 @@
     // score the live hands once — only a showdown has five cards to read;
     // a fold-through pot walks to its one eligible seat unevaluated
     var scores = {};
-    var reveal = [];
     if (showdown) {
       ps.forEach(function (p, i) {
         if (!inHand(p)) return;
-        var ev = bestOf(p.hole.concat(g.board));
-        scores[i] = ev;
-        reveal.push({ seat: i, hole: p.hole.slice(), name: ev.name });
+        scores[i] = bestOf(p.hole.concat(g.board));
       });
     }
     var awards = [];
@@ -697,12 +703,92 @@
     });
     g.handOver = {
       reason: showdown ? "showdown" : "folds",
-      reveal: showdown ? reveal : [],
+      hands: contenders(g, showdown, scores, awards),
       board: g.board.slice(),
       pots: pots.map(function (pot) { return { amount: pot.amount, elig: pot.elig }; }),
       awards: awards
     };
     g.stats.hands++;
+  }
+
+  /* ── who tables and who mucks (docs/poker.md, "Showdown order") ──
+     The rule a real room runs: the last aggressor on the final street
+     shows first (nobody bet → the first live seat left of the button),
+     and from there around the table each seat shows ONLY if it can beat
+     everything already face-up. A beaten hand is mucked — never exposed,
+     never even sent — and its owner can still choose to show with the
+     `reveal` verb while the interstitial is up.
+
+     Two seats that the walk would muck get tabled anyway: anyone who
+     WINS a pot. A short stack can take the main pot with the best hand
+     while losing the side pot, and a side-pot winner can be beaten by an
+     all-in they were never contesting; either way the money has to be
+     seen to be believed.
+
+     `hole: null` is the hidden-information contract, not a display flag:
+     handOver is broadcast whole, so a mucked hand's cards must not be in
+     the object at all. */
+  function contenders(g, showdown, scores, awards) {
+    var ps = g.players;
+    var live = [];
+    ps.forEach(function (p, i) { if (inHand(p)) live.push(i); });
+    // a fold-through exposes nothing — but the last player standing may
+    // still want the table to see what they got there with
+    if (!showdown) {
+      return live.map(function (i) {
+        return { seat: i, hole: null, name: null, shown: false };
+      });
+    }
+    var n = ps.length;
+    var from = g.aggr != null && scores[g.aggr] ? g.aggr : (g.dealer + 1) % n;
+    var order = live.slice().sort(function (a, b) {
+      return ((a - from + n) % n) - ((b - from + n) % n);
+    });
+    var shown = {};
+    var best = null;
+    order.forEach(function (i) {
+      var sc = scores[i].score;
+      // ties table too: a chopped pot needs both halves face-up
+      if (best === null || cmpScore(sc, best) >= 0) { shown[i] = true; }
+      if (best === null || cmpScore(sc, best) > 0) best = sc;
+    });
+    awards.forEach(function (a) { shown[a.seat] = true; });
+    return order.map(function (i) {
+      return { seat: i,
+               hole: shown[i] ? ps[i].hole.slice() : null,
+               name: shown[i] ? scores[i].name : null,
+               shown: !!shown[i] };
+    });
+  }
+
+  /* ── showing a live hand to a player who is out of it ──────────
+     `g.showTo[seat]` is the list of seats that seat has shown its hole
+     cards to during the CURRENT hand. It lives on the game rather than
+     on a message because a reconnect has to land on the same table
+     everyone else is looking at: a private show delivered once and
+     forgotten would vanish on a refresh.
+
+     Two rules, both his (chat 2026-08-04): anyone still HOLDING cards
+     may show, and only a player OUT of the hand may be shown to. That
+     second one is the whole safety argument — a folded or sat-out seat
+     cannot act on what it sees, so this can't move the betting. The
+     engine keeps the seat list; the table is what turns it into cards on
+     the wire, and only for those seats (docs/poker.md, "Hidden
+     information"). */
+  function canShow(g, i) {
+    var p = g.players[i];
+    return !!(g.street && p && inHand(p) && p.hole && p.hole.length === 2);
+  }
+  function showTargets(g, i) {
+    // out of the hand, still AT the table, and not yourself
+    var out = [];
+    if (!canShow(g, i)) return out;
+    g.players.forEach(function (p, j) {
+      if (!p || j === i || p.left) return;
+      if (inHand(p) && !p.away) return;          // still live — can't be shown
+      out.push(j);
+    });
+    return out;
   }
 
   /* ── ending the game (votes, the host, attrition) ─────────────── */
@@ -786,6 +872,7 @@
       players: [],
       blinds: null, bet: null, turn: null,
       handOver: null, waiting: false,
+      showTo: {},                       // seat -> seats it showed this hand
       endVotes: {},
       transfers: [],                    // [from][to] cents, cumulative ("Winnings")
       stats: { hands: 0 },
@@ -838,6 +925,54 @@
       if (!g.handOver) return err("phase");
       if (!alive(g.players[seat])) return err("perm");
       tryStartHand(g, ctx, events);
+      return done();
+    }
+
+    /* the private show: your live hand, to seats that are out of the hand.
+       Additive — showing Mira and then Ozan leaves both holding it — and
+       it clears with the hand (tryStartHand). The cards do NOT travel
+       here; only the seat list does. */
+    if (type === "showTo") {
+      if (!canShow(g, seat)) return err("phase");
+      var allowed = showTargets(g, seat);
+      var want = (action.seats || []).map(Number).filter(function (j) {
+        return allowed.indexOf(j) >= 0;
+      });
+      if (!want.length) return err("perm");
+      if (!g.showTo) g.showTo = {};
+      var have = g.showTo[seat] || [];
+      var added = [];
+      want.forEach(function (j) {
+        if (have.indexOf(j) >= 0) return;
+        have.push(j); added.push(j);
+      });
+      g.showTo[seat] = have;
+      // the FACT is public, the cards are not — the table sees that a hand
+      // was shown and to whom, exactly as it would across a real felt
+      if (added.length) events.push({ t: "showTo", seat: seat, to: added });
+      return done();
+    }
+
+    /* the opt-in show: a mucked hand tables itself while the settlement
+       card is up. Only your OWN hand, only a hand that reached the end of
+       this one, and only once — a second call is a no-op rather than an
+       error, because the auto-show tick and a click can race. */
+    if (type === "reveal") {
+      if (!g.handOver) return err("phase");
+      var mine = null;
+      g.handOver.hands.forEach(function (h) { if (h.seat === seat) mine = h; });
+      if (!mine) return err("perm");
+      var rp = g.players[seat];
+      if (!rp || !rp.hole || rp.hole.length < 2) return err("phase");
+      if (mine.shown) return done();
+      mine.hole = rp.hole.slice();
+      mine.shown = true;
+      // a fold-through has no five-card board to read, so it shows the
+      // cards and names nothing
+      if (g.handOver.reason === "showdown") {
+        mine.name = bestOf(rp.hole.concat(g.handOver.board)).name;
+      }
+      events.push({ t: "show", seat: seat, hole: mine.hole.slice(), name: mine.name });
       return done();
     }
 
@@ -988,6 +1123,7 @@
         }
         delete g.bet.pending[i];
         g.bet.current = to;
+        g.aggr = i;                   // they show first if it gets to showdown
         events.push({ t: "raise", seat: i, to: to, allIn: p.allIn });
       }
       afterAction(g, ctx, events);
@@ -1223,7 +1359,26 @@
       ok(!!g.handOver, "checked-down hand reaches settlement");
       eq(g.handOver.reason, "showdown", "it was a showdown");
       eq(g.handOver.board.length, 5, "five community cards out");
-      eq(g.handOver.reveal.length, 3, "all three hands revealed");
+      eq(g.handOver.hands.length, 3, "all three contenders listed");
+      var ho = g.handOver;
+      // the showdown walk: every winner is face-up, every mucked hand is
+      // face-DOWN and its cards are not in the broadcast object at all
+      ho.awards.forEach(function (a) {
+        ok(ho.hands.some(function (h) { return h.seat === a.seat && h.shown; }),
+           "a pot winner always tables");
+      });
+      ho.hands.forEach(function (h) {
+        eq(h.shown, !!h.hole, "shown and hole agree");
+        if (!h.shown) eq(h.name, null, "a mucked hand names nothing");
+      });
+      // ...and a mucked hand can still choose to show
+      var muck = ho.hands.filter(function (h) { return !h.shown; })[0];
+      if (muck) {
+        var g2 = step(g, { type: "reveal", seat: muck.seat });
+        var back = g2.handOver.hands.filter(function (h) { return h.seat === muck.seat; })[0];
+        ok(back.shown && back.hole.length === 2, "the opt-in show tables the hand");
+        ok(!!back.name, "a showdown reveal names the hand");
+      }
       var total = g.players.reduce(function (s, p) { return s + p.stack; }, 0);
       eq(total, 6000, "cents conserved through settlement");
       g = applyAction(g, { type: "timerExpire" }, mkCtx(1)).game;
@@ -1237,9 +1392,47 @@
       g = step(g, { type: "fold", seat: g.turn.seat });
       ok(!!g.handOver, "two folds end a 3-hand pot");
       eq(g.handOver.reason, "folds", "no showdown on folds");
-      eq(g.handOver.reveal.length, 0, "no cards revealed on folds");
+      eq(g.handOver.hands.length, 1, "one seat left standing");
+      eq(g.handOver.hands[0].hole, null, "no cards revealed on folds");
+      // the bluff-show: the winner of a fold-through may still table it
+      var gs = step(g, { type: "reveal", seat: g.handOver.hands[0].seat });
+      eq(gs.handOver.hands[0].hole.length, 2, "the fold-through winner can show");
+      eq(gs.handOver.hands[0].name, null, "a fold-through show names no hand");
       var total = g.players.reduce(function (s, p) { return s + p.stack; }, 0);
       eq(total, 6000, "cents conserved on fold-through");
+    })();
+
+    (function privateShows() {
+      var g = mkGame(4, 21);
+      var first = g.turn.seat;
+      g = step(g, { type: "fold", seat: first });
+      var live = g.turn.seat;
+      // only the folded seat is a legal target; a live one is refused
+      var targets = showTargets(g, live);
+      ok(targets.indexOf(first) >= 0, "a folded seat can be shown to");
+      ok(targets.indexOf(live) < 0, "you are not your own target");
+      g.players.forEach(function (p, i) {
+        if (inHand(p) && i !== live) ok(targets.indexOf(i) < 0, "a live seat can't be shown to");
+      });
+      var bad = applyAction(g, { type: "showTo", seat: live, seats: [g.turn.seat] }, mkCtx(1));
+      ok(!!bad.error, "showing a live seat is refused");
+      var g2 = step(g, { type: "showTo", seat: live, seats: [first] });
+      eq((g2.showTo[live] || []).join(","), String(first), "the show is recorded on the game");
+      // additive, and idempotent on a repeat
+      var g3 = step(g2, { type: "showTo", seat: live, seats: [first] });
+      eq((g3.showTo[live] || []).length, 1, "showing twice doesn't duplicate");
+      // a folded seat holds no live hand, so it can't show
+      var no = applyAction(g, { type: "showTo", seat: first, seats: [live] }, mkCtx(1));
+      ok(!!no.error, "a folded seat can't show");
+      // and the record dies with the hand
+      var g4 = g2;
+      var guard = 0;
+      while (!g4.handOver && g4.turn && guard++ < 100) {
+        var i2 = g4.turn.seat, o2 = options(g4, i2);
+        g4 = step(g4, { type: o2.canCheck ? "check" : "call", seat: i2 });
+      }
+      g4 = applyAction(g4, { type: "timerExpire" }, mkCtx(1)).game;
+      eq(Object.keys(g4.showTo || {}).length, 0, "a new hand clears the private shows");
     })();
 
     (function raiseRules() {
@@ -1558,6 +1751,7 @@
     toCall: toCall,
     minRaiseTo: minRaiseTo,
     voteNeed: voteNeed,
+    showTargets: showTargets,
     bestOf: bestOf,
     HAND_NAMES: HAND_NAMES,
     botAct: botAct,

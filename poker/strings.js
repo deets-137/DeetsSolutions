@@ -23,6 +23,12 @@
    - the action hover lines and the Stand up hover, dictated verbatim;
    - the LOBBY SETTINGS labels + the min-raise chips ("1x prev" / "2x prev"
      / "No min") and "Mid-game Join", approved/renamed in chat 2026-08-03.
+   Cleared again on 2026-08-04: the sixteen placeholders behind the
+   showdown pass (the reveal + Show To + Rotation hovers) are his now, as
+   are "Hand recap", "Rotation" / "Rotate Dealer" / "Rotate Seats",
+   "Show To", the shown-you toast, and the whole Hand Rankings block —
+   which he waived the rule on outright and asked to be written final.
+
    So the rule now bites the other way: a NEW string still arrives as
    "[ph]", but nothing already here may be reworded without him.
 
@@ -65,7 +71,7 @@ window.POKER_STRINGS = {
       the absence (docs/poker.md, "Stepping away") */
    sitOutButton: "Sit out",
    sitOutHover: "Keep your seat and your stack",
-   sitBackPill: "Sit back in",
+   sitBackPill: "Sit down",   /* Aditya's, chat 2026-08-03 — was "Sit back in" */
    sitBackHover: "Deal me in next hand",
    /* NOT awayTag — that one (below, with the seat tags) means the socket
       dropped. This is a deliberate sit-out, which is a different thing. */
@@ -79,6 +85,17 @@ window.POKER_STRINGS = {
    endGamePill: "End game",   /* Aditya's, chat 2026-08-03 */
    endGameConfirm: "Confirm?",
    sitInPill: "Sit in",
+   /* How the felt reads. The pill and its two options are his words,
+      chat 2026-08-04; the hovers are Claude's. Display only, per viewer —
+      "Rotate Dealer" (the default) keeps every player in their chair and
+      walks the button; "Rotate Seats" pins the button to the top of the
+      felt and moves everyone else. */
+   rotationPill: "Rotation",
+   rotateDealer: "Rotate Dealer",
+   rotateSeats: "Rotate Seats",
+   rotationTip: "Choose what stays put on the felt.",
+   rotateDealerTip: "Everyone keeps their chair; the button moves.",
+   rotateSeatsTip: "The button stays at the top; the players move.",
    voteToast: "{name} votes to end ({n}/{need}).",
    unvoteToast: "{name} withdrew their vote ({n}/{need}).",
 
@@ -106,6 +123,7 @@ window.POKER_STRINGS = {
    timerOff: "None",
    timerSecs: "{n}s",
    timerCustom: "#s",
+   handOverLabel: "Hand recap",   /* Aditya's, chat 2026-08-04 — the settlement card's dwell */
    minRaiseLabel: "Minimum raise",
    minRaisePrev: "1x prev",
    minRaiseDouble: "2x prev",
@@ -220,7 +238,54 @@ window.POKER_STRINGS = {
    sidePotTag: "Side pot",
    nextHandButton: "Next hand",
    nextHandAuto: "Next hand in {n}s…",
+   /* the opt-in show. "Reveal" and the checkbox beside it are his shape,
+      dictated in chat 2026-08-03 ("Reveal | X"); the three hover lines
+      and the settings label below are Claude's and still want his pass. */
+   revealButton: "Reveal",
+   revealTip: "Show your hand to the table.",
+   revealDoneTip: "Your hand is already face-up.",
+   revealNoneTip: "You had no hand in this pot.",
+   revealAlwaysTip: "Always show my hand at the end of a pot.",
+
+   /* ── show to (the private show, mid-hand) ────────────────────────
+      "Show To" is his, chat 2026-08-04, as is the toast line. Anyone
+      holding cards may show; only players OUT of the hand may be shown
+      to. The rest of these are Claude's and want his pass. */
+   showToButton: "Show To",
+   shownToast: "{name} has shown you their cards!",
+   showToTip: "Show your hand to someone out of the pot.",
+   showToNoneTip: "Nobody is out of this pot yet.",
+   showToHead: "Out of the hand",
+   showToFolded: "folded",
+   showToSittingOut: "sitting out",
+   showToDone: "shown",
+   showToCount: "{n} selected",
+   showToConfirm: "Show",
+   shownToYou: "shown to you",
    bustToast: "You're bust — buy back in to keep playing.",
+
+   /* ── Hand Rankings (the guide, hand panel bottom-left) ───────────
+      The button name is his (chat 2026-08-04); he waived the [ph] rule on
+      the rest of this block, so these lines are final rather than
+      placeholders. One row per category, best first, each with a hand
+      that IS it — the fastest answer to "does a flush beat a full house"
+      is one of each, side by side. Descriptions name the SHAPE only;
+      what beats what is the order itself. */
+   guideButton: "Hand Rankings",
+   guideTitle: "Hand Rankings",
+   guideTip: "Which hands beat which",
+   guideClose: "Close",
+   guideIntro: "Best to worst. You make your best five out of your two cards and the five on the table — either, both or neither of yours.",
+   guideStraightFlush: "Five in a row, all one suit.",
+   guideQuads: "All four of a rank.",
+   guideFullHouse: "Three of a rank, plus a pair.",
+   guideFlush: "Any five of one suit.",
+   guideStraight: "Five in a row, suits mixed.",
+   guideTrips: "Three of a rank.",
+   guideTwoPair: "Two ranks paired.",
+   guidePair: "Two of a rank.",
+   guideHigh: "None of the above — your highest card plays.",
+   guideFoot: "Same category on both sides? The higher cards win, and a fifth card can break it. Aces play high or low, so A-2-3-4-5 is a straight — the smallest one.",
 
    /* hand-category names (engine HAND_NAMES keys) */
    handHigh: "High card",

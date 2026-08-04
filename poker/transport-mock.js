@@ -18,7 +18,12 @@
   var Engine = window.PokerEngine;
   var Colors = window.DeetsColors;
 
-  var HANDOVER_MS = 6000;   // the settlement interstitial always auto-advances
+  /* The settlement interstitial always auto-advances; how long it stays up
+     is the host's setting now (`handOverSec`), because the card is where
+     hands get read and mucks get shown and 6s was never enough for a full
+     table. This is the fallback for a table persisted before the setting
+     existed. */
+  var HANDOVER_SEC = 30;
 
   function chipVals(t) { return t.settings.chips.map(function (c) { return c.v; }); }
 
@@ -34,25 +39,22 @@
   }
   function human(t, s) { return t.seats[s] && !t.seats[s].phantom; }
 
-  /* a clash-free random hex for seats past the six presets (docs/poker.md,
-     "Seat colors") - presets first, then random until one clears */
+  /* A clash-free color for seats past the six presets (docs/games.md,
+     "Seat colors"). This used to roll flat 24-bit hexes until one cleared
+     the distance test — which is how twelve seats ended up with mud, and
+     how the last seat at a crowded table could exhaust its sixty tries and
+     fall back onto a preset that was already on the felt. `freeColor` in
+     the shared contract does the placement now; this only shapes the
+     argument. */
   function randColor(t, exceptSeat) {
     var others = t.seats.map(function (s, i) { return s && i !== exceptSeat ? s.color : null; });
-    for (var p = 0; p < Colors.PRESETS.length; p++) {
-      if (Colors.clash(Colors.PRESETS[p], others) < 0) return Colors.PRESETS[p];
-    }
-    for (var k = 0; k < 60; k++) {
-      var raw = ("00000" + Math.floor(Math.random() * 0x1000000).toString(16)).slice(-6);
-      var hex = "#" + raw;
-      if (Colors.clash(hex, others) < 0) return hex;
-    }
-    return Colors.PRESETS[t.seats.length % Colors.PRESETS.length];
+    return Colors.freeColor(others);
   }
 
   function deadlineFor(t) {
     var g = t.game;
     if (!g || g.phase === "over") return null;
-    if (g.handOver) return HANDOVER_MS;                     // always auto-advances
+    if (g.handOver) return (t.settings.handOverSec || HANDOVER_SEC) * 1000;
     if (g.waiting || !g.turn) return null;
     // only a present human's clock runs; bots are the drive's business,
     // and with the timer off a human may take all day (the host can kick)
@@ -71,7 +73,8 @@
     ns: "poker",
     Engine: Engine,
     Colors: Colors,
-    gameVerbs: { fold: 1, check: 1, call: 1, raise: 1, buyIn: 1, voteEnd: 1, nextHand: 1 },
+    gameVerbs: { fold: 1, check: 1, call: 1, raise: 1, buyIn: 1, voteEnd: 1,
+                 nextHand: 1, reveal: 1, showTo: 1 },
 
     /* No bot EVER takes a poker seat over — the drive is a dev tool, not a
        player. So the three re-join modes mean something poker-specific
@@ -100,6 +103,7 @@
         blindManual: false,
         chipsManual: false,
         timerSec: 0,
+        handOverSec: HANDOVER_SEC,         // how long the settlement card stays up
         minRaise: "prev"                   // "prev" | "double" | "none"
       };
     },
@@ -141,9 +145,31 @@
       var votes = Object.keys(g.endVotes).map(Number);
       view.votes = { n: votes.length, need: Engine.voteNeed(g), seats: votes };
       view.transfers = g.transfers;              // the Winnings ledger — public, like the stacks
+      /* Private shows. The engine holds only the SEAT LIST (`g.showTo`);
+         turning it into cards is the table's job, and it does that for
+         exactly the named connection and nobody else. `shownToMe` is the
+         second hidden-information channel this game has, and the only one
+         that carries a hand its viewer doesn't own — so it is built here,
+         inside the `seat != null` branch, and never on `view` itself. */
       if (seat != null && g.players[seat]) {
         var p = g.players[seat];
         if (p.hole) view.you.hole = p.hole.slice();
+        var shown = [];
+        Object.keys(g.showTo || {}).forEach(function (from) {
+          var to = g.showTo[from] || [];
+          if (to.indexOf(seat) < 0) return;
+          var sp = g.players[+from];
+          if (!sp || !sp.hole || !sp.inHand || sp.folded) return;   // hand's gone
+          shown.push({ seat: +from, hole: sp.hole.slice() });
+        });
+        if (shown.length) view.you.shownToMe = shown;
+        // who this seat could show to right now — the dropdown's contents,
+        // computed once by the rules rather than guessed by the page
+        var canShow = Engine.showTargets(g, seat);
+        if (canShow.length) view.you.showTargets = canShow;
+        // and who you've already shown, so the picker can mark them done
+        var mineOut = (g.showTo || {})[seat];
+        if (mineOut && mineOut.length) view.you.showedTo = mineOut.slice();
         var o = Engine.options(g, seat);
         if (o) view.you.options = o;
         view.you.myVote = !!g.endVotes[seat];
@@ -234,6 +260,13 @@
         var ts = msg.timerSec | 0;
         if (ts !== msg.timerSec || ts < 0 || ts > 600 || (ts > 0 && ts < 5)) return "phase";
         st.timerSec = ts;
+      }
+      // the settlement card's dwell. Never 0: the card is the only place a
+      // reveal can be asked for, so it always gets a window.
+      if (msg.handOverSec != null) {
+        var hs = msg.handOverSec | 0;
+        if (hs !== msg.handOverSec || hs < 3 || hs > 120) return "phase";
+        st.handOverSec = hs;
       }
       if (msg.minRaise != null) {
         if (["prev", "double", "none"].indexOf(msg.minRaise) < 0) return "phase";

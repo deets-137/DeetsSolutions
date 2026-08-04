@@ -23,6 +23,7 @@
   var BIG = document.querySelector("[data-pk-big]");
   var PLAYERS = document.querySelector("[data-pk-players]");
   var ROLE = document.querySelector("[data-pk-role]");
+  var BENTO = document.querySelector(".pk-bento");
   var DESKTOP = document.querySelector("[data-pk-desktop]");
 
   var model = null;
@@ -77,6 +78,7 @@
     render: paint,
     postRender: function () {
       seedDistinctColor();
+      autoRevealNow();  // the "show every hand" standing order, once per hand
       FLY.flush();      // chips launch AFTER render: their targets exist now
     },
     onLeave: resetGameUi,
@@ -91,6 +93,7 @@
         [S.buyInLabel, fmtMoney(st.buyIn)],
         [S.blindLabel, fmtMoney(st.bigBlind / 2) + " / " + fmtMoney(st.bigBlind)],
         [S.timerLabel, st.timerSec ? fmt(S.timerSecs, { n: st.timerSec }) : S.timerOff],
+        [S.handOverLabel, fmt(S.timerSecs, { n: st.handOverSec || 30 })],
         [S.minRaiseLabel, minRaiseLabel(st.minRaise)],
         [S.chipsLabel, st.chips.map(function (c) { return fmtMoney(c.v); }).join(" · ")]
       ];
@@ -110,8 +113,12 @@
   ui.chipDrafts = null;       // the lobby chip-ladder inputs mid-typing
   ui.chipDrag = null;         // index of the ladder token being dragged
   ui.boardPop = null;         // pinned felt popover ("win" | "log" | null)
+  ui.guideOpen = false;       // the Hand Rankings overlay
+  ui.rotateOpen = false;      // the Rotation pill's popover
+  ui.showToOpen = false;      // the Show To picker's popover
   var colorSeeded = false;    // one auto-recolor attempt per clash
   var overTick = null;        // the interstitial's countdown handle
+  var autoRevealSent = null;  // handOverAt of the last auto-show — one per hand
   /* ── what the last paint saw (mahjong's `seen` idiom) ──────────
      paint() clears the felt and rebuilds it, so a CSS animation on a
      felt node fires on EVERY render — including renders the street
@@ -136,8 +143,10 @@
   function resetGameUi() {
     ui.raiseOpen = false; ui.raiseDraft = null;
     ui.chipDrafts = null; ui.chipDrag = null; ui.boardPop = null;
+    ui.rotateOpen = false; ui.showToOpen = false; ui.showToPick = null;
+    ui.guideOpen = false;
     popHover = null;
-    seenBoard = 0; seenOverAt = null;
+    seenBoard = 0; seenOverAt = null; autoRevealSent = null;
     prevBets = []; prevStacks = [];
     FLY.clear();
     if (overTick) { clearTimeout(overTick); overTick = null; }
@@ -300,10 +309,12 @@
      The empty box still measures, which is all a flight aimed at it
      needs — it just doesn't draw. */
   var PILE_CAP = 6;
-  /* `dx` is what tells the two piles apart: the DECK is squared up, so it
-     stacks straight up (0) like a deck someone has tapped level; the BURN
-     is a heap of dead cards nobody tidies, so it fans sideways as it
-     grows. Same object, two housekeeping habits. */
+  /* `dx` fans a pile sideways as it grows. BOTH piles pass 0 now — squared
+     up, straight up, like a deck someone has tapped level. The burn was
+     fanned at first (a heap of dead cards nobody tidies), but next to the
+     deck it read as a different-shaped OBJECT rather than as a second
+     pile, so he squared it (chat 2026-08-04). The parameter stays: it is
+     the pile's one degree of freedom. */
   function cardPile(cls, n, dx) {
     var pile = el("div", "pk-pile " + cls);
     for (var i = 0; i < Math.min(n, PILE_CAP); i++) {
@@ -323,11 +334,12 @@
     return n;
   }
 
-  /* ── auto-recolor past the presets (docs/poker.md, "Seat colors") ──
-     colors.js knows six presets; a 7th+ lobby sit is assigned a duplicate
-     fallback. When MY color clashes with an earlier seat's, claim a random
-     clash-free hex instead — profile colors got their shot first via the
-     shell's own seeding. One attempt per clash so a refusal can't loop. */
+  /* ── auto-recolor past the presets (docs/games.md, "Seat colors") ──
+     The table assigns a clash-free color on arrival (`freeColor`), so this
+     is now only for the case the table can't see: a PROFILE color, claimed
+     by the shell's own seeding after the fact, that happens to land on
+     someone. Claim a fresh one from the same generator the table uses.
+     One attempt per clash so a refusal can't loop. */
   function seedDistinctColor() {
     if (!model || model.phase !== "lobby") { colorSeeded = false; return; }
     var mine = mySeat();
@@ -341,10 +353,7 @@
     if (Colors.clash(me.color, others) < 0) { colorSeeded = false; return; }
     if (colorSeeded) return;
     colorSeeded = true;
-    for (var k = 0; k < 60; k++) {
-      var hex = "#" + ("00000" + Math.floor(Math.random() * 0x1000000).toString(16)).slice(-6);
-      if (Colors.clash(hex, others) < 0) { send({ type: "recolor", seat: mine, color: hex }); return; }
-    }
+    send({ type: "recolor", seat: mine, color: Colors.freeColor(others) });
   }
 
   /* The majority "vote to end" pill is OFF. Everything behind it is intact
@@ -361,7 +370,13 @@
   }
   function cashesOut() { return joinMode() === "none"; }
   function standCopy() {
+    /* Already sitting out? Then there is nothing to stand up FROM — the
+       pill would send a verb the engine ignores, next to a "Sit down"
+       that undoes it. False withdraws it (games/table.js). Note this is
+       the sit-out reading only: at a "none" table Stand up still CASHES
+       OUT, which is a real thing to do from a sat-out seat. */
     if (cashesOut()) return null;              // the shell's own wording is right
+    if (model && model.you && model.you.away) return false;
     return { label: S.sitOutButton, hover: S.sitOutHover };
   }
 
@@ -381,17 +396,12 @@
         pills.push(vp);
       }
       if (model.host) {
-        var ep = TBL.pill(S.endGamePill, function () {
-          if (ep._armed) { send({ type: "endGame" }); }
-          else {
-            ep._armed = true; ep.querySelector(".tb-pill__label").textContent = S.endGameConfirm;
-            setTimeout(function () {
-              if (ep.isConnected) { ep._armed = false; ep.querySelector(".tb-pill__label").textContent = S.endGamePill; }
-            }, 2600);
-          }
-        });
-        pills.push(ep);
+        // the armed state lives in the shell, not on the button — a
+        // broadcast rebuilds this pill and used to disarm it mid-confirm
+        pills.push(TBL.confirmPill("endGame", S.endGamePill, S.endGameConfirm,
+          function () { send({ type: "endGame" }); }));
       }
+      pills.push(rotationPill());
       // sitting out keeps the seat, so the way back is your own pill — the
       // shell's adoption popover is for seats OTHER people can take
       if (model.you && model.you.away) {
@@ -546,6 +556,18 @@
     timerRow.opts.appendChild(TBL.numChip("timerSec", st.timerSec, [0, 15, 30, 60, 120], S.timerCustom, 5, 600));
     wrap.appendChild(timerRow);
 
+    /* How long the settlement card stays up. Its own row rather than a
+       constant, because the card now carries the reveals: a full table
+       wants time to read nine hands and decide whether to show, heads-up
+       wants to get on with it. The host can always cut it short with
+       Next hand. */
+    var overRow = TBL.choiceRow(S.handOverLabel, "handOverSec",
+      [[5, fmt(S.timerSecs, { n: 5 })], [15, fmt(S.timerSecs, { n: 15 })],
+       [30, fmt(S.timerSecs, { n: 30 })], [60, fmt(S.timerSecs, { n: 60 })]],
+      st.handOverSec);
+    overRow.opts.appendChild(TBL.numChip("handOverSec", st.handOverSec, [5, 15, 30, 60], S.timerCustom, 3, 120));
+    wrap.appendChild(overRow);
+
     wrap.appendChild(TBL.choiceRow(S.minRaiseLabel, "minRaise",
       [["prev", S.minRaisePrev], ["double", S.minRaiseDouble], ["none", S.minRaiseNone]], st.minRaise));
     // no Seating row: the shell's own "Mid-game Join" row below is that
@@ -600,6 +622,14 @@
     if (e.t === "back") toast(fmt(S.backToast, { name: seatName(e.seat) }), "info");
     // your own ante is money leaving the stack — say so
     if (e.t === "blind" && e.kind === "ante" && e.seat === mine) toast(S.anteToast, "warn");
+    /* Someone showed you their hand. The event is public (the table sees
+       THAT it happened), so the toast has to be gated on being one of the
+       named seats — otherwise every spectator gets told they were shown
+       cards they can't see. The cards themselves are on the felt, over
+       that seat's chips. */
+    if (e.t === "showTo" && mine != null && (e.to || []).indexOf(mine) >= 0) {
+      toast(fmt(S.shownToast, { name: seatName(e.seat) }), "info");
+    }
     collectFlight(e);
   }
 
@@ -807,6 +837,9 @@
       case "raise": return n(e.seat) + " raises to " + fmtMoney(e.to) + (e.allIn ? " (all-in)" : "");
       case "street": return e.name + ": " + e.cards.join(" ");
       case "win": return n(e.seat) + " wins " + fmtMoney(e.amt) + (e.name ? " (" + handName(e.name) + ")" : "");
+      case "show": return n(e.seat) + " shows " + e.hole.join(" ") + (e.name ? " (" + handName(e.name) + ")" : "");
+      // the fact, never the cards — the log is public
+      case "showTo": return n(e.seat) + " shows their hand to " + (e.to || []).map(n).join(", ");
       case "timeout": return n(e.seat) + " timed out — " + (e.did === "check" ? "checks" : "folds");
       case "bust": return n(e.seat) + " is bust";
       case "rebuy": return n(e.seat) + " buys back in";
@@ -825,6 +858,13 @@
 
   /* ═══ RENDER ═══════════════════════════════════════════════════ */
   function paint() {
+    /* The bento is the ONE node paint() doesn't rebuild — it holds the
+       three tiles — so the guide overlay has to be taken down by hand or
+       every broadcast would stack another copy on top of the last. */
+    if (BENTO) {
+      var oldGuide = BENTO.querySelector(".pk-guide");
+      if (oldGuide) oldGuide.remove();
+    }
     /* the big tile's three boxes — see .pk-tile--big in poker.css: the
        felt never scrolls, the cash-out table scrolls as a flex (it
        centers itself), the lobby scrolls as a block (so its bottom
@@ -839,8 +879,9 @@
     }
     if (model.phase === "over") {
       BIG.textContent = "";
-      BIG.appendChild(cashoutLobby());
-      buildBoardPops();          // the ledger and the log outlive the felt
+      var panel = cashoutLobby();
+      BIG.appendChild(panel);
+      buildBoardPops(panel);     // the ledger and the log outlive the felt
       renderRoster();
       renderRole();
       return;
@@ -850,6 +891,7 @@
     buildBoardPops();
     renderRoster();
     renderRole();
+    if (ui.guideOpen && BENTO) BENTO.appendChild(handGuide());
   }
 
   /* ── felt popovers, bottom-left: Winnings + Log ─────────────────
@@ -892,8 +934,23 @@
     p.addEventListener("mouseleave", popDelayClose);
     return p;
   }
-  function buildBoardPops() {
-    var row = el("div", "pk-boardbtns");
+  /* `panel` is the cash-out panel at `over`, absent in play — and that
+     difference is the whole layout. Over the FELT the row is an overlay
+     pinned to the tile's bottom-left corner, which is right, because the
+     felt never scrolls and the row must never move the board. In the
+     CASH-OUT the tile scrolls, and an absolutely positioned child of a
+     scroll container is pinned to the scrollPORT, not to the content: it
+     sat at the bottom of the first screenful and then rode up THROUGH the
+     standings as you scrolled. So there the row goes in FLOW, at the end
+     of the panel, and the popovers anchor to the row instead of to the
+     tile (his report, chat 2026-08-04). */
+  function buildBoardPops(panel) {
+    var flow = !!panel;
+    var row = el("div", "pk-boardbtns" + (flow ? " pk-boardbtns--flow" : ""));
+    var host = panel || BIG;
+    // in flow the panels must hang off the ROW (position: relative), not
+    // off the tile, or they'd anchor to a box the row no longer sits in
+    var popHost = flow ? row : BIG;
     /* In play the pill opens the Winnings grid. At `over` the grid is
        already laid out inline in the cash-out panel, so the same slot
        carries Repayment instead — who hands what to whom to settle. */
@@ -901,13 +958,13 @@
       var payPop = popPanel("pay");
       payPop.classList.add("pk-bpop--win");   // hugs its list instead of 24rem
       payPop.appendChild(repayList());
-      BIG.appendChild(payPop);
+      popHost.appendChild(payPop);
       row.appendChild(popButton("pay", S.repayButton));
     } else {
       var winPop = popPanel("win");
       winPop.classList.add("pk-bpop--win");   // hugs the grid instead of 24rem
       winPop.appendChild(winningsGrid());
-      BIG.appendChild(winPop);
+      popHost.appendChild(winPop);
       row.appendChild(popButton("win", S.winningsButton));
     }
     var logPop = popPanel("log");
@@ -916,9 +973,9 @@
       list.appendChild(el("div", "pk-log__line", typeof entry === "string" ? entry : entry.text || ""));
     });
     logPop.appendChild(list);
-    BIG.appendChild(logPop);
+    popHost.appendChild(logPop);
     row.appendChild(popButton("log", S.logButton));
-    BIG.appendChild(row);
+    host.appendChild(row);
     list.scrollTop = list.scrollHeight;
     requestAnimationFrame(function () { list.scrollTop = list.scrollHeight; });
   }
@@ -1033,11 +1090,25 @@
     var ps = model.players || [];
     var seats = model.seats || [];
     var mine = mySeat();
-    // live seats around the rim, the DEALER at 12 o'clock
+    /* Live seats around the rim. WHAT SITS AT 12 O'CLOCK is the viewer's
+       choice (the Rotation pill), because the two readings of a moving
+       button are both defensible and only one can be drawn:
+
+         Rotate Dealer (default) — the ring is anchored at seat order, so
+           a player keeps their chair all game and the D badge walks. The
+           table behaves like a table.
+         Rotate Seats — the ring is anchored on the DEALER, who is always
+           at the top. The button never moves; everyone else shuffles a
+           seat clockwise every hand.
+
+       It is display only: a per-viewer localStorage preference, nothing
+       on the wire, and two people at one table may read it differently. */
     var ring = [];
     ps.forEach(function (p, i) { if (p && !p.left) ring.push(i); });
-    var start = model.dealer != null && ring.indexOf(model.dealer) >= 0
-      ? ring.indexOf(model.dealer) : 0;
+    var start = 0;
+    if (rotateMode() === "seats" && model.dealer != null && ring.indexOf(model.dealer) >= 0) {
+      start = ring.indexOf(model.dealer);
+    }
     ring.forEach(function (seat, k) {
       var idx = (k - start + ring.length) % ring.length;
       var theta = -Math.PI / 2 + (idx * 2 * Math.PI) / ring.length;
@@ -1072,7 +1143,9 @@
        everyone else, and an accumulator would start from zero. */
     if (!model.waiting) {
       f.appendChild(cardPile("pk-deck", DECK_DEPTH, 0));
-      f.appendChild(cardPile("pk-burn", burnDepth(), 2));
+      // squared up, same as the deck (his call): the sideways fan read as
+      // a different-shaped object rather than as a second pile
+      f.appendChild(cardPile("pk-burn", burnDepth(), 0));
     }
     if (model.waiting) {
       f.appendChild(el("div", "pk-feltline", S.waitingLine));
@@ -1140,7 +1213,32 @@
     var bet = p.betStreet > 0;
     node.appendChild(el("span", "pk-seat__bet" + (bet ? "" : " is-blank"),
       bet ? fmtMoney(p.betStreet) : " "));
+    /* A hand shown privately to YOU rides the seat that showed it — that
+       is whose cards they are, and the felt is where you already look to
+       ask who holds what. It is an ABSOLUTE box over that seat's chips,
+       not a row inside the seat: a seat is centered on its own anchor, so
+       anything that adds height slides it, and every seat would have to
+       reserve the space forever against the one hand in fifty that uses
+       it. The settlement card takes over once the hand ends (his call),
+       so the two never draw the same cards at the same moment. */
+    var priv = shownToMe(i);
+    if (priv && !model.handOver) {
+      var peek = el("div", "pk-peek");
+      var pcards = el("div", "pk-peek__cards");
+      priv.forEach(function (c) { pcards.appendChild(cardEl(c)); });
+      peek.appendChild(pcards);
+      peek.appendChild(el("span", "pk-peek__tag", S.shownToYou));
+      node.appendChild(peek);
+    }
     return node;
+  }
+  /* the hands other people have shown you this hand. Only ever populated
+     for the connection they were shown to (transport-mock `shownToMe`) —
+     the page cannot show what the table did not send it. */
+  function shownToMe(i) {
+    var list = (model.you && model.you.shownToMe) || [];
+    for (var k = 0; k < list.length; k++) if (list[k].seat === i) return list[k].hole;
+    return null;
   }
   function badge(text, tip, blind) {
     var b = el("span", "pk-seat__badge" + (blind ? " pk-seat__badge--blind" : ""), text);
@@ -1170,12 +1268,20 @@
     var fresh = model.handOverAt != null && model.handOverAt !== seenOverAt;
     if (fresh && !TBL.reduceMotion()) card.classList.add("is-in");
     seenOverAt = model.handOverAt;
+    /* the board the hands were made from, across the top: the felt's own
+       board sits BEHIND this card, so without it you'd be reading five
+       showdowns against cards you can't see */
+    if ((ho.board || []).length) {
+      var bd = el("div", "pk-over__board");
+      ho.board.forEach(function (c) { bd.appendChild(cardEl(c)); });
+      card.appendChild(bd);
+    }
     if (ho.reason === "folds") {
       var w = ho.awards[0];
       card.appendChild(line(fmt(S.foldWinLine, { name: seatName(w.seat) })));
       card.appendChild(line(fmt(S.winLine, { name: seatName(w.seat), amt: fmtMoney(w.amt) }), "is-win"));
     } else {
-      // one line per distinct winner; reveal rides the felt via the board
+      // one line per distinct winner; the hands themselves are the grid below
       var seen = {};
       ho.awards.forEach(function (a) {
         if (seen[a.seat]) { seen[a.seat].amt += a.amt; return; }
@@ -1187,35 +1293,175 @@
           ? fmt(S.winLineHand, { name: seatName(+seat), amt: fmtMoney(a.amt), hand: handName(a.name) })
           : fmt(S.winLine, { name: seatName(+seat), amt: fmtMoney(a.amt) }), "is-win"));
       });
-      ho.reveal.forEach(function (r) {
-        var row = el("div", "pk-over__sub");
-        row.appendChild(el("span", null, seatName(r.seat) + ": "));
-        r.hole.forEach(function (c) { row.appendChild(cardEl(c)); });
-        row.appendChild(el("span", null, " — " + handName(r.name)));
-        card.appendChild(row);
-      });
     }
-    // countdown to the auto-deal + a manual Next hand
+    /* Everyone who got to the end is on the card, tabled or not: a mucked
+       hand keeps its seat and its two cards, face DOWN. Showing the row
+       and hiding the cards is the whole point — you can see that four
+       people took it to the river without seeing what they had.
+
+       The layout is a GRID, not a stack: twelve seats one per line ran
+       the card off the bottom of the felt. The column count is JS's
+       because CSS can't do it here — the card is shrink-to-fit, and
+       `auto-fit` against an indefinite width collapses to a single
+       column. Roughly square, capped at four across. */
+    var hands = ho.hands || [];
+    if (hands.length) {
+      var grid = el("div", "pk-over__reveals");
+      grid.style.setProperty("--pkcols",
+        String(Math.min(4, Math.ceil(Math.sqrt(hands.length)))));
+      hands.forEach(function (h) {
+        var row = el("div", "pk-over__sub pk-over__hand" + (h.shown ? "" : " is-muck"));
+        row.appendChild(el("span", "pk-over__who", seatName(h.seat)));
+        var cards = el("span", "pk-over__cards");
+        if (h.shown) h.hole.forEach(function (c) { cards.appendChild(cardEl(c)); });
+        else { cards.appendChild(backEl()); cards.appendChild(backEl()); }
+        row.appendChild(cards);
+        row.appendChild(el("span", "pk-over__rank", h.shown && h.name ? handName(h.name) : " "));
+        grid.appendChild(row);
+      });
+      card.appendChild(grid);
+    }
+    // countdown to the auto-deal, then the footer: Reveal left, Next right
     var autoLine = el("div", "pk-over__sub");
     card.appendChild(autoLine);
     tickInterstitial(autoLine);
+    card.appendChild(overFoot());
+    function line(text, cls) { return el("div", "pk-over__line" + (cls ? " " + cls : ""), text); }
+    return card;
+  }
+  /* The card's footer. Reveal on the left, Next hand on the right — the
+     two ends of what you can do with a settled hand: put more information
+     on the table, or move on.
+
+     "Reveal | X" is one control with two halves (his shape, chat
+     2026-08-03): the BUTTON shows this hand, the CHECKBOX is a standing
+     order to show every hand from here on. The standing order is a local
+     preference, not a table setting — it's how YOU want to play, it
+     shouldn't survive into someone else's session, and it defaults OFF
+     because the whole point of the auto-muck is that nobody is forced to
+     expose. Ticking it shows the current hand too, which is what "reveal
+     every hand" plainly means while a hand is sitting there unrevealed. */
+  function overFoot() {
+    var foot = el("div", "pk-over__foot");
+    var mine = mySeat();
+    var ho = model.handOver;
+    var row = null;
+    (ho.hands || []).forEach(function (h) { if (h.seat === mine) row = h; });
+    /* ONE pill with a hairline down it, not a button and a stray checkbox:
+       the shell's own "Queue | Arena ▾" anatomy (`tb-pill__value`, a value
+       fenced off by its left border). The two halves do different things —
+       show THIS hand, show EVERY hand — which is exactly the relationship
+       that idiom is for. */
+    var left = el("div", "tb-pill pk-over__reveal");
+    var btn = el("button", "pk-over__reveal-do");
+    btn.type = "button";
+    btn.appendChild(el("span", "tb-pill__label", S.revealButton));
+    // no hand in this pot (spectator, folded, just sat down) → the control
+    // is present but dead, so the footer never changes shape
+    btn.disabled = !row || row.shown;
+    btn.title = !row ? S.revealNoneTip : row.shown ? S.revealDoneTip : S.revealTip;
+    if (btn.disabled) left.classList.add("is-off");
+    btn.addEventListener("click", function () { send({ type: "reveal" }); });
+    left.appendChild(btn);
+    var wrap = el("label", "tb-pill__value pk-over__always-wrap");
+    wrap.title = S.revealAlwaysTip;
+    var box = el("input", "pk-over__always");
+    box.type = "checkbox";
+    box.checked = autoReveal();
+    box.setAttribute("aria-label", S.revealAlwaysTip);
+    box.addEventListener("change", function () {
+      save(AUTO_REVEAL_KEY, !!box.checked);
+      if (box.checked) autoRevealNow();
+      render();
+    });
+    wrap.appendChild(box);
+    left.appendChild(wrap);
+    foot.appendChild(left);
     var next = el("button", "tb-pill gt-lobby__start");
     next.type = "button";
     next.appendChild(el("span", "tb-pill__label", S.nextHandButton));
     next.addEventListener("click", function () { send({ type: "nextHand" }); });
-    card.appendChild(next);
-    function line(text, cls) { return el("div", "pk-over__line" + (cls ? " " + cls : ""), text); }
-    return card;
+    foot.appendChild(next);
+    return foot;
   }
+  /* Which way the felt reads (see `felt()`). Per-VIEWER, like mahjong's
+     tile art and the auto-show below: never on the wire, never a table
+     setting — nobody else's felt is any of your business. */
+  var ROTATE_KEY = "deets-poker-rotate";
+  function rotateMode() { return load(ROTATE_KEY, "dealer") === "seats" ? "seats" : "dealer"; }
+  function rotationPill() {
+    var wrap = el("span", "pk-rotate");
+    var b = el("button", "tb-pill");
+    b.type = "button";
+    b.setAttribute("aria-haspopup", "true");
+    b.appendChild(el("span", "tb-pill__label", S.rotationPill));
+    b.appendChild(el("span", "tb-pill__caret", "▾"));
+    b.title = S.rotationTip;
+    wrap.appendChild(b);
+    var pop = el("div", "tb-pop pk-rotate__pop");
+    pop.hidden = true;
+    var now = rotateMode();
+    [["dealer", S.rotateDealer, S.rotateDealerTip],
+     ["seats", S.rotateSeats, S.rotateSeatsTip]].forEach(function (o) {
+      var opt = el("button", "tb-pop__opt" + (now === o[0] ? " is-active" : ""));
+      opt.type = "button";
+      opt.textContent = o[1];
+      opt.title = o[2];
+      opt.setAttribute("aria-pressed", now === o[0] ? "true" : "false");
+      opt.addEventListener("click", function () {
+        save(ROTATE_KEY, o[0]);
+        ui.rotateOpen = false;
+        TBL.pop.close();
+        render();
+      });
+      pop.appendChild(opt);
+    });
+    wrap.appendChild(pop);
+    var entry = { ctrl: wrap, pill: b, pop: pop };
+    b.addEventListener("click", function () {
+      ui.rotateOpen = !ui.rotateOpen;
+      if (ui.rotateOpen) TBL.pop.open(entry); else TBL.pop.close();
+    });
+    // the toolbar is rebuilt on every broadcast, so a popover left open
+    // has to be handed the NEW nodes or the kit measures a dead panel
+    if (ui.rotateOpen) TBL.pop.open(entry);
+    return wrap;
+  }
+  // per-VIEWER, like mahjong's tile art: never on the wire, never a table
+  // setting — it is how you play, not how the table plays
+  var AUTO_REVEAL_KEY = "deets-poker-auto-reveal";
+  function autoReveal() { return load(AUTO_REVEAL_KEY, false) === true; }
+  /* The standing order, applied. Fires from the render pass (postRender)
+     rather than from the broadcast handler so it can't run ahead of the
+     model it reads, and it is guarded on `shown` — the engine treats a
+     second reveal as a no-op, but a paint loop that re-sent every frame
+     would still flood the socket. */
+  function autoRevealNow() {
+    if (!autoReveal() || !model || !model.handOver) return;
+    var mine = mySeat();
+    if (mine == null) return;
+    var row = null;
+    (model.handOver.hands || []).forEach(function (h) { if (h.seat === mine) row = h; });
+    if (!row || row.shown) return;
+    if (autoRevealSent === model.handOverAt) return;
+    autoRevealSent = model.handOverAt;
+    send({ type: "reveal" });
+  }
+  /* The countdown under the settlement card. `isConnected` is the loop's
+     STOP condition, and it may only be asked from the second tick on: the
+     felt is built whole and appended afterwards (`BIG.appendChild(felt())`),
+     so on the first call this node is still detached and the old guard
+     bailed before it ever wrote a digit — the line was permanently blank. */
   function tickInterstitial(node) {
     if (overTick) { clearTimeout(overTick); overTick = null; }
-    function step() {
-      if (!node.isConnected || !model || !model.handOverAt) return;
+    function step(first) {
+      if (!model || !model.handOverAt) return;
+      if (!first && !node.isConnected) return;
       var secs = Math.max(0, Math.ceil((model.handOverAt - (Date.now() - TBL.skew())) / 1000));
       node.textContent = fmt(S.nextHandAuto, { n: secs });
-      overTick = setTimeout(step, 250);
+      overTick = setTimeout(function () { step(false); }, 250);
     }
-    step();
+    step(true);
   }
 
   /* ── the roster (players tile) — full player cards, the cities-pstrip
@@ -1358,6 +1604,13 @@
       var hole = el("div", "pk-hole");
       model.you.hole.forEach(function (c) { hole.appendChild(cardEl(c, true)); });
       handCol.appendChild(hole);
+      /* What you actually HAVE, under the cards. Read client-side from
+         your own two plus the public board — the engine already exports
+         `bestOf`, and asking the table would put a hand on the wire that
+         only you may see. ALWAYS present, blanked rather than omitted, so
+         the flop doesn't jog the panel (the universal layout rule). */
+      var made = myHandName();
+      handCol.appendChild(el("div", "pk-made" + (made ? "" : " is-blank"), made || " "));
     } else if (model.you && model.you.canBuyIn) {
       var buyWrap = el("div", "pk-hole pk-hole--buyin");
       var buy = el("button", "tb-pill gt-lobby__start");
@@ -1374,6 +1627,8 @@
       if (p.waiting) slots.appendChild(el("span", "pk-roleline", S.waitingNote));
       handCol.appendChild(slots);
     }
+    // the rankings reference, pinned to the bottom of the hand column
+    handCol.appendChild(handGuideButton());
     play.appendChild(handCol);
 
     /* the chip rail: your own stack, drawn. The cash total IS the
@@ -1395,6 +1650,15 @@
     var o = model.you && model.you.options;
     var acting = !!o && !model.handOver;
     var acts = el("div", "pk-actions");
+    /* Show to leads the row (his call, chat 2026-08-04) and is the only
+       pill in it NOT gated on the action being yours: the moment you want
+       to show someone is almost never your turn — they just folded, you
+       just took it down. It gates on HOLDING CARDS and on there being
+       anyone out of the hand to show them to (`you.showTargets`, which
+       the rules compute rather than the page guessing). Leading also
+       keeps it away from Fold/Check/Call/Raise, which is where the eye
+       goes under a clock; nobody should hit it by muscle memory. */
+    acts.appendChild(showToPill());
     acts.appendChild(actionBtn(S.actionFold, "hoverFold", acting, function () {
       send({ type: "fold" }); ui.raiseOpen = false;
     }));
@@ -1416,6 +1680,161 @@
     ctrl.appendChild(raiseTray(acting && o.canRaise ? o : null, armed));
     play.appendChild(ctrl);
     ROLE.appendChild(play);
+  }
+  /* "Show to" — a pill whose popover is a checklist of the seats that are
+     out of the hand, plus one Show. Multi-select behind a confirm rather
+     than fire-on-click: showing can't be taken back, and a stray click
+     shouldn't table your hand to the wrong person.
+
+     Both the open state and the ticks live in `ui`, not on the nodes: a
+     broadcast rebuilds this panel, and a picker that closed itself every
+     time someone else acted would be unusable at a twelve-seat table. */
+  function showToPill() {
+    var targets = (model.you && model.you.showTargets) || [];
+    var done = (model.you && model.you.showedTo) || [];
+    var wrap = el("span", "pk-showto");
+    var b = el("button", "tb-pill");
+    b.type = "button";
+    b.disabled = !targets.length;
+    b.appendChild(el("span", "tb-pill__label", S.showToButton));
+    b.appendChild(el("span", "tb-pill__caret", "▾"));
+    b.title = targets.length ? S.showToTip : S.showToNoneTip;
+    wrap.appendChild(b);
+    var pop = el("div", "tb-pop pk-showto__pop");
+    pop.hidden = true;
+    pop.appendChild(el("div", "tb-pop__head", S.showToHead));
+    if (!ui.showToPick) ui.showToPick = {};
+    var picked = ui.showToPick;
+    targets.forEach(function (j) {
+      var had = done.indexOf(j) >= 0;
+      var row = el("label", "pk-showto__row" + (had ? " is-done" : ""));
+      var box = el("input", "pk-showto__box");
+      box.type = "checkbox";
+      box.checked = !had && !!picked[j];
+      box.disabled = had;
+      box.addEventListener("change", function () {
+        if (box.checked) picked[j] = true; else delete picked[j];
+        render();
+      });
+      row.appendChild(box);
+      row.appendChild(seatDot(j));
+      row.appendChild(el("span", "pk-showto__name", seatName(j)));
+      row.appendChild(el("span", "pk-showto__state",
+        had ? S.showToDone : seatOut(j) ? S.showToSittingOut : S.showToFolded));
+      pop.appendChild(row);
+    });
+    var foot = el("div", "pk-showto__foot");
+    var n = targets.filter(function (j) { return picked[j] && done.indexOf(j) < 0; }).length;
+    foot.appendChild(el("span", "pk-showto__count", fmt(S.showToCount, { n: n })));
+    var go = el("button", "tb-pill");
+    go.type = "button";
+    go.disabled = !n;
+    go.appendChild(el("span", "tb-pill__label", S.showToConfirm));
+    go.addEventListener("click", function () {
+      var seats = targets.filter(function (j) { return picked[j] && done.indexOf(j) < 0; });
+      if (!seats.length) return;
+      send({ type: "showTo", seats: seats });
+      ui.showToPick = {};
+      ui.showToOpen = false;
+      TBL.pop.close();
+      render();
+    });
+    foot.appendChild(go);
+    pop.appendChild(foot);
+    wrap.appendChild(pop);
+    var entry = { ctrl: wrap, pill: b, pop: pop };
+    b.addEventListener("click", function () {
+      ui.showToOpen = !ui.showToOpen;
+      if (ui.showToOpen) TBL.pop.open(entry); else TBL.pop.close();
+    });
+    // a re-render while it's open has to hand the kit the NEW nodes, or
+    // outside-click would be measuring a panel that left the document
+    if (ui.showToOpen && targets.length) TBL.pop.open(entry);
+    else ui.showToOpen = false;
+    return wrap;
+  }
+  // sitting out vs merely folded — the two ways to be out of a hand
+  function seatOut(i) {
+    var p = model.players && model.players[i];
+    return !!(p && (p.away || p.out || p.waiting));
+  }
+  /* ── the made hand + the rankings guide ───────────────────────────
+     What you hold, named. Five cards is the minimum a real evaluation
+     needs, so preflop it reads the two in your hand directly — you do
+     hold a pair or a high card before the flop, and saying nothing there
+     would blank the line for a whole street. */
+  function myHandName() {
+    var hole = model.you && model.you.hole;
+    if (!hole || hole.length < 2) return null;
+    var cards = hole.concat(model.board || []);
+    if (cards.length >= 5) return handName(Engine.bestOf(cards).name);
+    return handName(hole[0].charAt(0) === hole[1].charAt(0) ? "pair" : "high");
+  }
+
+  /* The rankings, best first, each with a hand that IS it — the fastest
+     way to answer "does a flush beat a full house" is to look at one of
+     each. `key` matches the engine's HAND_NAMES, so the names come from
+     his strings and the row you currently hold can light up. */
+  var HAND_GUIDE = [
+    ["straightFlush", ["As", "Ks", "Qs", "Js", "Ts"]],
+    ["quads",         ["9c", "9d", "9h", "9s", "4d"]],
+    ["fullHouse",     ["Kc", "Kd", "Kh", "7s", "7d"]],
+    ["flush",         ["Ah", "Jh", "8h", "5h", "3h"]],
+    ["straight",      ["9c", "8d", "7h", "6s", "5d"]],
+    ["trips",         ["Qc", "Qd", "Qh", "8s", "3d"]],
+    ["twoPair",       ["Jc", "Jd", "6h", "6s", "Ad"]],
+    ["pair",          ["Tc", "Td", "Kh", "7s", "2d"]],
+    ["high",          ["Ac", "Jd", "9h", "6s", "3d"]]
+  ];
+  function handGuideButton() {
+    var b = el("button", "tb-pill pk-guidebtn");
+    b.type = "button";
+    b.appendChild(el("span", "tb-pill__label", S.guideButton));
+    b.title = S.guideTip;
+    b.addEventListener("click", function () { ui.guideOpen = true; render(); });
+    return b;
+  }
+  function closeGuide() {
+    if (!ui.guideOpen) return;
+    ui.guideOpen = false;
+    render();
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeGuide(); });
+  /* Mahjong's scoring-guide idiom, in poker's clothing: an absolute
+     overlay on the bento, a fixed-width panel that scrolls inside itself,
+     and deliberately NO entrance animation — the page rebuilds on every
+     broadcast while this is open, and anything that replayed would
+     flicker once a second at a twelve-seat table. */
+  function handGuide() {
+    var mine = myHandName();
+    var wrap = el("div", "pk-guide");
+    wrap.addEventListener("click", function (e) { if (e.target === wrap) closeGuide(); });
+    var panel = el("div", "pk-guide__panel");
+    var head = el("div", "pk-guide__head");
+    head.appendChild(el("h2", "pk-guide__title", S.guideTitle));
+    var x = el("button", "pk-guide__close", S.guideClose);
+    x.type = "button";
+    x.addEventListener("click", closeGuide);
+    head.appendChild(x);
+    panel.appendChild(head);
+    panel.appendChild(el("p", "pk-guide__intro", S.guideIntro));
+    var body = el("div", "pk-guide__body");
+    HAND_GUIDE.forEach(function (g) {
+      var nm = handName(g[0]);
+      var row = el("div", "pk-guide__row" + (mine && nm === mine ? " is-held" : ""));
+      var top = el("div", "pk-guide__top");
+      top.appendChild(el("span", "pk-guide__name", nm));
+      top.appendChild(el("span", "pk-guide__desc", S["guide" + g[0].charAt(0).toUpperCase() + g[0].slice(1)] || ""));
+      row.appendChild(top);
+      var ex = el("div", "pk-guide__cards");
+      g[1].forEach(function (c) { ex.appendChild(cardEl(c)); });
+      row.appendChild(ex);
+      body.appendChild(row);
+    });
+    panel.appendChild(body);
+    panel.appendChild(el("p", "pk-guide__foot", S.guideFoot));
+    wrap.appendChild(panel);
+    return wrap;
   }
   function actionBtn(label, hintKey, enabled, onClick) {
     var b = el("button", "tb-pill");

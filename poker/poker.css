@@ -41,6 +41,12 @@
   --pkchipw: 16px;
   --pkside: 4px;
   --pkchip-edge: rgba(0, 0, 0, 0.45);
+  /* the settlement card's scrim. Nearly opaque, not a wash: the card now
+     carries the board and every contender's hand, and the felt behind it
+     (seats, chips, the board again) was reading straight through the
+     numbers. Part of the --pk* carve-out for the same reason the felt is
+     — it sits ON the felt, not in the page's chrome. */
+  --pkover-scrim: rgba(14, 26, 22, 0.94);
 }
 
 /* ── the bento (cities' grid, with dice+log folded into players) ── */
@@ -114,6 +120,24 @@
   gap: 2px;
   max-width: 7.5rem;
 }
+/* A hand shown privately to you, floating over that seat's chips. ABSOLUTE
+   on purpose: `.pk-seat` is centered on its anchor with translate(-50%,
+   -50%), so anything that adds height would slide the whole seat (the flop
+   jitter). Out of flow, it can't. Same scrim and gold edge as the
+   settlement card, so the two read as one kind of object: cards you are
+   being let see. */
+.pk-peek {
+  position: absolute; left: 50%; top: 2.1rem;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: var(--space-1);
+  background: var(--pkover-scrim);
+  border: 1px solid var(--pkglow);
+  border-radius: var(--radius-control);
+}
+.pk-peek__cards { display: flex; gap: 2px; }
+.pk-peek__tag { color: var(--pkglow); font-size: 0.55rem; line-height: 1; white-space: nowrap; }
 .pk-seat__head {
   display: inline-flex;
   align-items: center;
@@ -155,7 +179,14 @@
   color: var(--pkink-black);
   border: 1px solid var(--pkface-edge);
 }
-.pk-seat__badge--blind { background: transparent; color: var(--pkface); border-color: var(--pkface); }
+/* The blinds wear the DEALER's dress (his call, chat 2026-08-04). They
+   used to be a transparent variant inked in --pkface — ivory on a seat
+   pill whose background is --menu-surface, which is ivory in every LIGHT
+   theme: 10–26 redmean units apart, well under colors.js's own 60. The 1
+   and the 2 were not subtle on the felt, they were invisible, and only in
+   half the themes. The class stays: it still carries its own tooltip, and
+   it is where a deliberate distinction would go if he wants one. */
+.pk-seat__badge--blind { background: var(--pkface); color: var(--pkink-black); border-color: var(--pkface-edge); }
 /* the seat's live bet, floated toward the middle of the felt */
 .pk-seat__bet {
   font-size: 0.72rem;
@@ -367,7 +398,25 @@
 
 /* ── players tile (roster + this-hand log) ────────────────────── */
 .pk-ptitle { color: var(--subtext); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
-.pk-plist { display: flex; flex-direction: column; }
+/* The tile's height is fixed (34rem) whatever the seat count, so a full
+   twelve-hand table has to scroll SOMEWHERE. Cities/mahjong scroll the
+   whole players tile; poker scrolls the LIST alone so the "Players"
+   title stays pinned above it. `min-height: 0` is the load-bearing bit —
+   without it a flex child refuses to shrink below its content and the
+   overflow escapes the tile instead of scrolling. `scrollbar-gutter:
+   stable` reserves the track whether or not one shows, so a two-seat
+   table and a twelve-seat one lay the strips out at exactly the same
+   width (mahjong's argument, same fix). */
+.pk-plist {
+  display: flex; flex-direction: column;
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; scrollbar-gutter: stable;
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.pk-plist::-webkit-scrollbar { width: var(--space-2); }
+.pk-plist::-webkit-scrollbar-track { background: transparent; }
+.pk-plist::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.pk-plist::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
 /* the full player card — cities-pstrip's anatomy, fourth copy (see
    docs/games.md "Known duplication": promoting to gt- is queued, not
    done): bordered card, seat-accent left edge, head + state in the body,
@@ -422,6 +471,25 @@
    tile's corner, absolute panels above it, is-open toggling visibility
    so an opening panel can never move the board. */
 .pk-boardbtns { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 3; display: flex; gap: var(--space-2); }
+/* …except in the cash-out, where the tile SCROLLS. An absolutely
+   positioned child of a scroll container is pinned to the scrollport, not
+   to the content, so the row sat at the bottom of the first screenful and
+   then rode up through the standings — at twelve seats it landed on top of
+   the Winnings grid. In flow it simply follows the panel down, however
+   tall the table gets. `position: relative` because the popovers now
+   anchor to the row (poker.js `buildBoardPops`). */
+.pk-boardbtns--flow {
+  position: relative; left: auto; bottom: auto; z-index: 2;
+  align-self: flex-start;
+  margin-top: var(--space-3);
+}
+/* opening UPWARD off the row, as it does over the felt — and free of the
+   tile-width clamp, which in flow would measure the ROW and crush a
+   24rem log pane down to the width of two pills */
+.pk-boardbtns--flow .pk-bpop {
+  left: 0; bottom: calc(100% + var(--space-2));
+  max-width: none;
+}
 .pk-bpop {
   position: absolute; left: var(--space-3); bottom: 3.6rem; z-index: 3;
   width: 24rem; max-width: calc(100% - var(--space-3) * 2);
@@ -498,7 +566,12 @@
 /* hand | chips | controls — the rail sits between your cards and your
    pills because that is the order you read them in: what I hold, what
    it's worth, what I can do about it. */
-.pk-play { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+/* The chip rail takes its natural width instead of half the leftovers, so
+   the CONTROL column gets everything else. Five pills plus a "Call $1.20"
+   that grows with the bet didn't fit an even split, and the row wrapped —
+   which moved Raise onto a second line mid-hand, exactly when a hand is
+   reaching for it (his report, chat 2026-08-04). */
+.pk-play { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 .pk-play__hand { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .pk-play__chips {
   min-width: 0;
@@ -515,9 +588,47 @@
 .pk-play__ctrl { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .pk-hole { display: flex; gap: var(--space-2); align-items: center; }
 .pk-hole--buyin { gap: var(--space-3); }
-.pk-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+/* ONE line, always. The Call pill's label carries the amount, so it
+   changes width every street; wrapping made that a layout change rather
+   than a text change. The page is desktop-only below 56rem (the felt is
+   swapped for a note), so the narrowest this row ever renders at still
+   has room for five pills. */
+.pk-actions { display: flex; gap: var(--space-2); flex-wrap: nowrap; justify-content: flex-end; }
+.pk-actions .tb-pill { white-space: nowrap; flex: none; }
 .pk-actions .tb-pill { cursor: pointer; }
 .pk-actions .tb-pill:disabled { opacity: 0.5; cursor: default; }
+/* Rotation — a toolbar pill with the shell's own option list under it
+   (`gt-setth`'s anchoring, `tb-pop__opt`'s rows and its is-active dot).
+   Left-aligned rather than the kit's default right, because it hangs off
+   a pill in the middle of the toolbar rather than off its end. */
+.pk-rotate { position: relative; display: inline-flex; }
+.pk-rotate__pop { top: calc(100% + var(--space-2)); left: 0; right: auto; min-width: 11rem; padding: var(--space-2); }
+/* Show To: the fifth pill, with the seat picker hanging off it. The
+   anchor is `position: relative` so the popover measures from the pill
+   and not from the panel — the tb-pop kit pins to `top: 100%; right: 0`
+   of whatever it is inside. */
+.pk-showto { position: relative; display: inline-flex; }
+.pk-showto__pop { min-width: 13rem; padding-bottom: 0; }
+.pk-showto__row {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8rem; cursor: pointer;
+}
+.pk-showto__row:hover { background: var(--surface-hover); }
+.pk-showto__row.is-done { opacity: 0.55; cursor: default; }
+.pk-showto__box { accent-color: var(--title); width: 0.9rem; height: 0.9rem; flex: none; cursor: pointer; }
+.pk-showto__name { flex: 1 1 auto; min-width: 0; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-showto__state { flex: none; color: var(--subtext); font-size: 0.7rem; }
+/* the confirm foot — showing can't be undone, so it never fires on the
+   tick alone */
+.pk-showto__foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.pk-showto__count { color: var(--subtext); font-size: 0.7rem; }
+.pk-showto__foot .tb-pill:disabled { opacity: 0.5; cursor: default; }
 /* raise tray: lives under the pills; invisible until Raise arms it, but
    always occupying its rows. Confirm sits on its OWN line under the
    slider rather than at the end of it — on the row it was the last item
@@ -555,6 +666,69 @@
   border-color: var(--title);
   outline: none;
 }
+/* ── the made hand + the rankings guide ────────────────────────── */
+/* What you hold, under your cards. Always in the layout, blanked rather
+   than omitted, so the flop can't jog the panel. */
+.pk-made {
+  color: var(--title); font-weight: 700; font-size: 0.9rem;
+  min-height: 1.2em; line-height: 1.2;
+}
+.pk-made.is-blank { visibility: hidden; }
+/* pinned to the BOTTOM of the hand column (his call) — `margin-top: auto`
+   in a flex column, so it sits under the cards however tall they are */
+.pk-guidebtn { margin-top: auto; align-self: flex-start; }
+/* Mahjong's mj-guide, in poker's clothing: an absolute overlay on the
+   BENTO (not one tile — the button is in the hand panel and the reading
+   wants the felt's width), a fixed-width panel that scrolls inside
+   itself, and NO entrance animation. The page rebuilds on every
+   broadcast while this is open; anything that replayed would flicker
+   once a second at a busy table. */
+.pk-guide {
+  position: absolute; inset: 0; z-index: 30;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--canvas) 55%, transparent);
+  border-radius: var(--radius-panel);
+}
+.pk-guide__panel {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-4);
+  width: 30rem; max-width: 92%; max-height: 92%;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  min-height: 0;
+}
+.pk-guide__head { flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.pk-guide__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1.1rem; }
+.pk-guide__close { background: none; border: none; color: var(--subtext); cursor: pointer; font: inherit; font-size: 0.9rem; }
+.pk-guide__close:hover { color: var(--stop); }
+.pk-guide__intro, .pk-guide__foot { margin: 0; color: var(--subtext); font-size: 0.78rem; line-height: 1.5; }
+.pk-guide__foot { flex: none; padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.pk-guide__body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-1);
+  padding-right: var(--space-2);
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.pk-guide__body::-webkit-scrollbar { width: var(--space-2); }
+.pk-guide__body::-webkit-scrollbar-track { background: transparent; }
+.pk-guide__body::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.pk-guide__row {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--space-2);
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+}
+/* the category you're actually holding, lit the way the roster lights the
+   acting seat — the guide answers "where am I in this list" too */
+.pk-guide__row.is-held { border-color: var(--title); background: var(--surface-hover); }
+.pk-guide__top { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.pk-guide__name { color: var(--title); font-weight: 700; font-size: 0.88rem; }
+.pk-guide__desc { color: var(--subtext); font-size: 0.78rem; }
+.pk-guide__cards { display: flex; gap: var(--space-1); }
 .pk-roleline { color: var(--subtext); font-size: 0.85rem; }
 .pk-roleline strong { color: var(--title); }
 
@@ -608,10 +782,17 @@
   position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%);
   display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--pkover-scrim);
+  border: 1px solid var(--pkface-edge);
+  box-shadow: var(--shadow-panel);
   border-radius: var(--radius-panel);
   padding: var(--space-3) var(--space-5);
   max-width: 80%;
+  /* the felt does not scroll (see .pk-tile--big), so the card that floats
+     over it has to fit: a twelve-hand showdown clips to the felt and
+     scrolls INSIDE the card rather than running off the page */
+  max-height: 92%;
+  overflow-y: auto;
 }
 /* the settlement card eases up into place, then the winning line glows
    under it — cities-overin + cities-winnerpulse, same beats. `is-in` is
@@ -622,6 +803,64 @@
 .pk-over__line { color: var(--pkface); font-size: 1rem; text-align: center; }
 .pk-over__line strong { color: var(--pkglow); }
 .pk-over__sub { color: var(--pkface); opacity: 0.8; font-size: 0.8rem; }
+/* the showdown's revealed hands: a grid, so twelve of them wrap into a
+   block instead of stacking twelve rows off the bottom of the felt.
+   `--pkcols` is set per hand-over by poker.js (the card is shrink-to-fit,
+   which rules out `auto-fit`); the fallback keeps the rule standing on
+   its own. */
+.pk-over__reveals {
+  display: grid;
+  grid-template-columns: repeat(var(--pkcols, 2), auto);
+  gap: var(--space-2) var(--space-3);
+  justify-items: center;
+}
+.pk-over__hand { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pk-over__who { color: var(--pkglow); max-width: 8.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-over__cards { display: flex; gap: var(--space-1); }
+/* the rank line is ALWAYS in the box (a mucked hand renders a blank one),
+   so the grid's rows can't jag when one seat shows and its neighbour
+   doesn't — the universal layout rule, applied per cell */
+.pk-over__rank { white-space: nowrap; min-height: 1em; }
+.pk-over__hand.is-muck { opacity: 0.75; }
+/* the board the hands were made from, across the top of the card */
+.pk-over__board {
+  display: flex; gap: var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--pkface-edge);
+}
+/* the footer: the two ends of a settled hand. `space-between` with the
+   reveal group left and Next hand right, and `width: 100%` so the two
+   pin to the card's edges however narrow the hands above happen to be. */
+.pk-over__foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3); width: 100%;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--pkface-edge);
+}
+/* "Reveal | ☐" is ONE pill split by a hairline (his sketch), wearing the
+   shell's `tb-pill` + `tb-pill__value` dress — League's "Queue | Arena ▾".
+   The pill carries the border and the padding moves INTO the halves, so
+   the whole box is live: the left half is a real button, the right half a
+   label the checkbox lives inside (a checkbox can't nest in a button, and
+   the label makes the whole cell its hit area). */
+.pk-over__reveal { padding: 0; gap: 0; }
+.pk-over__reveal-do {
+  background: none; border: 0; color: inherit; font: inherit;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+/* the shell's pill has no disabled dress of its own (only .gt-chip does),
+   and this half spends most of its life disabled — already shown, or no
+   hand in this pot. Same 0.55 the chips use; `is-off` also holds the
+   pill's hover back, so a dead button can't look armed. */
+.pk-over__reveal-do:disabled { opacity: 0.55; cursor: default; }
+.pk-over__reveal.is-off:hover { background: var(--surface); color: var(--text); }
+.pk-over__always-wrap {
+  display: flex; align-items: center;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+.pk-over__always { accent-color: var(--pkglow); width: 0.9rem; height: 0.9rem; cursor: pointer; display: block; }
 /* The cash-out panel is cities' `.cities-over` / mahjong's `.mj-over`
    in poker's clothing — same column, same gap, same entrance, same
    glow on the winning row. `align-self: flex-start` rather than the
@@ -682,7 +921,9 @@
 /* Rematch sits in the flow; the Repayment + Log pills are the felt's
    absolute row pinned to the tile's bottom-left. Nothing in the layout
    keeps the two button rows apart, so the margin does it by hand. */
-.pk-cashout__rematch { align-self: flex-start; margin-top: var(--space-4); margin-bottom: var(--space-5); }
+/* the tall bottom margin is gone: it existed only to keep Rematch clear of
+   the absolute pill row, and the row is in flow under it now */
+.pk-cashout__rematch { align-self: flex-start; margin-top: var(--space-4); }
 
 /* ── repayment: the fewest hand-offs that clear the table ─────── */
 .pk-pay { display: flex; flex-direction: column; gap: var(--space-1); }

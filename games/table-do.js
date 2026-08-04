@@ -850,7 +850,7 @@ export class GameTable {
         else idx = this.openSeatIndex();
         if (idx < 0) return this.errTo(ws, "full");
         const occupied = t.seats.map((s, si) => (s && si !== idx) ? s.color : null);
-        t.seats[idx] = { token, name: att.name, color: this.Colors.freePreset(occupied) };
+        t.seats[idx] = { token, name: att.name, color: this.Colors.freeColor(occupied) };
         if (att.uid) t.seats[idx].uid = att.uid;   // account seat: uid-reclaim from any device
         this.resizeSeats();
         await this.broadcast([]);
@@ -902,7 +902,7 @@ export class GameTable {
         else {
           const bocc = t.seats.map((s, si) => (s && si !== bi) ? s.color : null);
           t.seats[bi] = { token: "phantom:" + crypto.randomUUID().slice(0, 8), name: bname,
-                          color: this.Colors.freePreset(bocc), phantom: true, tier: btier };
+                          color: this.Colors.freeColor(bocc), phantom: true, tier: btier };
         }
         this.resizeSeats();
         await this.broadcast([]);

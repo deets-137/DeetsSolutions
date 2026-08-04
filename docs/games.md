@@ -223,7 +223,9 @@ The pill's wording has to change with the policy — at a `"none"` table
 standing cashes you out, everywhere else it just parks you — so a game
 may override it per render with the **`standCopy()`** hook, returning
 `{label, hover, confirm}` (any subset; null keeps the shell's own
-strings).
+strings). Returning **`false`** withdraws the pill entirely, for a state
+where standing is a no-op — poker returns false for a seat that is
+already sitting out, whose way back is its own pill further left.
 
 **A seat only ever loses its hand when nobody can inherit it.** A bot
 takeover, an adoption, and a reclaim all keep the hand, dev cards,
@@ -379,6 +381,33 @@ render()                  draw
 postRender()              anything that needs the new DOM
 ```
 
+### What a repaint must not destroy
+
+Every game rebuilds its tiles wholesale (`textContent = ""`) on every
+broadcast. That is what keeps the render loop simple enough to trust,
+and it's non-negotiable — but it means anything the **browser** was
+holding rather than the model dies with the old nodes. At a twelve-seat
+poker table someone acts every second or two, so this reads as the page
+fighting the user: scroll the roster and it snaps back, start typing a
+chip value and the caret vanishes, arm a two-step Confirm and it silently
+disarms before you can click it.
+
+`render()` therefore photographs and restores two things around the
+rebuild — **scroll offsets** (`snapScroll` / `restoreScroll`) and the
+**focused field plus its caret** (`snapFocus` / `restoreFocus`). Both
+match nodes by class list + ordinal rather than by identity: nothing here
+has a stable id, and giving everything one would be a bigger change than
+the bug is worth. A node that moved or was renamed simply doesn't
+restore.
+
+Anything else that must survive a repaint is **state, and belongs in
+`ui`** — never on a DOM node. `ui.raiseDraft`, `ui.settingsPinned`, and
+`ui.showToPick` are the pattern. The two-step pills follow the same rule
+through **`TBL.confirmPill(key, label, confirmLabel, onGo)`**, which
+holds the armed flag (as its own disarm timer) in the shell, keyed by
+name. Before that it lived on the button as `b._armed`, and the button
+you clicked Confirm on was two renders younger than the one you armed.
+
 **Config:** `ns` (localStorage namespace), `api`, `mock`, `strings`,
 `rootSel`, `capacity`, `minSeats`, `startNeedsHint`, `errExtra`, `logCap`,
 `clearFields` / `clearYouFields` (fields a broadcast omits must clear, not
@@ -401,6 +430,40 @@ discarded game into its own lobby.
 `setRow`, `choiceRow`, `toast`, `pop`, `skew`, `graceSecs`, `logLines`, `ui`,
 `code()`, `boot()`, and the utilities (`el`, `load`, `save`, `fmt`,
 `slugify`, `reduceMotion`).
+
+### Seat colors — who gets which
+
+`games/colors.js` is the contract (vendored verbatim into every worker).
+Six `PRESETS`, mutually ~100+ redmean units apart; `clash()` refuses
+anything within `MIN_DIST` (60) of a seat already taken. That is the only
+validation — proximity to a game's own board or felt is deliberately
+unchecked (his call).
+
+Auto-assign is **`freeColor(taken, rand)`**, not `freePreset`. It hands
+out an unused preset while one exists, so a ≤6-seat table behaves exactly
+as before; past that it GENERATES one:
+
+- in a **safe band** — HSL at fixed mid saturation and lightness, never a
+  flat 24-bit random. A random hex is near-black, near-white or mud about
+  a third of the time, and a seat dot has to read on a light theme, a
+  dark one, and against a felt. Fixing S and L is also what lets hue
+  distance stand in for perceived distance;
+- placed by **widest gap on the hue circle**, jittered inside it, with
+  the lightness stepped either side of centre on alternating picks
+  (past six seats the gaps subdivide, and two hues 20° apart clear the
+  distance test while still reading as one color).
+
+Gap placement rather than roll-until-it-clears because retrying degrades
+exactly where it matters: the twelfth seat has the least room, so it is
+the one whose random tries all fail. `freePreset` — which fell back to
+preset 0 — is why every seat past the sixth at a poker table used to
+arrive wearing the identical red.
+
+Callers: `sit` and `addBot` in both `table-mock.js` and `table-do.js`,
+and poker's `randColor` for the mid-game sit-in. A game's page should
+never roll its own hex; poker.js's `seedDistinctColor` (the one case the
+table can't foresee — a profile color landing on someone) calls the same
+generator.
 
 ### Seat accent — `--gseat`
 
