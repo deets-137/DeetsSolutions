@@ -696,10 +696,11 @@ Two things the bot work turned up that are not about bots:
 - **`minTo` is not always representable.** A short all-in is legal at any
   amount — the one exception to the chip rule — so `bet.current`, and the
   minimum raise built on it, can land on cents no ladder can pay. The
-  engine correctly refuses that raise with `chips`. The bot now climbs to
-  the next amount the chips make; **the client's raise slider has not
-  been checked against this case** and may be able to offer a minimum
-  that the engine will reject.
+  engine correctly refuses that raise with `chips`. The bot climbs to
+  the next amount the chips make (`botFit`), and the client's raise tray
+  now does the same climb through the engine's `botFit` export — it was
+  broken the same way, since every slider stop inherits an off-ladder
+  base's remainder.
 - The old dev bot's "call anything up to one big blind" is now `easy`'s
   `callBB`, and measurement says it is the single biggest leak a tier
   can have.

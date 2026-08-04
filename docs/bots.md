@@ -660,7 +660,3 @@ Measurement above.
 - **Poker's tier labels are `[ph]`.** `botTier_easy/normal/hard` and the
   short forms in `poker/strings.js` are placeholders awaiting Aditya's
   pass — the rest of that file is his.
-- **The client's raise slider may be able to offer an unrepresentable
-  minimum.** The engine refuses it with `chips` (see Self-tests). The bot
-  now climbs past it; `poker.js` has **not** been checked against the
-  same case.
