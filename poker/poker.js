@@ -1860,7 +1860,13 @@
     if (o) {
       // the table's current bet, seen from my side of it
       cur = (model.players[mySeat()].betStreet || 0) + o.toCall;
-      minBy = Math.max(1, o.minTo - cur);
+      /* o.minTo isn't always representable (a short all-in can leave
+         bet.current off the ladder), and every slider stop inherits the
+         base's remainder — so climb to the first amount the chips make,
+         exactly as the bot does. If nothing between minTo and the stack
+         fits, the full all-in (always legal) is the only raise left. */
+      var fitTo = Engine.botFit(o.minTo, chipValsNow(), o.minTo, o.maxTo) || o.maxTo;
+      minBy = Math.max(1, fitTo - cur);
       maxBy = Math.max(minBy, o.maxTo - cur);
     }
     var val = ui.raiseDraft != null ? ui.raiseDraft : minBy;

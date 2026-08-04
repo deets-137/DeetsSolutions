@@ -2107,6 +2107,7 @@
     botAct: botAct,
     botPending: botPending,
     botStrength: botStrength,          // exported for the tuning harness
+    botFit: botFit,                    // exported for the raise tray: same climb as the bot's
     BOT_TIERS: BOT_TIERS,
     BOT_TIER_LIST: BOT_TIER_LIST,
     selfTest: selfTest
