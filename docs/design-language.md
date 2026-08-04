@@ -139,11 +139,12 @@ everything downstream follows:
   `BOT_TIER_LIST`, grace expiry converts the seat, `rejoinModes` defaults
   to `["anyone", "rejoin"]` (offer `"none"` only if the engine speaks
   `concede`). Tuning is measured, not guessed — [bots.md](bots.md).
-- **No** (poker): `BOT_TIER_LIST` is empty, no bot ever inherits a seat,
-  and the rejoin modes decide what *leaving costs* instead — away seats
-  via `awayAction`/`adoptAction`, the pill re-worded per mode through
-  `standCopy()`. Keep a minimal `botAct` anyway: the mock's dev bots are
-  how a solo lobby gets reviewed.
+- **No** (poker): no bot ever *inherits* a seat, and the rejoin modes
+  decide what *leaving costs* instead — away seats via
+  `awayAction`/`adoptAction`, the pill re-worded per mode through
+  `standCopy()`. This is orthogonal to whether bots play at all: poker's
+  bots are first-class host-added opponents with a full `BOT_TIER_LIST`;
+  the "No" only means a seat somebody left is never a bot's to catch.
 - **Sort of** — a game where a bot could shuffle through the motions but
   would betray a teammate or an alliance — is **new territory**. Ask.
 

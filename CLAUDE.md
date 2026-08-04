@@ -93,9 +93,12 @@ Per-game invariants worth knowing before you touch them:
 - **Poker** (live on `../DeetsPoker`; the mock is `?mock` like every other
   game): money is integer
   cents, and every bet must split into the table's chip ladder (full all-ins
-  excepted). Hole cards and the actor's options ride only `you`. No bots in
-  live play, ever — the three `rejoin` modes decide what *leaving* costs, not
-  who inherits the seat. See [poker.md](docs/poker.md), "Stepping away".
+  excepted). Hole cards and the actor's options ride only `you`. A bot is
+  always **host-added and never inherited** — the three `rejoin` modes decide
+  what *leaving* costs, not who takes the seat. Poker's bot is also the one
+  that may **not read the table**: unlike cities' and mahjong's, its own
+  action would leak a peek, so it sees only its own hole cards and the board
+  ([bots.md](docs/bots.md)). See [poker.md](docs/poker.md), "Stepping away".
 - **Mahjong**: hidden info — hands, the drawn tile, and per-seat claim options
   ride only each connection's `you`. Tile art is per-VIEWER (localStorage,
   never on the wire); templates come from `scripts/build-mahjong-tiles.py`.
@@ -114,7 +117,7 @@ he dictated in chat.
 | Radio | Done — handwritten throughout |
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
-| Poker | Done — two passes (2026-08-03, 2026-08-04); zero `[ph]` left |
+| Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.
@@ -130,7 +133,7 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 | DeetsCities | `cities-api.deets.solutions` | |
 | DeetsMahjong | `mahjong-api.deets.solutions` | |
 | DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
-| DeetsPoker | `poker-api.deets.solutions` | private repo; **secrets not set yet** (guests only, results in the outbox) |
+| DeetsPoker | `poker-api.deets.solutions` | private repo; secrets set 2026-08-03 (rotated across all five workers) |
 
 - **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
   + guardrails). Never call Riot or spend key budget from the browser.

@@ -16,7 +16,8 @@ assets/sprites/poker/    chip art (templates: scripts/build-poker-chips.py)
 ../DeetsPoker/           the worker repo (src/index.js is the mock's port)
 ```
 
-`node poker/engine.js` runs the engine's self-checks (233 at last count).
+`node poker/engine.js` runs the engine's self-checks (290 at last count).
+`node scripts/poker-bot-duel.js` measures the bot tiers ([bots.md](bots.md)).
 
 ## Build phases
 
@@ -84,11 +85,11 @@ grace-expiry bug and somebody's stack).
   presets 5/15/30/60s + custom (3–120), default **30**. It has a floor
   and no "off" because that card is the only place a `reveal` can be
   asked for. Anyone can cut it short with Next hand.
-- **No bots, ever, in live play.** No bot inherits a poker seat in any
-  mode — the drive is a dev tool, not a player. What the three `rejoin`
-  modes decide is what **leaving costs**; see "Stepping away" below. The
-  mock keeps host-added **dev bots** so a solo lobby can watch hands play
-  out — see "Bots" below.
+- **Bots are host-added, never inherited.** Bots are first-class
+  opponents (three tiers, live and mock alike — see "Bots" below), but no
+  bot ever *takes over* a poker seat in any mode. What the three `rejoin`
+  modes decide is what **leaving costs**, not who catches the seat; see
+  "Stepping away" below.
 - **Joining a running table** is one setting, **Mid-game Join** (see
   "Stepping away"). There is no separate Seating row — it said the same
   thing twice. `sitIn` (the poker-only verb: a NEW seat appended
@@ -670,15 +671,39 @@ which half of a token the pointer is over, so "before this one" and
 it travels. Drop math converts the divider's position to an insertion
 index and decrements it when the lift came from earlier in the list.
 
-## Bots (dev-only)
+## Bots
 
-`BOT_TIER_LIST` is **empty** — no tiers, no picker, and the live game
-philosophy is no bots at all. `botAct` exists for the mock's host-added
-dev bots: check when free, complete a call ≤ one big blind, fold to
-anything more; never raises, votes, or re-buys. That's one notch above
-the timeout policy (which is strict check-or-fold) so solo review reaches
-showdowns. If Aditya wants the Add Bot pill gone from poker's lobby
-before the worker ships, that's a one-flag shell change — say the word.
+Three tiers — **easy / normal / hard** — over one brain, the same shape
+cities and mahjong use. Full treatment in [bots.md](bots.md); what's
+poker-specific:
+
+- **Host-added, never inherited.** No bot ever takes a seat somebody
+  left: that seat goes away with its stack or cashes out (see "Stepping
+  away"). The tiers decide how hard a seat somebody *chose* to fill
+  plays, nothing else.
+- **A busted bot re-buys.** Not a tier knob — without it a cash table
+  empties one seat at a time and leaves the human alone at a `waiting`
+  felt.
+- **The bot may not read the table.** Unlike cities' and mahjong's, a
+  poker bot's own action would leak a peek, so it sees only its own hole
+  cards and the board. A self-check enforces it by re-asking on a clone
+  with every other hand replaced ([bots.md](bots.md), "…except in
+  poker"). **Never widen what `botStrength` reads.**
+- **No bot votes to end** and none is ever seated automatically.
+
+Two things the bot work turned up that are not about bots:
+
+- **`minTo` is not always representable.** A short all-in is legal at any
+  amount — the one exception to the chip rule — so `bet.current`, and the
+  minimum raise built on it, can land on cents no ladder can pay. The
+  engine correctly refuses that raise with `chips`. The bot climbs to
+  the next amount the chips make (`botFit`), and the client's raise tray
+  now does the same climb through the engine's `botFit` export — it was
+  broken the same way, since every slider stop inherits an off-ladder
+  base's remainder.
+- The old dev bot's "call anything up to one big blind" is now `easy`'s
+  `callBB`, and measurement says it is the single biggest leak a tier
+  can have.
 
 ## Shared-shell changes this game required (all additive)
 
@@ -805,15 +830,17 @@ and the `win` above already flew them.
 - The `handOverSec` dwell is a LOBBY setting only — like every other
   table setting, it can't be re-tuned once the game starts. The host's
   mid-game lever is the Next hand button.
-- **The worker's two secrets.** `SESSION_SECRET` and `INGEST_SECRET` are
-  not set on `deets-poker` yet (`npx wrangler secret put NAME`, the same
-  values DeetsAccounts holds). Without the first, every seat is a guest
-  and cross-device return — the point of away seats — doesn't work.
-  Without the second, a finished game waits in the DO's outbox.
+- **The worker's two secrets are SET** (2026-08-03, by rotation — the old
+  values were unrecoverable, so a fresh pair went to all five workers at
+  once via `DeetsPoker/scripts/put-secrets.mjs`; they must match
+  DeetsAccounts or auth degrades silently). Without `SESSION_SECRET`
+  every seat is a guest and cross-device return doesn't work; without
+  `INGEST_SECRET` a finished game waits in the DO's outbox.
 - The profile page prints poker's money counters only once it grows a
   cents formatter — `net`, `bought` and `biggest_pot` land in the
   database now but carry no label yet ([stats.md](stats.md)).
-- The copy pass is **done** (chat 2026-08-03): 79 placeholders cleared in
-  one pass, so every string in `poker/strings.js` is now his and off
-  limits to reword. Only the four `repay*` strings still carry `[ph]`,
-  and they belong to work in flight elsewhere.
+- The copy pass is **done — three passes** (2026-08-03, 2026-08-04 ×2):
+  79 placeholders in the first, the showdown-polish batch in the second,
+  and the six bot-tier labels approved 2026-08-04 with the bots merge.
+  **Zero `[ph]` in `poker/strings.js`** — every string is his and off
+  limits to reword.

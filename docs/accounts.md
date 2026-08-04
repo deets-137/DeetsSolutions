@@ -298,7 +298,7 @@ game worker; the DO verifies its HMAC against the shared
 of that ([games.md](games.md), "Identity and rejoin" — dark seats only,
 kick severs, uid never broadcast).
 
-**Built, not yet deployed (2026-07-28) — results and stats.** Finished
+**Results and stats — SHIPPED 2026-07-29, live.** Finished
 tables POST themselves over a service binding under an idempotency key of
 `game:tableId:rematchIndex`, and D1 grew six tables for the outcome, the
 occupancy and the event stream. The verified per-seat uid the reclaim work
@@ -311,5 +311,5 @@ the occupancy as fact and lets any read-time policy decide. And the uid
 turned out to be **deleted from a seat on every departure path**, so
 attribution had to be recorded as it happened rather than read at game over.
 
-**See [stats.md](stats.md)** for the standings model, the schema, what each
-engine counts, and the three deploys still owed.
+**See [stats.md](stats.md)** for the standings model, the schema, and what
+each engine counts. Still open there: the outbox sweep and Elo.
