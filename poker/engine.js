@@ -27,13 +27,11 @@
    worker repo (../DeetsPoker) will carry a VERBATIM vendored copy — this
    file and its copy are contract, exactly like mahjong's engine.
 
-   BOT_TIER_LIST is deliberately EMPTY: DeetsPoker has no difficulty tiers,
-   and live play has no bot takeover at all — a released seat either goes
-   AWAY with its stack or cashes out, never to a bot (docs/poker.md,
-   "Stepping away"). botAct exists
-   for the mock's host-added dev bots only: a bot checks when it can,
-   completes a small call (≤ one big blind), and folds to anything more.
-   It never raises, votes, or re-buys.
+   BOTS play three tiers over one brain (docs/bots.md). A bot is always
+   HOST-ADDED and never inherited: a released seat goes AWAY with its
+   stack or cashes out, never to a bot (docs/poker.md, "Stepping away").
+   Poker's bot is the one that may not read the table — see the hidden
+   information note above botAct, which the self-checks hold it to.
 
    Browser: window.PokerEngine. Node (self-checks): module.exports, and
    `node poker/engine.js` runs selfTest(). */
@@ -1151,23 +1149,263 @@
     if (!g.turn) streetDone(g, ctx, events);
   }
 
-  /* ── the mock's dev bots (docs/poker.md, "Bots") ──────────────
-     Not a poker player: checks when free, completes a small call
-     (≤ one big blind), folds to pressure. Exists so a solo lobby can
-     watch hands play out; live tables have no bots at all. */
-  var BOT_TIER_LIST = [];
+  /* ── bots (docs/bots.md, docs/poker.md "Bots") ────────────────
+     Three tiers over ONE brain, the same shape cities and mahjong use:
+     a single strength heuristic, and a table of parameters deciding how
+     clearly a tier gets to see it and what it does about it. There is
+     no second brain, and there is no separate "dev" bot any more — a
+     host-added bot plays the same game at the mock and on the live
+     table.
+
+     HIDDEN INFORMATION — the one rule poker does NOT share with the
+     other two. Their bots read the whole `game` (every mahjong hand,
+     every dev card), and that is safe there because what botAct RETURNS
+     is public the instant it applies. A poker fold is not: it is a
+     decision DERIVED from whatever the bot looked at, so a bot that
+     peeked would leak the peek through its own betting. Therefore
+
+       botStrength and everything under it read ONLY g.players[me].hole,
+       g.board, and the public betting state — never another seat's
+       `hole`, never `g.deck`.
+
+     Nothing structural enforces that; `botIsBlind` in the self-checks
+     does, by scrambling every other hand and the undealt deck and
+     asserting the same seed still produces the same action. */
+
+  /* The tiers ARE the difficulty knobs.
+       tight    preflop strength it needs to put money in at all
+       jitter   noise added to the strength read; high = sloppy, which
+                is how a weak tier is built (worse choices, not fewer)
+       aggro    chance of raising once a hand clears the bar
+       bluff    chance of betting one that didn't
+       betAt    strength it bets at when nothing is owed
+       raiseAt  strength it raises at when facing a bet (a higher bar)
+       commit   strength it shoves the stack in at, POSTFLOP only —
+                preflop the ordinary raise path handles it, because
+                shoving aces into the blinds wins nothing
+       odds     compares the price against the pot instead of against a
+                flat number of blinds. This is the discipline axis
+       slack    multiplier on the equity the price demands, so it reads
+                the way cities' `loss` does: >1 wants a margin before it
+                puts money in, <1 calls wider than the price justifies
+       callBB   odds:false only — calls anything up to this many blinds
+       loose    odds:false only — strength it calls a BIG bet at anyway
+       size     bet as a fraction of the pot
+       pick     choose among this many sizings, so two bots at the same
+                tier don't bet the identical number every hand
+
+     Difficulty runs along a FEW axes — the read (`jitter`), and the
+     discipline (`odds`/`slack`/`tight`) — with the tiers kept CLOSE on
+     aggression and sizing. That restraint is load-bearing: the first
+     ladder gave hard its own value for all ten knobs and came out
+     non-transitive (hard crushed easy and lost to normal). Independent
+     knobs make a tier different, not better. */
+  var BOT_TIERS = {
+    easy:   { tight: 0.12, jitter: 0.45, aggro: 0.30, bluff: 0.12,
+              betAt: 0.34, raiseAt: 0.58, commit: 0.95,
+              odds: false, slack: 1.00, callBB: 6, loose: 0.30,
+              size: 0.55, pick: 5 },
+    normal: { tight: 0.26, jitter: 0.14, aggro: 0.55, bluff: 0.07,
+              betAt: 0.36, raiseAt: 0.55, commit: 0.90,
+              odds: true,  slack: 1.00, callBB: 0, loose: 0,
+              size: 0.60, pick: 2 },
+    hard:   { tight: 0.34, jitter: 0.02, aggro: 0.65, bluff: 0.10,
+              betAt: 0.36, raiseAt: 0.54, commit: 0.86,
+              odds: true,  slack: 1.12, callBB: 0, loose: 0,
+              size: 0.62, pick: 1 }
+  };
+  var BOT_TIER_LIST = ["easy", "normal", "hard"];
+  function botTier(name) { return BOT_TIERS[name] || BOT_TIERS.normal; }
+  // cities' idiom, spelled again here rather than shared: an engine is a
+  // self-contained contract file, vendored on its own (docs/bots.md).
+  function botChoose(list, pick, rand) {
+    if (!list.length) return null;
+    var n = pick === Infinity ? list.length : Math.min(pick, list.length);
+    return list[Math.floor(rand() * n)];
+  }
+
+  /* Preflop: Chen's formula, the standard pencil-and-paper ranking —
+     high card, doubled for a pair, plus suited, minus the gap. It runs
+     about −1 (72o) to 20 (AA), which normalizes onto 0..1. */
+  var CHEN_HI = { 14: 10, 13: 8, 12: 7, 11: 6 };
+  function chenScore(hole) {
+    var a = rankOf(hole[0]), b = rankOf(hole[1]);
+    var hi = Math.max(a, b), lo = Math.min(a, b);
+    var v = CHEN_HI[hi] || hi / 2;
+    if (a === b) v = Math.max(v * 2, 5);                   // a pair is worth double, floor 5
+    if (suitOf(hole[0]) === suitOf(hole[1])) v += 2;
+    if (a !== b) {
+      var gap = hi - lo - 1;
+      v -= gap >= 4 ? 5 : gap === 3 ? 4 : gap;             // 0/1/2 gaps cost their own size
+      if (gap <= 1 && hi < 12) v += 1;                     // connected and low: straights play
+    }
+    return Math.ceil(v);
+  }
+
+  /* Postflop: the category you hold, refined by what it actually beats.
+     `bestOf` does the reading — the same function the hand panel uses,
+     so the bot cannot disagree with the client about what it holds. */
+  var CAT_BASE = [0.05, 0.24, 0.52, 0.70, 0.78, 0.85, 0.93, 0.98, 1.00];
+  function botMadeStrength(hole, board) {
+    var made = bestOf(hole.concat(board));
+    var cat = made.score[0], s = CAT_BASE[cat];
+    if (cat === 0) {
+      s += (made.score[1] - 2) / 12 * 0.10;                // all that separates two of these is the top card
+    } else if (cat === 1) {
+      // a pair is only as good as what it beats: an overpair and bottom
+      // pair carry the same name and are not the same hand
+      var pr = made.score[1], beat = 0;
+      board.forEach(function (c) { if (pr > rankOf(c)) beat++; });
+      s += 0.14 * (beat / Math.max(1, board.length));
+    }
+    // playing the board: everyone still in holds this exact hand, so it
+    // cannot win the pot outright, only chop it
+    if (board.length === 5 && cmpScore(made.score, bestOf(board).score) === 0) {
+      s = Math.min(s, 0.10);
+    }
+    return s;
+  }
+  // how many distinct straights are one card away
+  function botStraightWays(cards) {
+    var have = {}, ways = 0;
+    cards.forEach(function (c) {
+      var r = rankOf(c);
+      have[r] = 1;
+      if (r === 14) have[1] = 1;                           // the wheel counts the ace low
+    });
+    for (var lo = 1; lo <= 10; lo++) {
+      var n = 0;
+      for (var k = 0; k < 5; k++) if (have[lo + k]) n++;
+      if (n === 4) ways++;
+    }
+    return ways;
+  }
+  function botSuitMax(cards) {
+    var c = {}, m = 0;
+    cards.forEach(function (x) { var s = suitOf(x); c[s] = (c[s] || 0) + 1; m = Math.max(m, c[s]); });
+    return m;
+  }
+  /* A hand that isn't made yet but is going somewhere. Only counts the
+     draws the HOLE cards make — four to a flush on the board is not
+     your draw, it is everyone's. */
+  function botDrawBonus(hole, board) {
+    var all = hole.concat(board), b = 0;
+    if (botSuitMax(all) === 4 && botSuitMax(board) < 4) b += 0.15;
+    var ways = botStraightWays(all);
+    if (ways > botStraightWays(board)) b += ways >= 2 ? 0.12 : 0.05;   // open-ended, else a gutshot
+    return b;
+  }
+
+  function botStrength(g, me) {
+    var p = g.players[me];
+    if (!p || !p.hole || p.hole.length < 2) return 0;
+    var board = g.board || [];
+    if (board.length < 3) return Math.max(0, Math.min(1, (chenScore(p.hole) + 1) / 21));
+    var s = botMadeStrength(p.hole, board);
+    // a draw is worth chips and is not worth a made hand's chips
+    if (board.length < 5) s = Math.min(0.72, s + botDrawBonus(p.hole, board));
+    return Math.max(0, Math.min(1, s));
+  }
+
+  /* The smallest amount at or above `lo` that the chips can actually pay.
+
+     `minTo` is NOT always representable, which is the trap here: a short
+     all-in is legal at ANY amount (the one exception to the chip rule),
+     so `bet.current` can land on cents no ladder makes, and the minimum
+     raise built on it inherits that. Walking by one cent is what finds
+     the way out — stepping by a chip from an unrepresentable base only
+     ever reaches more unrepresentable amounts. */
+  function botFit(want, chips, lo, hi) {
+    var v = Math.max(want, lo);
+    for (var k = 0; v + k <= hi && k < 512; k++) {
+      if (representable(v + k, chips)) return v + k;
+    }
+    return 0;
+  }
+  /* A raise-to the chips can pay. The size is a fraction of the pot;
+     candidates around it fit to the ladder, and the tier's `pick`
+     chooses among the closest. */
+  function botRaiseTo(g, i, T, rand) {
+    var o = options(g, i);
+    if (!o || !o.canRaise) return 0;
+    var chips = g.settings.chips;
+    var base = Math.round(potTotal(g) * T.size);
+    var seen = {}, cands = [];
+    [1, 0.7, 1.4, 0.5, 1.8].forEach(function (m) {
+      var v = botFit(g.bet.current + Math.round(base * m), chips, o.minTo, o.maxTo);
+      if (v && !seen[v]) { seen[v] = 1; cands.push(v); }
+    });
+    // nothing on the ladder fits between the minimum and the stack — but
+    // a full all-in never needs one
+    if (!cands.length) return o.maxTo;
+    cands.sort(function (a, b) {
+      return Math.abs(a - g.bet.current - base) - Math.abs(b - g.bet.current - base);
+    });
+    return botChoose(cands, T.pick, rand) || 0;
+  }
+
+  /* A busted bot buys back in. Deliberately NOT a tier knob: a cash game
+     without re-buys empties itself one seat at a time and leaves the
+     human alone at a `waiting` felt, which is docs/bots.md finding #1 in
+     poker's clothing — a weak tier must play worse, not less. */
+  function botRebuySeat(g, isBot) {
+    for (var i = 0; i < g.players.length; i++) {
+      var p = g.players[i];
+      if (p && alive(p) && p.out && isBot(i)) return i;
+    }
+    return null;
+  }
+
   function botPending(g, isBot) {
     if (!g || g.phase !== "play") return false;
+    if (botRebuySeat(g, isBot) != null) return true;
     if (g.handOver || !g.turn) return false;              // settled hands are the timer's
     return isBot(g.turn.seat);
   }
+
   function botAct(g, isBot, opts, ctx) {
     if (!botPending(g, isBot)) return null;
-    var i = g.turn.seat;
-    var call = toCall(g, i);
-    if (call === 0) return { type: "check", seat: i };
-    if (call <= g.settings.bigBlind) return { type: "call", seat: i };
-    return { type: "fold", seat: i };
+    opts = opts || {};
+    ctx = ctx || { rand: Math.random, now: 0 };
+    var rand = ctx.rand;
+    var tierOf = typeof opts.tier === "function"
+      ? function (s) { return botTier(opts.tier(s)); }
+      : function () { return botTier(opts.tier); };
+
+    var rb = botRebuySeat(g, isBot);
+    if (rb != null) return { type: "buyIn", seat: rb };
+
+    if (g.handOver || !g.turn || !isBot(g.turn.seat)) return null;
+    var i = g.turn.seat, T = tierOf(i), o = options(g, i);
+    var call = o.toCall, pot = potTotal(g);
+    var preflop = (g.board || []).length === 0;
+    // the jitter is CENTERED, so noise blurs the read without inflating it
+    var s = botStrength(g, i) + (rand() - 0.5) * T.jitter;
+
+    if (call === 0) {
+      // nothing owed: bet the good ones, and occasionally the bad ones
+      if (s >= T.betAt ? rand() < T.aggro : rand() < T.bluff) {
+        var to = botRaiseTo(g, i, T, rand);
+        if (to > g.bet.current) return { type: "raise", seat: i, to: to };
+      }
+      return { type: "check", seat: i };
+    }
+
+    // facing a bet
+    if (preflop && s < T.tight) return { type: "fold", seat: i };
+    if (!preflop && s >= T.commit && o.canRaise) return { type: "raise", seat: i, to: o.maxTo };
+    if (s >= T.raiseAt && o.canRaise && rand() < T.aggro) {
+      var up = botRaiseTo(g, i, T, rand);
+      if (up > g.bet.current) return { type: "raise", seat: i, to: up };
+    }
+    if (T.odds) {
+      // the equity the price demands. `slack` is the whole difference
+      // between a tier that calls too wide and one that wants a profit
+      if (s < (call / (pot + call)) * T.slack) return { type: "fold", seat: i };
+    } else if (call > T.callBB * g.settings.bigBlind && s < T.loose) {
+      return { type: "fold", seat: i };
+    }
+    return { type: "call", seat: i };
   }
 
   /* ── self-checks ──────────────────────────────────────────────── */
@@ -1662,23 +1900,135 @@
       ok(r.game.players[i].folded, "timeout facing a bet folds");
     })();
 
-    (function botsFinishHands() {
-      var g = mkGame(4, 101);
-      var everyoneBot = function () { return true; };
-      var guard = 0, badActs = 0;
-      var c = mkCtx(500);
-      while (g.phase === "play" && g.stats.hands < 6 && guard++ < 2000) {
+    /* Drive an all-bot table. `tiers` is a seat→name list (rotated by the
+       caller so turn-order advantage is never scored as tier strength).
+       Returns the finished game plus what went wrong on the way. */
+    var everyoneBot = function () { return true; };
+    function botTable(seats, seed, tiers, hands) {
+      var g = mkGame(seats, seed);
+      var c = mkCtx(seed + 7);
+      var tierFn = function (s) { return tiers[s % tiers.length]; };
+      var guard = 0, bad = 0, disagree = 0, peeked = 0;
+      while (g.phase === "play" && g.stats.hands < hands && guard++ < hands * 400) {
+        var pend = botPending(g, everyoneBot);
+        var a = botAct(g, everyoneBot, { tier: tierFn }, mkCtx(guard));
+        if (!!a !== pend) disagree++;
+        if (a) {
+          // the blindness guard: the same seed against a game whose OTHER
+          // hands and undealt deck have been replaced must produce the
+          // identical action, or the bot is reading something it may not
+          if (botScrambled(g, a.seat, tierFn, guard)) peeked++;
+          var r = applyAction(g, a, c);
+          if (r.error) { bad++; break; }
+          g = r.game;
+          continue;
+        }
         if (g.handOver) { g = applyAction(g, { type: "timerExpire" }, c).game; continue; }
-        if (g.waiting) break;
-        var a = botAct(g, everyoneBot, {}, c);
-        if (!a) break;
-        var r = applyAction(g, a, c);
-        if (r.error) { badActs++; break; }
-        g = r.game;
+        break;
       }
-      eq(badActs, 0, "dev bots only make legal moves");
-      ok(g.stats.hands >= 6 || g.waiting, "dev bots play hands to completion (" + g.stats.hands + ")");
+      return { g: g, bad: bad, disagree: disagree, peeked: peeked, hands: g.stats.hands };
+    }
+    /* Re-ask on a clone with every hand but `me`'s replaced and the deck
+       emptied. Same seed in, same action out — or the bot peeked. */
+    function botScrambled(g, me, tierFn, seed) {
+      var probe = JSON.parse(JSON.stringify(g));
+      probe.players.forEach(function (p, i) {
+        if (p && i !== me && p.hole) p.hole = ["2c", "3d"];
+      });
+      probe.deck = [];
+      var a = botAct(g, everyoneBot, { tier: tierFn }, mkCtx(seed));
+      var b = botAct(probe, everyoneBot, { tier: tierFn }, mkCtx(seed));
+      return JSON.stringify(a) !== JSON.stringify(b);
+    }
+
+    (function botStrengthReads() {
+      function pf(hole) { return botStrength({ players: [{ hole: hole }], board: [] }, 0); }
+      ok(pf(["As", "Ah"]) > 0.95, "AA reads as the best preflop hand");
+      ok(pf(["Ks", "Kh"]) > pf(["As", "Ks"]), "KK beats AKs");
+      ok(pf(["As", "Ks"]) > pf(["Ad", "Kc"]), "suited beats offsuit");
+      ok(pf(["7c", "2d"]) < 0.06, "72o is the bottom of the range");
+      ok(pf(["8s", "9s"]) > pf(["8s", "3s"]), "connected beats gapped");
+      function post(hole, board) { return botStrength({ players: [{ hole: hole }], board: board }, 0); }
+      var quads = post(["As", "Ah"], ["Ad", "Ac", "7h", "2s", "3d"]);
+      ok(quads > 0.95, "quads read near the top");
+      ok(post(["As", "Ah"], ["Ad", "7h", "2s"]) > post(["7s", "7h"], ["Ad", "Kh", "2s"]),
+         "trips beat an underpair");
+      // an overpair and bottom pair carry the same category and are not
+      // the same hand — this is the refinement the tiers bet on
+      ok(post(["As", "Ac"], ["Kd", "7h", "2s"]) > post(["2h", "3c"], ["Kd", "7h", "2s"]),
+         "an overpair beats bottom pair");
+      // four to a flush on the BOARD is everyone's, so it is nobody's draw
+      var mine = post(["Ts", "4s"], ["2s", "9s", "Kd"]);
+      var theirs = post(["Th", "4d"], ["2s", "9s", "Ks"]);
+      ok(mine > theirs, "a flush draw counts only when the hole cards make it");
+      ok(post(["3c", "4d"], ["As", "Ks", "Qs", "Js", "Ts"]) <= 0.10,
+         "playing the board can't win the pot outright");
+    })();
+
+    (function botRaisesTheLadderCanPay() {
+      /* A short all-in is legal at ANY amount — the one exception to the
+         chip rule — so `bet.current`, and the minimum raise built on it,
+         can land on cents no ladder makes. A bot that emitted that
+         minimum was refused with `chips`. The tuning sim hit this around
+         hand 400; a 12-hand soak never reached it, which is why the soak
+         below is 150 and why this case is pinned here directly. */
+      var bad = 0, raises = 0, seen = 0;
+      for (var d = 0; d < 60; d++) {
+        var g = mkGame(4, 200 + d * 13);                  // vary the DEAL, not just the noise
+        var i = g.turn.seat;
+        g.players[i].stack = 583;                        // off the 10/20/25/50/100 ladder
+        var r = applyAction(g, { type: "raise", seat: i, to: g.players[i].betStreet + 583 }, mkCtx(9));
+        if (r.error) continue;
+        var g2 = r.game, j = g2.turn && g2.turn.seat;
+        var o = j == null ? null : options(g2, j);
+        if (!o || representable(o.minTo, CHIPS)) continue;
+        seen++;
+        BOT_TIER_LIST.forEach(function (t) {
+          var a = botAct(g2, everyoneBot, { tier: t }, mkCtx(d * 7 + 1));
+          if (!a) return;
+          if (a.type === "raise") raises++;
+          if (applyAction(g2, a, mkCtx(d * 7 + 1)).error) bad++;
+        });
+      }
+      ok(seen > 20, "the unrepresentable minimum is reachable (" + seen + " deals)");
+      eq(bad, 0, "every tier acts legally against an unrepresentable minimum");
+      ok(raises > 0, "...and some of those actions really were raises (" + raises + ")");
+    })();
+
+    (function botsPlayLegally() {
+      // every tier, alone and mixed, over a stretch of real hands
+      var tables = [["easy"], ["normal"], ["hard"], ["easy", "normal", "hard", "normal"]];
+      var bad = 0, disagree = 0, peeked = 0, short = 0;
+      tables.forEach(function (tiers, k) {
+        var r = botTable(4, 101 + k * 37, tiers, 150);
+        bad += r.bad; disagree += r.disagree; peeked += r.peeked;
+        if (r.hands < 150) short++;
+      });
+      eq(bad, 0, "every tier plays only legal moves");
+      eq(short, 0, "every tier plays its hands out");
+      eq(disagree, 0, "botPending agrees with botAct at every step");
+      // the one guard poker needs and the other two games don't
+      eq(peeked, 0, "the bot never reads another seat's hand or the deck");
       eq(botAct({ phase: "over" }, everyoneBot, {}, null), null, "no bot act after over");
+    })();
+
+    (function botsRebuy() {
+      // a busted bot buys back in — otherwise a cash table empties itself
+      // and leaves the human at a `waiting` felt (docs/bots.md, finding 1)
+      var g = mkGame(3, 71);
+      g.players[2].stack = 0;
+      g.players[2].out = true;
+      ok(botPending(g, everyoneBot), "a busted bot owes a re-buy");
+      var a = botAct(g, everyoneBot, { tier: "normal" }, mkCtx(3));
+      eq(a && a.type, "buyIn", "...and takes it");
+      eq(a && a.seat, 2, "...at the busted seat");
+      var r = applyAction(g, a, mkCtx(3));
+      ok(!r.error && !r.game.players[2].out, "the re-buy is legal and seats them again");
+      ok(!botPending(r.game, function (i) { return i === 2; }), "and is not owed twice");
+    })();
+
+    (function botLedgerHolds() {
+      var g = botTable(4, 101, ["easy", "normal", "hard", "normal"], 60).g;
       // the Winnings ledger is a zero-sum mirror of every stack's net —
       // exactly, in cents, after any number of settled hands
       var offLedger = 0, moved = 0;
@@ -1756,6 +2106,8 @@
     HAND_NAMES: HAND_NAMES,
     botAct: botAct,
     botPending: botPending,
+    botStrength: botStrength,          // exported for the tuning harness
+    BOT_TIERS: BOT_TIERS,
     BOT_TIER_LIST: BOT_TIER_LIST,
     selfTest: selfTest
   };

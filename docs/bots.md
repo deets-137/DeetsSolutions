@@ -45,6 +45,31 @@ which **is** the worker for dev purposes). Never call `botAct` from page
 code. What it returns is safe regardless: a discard, a claim, a
 placement, a roll — all public the instant they apply.
 
+### …except in poker
+
+That last sentence is the whole argument, and **poker breaks it**. A
+discard is public the moment it applies, so a mahjong bot that read your
+hand to choose one gives nothing away. A **fold is not**: it is a
+decision *derived from* whatever the bot looked at, so a bot that peeked
+leaks the peek through its own betting, every hand, to everyone at the
+table. The action being public does not make the reasoning safe.
+
+So poker's bot is held to a narrower rule than the engine can enforce:
+
+> `botStrength` and everything under it read **only** `g.players[me].hole`,
+> `g.board`, and the public betting state. Never another seat's `hole`,
+> never `g.deck`.
+
+Nothing structural stops a future edit from widening that — so
+`poker/engine.js` carries a self-check that does. It re-asks `botAct` on
+a clone whose other hands are replaced and whose deck is emptied, with
+the same seed, and requires the identical action. A deliberately peeking
+bot was caught by it 26 times in a 150-hand soak.
+
+**This is the test to copy into any future hidden-information game where
+a bot's *choice* is itself a signal.** Mahjong and cities do not need
+it; a betting game does.
+
 ---
 
 ## The contract
@@ -296,6 +321,89 @@ chows to protect hand value. Difficulty here is discipline, not appetite.
 
 ---
 
+## Poker
+
+`poker/engine.js`, `botAct` → `BOT_TIERS`. No-limit hold'em as a cash
+game; the rules are in [poker.md](poker.md).
+
+Bots here are **host-added and never inherited** — a released seat goes
+away with its stack or cashes out, never to a bot ([poker.md](poker.md),
+"Stepping away"). What the tiers decide is how hard a seat somebody
+*chose* to fill plays.
+
+### Decision order
+
+1. **A busted bot re-buys**, whoever's turn it is. Deliberately **not** a
+   tier knob — see finding #5.
+2. Then, only on its own turn:
+   - **nothing owed** → bet if the hand clears `betAt` (at `aggro`), else
+     bluff at `bluff`, else check.
+   - **facing a bet** → preflop, fold below `tight`; postflop, shove above
+     `commit`; raise above `raiseAt` (at `aggro`); then the price test;
+     else call.
+
+`botAct` returns `null` on `handOver` — a settled hand is the table's
+timer to advance, not a bot's.
+
+### Strength (0..1)
+
+One heuristic, read the way cities reads a vertex and mahjong reads a
+tile. It is **not** an equity estimate and does not pretend to be; a
+Monte-Carlo rollout would be stronger and would have to read the deck,
+which is exactly what poker's bot may not do.
+
+- **Preflop: Chen's formula**, the standard pencil-and-paper ranking —
+  high card, doubled for a pair, plus suited, minus the gap. It runs
+  about −1 (72o) to 20 (AA), which normalizes cleanly onto 0..1.
+- **Postflop: `Engine.bestOf`** — the same function the hand panel uses,
+  so the bot cannot disagree with the client about what it holds — with
+  three refinements that matter more than the category does:
+  - **a pair is only as good as what it beats.** An overpair and bottom
+    pair carry the same name and the same category. Scaling by how many
+    board cards the pair outranks is most of the postflop skill.
+  - **playing the board caps at 0.10.** If your five best cards are the
+    five on the table, everyone still in holds them too — that hand can
+    chop, never win.
+  - **draws count only when the hole cards make them.** Four to a flush
+    on the board is everyone's, so it is nobody's edge. A draw is also
+    capped below a made hand (0.72), because it is worth chips and not
+    worth a made hand's chips.
+
+### Tier table
+
+| | `tight` | `jitter` | `aggro` | `bluff` | `betAt` | `raiseAt` | `commit` | `odds` | `slack` | `size` | `pick` |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| easy | 0.12 | 0.45 | 0.30 | 0.12 | 0.34 | 0.58 | 0.95 | no (`callBB` 6) | — | 0.55 | 5 |
+| normal | 0.26 | 0.14 | 0.55 | 0.07 | 0.36 | 0.55 | 0.90 | yes | 1.00 | 0.60 | 2 |
+| hard | 0.34 | 0.02 | 0.65 | 0.10 | 0.36 | 0.54 | 0.86 | yes | 1.12 | 0.62 | 1 |
+
+- **`jitter`** — centered noise on the strength read. Mahjong's axis,
+  and the same reasoning: blurring a correct evaluation is a cleaner way
+  to build a weak bot than giving it a worse one.
+- **`odds` / `slack`** — the discipline axis. `odds` compares the price
+  against the pot (`call / (pot + call)` is the equity it demands);
+  `slack` scales that, so >1 wants a margin before putting money in.
+  Easy doesn't do this at all — it calls anything up to `callBB` blinds,
+  which is what the old dev bot did and is the single biggest leak.
+- **`commit`** is **postflop only**. Shoving aces into the blinds wins
+  the blinds; preflop the ordinary raise path handles it.
+- **`pick`** — cities' knob, here choosing among bet sizings, so two
+  bots at one tier don't bet the identical number every hand.
+- **`bluff` is not monotonic** (0.12 / 0.07 / 0.10), for mahjong's
+  reason: easy bluffs out of ignorance, normal is a nit, hard bluffs on
+  purpose.
+
+### The tiers stay CLOSE on aggression and sizing
+
+This is load-bearing and was learned the hard way — see finding #6. The
+tiers differ mainly on the **read** (`jitter`) and the **discipline**
+(`odds`/`slack`/`tight`). Giving each tier its own value for all ten
+knobs produced a ladder that was **non-transitive**: hard crushed easy
+and *lost* to normal. Independent knobs make a tier different, not
+better.
+
+---
+
 ## Measurement
 
 Tuning bot difficulty by reading the code does not work. Both tier sets
@@ -371,6 +479,87 @@ hundreds), so 40 matches separated nothing and even 200 leaves noise.
 easy's 4.2–4.7, consistent across every table — and the self-test ladder
 counts those.
 
+### Poker — paired duels, `scripts/poker-bot-duel.js`
+
+Poker needed a **different estimator**, not just more hands. The metric
+is **bb/100** (net cents per hundred hands, in big blinds), which the
+transfer ledger already computes exactly and self-checks as zero-sum.
+Hand-win rate ranks the tiers backwards here for mahjong's reason —
+`easy` wins the most hands at every table below.
+
+Three estimators were tried:
+
+| Method | Result |
+|---|---|
+| One-knob sweeps vs a fixed field | Unusable. Neighbouring `jitter` values read +134, −28, +110, +161 bb/100 — the noise dwarfed every effect. |
+| Cities/mahjong's rotation (one bot walked through the seats) | Unusable. 20,000 hands × 8 rotations still gave **±79 bb/100**. Rotation folds *positional* advantage into the error bar. |
+| **Paired duels** | **±5 bb/100.** Two tiers seated alternating (A,B,A,B), each holding two opposite seats, half the runs flipped so the button is balanced too. Position cancels *inside* each table and the statistic is the per-run difference, paired on the same deck. |
+
+The ladder, at two volumes (the tiers were settled on the first and
+confirmed on the second):
+
+| Duel | 8,000 × 10 | 15,000 × 16 |
+|---|---|---|
+| hard vs easy | +184.3 ±28.6 | **+201.6 ±4.8** |
+| hard vs normal | +31.4 ±13.1 | **+19.2 ±10.1** |
+| normal vs easy | +115.8 ±48.3 | **+130.5 ±36.5** |
+| *normal vs normal* | *+0.0 ±0.0* | the harness sanity row |
+
+All bb/100, positive meaning the first tier takes money off the second.
+**Monotone at both volumes**, and every rung clears its own error bar.
+
+That last row is the proof the pairing works: a tier duelled against
+itself must come out at **exactly** zero, because both sides see
+identical cards in mirrored seats. Any drift there means the harness is
+measuring something it shouldn't.
+
+**The honest reading**: easy → normal is an enormous step, normal → hard
+a small one. hard is genuinely ahead of normal, but the gap sits at the
+edge of significance even at a quarter-million hands. If the ladder
+should feel more evenly spaced, the room is in *normal*, not in making
+hard sharper — and what caps hard is the strength model, not the tier
+constants (see Open).
+
+---
+
+### 4. Pick the ESTIMATOR before you tune, too
+
+Finding #3 says pick the metric first. Poker adds: the metric can be
+right and still unmeasurable. bb/100 was correct from the start; the
+*design* around it was not. Rotating one bot through the seats — the
+method that works fine for cities and mahjong — scores position as tier
+strength, and poker's per-hand variance is large enough that this alone
+made 160,000 hands rank nothing at all (±79 bb/100).
+
+Balancing position **inside** each table instead of across runs took the
+error bars from ±79 to ±5 on the same hardware in less time. **When a
+comparison is noisy, look at what the design fails to cancel before
+reaching for more samples.**
+
+### 5. A cash game needs the re-buy, for cities' reason
+
+Cities' first `easy` stalled the table by refusing to expand (finding
+#1). Poker's version: a bot that busts and never re-buys empties the
+table one seat at a time until a human is sitting alone at a `waiting`
+felt. So **re-buy is not a tier knob** — every tier does it, exactly as
+every cities tier expands and bank-trades.
+
+### 6. Independent knobs make a tier DIFFERENT, not better
+
+The first poker tier table gave `hard` its own value for all ten knobs.
+The result was **non-transitive**: hard beat easy by +123 bb/100 and
+*lost* to normal by −29. Two of its knobs were pulling against each
+other — it raised more often *and* called wider — and the combination
+was simply a third playing style rather than a stronger one.
+
+Difficulty now runs along a **few** axes (the read, the discipline) with
+the tiers held close on aggression and sizing. A ladder is a total
+order; ten free parameters do not produce one by default.
+
+*(A knob whose direction you have written down can still be backwards.
+`slack` was documented as ">1 calls too wide" when it does the opposite.
+The tier table built on that comment made hard the calling station.)*
+
 ---
 
 ## Self-tests
@@ -388,13 +577,39 @@ both cover, per tier:
 
 They run in ~3 s and ~1 s. Keep them fast enough that nobody skips them.
 
+`node poker/engine.js` (290 checks) covers the same ground, minus the
+"finishes" check — a cash game has no end condition, so there is nothing
+to converge to — plus three of its own:
+
+- **the blindness guard** (see "…except in poker"), run at *every*
+  decision of a 150-hand soak;
+- **the strength model reads sensibly** — AA is the best preflop hand,
+  KK beats AKs, an overpair beats bottom pair, a board-only flush draw
+  is nobody's draw, and playing the board can't win outright;
+- **a raise the ladder can actually pay**, against a deliberately
+  unrepresentable minimum (see below).
+
+**The ladder itself is NOT asserted here.** Cities and mahjong can check
+theirs in-process; poker's needs ~90 s of paired duels to clear its own
+error bar, which is not a self-test. `scripts/poker-bot-duel.js` owns it
+— re-run that after touching `BOT_TIERS`, and paste the numbers into
+Measurement above.
+
+> **The soak length is load-bearing.** The first version ran 12 hands per
+> table and passed. The tuning harness then hit an **illegal action**
+> around hand 400: `minTo` is not always representable — a short all-in
+> is legal at any amount, so `bet.current`, and the minimum raise built
+> on it, can land on cents no ladder can pay. The soak is 150 hands now
+> and that case is pinned directly. **A legality soak that never reaches
+> the rare state is not a legality soak.**
+
 ---
 
 ## Change radius
 
 | What you want to change | File | Reaches | After |
 |---|---|---|---|
-| How one game's bot plays, or its tiers | `<game>/engine.js` | that game | **Re-vendor** (`node scripts/vendor.mjs`), redeploy |
+| How one game's bot plays, or its tiers | `<game>/engine.js` | that game | **Re-vendor** (`node scripts/vendor.mjs`), redeploy — and for poker, re-run `scripts/poker-bot-duel.js` and update Measurement |
 | The tier wire field, validation, fallback | `games/table-do.js` + `table-mock.js` | **every game** | **Re-vendor the base into every game worker**, redeploy |
 | The lobby picker / seat badge | `games/table.js` + `styles/table.css` | every game | — (browser only) |
 | Tier labels | `<game>/strings.js` (`botTier_<name>`) | that game | — (Aditya's copy) |
@@ -417,8 +632,35 @@ They run in ~3 s and ~1 s. Keep them fast enough that nobody skips them.
   `kind = 'bot'` and `name` when Elo arrives. That is an `ALTER TABLE` in
   `../DeetsAccounts` plus a `seatCounters` change, and it should land
   **with** Elo rather than speculatively — see [stats.md](stats.md).
+
+  This matters most in poker, where the counter is **money**. Worth
+  recording that the schema already handles the coarse version: the
+  counter tables are one row per game (`PRIMARY KEY (key, seat)`), not
+  running aggregates, and `results.bots` is stored per game — so "my net
+  against humans only" is a **query today**, no migration. It is only
+  *which tier* that is unrecoverable, and only for games played before
+  the column exists.
+- **Poker's `hard` is capped by the strength model, not its tier.** The
+  heuristic has no notion of position, opponent modelling, or board
+  texture beyond what `bestOf` sees, so there is a ceiling no constant
+  reaches — which is why normal → hard is a much smaller step than
+  easy → normal. Going further means a real equity estimate, and the
+  cheap version of that (Monte-Carlo rollouts) **reads the deck**, which
+  poker's bot may not do. A rollout over the *unseen* cards from the
+  bot's own point of view would be legitimate; it is a genuine piece of
+  work, not a tuning pass.
+- **Poker bets on nothing but its own cards.** No bluff is informed by
+  what the board could be hiding, and nothing tracks how a given
+  opponent has been playing. Both are the same missing piece as above.
 - **Cities bots never *initiate* player trades.** They answer offers but
   never make one, so a bot-only table trades far less than a human one.
 - **DeetsShips has no tiers.** Its `botAct` is a v1 anchor that stages
   legal minimums and never stalls a table. It gets tiers by adding a
   `BOT_TIER_LIST` to `ships/engine.js` and nothing else.
+- **Poker's tier labels are `[ph]`.** `botTier_easy/normal/hard` and the
+  short forms in `poker/strings.js` are placeholders awaiting Aditya's
+  pass — the rest of that file is his.
+- **The client's raise slider may be able to offer an unrepresentable
+  minimum.** The engine refuses it with `chips` (see Self-tests). The bot
+  now climbs past it; `poker.js` has **not** been checked against the
+  same case.

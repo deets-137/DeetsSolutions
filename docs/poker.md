@@ -16,7 +16,8 @@ assets/sprites/poker/    chip art (templates: scripts/build-poker-chips.py)
 ../DeetsPoker/           the worker repo (src/index.js is the mock's port)
 ```
 
-`node poker/engine.js` runs the engine's self-checks (233 at last count).
+`node poker/engine.js` runs the engine's self-checks (290 at last count).
+`node scripts/poker-bot-duel.js` measures the bot tiers ([bots.md](bots.md)).
 
 ## Build phases
 
@@ -670,15 +671,38 @@ which half of a token the pointer is over, so "before this one" and
 it travels. Drop math converts the divider's position to an insertion
 index and decrements it when the lift came from earlier in the list.
 
-## Bots (dev-only)
+## Bots
 
-`BOT_TIER_LIST` is **empty** — no tiers, no picker, and the live game
-philosophy is no bots at all. `botAct` exists for the mock's host-added
-dev bots: check when free, complete a call ≤ one big blind, fold to
-anything more; never raises, votes, or re-buys. That's one notch above
-the timeout policy (which is strict check-or-fold) so solo review reaches
-showdowns. If Aditya wants the Add Bot pill gone from poker's lobby
-before the worker ships, that's a one-flag shell change — say the word.
+Three tiers — **easy / normal / hard** — over one brain, the same shape
+cities and mahjong use. Full treatment in [bots.md](bots.md); what's
+poker-specific:
+
+- **Host-added, never inherited.** No bot ever takes a seat somebody
+  left: that seat goes away with its stack or cashes out (see "Stepping
+  away"). The tiers decide how hard a seat somebody *chose* to fill
+  plays, nothing else.
+- **A busted bot re-buys.** Not a tier knob — without it a cash table
+  empties one seat at a time and leaves the human alone at a `waiting`
+  felt.
+- **The bot may not read the table.** Unlike cities' and mahjong's, a
+  poker bot's own action would leak a peek, so it sees only its own hole
+  cards and the board. A self-check enforces it by re-asking on a clone
+  with every other hand replaced ([bots.md](bots.md), "…except in
+  poker"). **Never widen what `botStrength` reads.**
+- **No bot votes to end** and none is ever seated automatically.
+
+Two things the bot work turned up that are not about bots:
+
+- **`minTo` is not always representable.** A short all-in is legal at any
+  amount — the one exception to the chip rule — so `bet.current`, and the
+  minimum raise built on it, can land on cents no ladder can pay. The
+  engine correctly refuses that raise with `chips`. The bot now climbs to
+  the next amount the chips make; **the client's raise slider has not
+  been checked against this case** and may be able to offer a minimum
+  that the engine will reject.
+- The old dev bot's "call anything up to one big blind" is now `easy`'s
+  `callBB`, and measurement says it is the single biggest leak a tier
+  can have.
 
 ## Shared-shell changes this game required (all additive)
 

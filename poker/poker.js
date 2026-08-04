@@ -40,6 +40,8 @@
     // away with its stack intact (engine `sitOut`), "none" cashes it out
     // (engine `concede`) and you come back as a spectator only.
     rejoinModes: ["anyone", "rejoin", "none"],
+    // the difficulty vocabulary is the ENGINE's; the shell only renders it
+    botTiers: window.PokerEngine.BOT_TIER_LIST,
     // no hint line under Start (his call, chat 2026-08-03): the lobby has
     // to fit the bento's big tile, and the disabled button already says it
     noStartHint: true,

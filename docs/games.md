@@ -341,10 +341,19 @@ difficulty is public, because you should know what you're sitting
 across from.
 
 **Tuning is measured, not guessed** — all-bot tables, tiers rotated
-through seats, driven to completion. Two findings that cost real time:
+through seats, driven to completion. Three findings that cost real time:
 difficulty belongs in *judgement*, not in refusing to play (the first
-`easy` ran **23,583 turns without a winner**), and pick the metric before
-the tier (mahjong's hand-win rate ranks the tiers **backwards**).
+`easy` ran **23,583 turns without a winner**); pick the metric before
+the tier (mahjong's hand-win rate ranks the tiers **backwards**); and
+**pick the estimator too** — rotating one bot through the seats folds
+positional advantage into the error bar, which poker's variance makes
+fatal (±79 bb/100 at 160,000 hands, ranking nothing).
+
+**A bot may read hidden information only where its ACTION doesn't leak
+the read.** A mahjong discard is public the instant it applies; a poker
+fold is a decision derived from whatever was looked at. Poker's bot is
+therefore blinded to everything but its own cards and the board, and a
+self-check enforces it — copy that test into any future betting game.
 
 **→ [bots.md](bots.md)** is the deep dive: each game's decision order and
 scoring, the full tier tables, the measurement method and numbers, and

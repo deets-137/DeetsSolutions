@@ -93,9 +93,12 @@ Per-game invariants worth knowing before you touch them:
 - **Poker** (live on `../DeetsPoker`; the mock is `?mock` like every other
   game): money is integer
   cents, and every bet must split into the table's chip ladder (full all-ins
-  excepted). Hole cards and the actor's options ride only `you`. No bots in
-  live play, ever — the three `rejoin` modes decide what *leaving* costs, not
-  who inherits the seat. See [poker.md](docs/poker.md), "Stepping away".
+  excepted). Hole cards and the actor's options ride only `you`. A bot is
+  always **host-added and never inherited** — the three `rejoin` modes decide
+  what *leaving* costs, not who takes the seat. Poker's bot is also the one
+  that may **not read the table**: unlike cities' and mahjong's, its own
+  action would leak a peek, so it sees only its own hole cards and the board
+  ([bots.md](docs/bots.md)). See [poker.md](docs/poker.md), "Stepping away".
 - **Mahjong**: hidden info — hands, the drawn tile, and per-seat claim options
   ride only each connection's `you`. Tile art is per-VIEWER (localStorage,
   never on the wire); templates come from `scripts/build-mahjong-tiles.py`.
