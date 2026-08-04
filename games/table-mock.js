@@ -374,7 +374,11 @@
         // leaves by being taken over (the DO's rule).
         if (t.seats[s].bot || t.seats[s].phantom) return errTo(conn, "perm");
         var kcg = t.conns.filter(function (c) { return c.token === t.seats[s].token; })[0];
-        if (rejoinMode(t) === "none") {
+        // A kick must SEVER, which is why a game that PARKS released seats
+        // (poker) concedes here too rather than parking: parking leaves the
+        // kicked player's token on the seat, so they walk straight back in
+        // and the host's only remedy for a staller is no remedy at all.
+        if (rejoinMode(t) === "none" || spec.awayAction) {
           var kev = concedeSeat(t, s);
           if (kcg) deliver(kcg, { type: "kicked", serverNow: now() });
           broadcast(t, kev);

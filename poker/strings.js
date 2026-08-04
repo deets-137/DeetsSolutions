@@ -7,12 +7,15 @@
    pull display names from here).
 
    Radio/cities/mahjong convention, verbatim: Claude may ADD a string when
-   wiring new UI, but every Claude-authored value must be prefixed "[ph]" — a
-   placeholder Aditya rewrites, deleting the prefix as he goes. Claude never
-   edits an un-prefixed (handwritten) value, and nothing still carrying
-   "[ph]" may ship.
+   wiring new UI, but every Claude-authored value must be prefixed "[ph]" —
+   a placeholder Aditya rewrites, deleting the prefix as he goes. Claude
+   never edits an un-prefixed (handwritten) value, and nothing still
+   carrying "[ph]" may ship.
 
-   Un-prefixed provenance in THIS file (all per Aditya, chat 2026-08-03):
+   THIS FILE IS PAST ITS PASS. Aditya cleared the last 79 placeholders in
+   one go (chat 2026-08-03) — the tags, the settlement lines, the hand
+   names, the cash-out columns and the aria labels are all his now, same
+   as the lines he dictated:
    - strings CARRIED VERBATIM from his cities/mahjong passes (the shared
      shell copy: gate, toolbar, lobby seats, color picker, refusals);
    - single-character badges (D / 1 / 2);
@@ -20,7 +23,8 @@
    - the action hover lines and the Stand up hover, dictated verbatim;
    - the LOBBY SETTINGS labels + the min-raise chips ("1x prev" / "2x prev"
      / "No min") and "Mid-game Join", approved/renamed in chat 2026-08-03.
-   Everything else still awaits his pass.
+   So the rule now bites the other way: a NEW string still arrives as
+   "[ph]", but nothing already here may be reworded without him.
 
    {curly} tokens are filled by poker.js (fmt()). Money strings receive
    already-formatted amounts ("$1.20"). */
@@ -59,24 +63,24 @@ window.POKER_STRINGS = {
    standHover: "Cash out",   /* Aditya's, chat 2026-08-03 — hover on Stand up */
    /* the same pill at an "anyone"/"rejoin" table, where the stack survives
       the absence (docs/poker.md, "Stepping away") */
-   sitOutButton: "[ph]Sit out",
-   sitOutHover: "[ph]Keep your seat and your stack",
-   sitBackPill: "[ph]Sit back in",
-   sitBackHover: "[ph]Deal me in next hand",
+   sitOutButton: "Sit out",
+   sitOutHover: "Keep your seat and your stack",
+   sitBackPill: "Sit back in",
+   sitBackHover: "Deal me in next hand",
    /* NOT awayTag — that one (below, with the seat tags) means the socket
       dropped. This is a deliberate sit-out, which is a different thing. */
-   sittingOutTag: "[ph]Sitting out",
-   owesAnteTag: "[ph]Posting ante",
-   awayToast: "[ph]{name} is sitting out.",
-   backToast: "[ph]{name} is back.",
-   anteToast: "[ph]You posted a big blind as an ante to sit back in.",
-   voteEndPill: "[ph]Vote to end",
-   voteEndCount: "[ph]{n}/{need}",
+   sittingOutTag: "Sitting out",
+   owesAnteTag: "Posting ante",
+   awayToast: "{name} is sitting out.",
+   backToast: "{name} is back.",
+   anteToast: "You posted a big blind as an ante to sit back in.",
+   voteEndPill: "Vote to end",
+   voteEndCount: "{n}/{need}",
    endGamePill: "End game",   /* Aditya's, chat 2026-08-03 */
    endGameConfirm: "Confirm?",
-   sitInPill: "[ph]Sit in",
-   voteToast: "[ph]{name} votes to end ({n}/{need}).",
-   unvoteToast: "[ph]{name} withdrew their vote ({n}/{need}).",
+   sitInPill: "Sit in",
+   voteToast: "{name} votes to end ({n}/{need}).",
+   unvoteToast: "{name} withdrew their vote ({n}/{need}).",
 
    /* ── lobby (big tile: settings) ──────────────────────────────── */
    lobbyTitle: "Table settings",
@@ -84,20 +88,20 @@ window.POKER_STRINGS = {
    buyInLabel: "Buy-in",
    buyInCustom: "$#",
    chipsLabel: "Chips",
-   chipsBad: "[ph]Chip values need to be positive amounts in cents.",
+   chipsBad: "Chip values need to be positive amounts in cents.",
    /* the settings cascade (buy-in → blind → ladder): the 4|5 pill picks
       how many rungs, and each derived row wears autoMark */
-   chipCountTip: "[ph]Deal the table {n} denominations.",
+   chipCountTip: "Deal the table {n} denominations.",
    /* a derived row carries NO mark — it was derived before anyone
       touched it. Only an overridden one offers the way back. */
-   autoReset: "[ph]reset",
-   autoResetTip: "[ph]Go back to the suggested values.",
+   autoReset: "reset",
+   autoResetTip: "Go back to the suggested values.",
    blindLabel: "Big blind",
    /* the small-blind-is-half hint was cut (his call, chat 2026-08-03) —
       the settings panel has to fit the bento's big tile without an inner
       scroller. blindBad fires when a blind doesn't split into the chips. */
-   blindBad: "[ph]That blind doesn't split into the chips.",
-   buyInBad: "[ph]That buy-in doesn't split into the chips.",
+   blindBad: "That blind doesn't split into the chips.",
+   buyInBad: "That buy-in doesn't split into the chips.",
    timerLabel: "Turn timer",
    timerOff: "None",
    timerSecs: "{n}s",
@@ -126,19 +130,19 @@ window.POKER_STRINGS = {
    rejoinRejoin: "Rejoin",
    rejoinNone: "None",
    sitDownPill: "Take over for:",
-   adoptedToast: "[ph]{name} sat down.",
+   adoptedToast: "{name} sat down.",
    addBotButton: "Add Bot",
    addBotGo: "Confirm?",
    addBotNameAria: "Bot name",
    addBotCancelAria: "Cancel adding a bot",
    renameBotAria: "Rename {name}",
-   botTierAria: "[ph]Bot difficulty",
+   botTierAria: "Bot difficulty",
    renameGo: "Save",
    renameReset: "Reset",
-   renameYouAria: "[ph]Edit your name",
-   renameNameAria: "[ph]Your name",
-   renameResetAria: "[ph]Reset to your profile name",
-   renameCancelAria: "[ph]Cancel renaming",
+   renameYouAria: "Edit your name",
+   renameNameAria: "Your name",
+   renameResetAria: "Reset to your profile name",
+   renameCancelAria: "Cancel renaming",
    botSeatTag: "{name} (bot)",
    /* seat-color picker (carried from cities) */
    colorYours: "Your color",
@@ -153,26 +157,26 @@ window.POKER_STRINGS = {
    colorClashWith: "Too close to {name}",
 
    /* ── play: felt + seats ──────────────────────────────────────── */
-   handLine: "[ph]Hand {n}",
+   handLine: "Hand {n}",
    /* no pot LABEL: the pot is its chips with the amount under them, and
       the word was doing no work a pile in the middle of a felt doesn't */
    /* the button badges — single characters, Aditya's call (chat 2026-08-03) */
    dealerTag: "D",
    smallBlindTag: "1",
    bigBlindTag: "2",
-   dealerTip: "[ph]Dealer button",
-   smallBlindTip: "[ph]Small blind",
-   bigBlindTip: "[ph]Big blind",
+   dealerTip: "Dealer button",
+   smallBlindTip: "Small blind",
+   bigBlindTip: "Big blind",
    yourTurnToast: "Your turn!",
-   waitingLine: "[ph]Waiting for players…",
-   foldedTag: "[ph]Folded",
-   allInTag: "[ph]All-in",
-   outTag: "[ph]Busted",
-   leftTag: "[ph]Cashed out",
-   waitingTag: "[ph]Next hand",
-   awayTag: "[ph]Away",
-   stackShort: "[ph]{amt}",
-   betShort: "[ph]{amt}",
+   waitingLine: "Waiting for players…",
+   foldedTag: "Folded",
+   allInTag: "All-in",
+   outTag: "Busted",
+   leftTag: "Cashed out",
+   waitingTag: "Next hand",
+   awayTag: "Away",
+   stackShort: "{amt}",
+   betShort: "{amt}",
    playersTitle: "Players",
    /* the felt's popover buttons (cities' Odds/Resources idiom) — all
       four approved by Aditya in chat 2026-08-03, no [ph] */
@@ -180,7 +184,7 @@ window.POKER_STRINGS = {
    logButton: "Log",
    winningsNet: "Net",
    winningsHint: "Rows win from columns.",
-   spectatingNote: "[ph]You're spectating. Sit in if there's a seat and you'd like to play!",
+   spectatingNote: "You're spectating. Sit in if there's a seat and you'd like to play!",
 
    /* ── the hand panel (your cards + actions) — the four buttons,
       "Raise by", "Confirm" and "Your Hand" are Aditya's (chat 2026-08-03) ── */
@@ -188,7 +192,7 @@ window.POKER_STRINGS = {
    /* the chip rail beside your cards, and the tray art on the felt.
       The rail has no label — its heading is the cash total itself. */
    chipCount: "×{n}",
-   chipTip: "[ph]{n} × {amt}",
+   chipTip: "{n} × {amt}",
    actionFold: "Fold",
    actionCheck: "Check",
    actionCall: "Call {amt}",
@@ -201,47 +205,53 @@ window.POKER_STRINGS = {
    hoverFold: "call your losses, if any.",
    raiseBy: "Raise by",
    raiseGo: "Confirm",
-   raiseBad: "[ph]That amount doesn't split into the chips.",
-   raiseCustomAria: "[ph]Type a raise amount",
-   buyInButton: "[ph]Buy in ({amt})",
-   buyInNote: "[ph]You're out of chips.",
-   waitingNote: "[ph]You're in at the next deal.",
-   notYourTurn: "[ph]Waiting on {name}…",
+   raiseBad: "That amount doesn't split into the chips.",
+   raiseCustomAria: "Type a raise amount",
+   buyInButton: "Buy in ({amt})",
+   buyInNote: "You're out of chips.",
+   waitingNote: "You're in at the next deal.",
+   notYourTurn: "Waiting on {name}…",
 
    /* ── hand over (settlement interstitial) ─────────────────────── */
-   winLine: "[ph]{name} wins {amt}",
-   winLineHand: "[ph]{name} wins {amt} — {hand}",
-   foldWinLine: "[ph]{name} takes it — everyone folded",
-   splitTag: "[ph]Split pot",
-   sidePotTag: "[ph]Side pot",
-   nextHandButton: "[ph]Next hand",
-   nextHandAuto: "[ph]Next hand in {n}s…",
-   bustToast: "[ph]You're bust — buy back in to keep playing.",
+   winLine: "{name} wins {amt}",
+   winLineHand: "{name} wins {amt} — {hand}",
+   foldWinLine: "{name} takes it — everyone folded",
+   splitTag: "Split pot",
+   sidePotTag: "Side pot",
+   nextHandButton: "Next hand",
+   nextHandAuto: "Next hand in {n}s…",
+   bustToast: "You're bust — buy back in to keep playing.",
 
    /* hand-category names (engine HAND_NAMES keys) */
-   handHigh: "[ph]High card",
-   handPair: "[ph]Pair",
-   handTwoPair: "[ph]Two pair",
-   handTrips: "[ph]Three of a kind",
-   handStraight: "[ph]Straight",
-   handFlush: "[ph]Flush",
-   handFullHouse: "[ph]Full house",
-   handQuads: "[ph]Four of a kind",
-   handStraightFlush: "[ph]Straight flush",
+   handHigh: "High card",
+   handPair: "Pair",
+   handTwoPair: "Two pair",
+   handTrips: "Three of a kind",
+   handStraight: "Straight",
+   handFlush: "Flush",
+   handFullHouse: "Full house",
+   handQuads: "Four of a kind",
+   handStraightFlush: "Straight flush",
 
    /* ── game over (the cash-out lobby) ──────────────────────────── */
-   gameOver: "[ph]Cashing out",
-   endedByVote: "[ph]The table voted to end the game.",
-   endedByHost: "[ph]The host ended the game.",
-   endedByAttrition: "[ph]Everyone else cashed out.",
-   colBought: "[ph]Bought in",
-   colStack: "[ph]Walked with",
-   colNet: "[ph]Net",
+   gameOver: "Cashing out",
+   /* no endedByHost line — the host closing his own table explains
+      itself, so `over.endedBy === "host"` renders no subtitle at all. */
+   endedByVote: "The table voted to end the game.",
+   endedByAttrition: "Everyone else cashed out.",
+   colBought: "Bought in",
+   colStack: "Walked with",
+   colNet: "Net",
    handCount: "{n} hands",
    rematchButton: "Rematch",
-   ordinals: ["[ph]1st", "[ph]2nd", "[ph]3rd", "[ph]4th", "[ph]5th", "[ph]6th",
-              "[ph]7th", "[ph]8th", "[ph]9th", "[ph]10th", "[ph]11th", "[ph]12th"],
-   placeTied: "[ph]T-{place}",
+   /* settling up — the Winnings grid's pill slot at `over` */
+   repayButton: "Repayment",
+   repayPays: "pays",
+   repayHint: "{n} transfers settles the table.",
+   repayEven: "Everyone's square — nothing to settle.",
+   ordinals: ["1st", "2nd", "3rd", "4th", "5th", "6th",
+              "7th", "8th", "9th", "10th", "11th", "12th"],
+   placeTied: "T-{place}",
 
    /* ── connection / refusals (carried from cities/mahjong) ─────── */
    connDown: "Reconnecting…",
@@ -252,10 +262,10 @@ window.POKER_STRINGS = {
    nameTaken: "That name is taken at the table.",
    noTable: "No such table.",
    toastDismiss: "Dismiss",
-   concededToast: "[ph]{name} cashed out.",
+   concededToast: "{name} cashed out.",
 
    /* ── error codes → friendly lines (carried where the code is shared;
-      poker's own codes still [ph]) ───────────────────────────────── */
+      poker's own codes are his too, since the pass) ─────────────────── */
    errTurn: "Not your turn.",
    errPhase: "Can't do that right now.",
    errPerm: "You can't do that.",
@@ -263,14 +273,21 @@ window.POKER_STRINGS = {
    errColor: "That's not a hex color.",
    errColorTaken: "Too close to another player's color.",
    errFlood: "Slow down a moment.",
-   errRaise: "[ph]That raise is too small.",
-   errChips: "[ph]That amount doesn't split into the chips.",
-   errMidJoin: "[ph]This table isn't taking new players mid-game.",
+   errRaise: "That raise is too small.",
+   errChips: "That amount doesn't split into the chips.",
+   errMidJoin: "This table isn't taking new players mid-game.",
 
-   /* ── disconnect (poker's no-bot wording — still awaits his pass) ── */
-   leavingToast: "[ph]{name} disconnected — their seat folds until they're back.",
+   /* ── disconnect ──────────────────────────────────────────────────
+      What happens next is the table's business, not this toast's: the
+      grace window is drawn on the seat itself, and when it closes the
+      seat goes AWAY with its stack (docs/poker.md, "Stepping away").
+      The old wording promised a fold that no longer happens. */
+   leavingToast: "{name} has disconnected.",
    returnedToast: "{name} is back.",
-   takeoverToast: "[ph]{name}'s seat is folding on its own.",
+   /* Poker seats no bots, so a `takeover` event is only the shared
+      shell's fallback for an away action the engine refused — rare
+      enough to be a bug, live enough that the string must exist. */
+   takeoverToast: "{name}'s seat is folding on its own.",
 
    /* ── desktop-only guard (the sibling pages' sentence) ────────── */
    desktopOnly: "DeetsPoker needs a wider screen."

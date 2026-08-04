@@ -29,10 +29,7 @@
   var TBL = window.DeetsTable.create({
     ns: "poker",
     api: "https://poker-api.deets.solutions",
-    mock: window.PokerTransport,        // transport-mock.js
-    // phase 1: no worker yet, so the mock runs WITHOUT ?mock. Drop this
-    // flag when ../DeetsPoker deploys (docs/poker.md, "Build phases").
-    mockDefault: true,
+    mock: window.PokerTransport,        // transport-mock.js (?mock)
     strings: S,
     rootSel: ".pk",
     capacity: 12,
@@ -52,8 +49,8 @@
        broadcast is a full view, so an omission means genuinely gone. A
        rematch omits the lot: the lobby must not paint a discarded game. */
     clearFields: ["handNo", "dealer", "street", "board", "waiting", "blinds",
-                  "players", "pot", "turn", "handOver", "handOverAt", "votes",
-                  "over", "turnEndsAt"],
+                  "players", "pot", "potTray", "turn", "handOver", "handOverAt",
+                  "votes", "over", "turnEndsAt"],
     clearYouFields: ["hole", "options", "myVote", "canBuyIn", "away"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
@@ -303,11 +300,15 @@
      The empty box still measures, which is all a flight aimed at it
      needs — it just doesn't draw. */
   var PILE_CAP = 6;
-  function cardPile(cls, n) {
+  /* `dx` is what tells the two piles apart: the DECK is squared up, so it
+     stacks straight up (0) like a deck someone has tapped level; the BURN
+     is a heap of dead cards nobody tidies, so it fans sideways as it
+     grows. Same object, two housekeeping habits. */
+  function cardPile(cls, n, dx) {
     var pile = el("div", "pk-pile " + cls);
     for (var i = 0; i < Math.min(n, PILE_CAP); i++) {
       var c = backEl(false);
-      c.style.transform = "translate(" + (i * 2) + "px," + (i * -2) + "px)";
+      c.style.transform = "translate(" + (i * (dx || 0)) + "px," + (i * -2) + "px)";
       pile.appendChild(c);
     }
     return pile;
@@ -862,7 +863,7 @@
   function popOpenName() { return popHover || ui.boardPop || null; }
   function popSync() {
     var open = popOpenName();
-    ["win", "log"].forEach(function (name) {
+    ["win", "pay", "log"].forEach(function (name) {
       var p = BIG.querySelector('[data-pop="' + name + '"]');
       var b = BIG.querySelector('[data-popbtn="' + name + '"]');
       if (p) p.classList.toggle("is-open", open === name);
@@ -893,11 +894,22 @@
   }
   function buildBoardPops() {
     var row = el("div", "pk-boardbtns");
-    var winPop = popPanel("win");
-    winPop.classList.add("pk-bpop--win");     // hugs the grid instead of 24rem
-    winPop.appendChild(winningsGrid());
-    BIG.appendChild(winPop);
-    row.appendChild(popButton("win", S.winningsButton));
+    /* In play the pill opens the Winnings grid. At `over` the grid is
+       already laid out inline in the cash-out panel, so the same slot
+       carries Repayment instead — who hands what to whom to settle. */
+    if (model.phase === "over") {
+      var payPop = popPanel("pay");
+      payPop.classList.add("pk-bpop--win");   // hugs its list instead of 24rem
+      payPop.appendChild(repayList());
+      BIG.appendChild(payPop);
+      row.appendChild(popButton("pay", S.repayButton));
+    } else {
+      var winPop = popPanel("win");
+      winPop.classList.add("pk-bpop--win");   // hugs the grid instead of 24rem
+      winPop.appendChild(winningsGrid());
+      BIG.appendChild(winPop);
+      row.appendChild(popButton("win", S.winningsButton));
+    }
     var logPop = popPanel("log");
     var list = el("div", "pk-log__list");
     logLines.slice(-40).forEach(function (entry) {
@@ -961,6 +973,60 @@
     return td;
   }
 
+  /* ── settling up: the fewest hand-offs that clear every net ──────
+     The Winnings grid says who took money off whom; nobody wants to
+     pay it back that way (six players is up to fifteen hand-offs).
+     Only the NETS have to be honored, so pair the biggest debtor with
+     the biggest creditor and repeat: each pass zeroes at least one
+     person, so N players settle in at most N-1 transfers. (The true
+     minimum — spotting subsets that cancel exactly — is NP-hard; this
+     greedy pairing is the standard answer and is optimal whenever no
+     such subset exists.) Cents in, cents out: no rounding anywhere.
+     Nets sum to zero because every chip on the table was bought. */
+  function repayments(rows) {
+    var owe = [], due = [];
+    (rows || []).forEach(function (r) {
+      if (r.net < 0) owe.push({ seat: r.seat, amt: -r.net });
+      else if (r.net > 0) due.push({ seat: r.seat, amt: r.net });
+    });
+    var big = function (a, b) { return b.amt - a.amt || a.seat - b.seat; };
+    owe.sort(big); due.sort(big);
+    var out = [], i = 0, j = 0;
+    while (i < owe.length && j < due.length) {
+      var amt = Math.min(owe[i].amt, due[j].amt);
+      if (amt > 0) out.push({ from: owe[i].seat, to: due[j].seat, amt: amt });
+      owe[i].amt -= amt; due[j].amt -= amt;
+      if (owe[i].amt === 0) i++;
+      if (due[j].amt === 0) j++;
+    }
+    return out;
+  }
+  function repayList() {
+    var wrap = el("div", "pk-pay");
+    var pays = repayments((model.over || {}).standings);
+    if (!pays.length) {
+      wrap.appendChild(el("div", "pk-pay__even", S.repayEven));
+      return wrap;
+    }
+    pays.forEach(function (p) {
+      var line = el("div", "pk-pay__line");
+      line.appendChild(payWho(p.from));
+      line.appendChild(el("span", "pk-pay__verb", S.repayPays));
+      line.appendChild(payWho(p.to));
+      line.appendChild(el("span", "pk-pay__amt", fmtMoney(p.amt)));
+      wrap.appendChild(line);
+    });
+    wrap.appendChild(el("div", "pk-win__hint", fmt(S.repayHint, { n: pays.length })));
+    return wrap;
+  }
+  function payWho(seat) {
+    var who = el("span", "pk-pay__who");
+    who.appendChild(seatDot(seat));
+    who.appendChild(el("span", "pk-pay__name", seatName(seat) || ("#" + seat)));
+    who.title = seatName(seat) || "";
+    return who;
+  }
+
   /* ── the felt (big tile) ──────────────────────────────────────── */
   function felt() {
     var f = el("div", "pk-felt");
@@ -1005,8 +1071,8 @@
        counted up: a reconnect mid-hand has to land on the same pile as
        everyone else, and an accumulator would start from zero. */
     if (!model.waiting) {
-      f.appendChild(cardPile("pk-deck", DECK_DEPTH));
-      f.appendChild(cardPile("pk-burn", burnDepth()));
+      f.appendChild(cardPile("pk-deck", DECK_DEPTH, 0));
+      f.appendChild(cardPile("pk-burn", burnDepth(), 2));
     }
     if (model.waiting) {
       f.appendChild(el("div", "pk-feltline", S.waitingLine));
@@ -1014,13 +1080,15 @@
       /* The pot is its own chips with the amount under them — the word
          "pot" was doing no work that a pile of chips in the middle of a
          felt doesn't already do (his call, chat 2026-08-03). The pile is
-         the pot total broken into the table's ladder: the engine tracks
-         the pot in cents, not as the particular chips each player
-         pushed in, so this is what it WOULD be racked as. */
+         the chips people actually PUSHED IN: the engine accumulates them
+         off each tray as it pays (engine `syncTrays`), so three quarters
+         bet are three quarters in the middle, not the 50¢-and-a-25¢ that
+         racking the total would have produced. `dealTray` is only the
+         fallback for an old broadcast that predates `potTray`. */
       var pot = el("div", "pk-pot");
       var cents = model.pot || 0;
       // the pile renders even at zero, so the amount under it never moves
-      var potTray = chipStacks(Engine.dealTray(cents, chipValsNow()), { rail: false });
+      var potTray = chipStacks(model.potTray || Engine.dealTray(cents, chipValsNow()), { rail: false });
       potTray.setAttribute("data-pk-pot", "");   // where a street sweeps to, and a win flies from
       pot.appendChild(potTray);
       pot.appendChild(el("strong", null, fmtMoney(cents)));
@@ -1428,38 +1496,59 @@
     return tray;
   }
 
-  /* ── the cash-out lobby (big tile at `over`) ──────────────────── */
+  /* ── the cash-out lobby (big tile at `over`) ──────────────────────
+     Cities' and mahjong's over screen, beat for beat: a head line with
+     the title left and the count right, a ranked reveal whose winning
+     row glows, then the panel's own Rematch pill. Where those two show
+     superlative cards, poker shows the money — bought in, walked with,
+     net — and then the Winnings grid, which at `over` comes out of its
+     popover and lies flat (the felt's pill turns into Repayment). */
   function cashoutLobby() {
     var over = model.over || {};
     var wrap = el("div", "pk-cashout");
-    wrap.appendChild(el("h2", "pk-cashout__title", S.gameOver));
+    var head = el("div", "pk-cashout__head");
+    head.appendChild(el("h2", "pk-cashout__title", S.gameOver));
+    head.appendChild(el("span", "pk-cashout__hands", fmt(S.handCount, { n: over.hands || 0 })));
+    wrap.appendChild(head);
+    /* the host closing his own table explains itself, so `host` gets no
+       line at all — only the two endings nobody chose alone get one. */
     var why = over.endedBy === "vote" ? S.endedByVote
-      : over.endedBy === "host" ? S.endedByHost : S.endedByAttrition;
-    wrap.appendChild(el("p", "pk-cashout__sub", why + " · " + fmt(S.handCount, { n: over.hands || 0 })));
-    var table = el("table");
-    var head = el("tr");
-    head.appendChild(el("th", null, ""));
-    head.appendChild(el("th", null, S.colBought));
-    head.appendChild(el("th", null, S.colStack));
-    head.appendChild(el("th", null, S.colNet));
-    table.appendChild(head);
+      : over.endedBy === "attrition" ? S.endedByAttrition : "";
+    if (why) wrap.appendChild(el("p", "pk-cashout__sub", why));
+
+    var reveal = el("div", "pk-cashout__reveal");
+    var hrow = el("div", "pk-cashout__row pk-cashout__row--head");
+    hrow.appendChild(el("span", "pk-cashout__nodot"));   // holds the seat-dot column open
+    hrow.appendChild(el("span", "pk-cashout__name", ""));
+    hrow.appendChild(el("span", "pk-cashout__place", ""));
+    hrow.appendChild(el("span", "pk-cashout__fig", S.colBought));
+    hrow.appendChild(el("span", "pk-cashout__fig", S.colStack));
+    hrow.appendChild(el("span", "pk-cashout__fig", S.colNet));
+    reveal.appendChild(hrow);
     var mine = mySeat();
     (over.standings || []).forEach(function (r) {
-      var tr = el("tr", "pk-cashout__row" + (r.seat === mine ? " pk-cashout__row--me" : ""));
-      var nameCell = el("td");
-      var place = r.tied ? fmt(S.placeTied, { place: r.rank }) : (S.ordinals[r.rank - 1] || String(r.rank));
-      nameCell.appendChild(el("span", "pk-cashout__place", place));
-      nameCell.appendChild(el("span", null, seatName(r.seat) || ("#" + r.seat)));
-      tr.appendChild(nameCell);
-      tr.appendChild(el("td", null, fmtMoney(r.bought)));
-      tr.appendChild(el("td", null, fmtMoney(r.stack)));
-      var netCell = el("td", r.net > 0 ? "is-plus" : r.net < 0 ? "is-minus" : null, net(r.net));
-      tr.appendChild(netCell);
-      table.appendChild(tr);
+      var row = el("div", "pk-cashout__row"
+        + (r.rank === 1 ? " is-winner" : "")
+        + (r.seat === mine ? " is-me" : ""));
+      row.appendChild(seatDot(r.seat));
+      row.appendChild(el("span", "pk-cashout__name", seatName(r.seat) || ("#" + r.seat)));
+      row.appendChild(el("span", "pk-cashout__place",
+        r.tied ? fmt(S.placeTied, { place: r.rank }) : (S.ordinals[r.rank - 1] || String(r.rank))));
+      row.appendChild(el("span", "pk-cashout__fig", fmtMoney(r.bought)));
+      row.appendChild(el("span", "pk-cashout__fig", fmtMoney(r.stack)));
+      row.appendChild(el("span", "pk-cashout__fig pk-cashout__net "
+        + (r.net > 0 ? "is-plus" : r.net < 0 ? "is-minus" : "is-zero"), net(r.net)));
+      reveal.appendChild(row);
     });
-    wrap.appendChild(table);
+    wrap.appendChild(reveal);
+
+    var grid = el("div", "pk-cashout__matrix");
+    grid.appendChild(el("h3", "pk-cashout__subhead", S.winningsButton));
+    grid.appendChild(winningsGrid());
+    wrap.appendChild(grid);
+
     if (model.host) {
-      var again = el("button", "tb-pill gt-lobby__start");
+      var again = el("button", "tb-pill pk-cashout__rematch");
       again.type = "button";
       again.appendChild(el("span", "tb-pill__label", S.rematchButton));
       again.addEventListener("click", function () { send({ type: "rematch" }); });

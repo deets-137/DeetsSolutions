@@ -130,6 +130,9 @@
         };
       });
       view.pot = pot;
+      // the chips actually pushed in, not a racking of the total (engine
+      // syncTrays). Public, exactly like every seat's own tray is.
+      view.potTray = g.potTray;
       if (g.turn) view.turn = { seat: g.turn.seat };
       if (g.handOver) {
         view.handOver = g.handOver;                          // reveal is public at showdown

@@ -269,7 +269,8 @@
 
   var GAMES = {
     cities: { label: "DeetsCities", href: "/cities/" },
-    mahjong: { label: "DeetsMahjong", href: "/mahjong/" }
+    mahjong: { label: "DeetsMahjong", href: "/mahjong/" },
+    poker: { label: "DeetsPoker", href: "/poker/" }
   };
   /* Counter labels. Order is the reading order, not the schema's — the
      things you'd actually want to know first. Anything the server sends
@@ -293,6 +294,14 @@
       ["score", "Net score"], ["wins", "Hands won"], ["self_draws", "Self-draws"],
       ["deal_ins", "Deal-ins"], ["best_faan", "Best hand"],
       ["pungs", "Pungs"], ["chows", "Chows"], ["kongs", "Kongs"]
+    ],
+    /* Poker's money counters (net, bought, biggest_pot) are deliberately
+       NOT here yet: they are integer CENTS, and this box prints a counter
+       verbatim, so "Net 1234" would be a wrong number rather than $12.34.
+       They land in the database either way — a label is all they're
+       waiting on, once this page grows a money formatter. */
+    poker: [
+      ["hands", "Hands played"], ["wins", "Pots won"]
     ]
   };
 

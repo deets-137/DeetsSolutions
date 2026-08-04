@@ -186,11 +186,13 @@ destination between "a bot holds it" and "conceded": the seat goes
 engine stops dealing it in but the position survives intact; the same
 token — or, in the worker, the same uid from any device — walks back in.
 
-A game opts in with two spec keys naming its own engine verbs:
+A game opts in with two spec keys naming its own engine verbs —
+`awayAction` / `adoptAction` in the mock, the same pair spelled
+`AWAY_ACTION` / `ADOPT_ACTION` as getters on the DO subclass:
 
 | Key | When it fires | Poker's |
 |---|---|---|
-| `awayAction` | mid-game `stand` at a non-`"none"` table, instead of the bot handoff | `sitOut` |
+| `awayAction` | mid-game `stand` at a non-`"none"` table, instead of the bot handoff; in the worker also **grace expiry** and a dark seat at Start | `sitOut` |
 | `adoptAction` | someone adopts an `away` seat (`"anyone"` tables) | `sitBack` |
 
 If `awayAction` is absent, or the engine refuses it, the shell falls
@@ -198,6 +200,24 @@ straight through to the normal bot takeover — so cities and mahjong are
 untouched. `away` rides the seat view as a public boolean (like
 `conceded`), and the adoption filter treats `phantom || away` as
 adoptable.
+
+The worker half (`table-do.js`, `awaySeat(i)`) is what makes the promise
+real, and three of its choices are the whole point:
+
+- **The token and the uid stay on an away seat.** Every other exit path
+  deletes both; that deletion is exactly what made leaving permanent.
+  Keeping them is what lets join's reclaim — token first, then a verified
+  account uid from *any* device — hand the seat and its stake back.
+- **A kick still severs**, at every mode, for a game with an away action:
+  parking a kicked player leaves their token on the seat, so they would
+  walk straight back in and the host's only remedy would be no remedy.
+  They cash out into the standings instead.
+- **An away stretch is an absence, not a hand-over**, so the spans ledger
+  keeps the span open. A player who takes a break must not lose
+  attribution for their own session.
+
+The table's lifetime still bounds all of it: `EXPIRE_MS` (1 h idle and
+empty) evaporates the table and every parked stake with it.
 
 The pill's wording has to change with the policy — at a `"none"` table
 standing cashes you out, everywhere else it just parks you — so a game
@@ -562,7 +582,7 @@ matches what you're changing, and check the blast radius before you start.
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
 | The turn timer, grace window, rejoin, bots, reconnect, teams | `games/table-do.js` | **Every game** | **Re-vendor** into every game worker, redeploy |
-| Away seats (`awayAction`/`adoptAction`), the `standCopy()` wording hook | `games/table.js` + `table-mock.js`, **and `table-do.js` when the poker worker lands** | **Every game** (no-op without the spec keys) | **Re-vendor** once `table-do.js` carries it |
+| Away seats (`awayAction`/`adoptAction`), the `standCopy()` wording hook | `games/table.js` + `table-mock.js` + `table-do.js` | **Every game** (no-op without the spec keys) | **Re-vendor** all three workers |
 | The spans ledger, the event archive, the results POST | `games/table-do.js` | **Every game** | **Re-vendor**, redeploy; see [stats.md](stats.md) |
 | What a game records about a finished game | that worker's `src/index.js` (`seatCounters` et al.) | That game only | Redeploy · `node scripts/check.mjs` · maybe an `ALTER TABLE` in `../DeetsAccounts` |
 | Site header, nav, settings menu, toasts, `.page-bar`, `.sotd__bar`, the `tb-` kit | `styles/chrome.css` | **Every page on the site** | — |
@@ -588,39 +608,23 @@ Three rules that follow from the table:
    game and didn't; the duplication survived two games and a bug rode along
    in it. If you find yourself pasting from cities into mahjong, stop.
 
-### Build style — mirror the siblings before inventing
+### Build style, precedent, and taste → design-language.md
 
-How a new game's UI stays indistinguishable from the ones beside it.
-These were applied verbatim while building DeetsPoker (chat 2026-08-03)
-and are the default for every game after it; deviate only when Aditya
-asks for the deviation.
+**[design-language.md](design-language.md)** carries the precedent half
+of building a game: the design questionnaire, why each bento surface
+exists, the pattern index (game concept → the sibling that already built
+it), the decision trees (bots/rejoin, settings, seat colors vs.
+carve-out, `[ph]` exemptions), the jitter techniques by name, the
+mock-first build order, and the build-style rules that used to live in
+this section. Read it before *designing* anything; read this file before
+*wiring* anything. One rule stays here because it is law, not taste:
 
-- **Copy a sibling's geometry, not its spirit.** When poker needed a
-  players tile, a hand/controls panel, or board popovers, the answer was
-  cities' actual rules — the pstrip card anatomy, the `1fr 1fr` play
-  grid with actions `justify-content: flex-end`, the board-popover kit
-  (pill row bottom-left, absolute panels, hover previews / click pins /
-  150ms grace), the log list's exact font, gap, and last-line highlight.
-  Open the sibling's CSS and take the numbers; don't approximate them.
 - **The universal layout rule: no piece may resize another.** Anything
   that appears and disappears (a raise tray, a hover hint, a state chip
   row, a popover) either lives in an absolute overlay or holds its space
   when empty (`visibility: hidden` ghosts, fixed-height reserved rows,
-  min-heights). Cities wrote the rule; every game inherits it.
-- **Control glosses ride native tooltips** (`title=`), not visible hint
-  lines. A visible line is a layout liability and a second copy of the
-  same words.
-- **Strings carried VERBATIM from a sibling's handwritten pass may land
-  un-prefixed**, with a section comment naming the source — the [ph]
-  convention exists so Aditya reviews every word once, not so he reviews
-  the same word per game. Single-character labels (badge letters) and
-  strings he dictates in chat also land un-prefixed, provenance-marked.
-  Everything else still arrives as `[ph]`.
-- **Same-shaped data gets the sibling's presentation.** Timer chips,
-  custom-value boxes (`gt-chip--num`), choice rows, seat dots, accent
-  edges: if the shell or a sibling already renders the concept, a new
-  game re-uses the pattern (ideally the shell's own helper) rather than
-  designing a variant.
+  min-heights). Cities wrote the rule; every game inherits it —
+  design-language.md names the enforcement techniques.
 
 ### Known duplication, not yet promoted
 
@@ -683,6 +687,10 @@ Honest list, so the next session doesn't rediscover it:
 
 ## Adding a game
 
+0. **Design it first** — [design-language.md](design-language.md): the
+   questionnaire, the precedents, and the decision trees that turn a
+   design chat with Aditya into a dated decisions list. The doc lands as
+   step 7's opening section.
 1. `<game>/engine.js` — rules, `createGame(opts, ctx)` /
    `applyAction(game, action, ctx)` → `{game, events}` or `err(code)`,
    `ctx = {rand, now}`, plus self-checks.

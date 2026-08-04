@@ -29,6 +29,7 @@ Start at [README.md](README.md). Then:
 | --- | --- |
 | Site structure, tokens, chrome | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
+| **Designing a NEW game** | **[design-language.md](docs/design-language.md)** — the precedents, decision trees, and questionnaire |
 | Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md) |
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
@@ -89,8 +90,8 @@ the duplication.
 
 Per-game invariants worth knowing before you touch them:
 
-- **Poker** (phase 1, no worker — the page runs the mock by default via the
-  `mockDefault` flag; drop it when `../DeetsPoker` deploys): money is integer
+- **Poker** (live on `../DeetsPoker`; the mock is `?mock` like every other
+  game): money is integer
   cents, and every bet must split into the table's chip ladder (full all-ins
   excepted). Hole cards and the actor's options ride only `you`. No bots in
   live play, ever — the three `rejoin` modes decide what *leaving* costs, not
@@ -113,7 +114,7 @@ he dictated in chat.
 | Radio | Done — handwritten throughout |
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
-| Poker | Barely started — most entries still `[ph]` |
+| Poker | Done — one pass cleared the lot, `repay*` included; zero `[ph]` left |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.
@@ -129,7 +130,7 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 | DeetsCities | `cities-api.deets.solutions` | |
 | DeetsMahjong | `mahjong-api.deets.solutions` | |
 | DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
-| DeetsPoker | — | **not built yet** |
+| DeetsPoker | `poker-api.deets.solutions` | private repo; **secrets not set yet** (guests only, results in the outbox) |
 
 - **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
   + guardrails). Never call Riot or spend key budget from the browser.

@@ -13,20 +13,36 @@ poker/poker.js           the felt/hand-panel UI + the shell's hooks
 poker/transport-mock.js  the mock's game half (a spec on table-mock.js)
 poker/poker.css          the game's own art + layout
 assets/sprites/poker/    chip art (templates: scripts/build-poker-chips.py)
-../DeetsPoker/           the worker repo — DOES NOT EXIST YET (phase 2)
+../DeetsPoker/           the worker repo (src/index.js is the mock's port)
 ```
 
-`node poker/engine.js` runs the engine's self-checks (94 at last count).
+`node poker/engine.js` runs the engine's self-checks (233 at last count).
 
 ## Build phases
 
-**Phase 1 (now): mock-first.** There is no worker repo, so the page runs
-the mock WITHOUT `?mock` — the `mockDefault: true` flag in poker.js's
-shell config (a small shared-shell addition). When `../DeetsPoker`
-deploys at `poker-api.deets.solutions`, delete that flag and poker joins
-the transports-default-to-prod rule. Everything the worker will need is
-already shaped for vendoring: `engine.js` is the contract file, the mock
-spec is the DO subclass hook-for-hook.
+**Phase 1: mock-first.** The whole game was built and reviewed against
+the in-page mock, which ran WITHOUT `?mock` behind a `mockDefault: true`
+flag in poker.js's shell config. Everything the worker would need was
+shaped for vendoring from the start: `engine.js` is the contract file,
+the mock spec is the DO subclass hook-for-hook. The flag is gone now, but
+the shell hook stays — the next game gets to build this way too.
+
+**Phase 2: the worker (LIVE).** `../DeetsPoker` is deployed at
+`poker-api.deets.solutions` — a `PokerTable` subclass of the shared
+`GameTable` base, vendoring `table-do.js`, `colors.js` and
+`poker/engine.js` byte-identically, and porting `transport-mock.js` hook
+for hook (the mock is the reference implementation; where the two
+disagree, the mock is right). The away-seat half of the base landed with
+it (see "Stepping away"), as did the stats hooks (`poker_seats` counters
+on the accounts D1, `score` = net cents).
+
+The mock is still one `?mock` away and is still where a rules change gets
+tried first. Three checks guard the pair, all dependency-free:
+`node src/engine.js` (the rules), `scripts/check.mjs` (the results
+payload maps onto the D1 columns), `scripts/check-table.mjs` (the away
+paths, through the real DO over fake sockets — the mock models no
+disconnects, so that file is the only thing standing between a
+grace-expiry bug and somebody's stack).
 
 ## The decisions (chat 2026-08-03)
 
@@ -182,6 +198,26 @@ the biggest chip — true, and useless to look at ($21 is 21 blacks). A
   the point: your chips keep looking like your chips instead of
   re-composing under you every hand. A re-deal is the fallback when a
   tray genuinely can't make change.
+- **The pot holds the chips that were pushed into it**, not a racking of
+  its total. `g.potTray` is public and accumulates the *drop* between
+  each tray before a sync and after it, in the same `syncTrays` pass.
+  Drawing the pot as `dealTray(pot)` was a true statement about how much
+  is in the middle and a false one about what is: four seats limping a
+  20¢ blind put eight 10¢ chips in the middle, and racking 80¢ would have
+  shown three dimes and two quarters.
+
+  Two things keep it honest. Only **decreases** count — a tray that gained
+  chips gained them from the cage (a buy-in, a rebuy) or from the pot (an
+  award), and neither is money going in. And the composition is checked
+  against the total on every sync: if they ever disagree — a rung gone
+  negative because someone overpaid and took change out of a pot that
+  didn't hold it, or a re-deal having thrown a tray's history away — the
+  pot falls back to racking its total. Wrong-*looking* beats lying; the
+  amount under the pile is the number of record either way.
+
+  Nothing resets it explicitly. The next hand zeroes every `betHand`, so
+  the total becomes 0, the check fails against the leftover chips, and
+  the fallback deals an empty pot.
 
 Rendering is one function, `chipStacks`, in two placements: one group per
 denomination, each group one or more columns of edge-on chips. **On the
@@ -281,36 +317,41 @@ The ante moves cents from `stack` into `betHand` but **never into
 call. Log line reads `… posts $X (ante)`; the event is
 `{t:"blind", kind:"ante"}`.
 
-### Still to build in the worker
+### What the worker does with an away seat
 
-The client half is done and testable in the mock. `games/table-do.js`
-does **not** yet know about away seats — it is the piece phase 2 owes:
+`games/table-do.js` now carries the DO half — `AWAY_ACTION` /
+`ADOPT_ACTION` and the `awaySeat(i)` helper, the same pair the mock
+spells in lower case ([games.md](games.md), "Away seats"):
 
-- **`concedeSeat` is not the only exit any more.** The DO's mid-game
-  `stand` / kick / grace-expiry branches must consult `awayAction` the
-  way `table-mock.js` now does, and must **keep `token` and `uid`** on an
-  away seat (today all three paths `delete` both — that deletion is
-  exactly what made leaving permanent).
-- **uid reclaim is the whole point of the accounts tie-in.** The DO's
-  join path already tries token first, then scans for a seat with a
-  matching `uid` whose token is disconnected. An away seat must be
-  reclaimable that way, which is what makes "leave on your laptop, come
-  back on your phone" work. None of this is reachable in the mock — no
-  cookie, no `sessionUid`, no `uid` on seats — so it can only be verified
-  live, like every other rejoin behavior.
-- **Disconnect ≠ sit-out, but should become one.** The old rule was
-  "disconnects auto-fold." With away seats the honest version is: a
-  disconnect opens the grace window as usual, and grace expiry sends the
-  seat **away** rather than conceding it (at `"none"`, it still cashes
-  out). Until then a dropped player at a live table stalls the action to
-  the turn timer.
+- **`concedeSeat` is not the only exit any more.** Mid-game `stand` and
+  grace expiry both park the seat instead, and both **keep `token` and
+  `uid`** on it. Every other exit path deletes both, and that deletion is
+  exactly what made leaving permanent. A seat that went dark in the lobby
+  is parked at Start too, rather than converted to a bot poker refuses to
+  seat.
+- **A kick still severs**, at every mode. Parking a kicked player leaves
+  their token on the seat, so they walk straight back in — which makes
+  the host's only remedy for a staller no remedy at all. They cash out
+  into the standings.
+- **uid reclaim is the point of the accounts tie-in.** The DO's join path
+  tries token first, then scans for a seat with a matching `uid` whose
+  token is disconnected — an away seat matches, which is what makes
+  "leave on your laptop, come back on your phone" work. `SESSION_SECRET`
+  must be set for any of it. None of this is reachable in the mock (no
+  cookie, no `sessionUid`, no `uid` on seats), so **it can only be
+  verified live**, like every other rejoin behavior.
+- **Disconnect became a sit-out.** A drop opens the grace window as
+  usual; expiry sends the seat **away** rather than conceding it (at
+  `"none"`, it still cashes out). An away seat that drops opens no second
+  window — nothing is waiting on it.
 - **The table's lifetime bounds the promise.** `EXPIRE_MS` (1 h idle +
   empty) evaporates the table and every parked stack with it. "Your
   chips are waiting" is only true for that long — worth saying in the
   copy if it ever becomes visible.
-- **Stats.** An away stretch is an absence, not a seat change; the spans
-  ledger should not treat `sitOut`/`sitBack` as a hand-over, or a player
-  who takes a break loses attribution for their own session.
+- **Stats.** An away stretch is an absence, not a seat change, so the
+  span stays **open** across `sitOut`/`sitBack`: a player who takes a
+  break keeps attribution for their own session. Adoption of an away seat
+  by a stranger is a real hand-over and closes it.
 
 ## Rules engine (engine.js)
 
@@ -380,6 +421,32 @@ column each player's overall net, diagonal blanked. Sits FIRST, left of
 pins), bottom-left of the felt. The Log popover carries the mechanical
 hand log in cities' exact log dress; the players tile is roster only.
 
+At `over` the grid comes out of the popover and lies flat in the
+cash-out panel, so that pill slot carries **Repayment** instead —
+`repayments()` in `poker.js`, pure and client-side over `over.standings`
+(no wire or engine change; the nets it needs already ride the view).
+The Winnings grid says who took money off whom, which is a terrible way
+to pay it back — six players is up to fifteen hand-offs. Only the NETS
+have to be honored, so it pairs the biggest debtor with the biggest
+creditor and repeats: each pass zeroes at least one person, so N players
+settle in **at most N−1 transfers**, in cents, no rounding. The true
+minimum (spotting subsets that cancel exactly) is NP-hard; this greedy
+pairing is the standard answer and is optimal whenever no such subset
+exists.
+
+## The cash-out lobby
+
+Cities' `.cities-over` / mahjong's `.mj-over` skeleton, beat for beat —
+`__head` (title left, hand count right, one baseline), the `endedBy`
+line — `vote` and `attrition` only, since a host closing his own table
+explains itself and gets no subtitle at all — a ranked `__reveal` whose
+rank-1 row wears the winner border and
+the three-pulse glow, then the panel's own Rematch pill. Where those two
+games show superlative cards, poker shows the money: **bought in /
+walked with / net** per seat, then the Winnings grid under it. The rows
+are a CSS grid on one shared template rather than a `<table>`, because
+a row has to stay a single box to carry the winner's border and glow.
+
 ## Page layout — the bento
 
 Three tiles where cities keeps five: the **felt** (big — circular table,
@@ -407,7 +474,7 @@ three things it holds want different ones:
 | phase | box | why |
 | --- | --- | --- |
 | felt | flex, `overflow: visible` | a rich seat should spill past the edge; scrolling a poker table to find the chips is worse than the mess |
-| cash-out | flex, `.is-scroll` | `.pk-cashout` centers itself with `margin: auto`, which needs the flex parent |
+| cash-out | flex, `.is-scroll` | `.pk-cashout` is `align-self: flex-start` — it runs past the tile's height now that the Winnings grid is inline, and a centered flex item that overflows loses its top edge to the scroll |
 | lobby | block, `.is-scroll .is-lobby` | a **flex** scroll container drops its bottom padding once content overflows — that is what smushed the Start button into the panel edge |
 
 Seat jitter has one cause worth remembering: a seat is centered on its
@@ -455,17 +522,19 @@ before the worker ships, that's a one-flag shell change — say the word.
 
 | Change | File | Why |
 | --- | --- | --- |
-| `cfg.mockDefault` | `games/table.js` | phase-1 mock without `?mock` |
+| `cfg.mockDefault` | `games/table.js` | phase-1 mock without `?mock` (poker no longer sets it — the hook stays for the next game) |
 | `S.standHover` → title on the mid-game Stand pill | `games/table.js` | "Cash out" |
 | `standCopy()` re-words that pill per render | `games/table.js` | "Sit out" outside `"none"` |
 | `awayAction` / `adoptAction` spec keys | `games/table-mock.js` | away seats (no live bots) |
 | Seat-row controls all one size (`1.6em`/font-inherit) | `styles/table.css` | Add Bot was the outlier at `0.78rem` |
 | `--gseat-6..11` fallbacks + `.pk` root | `styles/table.css` | 12-seat tables |
 
-`table-do.js` is untouched — the worker-side halves of these (sitIn,
-endGame, concede-as-cashout, away seats + uid reclaim) are phase-2 work
-in the DO subclass, shaped in transport-mock.js already and enumerated
-under "Stepping away" → "Still to build in the worker".
+`table-do.js` picked up one more in phase 2: **`AWAY_ACTION` /
+`ADOPT_ACTION`** (additive, a no-op for a game that defines neither, so
+cities/mahjong/ships behave exactly as before — but they carry vendored
+copies and should be re-vendored when each is next touched). The rest of
+the worker-side halves — `sitIn`, `sitBack`, `endGame` — are poker's own,
+in `../DeetsPoker/src/index.js`.
 
 ## Motion
 
@@ -528,6 +597,11 @@ width rather than guessing at it).
   never accumulated — a reconnect mid-hand has to land on the same pile
   as everyone else, and a counter would start from zero.
 
+The two are told apart by how they stack: the **deck squares up** and
+grows straight upward, like a deck someone has tapped level; the **burn
+fans sideways** as it grows, because it is a heap of dead cards nobody
+tidies. Same object, two housekeeping habits (`cardPile`'s `dx`).
+
 A pile is one card box with its cards absolutely stacked inside it and
 offset by JS, so depth costs no size — both piles are pinned by their
 box, and a box that grew with its contents would crawl off the spot it
@@ -565,6 +639,15 @@ and the `win` above already flew them.
   It is now a flight *target* (chips land on it and it bumps), but it
   doesn't draw the pile itself.
 - Muck/show choices at showdown (v1 reveals every live hand).
-- The worker repo + stats hooks (`poker_seats` counters, results POST) —
-  [stats.md](stats.md) when phase 2 starts.
-- The lobby copy pass: everything but the dictated lines is `[ph]`.
+- **The worker's two secrets.** `SESSION_SECRET` and `INGEST_SECRET` are
+  not set on `deets-poker` yet (`npx wrangler secret put NAME`, the same
+  values DeetsAccounts holds). Without the first, every seat is a guest
+  and cross-device return — the point of away seats — doesn't work.
+  Without the second, a finished game waits in the DO's outbox.
+- The profile page prints poker's money counters only once it grows a
+  cents formatter — `net`, `bought` and `biggest_pot` land in the
+  database now but carry no label yet ([stats.md](stats.md)).
+- The copy pass is **done** (chat 2026-08-03): 79 placeholders cleared in
+  one pass, so every string in `poker/strings.js` is now his and off
+  limits to reword. Only the four `repay*` strings still carry `[ph]`,
+  and they belong to work in flight elsewhere.

@@ -622,25 +622,76 @@
 .pk-over__line { color: var(--pkface); font-size: 1rem; text-align: center; }
 .pk-over__line strong { color: var(--pkglow); }
 .pk-over__sub { color: var(--pkface); opacity: 0.8; font-size: 0.8rem; }
-.pk-cashout { display: flex; flex-direction: column; gap: var(--space-3); align-items: center; margin: auto; width: 100%; }
+/* The cash-out panel is cities' `.cities-over` / mahjong's `.mj-over`
+   in poker's clothing — same column, same gap, same entrance, same
+   glow on the winning row. `align-self: flex-start` rather than the
+   old `margin: auto`: the panel now runs past the tile's height, and a
+   centered flex item that overflows loses its top edge to the scroll. */
+.pk-cashout {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  align-self: flex-start; width: 100%;
+  animation: pk-cashoutin 0.45s var(--ease-ui);
+}
+@keyframes pk-cashoutin { from { opacity: 0; transform: translateY(10px); } }
+.pk-cashout__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .pk-cashout__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
-.pk-cashout__sub { color: var(--subtext); font-size: 0.9rem; }
-.pk-cashout table { border-collapse: collapse; }
-.pk-cashout th {
+.pk-cashout__hands { flex: none; color: var(--subtext); font-size: 0.9rem; }
+.pk-cashout__sub { margin: 0; color: var(--subtext); font-size: 0.9rem; }
+/* The panel's own gap is tight (--space-2) so the Winnings grid rides up
+   under the money columns instead of floating half a screen below them;
+   the reveal takes the one real break, off the head. */
+.pk-cashout__reveal { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+/* One grid template for the header and every row, so the three money
+   columns line up without a <table> — the row has to stay a single box
+   to carry the winner's border and glow. */
+.pk-cashout__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto repeat(3, 6rem);
+  align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;          /* reserved, so the glow shifts nothing */
+  border-radius: var(--radius-control);
+}
+.pk-cashout__nodot { width: 0.75rem; }    /* the seat-dot column, held open */
+.pk-cashout__row--head { padding-top: 0; padding-bottom: 0; }
+.pk-cashout__row--head .pk-cashout__fig {
   color: var(--subtext); font-size: 0.72rem; font-weight: 400;
   text-transform: uppercase; letter-spacing: 0.05em;
-  text-align: right; padding: var(--space-1) var(--space-3);
 }
-.pk-cashout th:first-child, .pk-cashout td:first-child { text-align: left; }
-.pk-cashout td {
-  color: var(--text); font-size: 0.95rem; text-align: right;
-  padding: var(--space-1) var(--space-3);
-  font-variant-numeric: tabular-nums;
+.pk-cashout__row.is-winner { border-color: var(--title); box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title); }
+/* three pulses on arrival, then the row rests at its static glow */
+.pk-cashout__row.is-winner { animation: pk-cashoutpulse 1.4s var(--ease-ui) 0.45s 3; }
+@keyframes pk-cashoutpulse { 50% { box-shadow: 0 0 0 1px var(--title), 0 0 22px 2px var(--title); } }
+@media (prefers-reduced-motion: reduce) {
+  .pk-cashout { animation: none; }
+  .pk-cashout__row.is-winner { animation: none; }
 }
-.pk-cashout__place { color: var(--subtext); font-size: 0.8rem; padding-right: var(--space-2); }
-.pk-cashout td.is-plus { color: var(--go); font-weight: 700; }
-.pk-cashout td.is-minus { color: var(--stop); }
-.pk-cashout__row--me td:first-child { color: var(--title); font-weight: 700; }
+.pk-cashout__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.pk-cashout__row.is-me .pk-cashout__name { color: var(--title); font-weight: 700; }
+.pk-cashout__place { flex: none; color: var(--subtext); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.pk-cashout__fig { text-align: right; color: var(--text); font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.pk-cashout__net.is-plus { color: var(--go); font-weight: 700; }
+.pk-cashout__net.is-minus { color: var(--stop); }
+.pk-cashout__net.is-zero { color: var(--subtext); }
+/* the Winnings grid, out of its popover and lying flat */
+.pk-cashout__matrix { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+.pk-cashout__subhead {
+  margin: 0; color: var(--subtext); font-size: 0.72rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+/* Rematch sits in the flow; the Repayment + Log pills are the felt's
+   absolute row pinned to the tile's bottom-left. Nothing in the layout
+   keeps the two button rows apart, so the margin does it by hand. */
+.pk-cashout__rematch { align-self: flex-start; margin-top: var(--space-4); margin-bottom: var(--space-5); }
+
+/* ── repayment: the fewest hand-offs that clear the table ─────── */
+.pk-pay { display: flex; flex-direction: column; gap: var(--space-1); }
+.pk-pay__line { display: flex; align-items: center; gap: var(--space-1); font-size: 0.85rem; color: var(--text); }
+.pk-pay__who { display: inline-flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.pk-pay__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-pay__verb { flex: none; color: var(--subtext); font-size: 0.78rem; }
+.pk-pay__amt { margin-left: auto; flex: none; color: var(--title); font-weight: 700; font-variant-numeric: tabular-nums; }
+.pk-pay__even { color: var(--subtext); font-size: 0.85rem; }
 
 /* ── desktop-only guard (the shell toggles it) ────────────────── */
 .pk-desktop-note { color: var(--subtext); }

@@ -269,8 +269,71 @@
     }
     if (traySum(p.tray.chips) + p.tray.odd !== p.stack) p.tray = dealTray(p.stack, chips);
   }
+  /* ── the pot, as the chips that were actually pushed into it ──────
+     The pot used to be drawn by racking its TOTAL — `dealTray(pot)` —
+     which is a true statement about how much is in the middle and a
+     false one about what is in the middle: bet three quarters and the
+     middle would show a 50¢ and a 25¢, because that is the tidy way to
+     make 75¢. The chips a player pushes are already known exactly (the
+     drop between their tray before a sync and after it), so the pot
+     accumulates those instead and the middle shows the very chips that
+     were slid into it.
+
+     Two things keep it honest:
+
+     - Only DECREASES count. A tray that gained chips gained them from
+       the cage (a buy-in, a rebuy) or from the pot (an award), and
+       neither is money being pushed in.
+     - The composition is checked against the total every sync. If they
+       ever disagree — a rung gone negative because someone overpaid and
+       took change out of a pot that didn't hold it, or a re-deal having
+       thrown a tray's history away — the pot falls back to the canonical
+       racking of its total. Wrong-looking beats lying: the amount under
+       the pile is the number of record either way.
+
+     Nothing here resets the pot explicitly. The next hand zeroes every
+     `betHand`, so the total becomes 0, the check fails against the
+     leftover chips, and the fallback deals an empty pot. */
+  function potTotal(g) {
+    var s = 0;
+    for (var i = 0; i < g.players.length; i++) {
+      var p = g.players[i];
+      if (p) s += p.betHand || 0;
+    }
+    return s;
+  }
+  function copyChips(t) {
+    var c = {}, v;
+    for (v in t) if (Object.prototype.hasOwnProperty.call(t, v)) c[v] = t[v];
+    return c;
+  }
   function syncTrays(g) {
-    for (var i = 0; i < g.players.length; i++) syncTray(g.players[i], g.settings.chips);
+    if (!g.potTray) g.potTray = { chips: {}, odd: 0 };
+    var pot = g.potTray, v;
+    for (var i = 0; i < g.players.length; i++) {
+      var p = g.players[i];
+      var was = p && !p.left && p.tray ? { chips: copyChips(p.tray.chips), odd: p.tray.odd } : null;
+      syncTray(p, g.settings.chips);
+      if (!was || !p.tray) continue;
+      if (traySum(p.tray.chips) + p.tray.odd >= traySum(was.chips) + was.odd) continue;
+      for (v in was.chips) if (Object.prototype.hasOwnProperty.call(was.chips, v)) {
+        pot.chips[v] = (pot.chips[v] || 0) + was.chips[v] - (p.tray.chips[v] || 0);
+      }
+      for (v in p.tray.chips) if (Object.prototype.hasOwnProperty.call(p.tray.chips, v)) {
+        if (!Object.prototype.hasOwnProperty.call(was.chips, v)) {
+          pot.chips[v] = (pot.chips[v] || 0) - p.tray.chips[v];
+        }
+      }
+      pot.odd += was.odd - p.tray.odd;
+    }
+    var sane = pot.odd >= 0;
+    for (v in pot.chips) if (Object.prototype.hasOwnProperty.call(pot.chips, v)) {
+      if (pot.chips[v] < 0) sane = false;
+      if (!pot.chips[v]) delete pot.chips[v];              // a spent rung leaves no group
+    }
+    if (!sane || traySum(pot.chips) + pot.odd !== potTotal(g)) {
+      g.potTray = dealTray(potTotal(g), g.settings.chips);
+    }
   }
 
   /* ── hand evaluation ──────────────────────────────────────────
@@ -676,7 +739,11 @@
     var out = [];
     rows.forEach(function (r, i) {
       var rank = i > 0 && rows[i - 1].net === r.net ? out[i - 1].rank : i + 1;
-      out.push({ seat: r.seat, rank: rank, net: r.net, bought: r.bought, stack: r.stack });
+      // `score` is the shared-shell name for "the number this rank sorts on"
+      // — the stats pipeline reads it off every game (docs/stats.md) and a
+      // null there is a refused result. For a cash game that number is net.
+      out.push({ seat: r.seat, rank: rank, score: r.net,
+                 net: r.net, bought: r.bought, stack: r.stack });
     });
     out.forEach(function (r) {
       r.tied = out.filter(function (x) { return x.rank === r.rank; }).length > 1;
@@ -1071,6 +1138,52 @@
       }
       ok(acted > 3, "the loop actually played (" + acted + " actions)");
       ok(chips.length > 1, "settings kept the ladder");
+    })();
+
+    (function potHoldsWhatWasPushed() {
+      /* The pot's chips are the chips people pushed in, not a tidy
+         racking of the total. Two things to hold: the pile always adds
+         up to the pot (a composition that doesn't is a lie, and the
+         fallback exists to catch exactly that), and it is genuinely
+         ACCUMULATED — a pot of three quarters must not come back as the
+         50¢-and-a-25¢ that `dealTray` would rack 75¢ into. */
+      var g = mkGame(4, 21);
+      // mkGame has already dealt a hand, so the blinds are in the middle —
+      // which is the first thing the accumulation has to have got right
+      eq(potTotal(g), g.settings.bigBlind * 1.5, "the blinds are the opening pot");
+      eq(traySum(g.potTray.chips) + g.potTray.odd, potTotal(g), "and the pot holds the chips they were posted with");
+      var acted = 0;
+      for (var n = 0; n < 40 && g.phase !== "over"; n++) {
+        if (!g.turn) break;
+        var i = g.turn.seat;
+        var o = options(g, i);
+        if (!o) break;
+        var r = applyAction(g, { type: o.toCall > 0 ? "call" : "check", seat: i }, mkCtx(n + 9));
+        if (r.error) break;
+        g = r.game; acted++;
+        eq(traySum(g.potTray.chips) + g.potTray.odd, potTotal(g),
+           "the pot's chips add up to the pot after action " + acted);
+      }
+      ok(acted > 3, "the pot loop actually played (" + acted + " actions)");
+
+      /* the accumulation itself, in isolation: three seats each push one
+         25¢ chip, and the middle must hold three 25¢ chips — dealTray
+         would have racked the same 75¢ as 50¢ + 25¢. */
+      var q = mkGame(3, 31);
+      q.settings.chips = [25, 50, 100];
+      q.potTray = { chips: {}, odd: 0 };
+      q.players.forEach(function (p) { p.tray = { chips: { 25: 4 }, odd: 0 }; p.stack = 100; p.betHand = 0; });
+      q.players.forEach(function (p) { p.stack -= 25; p.betHand += 25; });
+      syncTrays(q);
+      eq(q.potTray.chips[25], 3, "three quarters pushed in are three quarters in the pot");
+      eq(q.potTray.chips[50], undefined, "the pot did not re-rack them into a 50¢");
+      eq(traySum(q.potTray.chips), 75, "and they still add up to 75¢");
+
+      // a composition that can't be true falls back to racking the total
+      var f = mkGame(2, 41);
+      f.potTray = { chips: { 25: -3 }, odd: 0 };
+      syncTrays(f);
+      ok(traySum(f.potTray.chips) + f.potTray.odd === potTotal(f), "a broken pot re-racks to its total");
     })();
 
     (function evaluator() {
