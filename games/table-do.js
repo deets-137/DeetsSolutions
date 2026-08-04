@@ -95,6 +95,17 @@ export class GameTable {
   get REJOIN_MODES() { return ["anyone", "rejoin"]; }
   // real team count (DeetsShips: 2), or null — teams of one (see "Teams")
   get TEAMS() { return null; }
+  /* ── away seats (docs/poker.md, "Stepping away") ────────────────────
+     A game with NO bots in live play can't hand a released seat to the
+     drive. It parks the seat instead: the engine verb named here folds the
+     occupant out and stops dealing them in, while the roster keeps the seat
+     whole — name, color, stake, token AND uid — so the same person walks
+     back in later, from any device they're signed in on. ADOPT_ACTION is
+     the return. A game that defines these must also speak `concede`: a kick
+     still severs (see kickSeat), and so does a "none" table.
+     The site's mock spells the same pair `awayAction` / `adoptAction`. */
+  get AWAY_ACTION() { return null; }
+  get ADOPT_ACTION() { return null; }
   extraCommand() { return false; }         // game-specific verb; true = handled
   deadlineFor() { return null; }           // ms window for the table's one deadline
   dlSig() { return null; }                 // stable signature of that obligation
@@ -411,6 +422,26 @@ export class GameTable {
     // buildings, roads and awards on the board.
     this.closeSpan(i, exit || "concede");
     delete s.bot; delete s.phantom; delete s.graceUntil; delete s.token; delete s.uid;
+    delete s.away;
+    return r.events || [];
+  }
+  /* The other mid-game exit: the seat is PARKED, not severed (AWAY_ACTION).
+     Everything identifying stays on it — that is the whole feature, because
+     join's reclaim matches on token or uid and a deleted key can match
+     neither. Returns the engine's events, or null when this game (or this
+     moment) can't park a seat, which is the caller's signal to fall back to
+     the bot takeover it always did. */
+  awaySeat(i) {
+    const s = this.t.seats[i], g = this.t.game;
+    if (!s || !this.AWAY_ACTION || !g || g.phase === "over") return null;
+    delete s.graceUntil;
+    if (s.away) return [];
+    const r = this.applyEngine({ type: this.AWAY_ACTION, seat: i });
+    if (r.error) return null;
+    s.away = true;
+    // An away stretch is an ABSENCE, not a hand-over: the span stays OPEN, or
+    // a player who takes a break loses attribution for their own session
+    // (docs/stats.md — one span per occupancy, and this is still theirs).
     return r.events || [];
   }
 
@@ -512,6 +543,7 @@ export class GameTable {
         // difficulty is public — you should know what you're sitting across
         if (this.isBot(s) && this.BOT_TIERS.length) o.tier = this.botTier(s.tier);
         if (s.conceded) o.conceded = true;
+        if (s.away) o.away = true;   // public, exactly like conceded is
         if (s.graceUntil) o.graceUntil = s.graceUntil;
         return o;
       }),
@@ -623,6 +655,13 @@ export class GameTable {
           delete s.graceUntil; changed = true;
         } else if (this.rejoinMode() === "none") {
           events = events.concat(this.concedeSeat(i, "grace")); changed = true;
+        } else if (this.AWAY_ACTION) {
+          // a game with no bots to hand the seat to: the window closing
+          // sends it AWAY rather than conceding it, so the stake stays on
+          // the table and the token still opens the door (docs/poker.md)
+          const aev = this.awaySeat(i);
+          if (aev) { events = events.concat(aev); changed = true; }
+          else { delete s.graceUntil; changed = true; }
         } else {
           // a grace expiry keeps the token and uid on the seat (that is what
           // lets them reclaim it), so the span closes but the identity stays
@@ -695,7 +734,12 @@ export class GameTable {
       // code. kickedTok is already captured above, so their sockets still
       // get the close.
       let kevents;
-      if (this.rejoinMode() === "none") {
+      // A kick must SEVER, which is why an away-seat game concedes here too
+      // rather than parking the seat: parking keeps the kicked player's token
+      // on it, so they would walk straight back in and the host's only remedy
+      // for a staller would be no remedy at all. Their stack cashes out into
+      // the standings, same as a "none" table.
+      if (this.rejoinMode() === "none" || this.AWAY_ACTION) {
         kevents = this.concedeSeat(s, "kick");
       } else {
         this.closeSpan(s, "kick");   // before the uid goes with the token
@@ -733,6 +777,7 @@ export class GameTable {
         if (!t.seats[ci]) continue;
         if (t.seats[ci].conceded) { t.seats[ci] = null; continue; }
         delete t.seats[ci].graceUntil;
+        delete t.seats[ci].away;      // the next game deals everybody in
       }
       this.resizeSeats();
       this.onRematch();
@@ -753,6 +798,9 @@ export class GameTable {
       let sevents;
       if (this.rejoinMode() === "none") {
         sevents = this.concedeSeat(si, "stand");
+      } else if ((sevents = this.awaySeat(si))) {
+        // parked, not released: the stake stays on the felt and the pill the
+        // stander sees reads "Sit out", not "Cash out" (docs/poker.md)
       } else {
         this.closeSpan(si, "stand");
         t.seats[si].bot = true; delete t.seats[si].graceUntil; delete t.seats[si].token; delete t.seats[si].uid;
@@ -768,16 +816,25 @@ export class GameTable {
       if (this.seatOfToken(token) != null) return this.errTo(ws, "perm");
       const ai = msg.seat;
       const as = ai != null ? t.seats[ai] : null;
-      if (!as || !this.isBot(as)) return this.errTo(ws, "full");   // only a bot-held seat is adoptable
+      // a bot-held seat, or an away seat nobody is sitting in
+      if (!as || !(this.isBot(as) || as.away)) return this.errTo(ws, "full");
       const alower = String(att.name || "").toLowerCase();
       const ataken = t.seats.some((x, xi) => x && xi !== ai && x.name.toLowerCase() === alower);
       if (ataken) return this.errTo(ws, "name-taken");   // connections were checked at join
-      this.closeSpan(ai, "adopted");   // the bot's span ends here
+      // an away seat comes back to life with its stake intact (poker) — the
+      // engine deals it in again, the roster hands it to its new occupant
+      let aev = [];
+      if (as.away && this.ADOPT_ACTION) {
+        const ar = this.applyEngine({ type: this.ADOPT_ACTION, seat: ai });
+        if (ar.error) return this.errTo(ws, ar.error.code);
+        aev = ar.events || [];
+      }
+      this.closeSpan(ai, "adopted");   // the bot's (or the leaver's) span ends here
       as.name = att.name; as.token = token;
       if (att.uid) as.uid = att.uid; else delete as.uid;
-      delete as.bot; delete as.graceUntil; delete as.phantom;
+      delete as.bot; delete as.graceUntil; delete as.phantom; delete as.away;
       this.openSpan(ai, "adopt");
-      await this.broadcast([{ t: "adopted", seat: ai }]);
+      await this.broadcast(aev.concat([{ t: "adopted", seat: ai }]));
       this.armAlarm();
       return;
     }
@@ -940,13 +997,20 @@ export class GameTable {
            grace window without a game — so a seat that went dark in the lobby
            would deal in as neither bot nor connected human: no turn clock, no
            bot to drive it, armAlarm falls through to deleteAlarm() and the
-           table hangs forever. Convert those seats here instead. The host is
-           warned before the press (strings.startBotWarn); the takeover events
-           tell everyone after it. */
-        const autoBots = [];
+           table hangs forever. Convert those seats here instead — to a bot,
+           or to an away seat at a game that has no bots to convert them to.
+           The host is warned before the press (strings.startBotWarn); the
+           takeover (or away) events tell everyone after it. */
+        const dark = [];
         for (let i = 0; i < t.seats.length; i++) {
           const s = t.seats[i];
-          if (s && !this.isBot(s) && !this.tokenConnected(s.token)) { s.bot = true; autoBots.push({ t: "takeover", seat: i }); }
+          if (s && !this.isBot(s) && !this.tokenConnected(s.token)) dark.push(i);
+        }
+        const autoBots = [];
+        // a game that parks seats has no bot to convert them to — it deals
+        // them in and sends them away below, once there is a game to do it to
+        if (!this.AWAY_ACTION) {
+          for (const i of dark) { t.seats[i].bot = true; autoBots.push({ t: "takeover", seat: i }); }
         }
         t.game = this.createGame(seated);
         t.startedAt = Date.now();   // the result's `started`; a rematch re-stamps it
@@ -955,6 +1019,9 @@ export class GameTable {
         t.spans = [];
         for (let i = 0; i < t.seats.length; i++) if (t.seats[i]) this.openSpan(i, "lobby");
         const extra = this.onStart(seated) || [];
+        // …and now the parking half: a dark seat at a no-bots game sits out
+        // the deal it never showed up for, and walks back in when it does
+        if (this.AWAY_ACTION) for (const i of dark) autoBots.push(...(this.awaySeat(i) || []));
         await this.broadcast(extra.concat(autoBots));
         this.armAlarm();
         return;
@@ -1159,7 +1226,10 @@ export class GameTable {
     const seat = this.seatOfToken(token);
     const events = [];
     // a seated human's LAST socket dropped mid-game → open the grace window
-    if (seat != null && g && g.phase !== "over" && !this.isBot(t.seats[seat]) && !this.tokenConnected(token, ws)) {
+    // (an away seat has already stepped out: nothing is waiting on it, so a
+    // red countdown over it would be a warning about nothing)
+    if (seat != null && g && g.phase !== "over" && !this.isBot(t.seats[seat]) &&
+        !t.seats[seat].away && !this.tokenConnected(token, ws)) {
       if (!t.seats[seat].graceUntil) {
         t.seats[seat].graceUntil = Date.now() + GRACE_MS;
         events.push({ t: "leaving", seat, until: t.seats[seat].graceUntil });

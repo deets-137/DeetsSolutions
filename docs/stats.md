@@ -436,12 +436,17 @@ which is also how `humans` and `bots` are counted. Every other reading of
 above; a game supplies only what is game-shaped, through four small hooks in
 its own `src/index.js`:
 
-| Hook | Cities | Mahjong |
-| --- | --- | --- |
-| `gameName()` | `"cities"` | `"mahjong"` |
-| `seatStats(i)` | `g.stats.seats[i]` | `players[i].stats` |
-| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns |
-| `resultDetail()` | — | `g.results[]`, the per-hand history |
+| Hook | Cities | Mahjong | Poker |
+| --- | --- | --- | --- |
+| `gameName()` | `"cities"` | `"mahjong"` | `"poker"` |
+| `seatStats(i)` | `g.stats.seats[i]` | `players[i].stats` | `g.results[i]` (net, bought, stack, stats) |
+| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns | → `poker_seats` columns, all cents |
+| `resultDetail()` | — | `g.results[]`, the per-hand history | — |
+
+Poker's `score` **is** its net in cents, which is what a cash game ranks on
+— and which is why `standings()` there carries a `score` field beside its
+own `net`: the pipeline reads `score` off every game, and a null there is a
+refused result.
 
 `seatCounters()` is the one piece of this feature with **no runtime safety
 net**: it maps engine fields onto column names by hand, a wrong name resolves
@@ -548,6 +553,14 @@ CREATE TABLE mahjong_seats (
   key TEXT NOT NULL, seat INTEGER NOT NULL,
   score INTEGER, wins INTEGER, self_draws INTEGER, deal_ins INTEGER,
   kongs INTEGER, pungs INTEGER, chows INTEGER, best_faan INTEGER,
+  PRIMARY KEY (key, seat)
+);
+
+-- poker's four money columns are integer CENTS; `net` is signed and sums
+-- to zero across a table, `biggest_pot` is a personal best (MAX, not SUM)
+CREATE TABLE poker_seats (
+  key TEXT NOT NULL, seat INTEGER NOT NULL,
+  hands INTEGER, wins INTEGER, biggest_pot INTEGER, net INTEGER, bought INTEGER,
   PRIMARY KEY (key, seat)
 );
 

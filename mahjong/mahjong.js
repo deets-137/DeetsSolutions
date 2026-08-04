@@ -76,7 +76,7 @@
     logLine: logLine,
     blockRender: function () { return dragActive; },   // a rack drag owns the DOM until it drops
     render: paint,
-    postRender: flushFlights,
+    postRender: function () { FLY.flush(); },   // chips launch AFTER render: their targets exist now
     onLeave: onLeave,
     onRematch: resetGameUi,
     extraPills: function () { return [deckPill()]; },
@@ -1374,29 +1374,25 @@
     return b;
   }
 
-  /* ── tile fly-ins (cities' steering chip layer, tile edition) ───
+  /* ── tile fly-ins (the shared chip layer, tile edition) ─────────
      Client-only theater derived from the same typed events the log
      consumes: a discard flies rack/zone → pond, a claimed tile pond →
      the claimant's melds, a settlement flies score chips losers →
-     winner. Chips live in a document-FIXED overlay and STEER: every rAF
-     re-queries the destination, so a re-rendered zone is tracked. */
-  var flights = [], flyRaf = null, pendingFlights = [];
-  var FLY_MS = 700, FLY_STEP = 90;
-  function flyLayer() {
-    var l = document.querySelector(".mj-flylayer");
-    if (!l) {
-      l = el("div", "mj-flylayer");
-      // inside <section class="mj"> so the tile palette resolves
-      (document.querySelector("section.mj") || document.body).appendChild(l);
-    }
-    return l;
-  }
-  function rectPoint(elm) {
-    if (!elm) return null;
-    var r = elm.getBoundingClientRect();
-    if (!r.width && !r.height) return null;
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: elm };
-  }
+     winner. The layer, the steering and the ease are games/flights.js;
+     what stays here is which events fly and where a seat's tiles are.
+     Mahjong runs a shorter, tighter flight than cities — a tile crosses
+     one table, not a whole page — and takes NO catch bump: the pond's
+     own is-fresh pop and the re-rendered zone already say "caught", and
+     bumping the container scaled a whole panel, which read as a flinch
+     every bot turn. */
+  var FLY = GameFlights.create({
+    section: "section.mj",
+    layerClass: "mj-flylayer",
+    ms: 700, spread: 160, jitter: 10,
+    alive: function () { return !!model; }
+  });
+  var FLY_STEP = FLY.STEP;
+  var rectPoint = FLY.point;
   function zonePoint(seat) { return rectPoint(BIG.querySelector('[data-zone="' + seat + '"]')); }
   function pondPoint() { return rectPoint(BIG.querySelector("[data-mj-pond]")) || centerPoint(); }
   function centerPoint() { return rectPoint(BIG.querySelector("[data-mj-center]")) || rectPoint(BIG); }
@@ -1414,53 +1410,13 @@
     return c;
   }
   function chipScore() { return el("span", "mj-flychip mj-flychip--score"); }
-  function launchChip(node, fromFn, toFn, delay) {
-    setTimeout(function () {
-      if (!model) return;
-      var from = fromFn(); if (!from) return;
-      var sx = from.x + (Math.random() - 0.5) * 10, sy = from.y + (Math.random() - 0.5) * 10;
-      node.style.transform = "translate(" + sx.toFixed(1) + "px," + sy.toFixed(1) + "px) scale(0)";
-      flyLayer().appendChild(node);
-      flights.push({ el: node, sx: sx, sy: sy, to: toFn, t0: performance.now(), dur: FLY_MS + (Math.random() - 0.5) * 160 });
-      if (flyRaf == null) flyRaf = requestAnimationFrame(stepFlights);
-    }, delay || 0);
-  }
-  function stepFlights(now) {
-    // Two passes, deliberately: resolve every destination (each f.to() is a
-    // querySelector + getBoundingClientRect) BEFORE writing any transform, so a
-    // read can't force a sync layout in the middle of the write loop. The chips
-    // ride a position:fixed overlay, so their transforms never dirty the board.
-    var frame = flights.map(function (f) {
-      var p = Math.min(1, (now - f.t0) / f.dur);
-      return { f: f, p: p, to: f.to() || { x: f.sx, y: f.sy } };
-    });
-    flights = [];
-    frame.forEach(function (o) {
-      var f = o.f, p = o.p, to = o.to;
-      var e = 1 - Math.pow(1 - p, 3);
-      var s;
-      if (p < 0.12) s = (p / 0.12) * 1.2;
-      else if (p < 0.24) s = 1.2 - ((p - 0.12) / 0.12) * 0.2;
-      else if (p > 0.85) s = 1 - ((p - 0.85) / 0.15) * 0.7;
-      else s = 1;
-      f.el.style.transform = "translate(" + (f.sx + (to.x - f.sx) * e).toFixed(1) + "px," + (f.sy + (to.y - f.sy) * e).toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
-      // landing: the chip shrinks out (the pond's own is-fresh pop and the
-      // re-rendered zone acknowledge arrival — no bump on the container, which
-      // scaled a whole panel and read as a flinch every bot turn)
-      if (p >= 1) { if (f.el.parentNode) f.el.parentNode.removeChild(f.el); }
-      else flights.push(f);
-    });
-    flyRaf = flights.length ? requestAnimationFrame(stepFlights) : null;
-  }
-  function clearFlights() {
-    flights.forEach(function (f) { if (f.el.parentNode) f.el.parentNode.removeChild(f.el); });
-    flights = []; pendingFlights = [];
-  }
+  var launchChip = FLY.launch;
+  var clearFlights = FLY.clear;
   function collectFlight(e) {
     if (reduceMotion()) return;
     if (e.t === "discard") {
       (function (seat, tile) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip(chipTile(tile), function () { return seatSpot(seat); }, pondPoint, 0);
         });
       })(e.seat, e.tile);
@@ -1468,7 +1424,7 @@
     }
     if (e.t === "draw") {
       (function (seat) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip(chipTile(null),
             wallFrontPoint, function () { return seatSpot(seat); }, 0);
         });
@@ -1477,7 +1433,7 @@
     }
     if (e.t === "flower") {
       (function (seat, tile) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip(chipTile(tile), wallBackPoint, function () { return seatSpot(seat); }, 0);
         });
       })(e.seat, e.tile);
@@ -1485,7 +1441,7 @@
     }
     if (e.t === "meld" && e.from != null) {
       (function (seat, from, tile) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           launchChip(chipTile(tile), pondPoint, function () { return seatSpot(seat); }, 0);
         });
       })(e.seat, e.from, e.tile);
@@ -1493,7 +1449,7 @@
     }
     if (e.t === "handOver" && e.summary && e.summary.result === "win") {
       (function (s) {
-        pendingFlights.push(function () {
+        FLY.push(function () {
           var i = 0;
           (s.payments || []).forEach(function (n, seat2) {
             if (!n) return;
@@ -1507,10 +1463,6 @@
         });
       })(e.summary);
     }
-  }
-  function flushFlights() {
-    var fl = pendingFlights; pendingFlights = [];
-    fl.forEach(function (go) { go(); });
   }
 
   /* ── letting go of ONE game: the tile caches, the rack order and any open

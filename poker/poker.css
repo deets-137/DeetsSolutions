@@ -1,0 +1,784 @@
+/* ============================================================
+   DeetsPoker — no-limit hold'em, 2–12 seats (docs/poker.md).
+   Linked after styles/chrome.css and styles/table.css; the page
+   does NOT link styles/main.css.
+
+   Everything here rides the semantic theme/skin tokens and must
+   survive all 30 combos EXCEPT the --pk* carve-out below (felt,
+   card faces, card backs). Seat colours are the shared
+   --gseat-0..5 contract in table.css, NOT part of that carve-out,
+   and this file must never restyle a gt- node.
+   ============================================================ */
+
+/* poker game palette — deliberate token carve-out (docs/poker.md).
+   Fixed literals scoped to the felt well, the playing cards and the
+   chips. A chip's FILL is not here — it comes from that rung's hex on
+   the ladder (rank-assigned in transport-mock.js), because the host can
+   rebuild the ladder; only the chip's geometry is a rule. Bet piles
+   still render as plain amounts (his call, chat 2026-08-03). */
+.pk {
+  --pkfelt:      #33584a;   /* the table well (mahjong's felt green) */
+  --pkfelt-edge: #26443a;
+  --pkface:      #f7f4ea;   /* card face ivory */
+  --pkface-edge: #d9cfae;
+  --pkback:      #7a3535;   /* card back weave */
+  --pkink-red:   #b3372e;   /* hearts, diamonds */
+  --pkink-black: #23303f;   /* spades, clubs */
+  --pkglow:      #ffd75e;   /* the actor's ring + celebration gold */
+  /* the ONE card rectangle (short × long): board and hole cards render
+     at exactly this size on the felt; your own two in the hand panel
+     render at 1.5x — same object, closer to your eyes */
+  --pkcardw: 2.1rem;
+  --pkcardh: 2.9rem;
+  /* half the dealt row plus a gap — where the deck and the burn pile sit,
+     one either side. Derived from the card box so the flanks move with it. */
+  --pkboardhalf: calc((var(--pkcardw) * 5 + var(--space-1) * 4) / 2 + var(--space-3));
+  /* a chip seen edge-on: the felt draws them small enough that twelve
+     seats' worth fit, the rail at 1.5x so you can count yours. WHOLE
+     PIXELS, not rem — a stack is many identical bands and fractional
+     sizes make them round against each other (the shimmer mahjong's
+     README warns about). The JS sizes the columns from the same numbers. */
+  --pkchipw: 16px;
+  --pkside: 4px;
+  --pkchip-edge: rgba(0, 0, 0, 0.45);
+}
+
+/* ── the bento (cities' grid, with dice+log folded into players) ── */
+.pk-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "big players"
+    "role role";
+  gap: var(--space-3);
+  position: relative;
+  align-items: start;
+}
+.pk-tile {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+}
+/* The tile scrolls for the LOBBY and the cash-out table — long content
+   that is meant to be read to the end. The FELT never scrolls: a seat
+   rich enough to outgrow it should spill past the edge, because that
+   spill is the point (his call, chat 2026-08-03), and scrolling a poker
+   table to find the chips would be worse than the mess. */
+/* Three states, because the three things this tile holds want different
+   boxes. The FELT never scrolls: a seat rich enough to outgrow it should
+   spill past the edge (his call, chat 2026-08-03), and scrolling a poker
+   table to find the chips is worse than the mess. The CASH-OUT table
+   scrolls but stays flex, because `.pk-cashout` centers itself with
+   `margin: auto`. The LOBBY scrolls as a BLOCK: a flex scroll container
+   drops its bottom padding once content overflows, which is what smushed
+   the Start button into the panel edge. */
+.pk-tile--big { grid-area: big; height: 34rem; position: relative; display: flex; overflow: visible; }
+.pk-tile--big.is-scroll { overflow-y: auto; scrollbar-gutter: stable; }
+.pk-tile--big.is-lobby { display: block; }
+/* one tall column where cities kept dice + players + log */
+.pk-tile--players { grid-area: players; height: 34rem; display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; position: relative; }
+/* The hand panel reserves its FULL in-game height from the lobby onward,
+   the same way the felt and players tiles do: title + big cards + the
+   always-present raise tray. Otherwise the bento grows at Start and the
+   whole page jumps — cities' universal layout rule, applied to the one
+   tile whose content arrives last. */
+.pk-tile--role {
+  grid-area: role; position: relative;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  /* … + one more control row, since Confirm dropped onto its own line */
+  min-height: calc(var(--pkcardh) * 1.5 + var(--space-3) * 4 + 2.6rem + 2.2rem);
+}
+
+/* ── the felt ─────────────────────────────────────────────────── */
+.pk-felt {
+  position: relative;
+  flex: 1;
+  margin: var(--space-2);
+  border-radius: 50%;
+  background: var(--pkfelt);
+  border: 6px solid var(--pkfelt-edge);
+  min-height: 26rem;
+}
+/* seats hang on the rim at %-positions poker.js computes */
+.pk-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 7.5rem;
+}
+.pk-seat__head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--menu-surface);
+  border: 1px solid var(--border);
+}
+/* the actor's ring BREATHES — the static ring alone read as one more
+   badge on a felt full of them. cities-rollglow and mj-actglow are the
+   same beat for the same job. */
+.pk-seat.is-actor .pk-seat__head {
+  box-shadow: 0 0 0 2px var(--pkglow);
+  animation: pk-actglow 1.6s var(--ease-ui) infinite;
+}
+/* No `transition` anywhere on the felt: paint() clears BIG and rebuilds
+   it, so every felt node is brand new and has no previous value to
+   transition FROM. Only @keyframes fire here — which is also why the
+   one-shot ones (the deal pop, the settlement card) are gated on a diff
+   in poker.js rather than on the class alone: a repaint the street
+   didn't cause would otherwise replay them. */
+.pk-seat.is-folded, .pk-seat.is-away { opacity: 0.55; }
+.pk-seat__name {
+  color: var(--text);
+  font-size: 0.85rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 5.5rem;
+}
+.pk-seat.is-me .pk-seat__name { color: var(--title); font-weight: 700; }
+/* D / 1 / 2 button badges */
+.pk-seat__badge {
+  flex: none;
+  width: 1.05rem; height: 1.05rem;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.62rem; font-weight: 700;
+  background: var(--pkface);
+  color: var(--pkink-black);
+  border: 1px solid var(--pkface-edge);
+}
+.pk-seat__badge--blind { background: transparent; color: var(--pkface); border-color: var(--pkface); }
+/* the seat's live bet, floated toward the middle of the felt */
+.pk-seat__bet {
+  font-size: 0.72rem;
+  color: var(--pkface);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+}
+.pk-seat__tag { font-size: 0.68rem; color: var(--pkface); opacity: 0.85; }
+/* space held, nothing drawn — a seat that changes height moves itself */
+.pk-seat__tag.is-blank, .pk-seat__bet.is-blank, .pk-tray__count.is-blank { visibility: hidden; }
+
+/* ── chip trays ───────────────────────────────────────────────────
+   A tray is one GROUP per denomination; a group is a `×N` count over one
+   or more columns of edge-on chips, stacked bottom-up. Both lines are
+   always allocated, so a group's box is the same size whatever it holds
+   and the tray reads as an even ladder. Widths are token-free on purpose:
+   this is the game's art carve-out. */
+.pk-tray {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-2);
+  pointer-events: none;
+  /* A tray grows SIDEWAYS, never wraps: a chip leader holding three full
+     columns of every rung is wider than a seat, and the spill is the
+     point (his call, chat 2026-08-03). Wrapping hid the wealth in a
+     second row and made the seat taller, which moved everything under
+     it. `max-content` keeps the row on one line; the seat centers it, so
+     it spills evenly both ways. */
+  flex-wrap: nowrap;
+  width: max-content;
+  max-width: none;
+  /* the floor: ten chips, the tallest a column ever gets. Each stack box
+     reserves that height itself (below), so this is belt-and-braces —
+     stacks grow UP from a baseline that never moves, and nothing under a
+     tray shifts as chips come and go. */
+  min-height: calc(var(--pkside) * 10);
+}
+/* `flex: none` all the way down is load-bearing: a tray that runs out of
+   room would otherwise SHRINK its groups, and flex spends that shortfall
+   unevenly — the first groups hit their floor and the last ones absorb
+   the rest, so the ladder appears to taper from white down to black. A
+   chip is one size. When the room runs out the tray wraps instead. */
+/* a group is its stack(s) over that denomination's value — the rail
+   doubles as the table's key, so the columns sit in their own row and
+   the label hangs under them */
+.pk-tray__group { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+/* The stack box is the CAP's full height, not the tallest column standing
+   in it — that is what puts every group's count on one line and every
+   group's columns on one baseline, however much each rung holds. */
+.pk-tray__stack {
+  display: flex; align-items: flex-end; gap: 2px;
+  height: calc(var(--pkside) * 10);
+}
+.pk-tray__val {
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--subtext);
+  font-variant-numeric: tabular-nums;
+}
+/* A column is ONE node: the band tiled once per chip, bottom-anchored.
+   Not one node per chip — N adjacent boxes each round to a whole device
+   pixel independently, so at fractional zoom they disagree about their
+   own width and the stack tapers. Heights come from JS in whole px; the
+   sprite scales with plain smooth filtering, never `image-rendering:
+   pixelated`, which is what stops identical chips shimmering against
+   each other (assets/sprites/mahjong/README.md learned this first).
+   There is no top-of-stack face — a stack is side views all the way up
+   (his call, chat 2026-08-03). */
+.pk-tray__col {
+  flex: none;
+  width: var(--pkchipw);
+  min-width: var(--pkchipw);
+  background-repeat: repeat-y;
+  background-position: bottom center;
+  background-size: 100% var(--pkside);
+  /* the placeholder until the art lands: one repeating paint, so it has
+     no seams to disagree about either */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--pkchip-color) 0, var(--pkchip-color) calc(var(--pkside) - 1px),
+    rgba(0, 0, 0, 0.45) calc(var(--pkside) - 1px), rgba(0, 0, 0, 0.45) var(--pkside));
+}
+/* the count sits ABOVE its stack (see chipStacks) — on the felt that is
+   over dark green, so it keeps the card ivory */
+.pk-tray__count {
+  align-self: center;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--pkface);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+/* the hand panel's rail: same object, closer to your eyes — the cards
+   go to 1.5x there and so do the chips */
+.pk-tray--rail {
+  --pkchipw: 24px;
+  --pkside: 6px;
+  justify-content: flex-start;
+  /* tight, because a rail group is now exactly one chip wide (below) —
+     the pitch IS the gap, so it can close up */
+  gap: var(--space-2);
+  min-height: calc(var(--pkside) * 6);   /* the rail caps at six */
+}
+/* A rail group is exactly one column wide — the rail never spills into a
+   second (RAIL_STACK caps it at six and the count carries the rest), so
+   pinning the width is what holds the ladder on an even pitch.
+   The count's colour is the one thing the rail can't inherit: --pkface is
+   card ivory, legible on the felt and invisible on the hand panel, so
+   here it takes the caption's --subtext. */
+.pk-tray--rail .pk-tray__group { width: var(--pkchipw); }
+.pk-tray--rail .pk-tray__stack { height: calc(var(--pkside) * 6); justify-content: center; }
+.pk-tray--rail .pk-tray__count { font-size: 0.68rem; color: var(--subtext); opacity: 1; }
+
+/* board + pot, centered on the felt */
+.pk-board {
+  position: absolute; left: 50%; top: 44%;
+  transform: translate(-50%, -50%);
+  display: flex; gap: var(--space-1);
+}
+/* the pot: its chips, with the amount under them. The stack grows UP
+   from a fixed baseline so the number never moves as the pot swells. */
+.pk-pot {
+  position: absolute; left: 50%; top: 60%;
+  transform: translate(-50%, 0);
+  color: var(--pkface);
+  font-size: 0.9rem;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-1);
+}
+.pk-pot strong { color: var(--pkglow); font-weight: 700; }
+.pk-feltline {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--pkface); opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+/* ── cards (geometric placeholders until sprites land) ────────── */
+.pk-card {
+  width: var(--pkcardw); height: var(--pkcardh);
+  border-radius: 4px;
+  background: var(--pkface);
+  border: 1px solid var(--pkface-edge);
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-weight: 700; line-height: 1;
+  font-size: 0.95rem;
+}
+.pk-card--red { color: var(--pkink-red); }
+.pk-card--black { color: var(--pkink-black); }
+.pk-card--hole { visibility: visible; }
+.pk-card--back {
+  background: var(--pkback);
+  border-color: var(--pkfelt-edge);
+}
+.pk-card--slot {
+  background: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+}
+/* a card wearing card-back.png: the sprite is the whole card, frame and
+   all, so the placeholder's weave and border get out of its way */
+.pk-card--back.is-art, .pk-flycard.is-art {
+  background-color: transparent;
+  border-color: transparent;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  /* the sprite is the whole card INCLUDING its edge, so it has to cover
+     the border box. Left at the default padding-box origin it landed a
+     pixel short on each side — a hairline of felt around every back,
+     which is the sort of thing that reads as "these are a different
+     size" long before it reads as a gap. */
+  background-origin: border-box;
+}
+
+/* ── the deck and the burn pile ───────────────────────────────────
+   The same object at two spots, flanking the board: cards come off the
+   DECK on the left, dead cards land on the BURN on the right, so the
+   felt reads left to right in the order a hand actually moves.
+
+   A pile is ONE card box with its cards absolutely stacked inside it and
+   offset by JS, so depth costs no size — both piles are pinned by their
+   box, and a box that grew with its contents would crawl off the spot it
+   marks. An empty pile draws nothing at all and still measures, which is
+   what a flight aimed at it needs. */
+.pk-pile {
+  position: absolute;
+  top: 44%;                                  /* the board's own line */
+  transform: translateY(-50%);
+  width: var(--pkcardw); height: var(--pkcardh);
+  pointer-events: none;
+}
+.pk-pile .pk-card { position: absolute; left: 0; top: 0; }
+/* clear of the dealt cards by half the board (five cards and their four
+   gaps) plus a gap — written from the card tokens, so the piles track the
+   board's width instead of guessing at it */
+.pk-deck { right: calc(50% + var(--pkboardhalf)); }
+.pk-burn { left: calc(50% + var(--pkboardhalf)); }
+.pk-card__suit { font-size: 0.8rem; }
+/* a board card arriving on its street — the same entrance curve cities
+   and mahjong give a placed piece (cities-piecepop / mj-tilepop), so the
+   three games' pieces land the same way. `both` is load-bearing: the
+   stagger is an animation-delay, and without a backwards fill the card
+   would sit at full size through its own delay and then pop. */
+.pk-card.is-dealt { animation: pk-dealpop 0.38s var(--ease-ui) both; }
+.pk-card--big { width: calc(var(--pkcardw) * 1.5); height: calc(var(--pkcardh) * 1.5); font-size: 1.4rem; }
+.pk-card--big .pk-card__suit { font-size: 1.15rem; }
+
+/* ── players tile (roster + this-hand log) ────────────────────── */
+.pk-ptitle { color: var(--subtext); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
+.pk-plist { display: flex; flex-direction: column; }
+/* the full player card — cities-pstrip's anatomy, fourth copy (see
+   docs/games.md "Known duplication": promoting to gt- is queued, not
+   done): bordered card, seat-accent left edge, head + state in the body,
+   the money column pinned right */
+.pk-pstrip {
+  display: flex; align-items: stretch; gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gseat, var(--border));
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-2);
+  position: relative;
+}
+.pk-pstrip.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.pk-pstrip.is-away { opacity: 0.5; }
+.pk-pstrip.is-gone { opacity: 0.45; filter: grayscale(0.8); }
+.pk-pstrip.is-gone .pk-pstrip__name { text-decoration: line-through; }
+.pk-pstrip.is-folded { opacity: 0.6; }
+.pk-pstrip__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.pk-pstrip__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.pk-pstrip__head > .gt-dot { flex: none; }
+.pk-pstrip__name {
+  color: var(--text); font-size: 0.9rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pk-pstrip__name strong { color: var(--title); }
+.pk-pstrip__badges { display: inline-flex; gap: 2px; }
+.pk-pstrip__badge {
+  flex: none;
+  width: 1rem; height: 1rem;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; font-weight: 700;
+  color: var(--subtext);
+  border: 1px solid var(--border);
+}
+/* the state chip sits where cities pins its award pills */
+.pk-pstrip__tags { margin-top: auto; min-height: 1rem; display: flex; align-items: flex-end; }
+.pk-pstrip__state {
+  font-size: 0.6rem; line-height: 1.1; white-space: nowrap;
+  padding: 0 var(--space-2);
+  background: var(--surface); color: var(--subtext);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.pk-pstrip__stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; }
+.pk-pstrip__stack { color: var(--title); font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.pk-pstrip__bet { color: var(--subtext); font-size: 0.72rem; font-variant-numeric: tabular-nums; min-height: 1em; }
+/* ── felt popovers, bottom-left: Winnings + Log ────────────────────
+   cities' board-popover kit, verbatim geometry (second copy — see
+   docs/games.md "Known duplication"): a pill row anchored to the big
+   tile's corner, absolute panels above it, is-open toggling visibility
+   so an opening panel can never move the board. */
+.pk-boardbtns { position: absolute; left: var(--space-3); bottom: var(--space-3); z-index: 3; display: flex; gap: var(--space-2); }
+.pk-bpop {
+  position: absolute; left: var(--space-3); bottom: 3.6rem; z-index: 3;
+  width: 24rem; max-width: calc(100% - var(--space-3) * 2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+  visibility: hidden; opacity: 0;
+}
+.pk-bpop.is-open { visibility: visible; opacity: 1; }
+/* the log pane — cities-log__list's styling, line for line */
+.pk-log__list {
+  height: 14rem; width: 100%; overflow-y: auto;
+  font-size: 0.82rem; color: var(--text); display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--subtext) transparent;
+}
+.pk-log__line { color: var(--text); opacity: 0.9; line-height: 1.4; }
+.pk-log__line:last-child { color: var(--title); opacity: 1; }
+.pk-log__list::-webkit-scrollbar { width: var(--space-2); }
+.pk-log__list::-webkit-scrollbar-track { background: transparent; }
+.pk-log__list::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+.pk-log__list::-webkit-scrollbar-thumb:hover { background: var(--title); background-clip: padding-box; border: 3px solid transparent; }
+/* the Winnings grid: rows win from columns; the Net column leads.
+   Columns hug their content (auto layout, snug padding) and the panel
+   hugs the table. Vertical hairlines divide the money columns; the
+   header row carries extra TOP padding so those dividers poke a little
+   above the top row (his sketch, chat 2026-08-03 — a border can't
+   escape its cell, so the cell grows instead). */
+.pk-bpop--win { width: auto; min-width: 14rem; }
+.pk-win { overflow-x: auto; }
+.pk-win__table { border-collapse: collapse; }
+.pk-win__table th, .pk-win__table td {
+  padding: 2px var(--space-2);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+.pk-win__table tr:last-child th, .pk-win__table tr:last-child td { border-bottom: none; }
+/* the money columns' dividers (the name column stays open) */
+.pk-win__table td, .pk-win__nethead, .pk-win__colhead { border-left: 1px solid var(--border); }
+.pk-win__corner, .pk-win__name { border-left: none; }
+.pk-win__nethead, .pk-win__colhead {
+  color: var(--subtext); font-weight: 400;
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+  padding-top: var(--space-3);          /* the divider's rise above the row */
+}
+.pk-win__nethead { text-align: right; }
+.pk-win__colhead .gt-dot { margin: 0 auto; display: block; }
+.pk-win__name { text-align: left; font-weight: 400; }
+.pk-win__who { display: inline-flex; align-items: center; gap: var(--space-1); max-width: 100%; }
+.pk-win__who .gt-dot { flex: none; }
+.pk-win__whoname {
+  color: var(--text); font-size: 0.78rem;
+  max-width: 6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pk-win__table td {
+  font-size: 0.75rem; font-variant-numeric: tabular-nums;
+  text-align: right; white-space: nowrap;
+}
+.pk-win__net { font-weight: 700; }
+.pk-win__table td.is-plus { color: var(--go); }
+.pk-win__table td.is-minus { color: var(--stop); }
+.pk-win__table td.is-zero { color: var(--subtext); opacity: 0.6; }
+.pk-win__self { background: var(--surface); opacity: 0.4; }
+.pk-win__hint { margin-top: var(--space-2); font-size: 0.72rem; color: var(--subtext); }
+
+/* ── the hand panel (your cards + the four actions) ───────────────
+   cities' play grid, verbatim geometry: hand column left (title, cards
+   under), controls column right (pills top-right, tray beneath). The
+   tray is always in the layout — ghosted when unarmed — so the panel
+   never changes height (cities' universal layout rule). */
+/* hand | chips | controls — the rail sits between your cards and your
+   pills because that is the order you read them in: what I hold, what
+   it's worth, what I can do about it. */
+.pk-play { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.pk-play__hand { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.pk-play__chips {
+  min-width: 0;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  border-left: 1px solid var(--border);
+  padding-left: var(--space-4);
+  align-self: stretch;
+}
+/* the cash total is the heading — it sits over the left edge of the
+   chips it counts, so it reads as their caption (his call) */
+.pk-chips__head { display: flex; align-items: baseline; gap: var(--space-2); }
+.pk-chips__total { font-family: var(--font-mono); font-size: 1.1rem; color: var(--title); }
+.pk-role__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1rem; }
+.pk-play__ctrl { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.pk-hole { display: flex; gap: var(--space-2); align-items: center; }
+.pk-hole--buyin { gap: var(--space-3); }
+.pk-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+.pk-actions .tb-pill { cursor: pointer; }
+.pk-actions .tb-pill:disabled { opacity: 0.5; cursor: default; }
+/* raise tray: lives under the pills; invisible until Raise arms it, but
+   always occupying its rows. Confirm sits on its OWN line under the
+   slider rather than at the end of it — on the row it was the last item
+   in a line that had already spent its width on the slider and the box,
+   so it pushed out past the panel edge. */
+.pk-raise {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  width: 100%;
+}
+.pk-raise--ghost { visibility: hidden; }
+.pk-raise__go { grid-column: 1 / -1; justify-self: end; }
+.pk-raise__label { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
+.pk-raise__slider { flex: 1; accent-color: var(--title); }
+/* the amount is the readout AND the type-in: bare text until it's
+   focused, then it dresses as the field it always was */
+.pk-raise__amt {
+  width: 5rem;
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  color: var(--title);
+  font: inherit;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: text;
+}
+.pk-raise__amt:hover:not(:disabled) { border-color: var(--border); }
+.pk-raise__amt:focus {
+  background: var(--surface);
+  border-color: var(--title);
+  outline: none;
+}
+.pk-roleline { color: var(--subtext); font-size: 0.85rem; }
+.pk-roleline strong { color: var(--title); }
+
+/* ── settings: the chip-ladder row (lobby only) ───────────────── */
+.pk-chiprow { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+/* the 4|5 rung count, and the cascade's auto/reset mark */
+.pk-chipcount { display: inline-flex; gap: 2px; margin-left: var(--space-2); }
+.pk-chipcount__pill.is-on { border-color: var(--title); color: var(--title); }
+.pk-auto {
+  font-size: 0.68rem;
+  color: var(--subtext);
+  margin-left: var(--space-2);
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.pk-auto--reset { color: var(--title); text-decoration: underline; cursor: pointer; }
+.pk-auto--reset:disabled { color: var(--subtext); text-decoration: none; cursor: default; }
+.pk-chip {
+  position: relative;                    /* the drop divider hangs off this */
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+/* host-only: the ladder drags to reorder (no affordance by design) */
+.pk-chip[draggable="true"] { cursor: grab; }
+.pk-chip[draggable="true"]:active { cursor: grabbing; }
+.pk-chip.is-dragging { opacity: 0.4; }
+/* the drop divider: a rule down the middle of the gap the chip would land
+   in, so "before this one" and "after the last one" read differently */
+.pk-chip::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 2px;
+  background: var(--title); border-radius: 2px;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-ui);
+}
+.pk-chip.is-dropbefore::after { left: calc(var(--space-2) / -2 - 1px); opacity: 1; }
+.pk-chip.is-dropafter::after { right: calc(var(--space-2) / -2 - 1px); opacity: 1; }
+.pk-chip__dot { width: 0.9rem; height: 0.9rem; border-radius: 50%; border: 2px solid var(--border); flex: none; }
+.pk-chip__val {
+  width: 3.2rem;
+  background: transparent; border: none; color: var(--text);
+  font: inherit; font-size: 0.85rem; text-align: center;
+}
+.pk-chip__val:focus { outline: 2px solid var(--title); outline-offset: 1px; border-radius: 4px; }
+
+/* ── hand-over interstitial + the cash-out lobby ──────────────── */
+.pk-over {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-panel);
+  padding: var(--space-3) var(--space-5);
+  max-width: 80%;
+}
+/* the settlement card eases up into place, then the winning line glows
+   under it — cities-overin + cities-winnerpulse, same beats. `is-in` is
+   set once per hand-over (poker.js keys it on handOverAt), so a repaint
+   while the card is up doesn't replay the entrance. */
+.pk-over.is-in { animation: pk-overin 0.45s var(--ease-ui); }
+.pk-over.is-in .pk-over__line.is-win { animation: pk-winpulse 1.4s var(--ease-ui) 0.45s 3; }
+.pk-over__line { color: var(--pkface); font-size: 1rem; text-align: center; }
+.pk-over__line strong { color: var(--pkglow); }
+.pk-over__sub { color: var(--pkface); opacity: 0.8; font-size: 0.8rem; }
+/* The cash-out panel is cities' `.cities-over` / mahjong's `.mj-over`
+   in poker's clothing — same column, same gap, same entrance, same
+   glow on the winning row. `align-self: flex-start` rather than the
+   old `margin: auto`: the panel now runs past the tile's height, and a
+   centered flex item that overflows loses its top edge to the scroll. */
+.pk-cashout {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  align-self: flex-start; width: 100%;
+  animation: pk-cashoutin 0.45s var(--ease-ui);
+}
+@keyframes pk-cashoutin { from { opacity: 0; transform: translateY(10px); } }
+.pk-cashout__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.pk-cashout__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.pk-cashout__hands { flex: none; color: var(--subtext); font-size: 0.9rem; }
+.pk-cashout__sub { margin: 0; color: var(--subtext); font-size: 0.9rem; }
+/* The panel's own gap is tight (--space-2) so the Winnings grid rides up
+   under the money columns instead of floating half a screen below them;
+   the reveal takes the one real break, off the head. */
+.pk-cashout__reveal { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+/* One grid template for the header and every row, so the three money
+   columns line up without a <table> — the row has to stay a single box
+   to carry the winner's border and glow. */
+.pk-cashout__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto repeat(3, 6rem);
+  align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;          /* reserved, so the glow shifts nothing */
+  border-radius: var(--radius-control);
+}
+.pk-cashout__nodot { width: 0.75rem; }    /* the seat-dot column, held open */
+.pk-cashout__row--head { padding-top: 0; padding-bottom: 0; }
+.pk-cashout__row--head .pk-cashout__fig {
+  color: var(--subtext); font-size: 0.72rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pk-cashout__row.is-winner { border-color: var(--title); box-shadow: 0 0 0 1px var(--title), 0 0 12px -2px var(--title); }
+/* three pulses on arrival, then the row rests at its static glow */
+.pk-cashout__row.is-winner { animation: pk-cashoutpulse 1.4s var(--ease-ui) 0.45s 3; }
+@keyframes pk-cashoutpulse { 50% { box-shadow: 0 0 0 1px var(--title), 0 0 22px 2px var(--title); } }
+@media (prefers-reduced-motion: reduce) {
+  .pk-cashout { animation: none; }
+  .pk-cashout__row.is-winner { animation: none; }
+}
+.pk-cashout__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.pk-cashout__row.is-me .pk-cashout__name { color: var(--title); font-weight: 700; }
+.pk-cashout__place { flex: none; color: var(--subtext); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.pk-cashout__fig { text-align: right; color: var(--text); font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.pk-cashout__net.is-plus { color: var(--go); font-weight: 700; }
+.pk-cashout__net.is-minus { color: var(--stop); }
+.pk-cashout__net.is-zero { color: var(--subtext); }
+/* the Winnings grid, out of its popover and lying flat */
+.pk-cashout__matrix { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+.pk-cashout__subhead {
+  margin: 0; color: var(--subtext); font-size: 0.72rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+/* Rematch sits in the flow; the Repayment + Log pills are the felt's
+   absolute row pinned to the tile's bottom-left. Nothing in the layout
+   keeps the two button rows apart, so the margin does it by hand. */
+.pk-cashout__rematch { align-self: flex-start; margin-top: var(--space-4); margin-bottom: var(--space-5); }
+
+/* ── repayment: the fewest hand-offs that clear the table ─────── */
+.pk-pay { display: flex; flex-direction: column; gap: var(--space-1); }
+.pk-pay__line { display: flex; align-items: center; gap: var(--space-1); font-size: 0.85rem; color: var(--text); }
+.pk-pay__who { display: inline-flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.pk-pay__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-pay__verb { flex: none; color: var(--subtext); font-size: 0.78rem; }
+.pk-pay__amt { margin-left: auto; flex: none; color: var(--title); font-weight: 700; font-variant-numeric: tabular-nums; }
+.pk-pay__even { color: var(--subtext); font-size: 0.85rem; }
+
+/* ── desktop-only guard (the shell toggles it) ────────────────── */
+.pk-desktop-note { color: var(--subtext); }
+@media (max-width: 56rem) {
+  .pk-bento { display: none; }
+}
+
+/* ── motion ───────────────────────────────────────────────────────
+   Poker's half of the motion vocabulary cities and mahjong already
+   speak. Three rules hold across all three games:
+   1. Motion is only ever decoration over a state the DOM already
+      carries, so the reduced-motion block below can delete every one
+      of these and cost nothing but the theater.
+   2. A piece that ARRIVES pops (cities-piecepop, mj-tilepop, this
+      file's pk-dealpop are the same curve — scale 0 → 1.25 → 1).
+   3. A state that PERSISTS breathes (the actor's ring), a state that
+      RESOLVES pulses a fixed number of times (the winning line).
+   The chip flights are the other half and live in games/flights.js —
+   they are rAF-steered rather than CSS, because their destinations
+   move under them. */
+@keyframes pk-dealpop { 0% { transform: scale(0); } 65% { transform: scale(1.25); } 100% { transform: none; } }
+@keyframes pk-actglow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--pkglow); }
+  50% { box-shadow: 0 0 0 2px var(--pkglow), 0 0 14px 2px var(--pkglow); }
+}
+/* the card is centered by a translate, so its entrance has to carry that
+   translate too or it would snap to the felt's top-left on frame one */
+@keyframes pk-overin {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes pk-winpulse { 50% { color: var(--pkglow); text-shadow: 0 0 12px var(--pkglow); } }
+/* the catch: a destination acknowledges a chip landing on it. Small — a
+   pot that lurches every time a bet arrives reads as a flinch. */
+@keyframes pk-catchbump { 40% { transform: scale(1.07); } }
+.pk-catch { animation: pk-catchbump 0.18s var(--ease-ui); }
+
+/* ── the flight layer ─────────────────────────────────────────────
+   games/flights.js parks chips here. It MUST be inside <section class="pk">
+   (the shell parents it there) or every --pk* on a chip resolves to
+   nothing. `fixed` still anchors to the viewport from inside the section,
+   which is what lets a chip cross from the felt to the hand panel. */
+.pk-flylayer {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 45;
+  /* chips fly at the RAIL's scale, not the felt's: a felt chip is four
+     pixels of band, sized so twelve seats' worth fit, and four pixels
+     crossing a page reads as a fleck rather than as money. In the air a
+     chip is the size it is when you look at one. */
+  --pkchipw: 24px;
+  --pkside: 6px;
+}
+/* One chip seen edge-on — deliberately the SAME paint as .pk-tray__col,
+   one band tall: a chip that changed appearance the moment it left a tray
+   would read as a token for money rather than as the money. The rung's
+   sprite (or its placeholder band) comes from poker.js `chipArt`, exactly
+   as it does for a column, so the two cannot drift.
+   The negative offsets center the box on its flight coordinates (cities'
+   flychip idiom). The engine writes `transform`, so nothing here may. */
+.pk-flychip {
+  position: absolute;
+  left: calc(var(--pkchipw) / -2); top: calc(var(--pkside) / -2);
+  width: var(--pkchipw); height: var(--pkside);
+  background-repeat: repeat-y;
+  background-position: bottom center;
+  background-size: 100% var(--pkside);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--pkchip-color) 0, var(--pkchip-color) calc(var(--pkside) - 1px),
+    var(--pkchip-edge) calc(var(--pkside) - 1px), var(--pkchip-edge) var(--pkside));
+  will-change: transform;
+}
+/* a hole card in transit — always a BACK, dealt or mucked: the felt
+   never learns what it was. Same silhouette as .pk-card--back. */
+.pk-flycard {
+  position: absolute;
+  left: calc(var(--pkcardw) / -2); top: calc(var(--pkcardh) / -2);
+  width: var(--pkcardw); height: var(--pkcardh);
+  border-radius: 4px;
+  background: var(--pkback);
+  border: 1px solid var(--pkfelt-edge);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pk-card.is-dealt,
+  .pk-seat.is-actor .pk-seat__head,
+  .pk-over.is-in,
+  .pk-over.is-in .pk-over__line.is-win { animation: none; }
+}

@@ -26,6 +26,7 @@ games/colors.js        seat-color contract (presets, hex validation, clash)
 games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
 games/table.js         the browser table shell (gate, lobby, toolbar, frame,
                        seat accent, turn-timer readouts)
+games/flights.js       the steering chip-flight layer (every game's fly-ins)
 games/table-do.js      the Durable Object base every worker subclasses
 games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
 styles/chrome.css      shared site chrome + the token @imports (every page)
@@ -143,7 +144,8 @@ sees the countdown from their first snapshot. The `leaving` / `returned` /
 ### The re-join policy (`settings.rejoin`)
 
 One shared host setting on every lobby — the base's own settings key,
-rendered by the shell as the "Re-joining" chip row and validated against
+rendered by the shell as a chip row (labelled per game — cities and
+mahjong say "Re-joining", poker "Mid-game Join") and validated against
 the game's `REJOIN_MODES` (default `["anyone", "rejoin"]`; offering
 `"none"` requires the game's engine to speak a `concede` action — cities
 opted in, mahjong never offers it because the game needs its four seats):
@@ -151,7 +153,8 @@ opted in, mahjong never offers it because the game needs its four seats):
 - **anyone** — a dark seat's bot holds it *and* any spectator may adopt
   it mid-game (`sit {seat}`, one **Sit down** toolbar pill whose popover
   lists every adoptable seat — a pill *per* seat used to shove Leave off
-  the row at a 6-player table; no pill renders when none qualify); the
+  the row at a 6-player table; no pill renders when none qualify, and an
+  `away` seat qualifies alongside a `phantom` one, see below); the
   original player keeps reclaim rights until someone else takes it.
   Adoption keeps the seat's color and pieces and takes the adopter's
   name (the `adopted` event).
@@ -166,13 +169,61 @@ opted in, mahjong never offers it because the game needs its four seats):
   the current roller concedes while others still owe 7-roll discards,
   those debts dissolve with the turn — a house-rule simplification.
 
-Standing mid-game is a voluntary release in every mode, and it is
-**one-way**: standing drops your token and uid, so unlike a disconnect it
-carries no reclaim right. At an `"anyone"` table you can sit back down
-through the ordinary **Sit down** popover (any spectator could too, so the race
-is real); at a `"rejoin"` table the bot keeps the seat for the rest of
-the game. That asymmetry is deliberate — the toolbar two-steps the pill
-because of it.
+Standing mid-game is a voluntary release in every mode, and for a game
+with bots in live play it is **one-way**: standing drops your token and
+uid, so unlike a disconnect it carries no reclaim right. At an
+`"anyone"` table you can sit back down through the ordinary **Sit down**
+popover (any spectator could too, so the race is real); at a `"rejoin"`
+table the bot keeps the seat for the rest of the game. That asymmetry is
+deliberate — the toolbar two-steps the pill because of it.
+
+#### Away seats — a released seat with no bot to catch it
+
+A game with **no bots in live play** (poker: the drive is a dev tool, not
+a player) has nowhere to put a released seat, so it gets a third
+destination between "a bot holds it" and "conceded": the seat goes
+**away**. The roster keeps the seat, its name, color and **token**; the
+engine stops dealing it in but the position survives intact; the same
+token — or, in the worker, the same uid from any device — walks back in.
+
+A game opts in with two spec keys naming its own engine verbs —
+`awayAction` / `adoptAction` in the mock, the same pair spelled
+`AWAY_ACTION` / `ADOPT_ACTION` as getters on the DO subclass:
+
+| Key | When it fires | Poker's |
+|---|---|---|
+| `awayAction` | mid-game `stand` at a non-`"none"` table, instead of the bot handoff; in the worker also **grace expiry** and a dark seat at Start | `sitOut` |
+| `adoptAction` | someone adopts an `away` seat (`"anyone"` tables) | `sitBack` |
+
+If `awayAction` is absent, or the engine refuses it, the shell falls
+straight through to the normal bot takeover — so cities and mahjong are
+untouched. `away` rides the seat view as a public boolean (like
+`conceded`), and the adoption filter treats `phantom || away` as
+adoptable.
+
+The worker half (`table-do.js`, `awaySeat(i)`) is what makes the promise
+real, and three of its choices are the whole point:
+
+- **The token and the uid stay on an away seat.** Every other exit path
+  deletes both; that deletion is exactly what made leaving permanent.
+  Keeping them is what lets join's reclaim — token first, then a verified
+  account uid from *any* device — hand the seat and its stake back.
+- **A kick still severs**, at every mode, for a game with an away action:
+  parking a kicked player leaves their token on the seat, so they would
+  walk straight back in and the host's only remedy would be no remedy.
+  They cash out into the standings instead.
+- **An away stretch is an absence, not a hand-over**, so the spans ledger
+  keeps the span open. A player who takes a break must not lose
+  attribution for their own session.
+
+The table's lifetime still bounds all of it: `EXPIRE_MS` (1 h idle and
+empty) evaporates the table and every parked stake with it.
+
+The pill's wording has to change with the policy — at a `"none"` table
+standing cashes you out, everywhere else it just parks you — so a game
+may override it per render with the **`standCopy()`** hook, returning
+`{label, hover, confirm}` (any subset; null keeps the shell's own
+strings).
 
 **A seat only ever loses its hand when nobody can inherit it.** A bot
 takeover, an adoption, and a reclaim all keep the hand, dev cards,
@@ -398,6 +449,44 @@ global, so every ring but the last silently froze.
 A game that wants no timer simply never offers `timerSec` — nothing else to
 turn off.
 
+### Fly-ins: `games/flights.js`
+
+**A game does not write a flight loop.** Cities grew one, mahjong copied
+it (with a fix cities never got back — the two-pass frame), and poker
+would have been the third. The shared layer owns four things a game must
+not re-decide:
+
+| Layer | Owns |
+| ----- | ---- |
+| `games/flights.js` | The overlay, the rAF loop, the ease-out cubic, the born/caught scale curve, the launch jitter, `push`/`flush`/`clear` |
+| the game | Which events fly, what a chip node looks like, and where a point is on ITS screen |
+
+```js
+var FLY = GameFlights.create({
+  section: "section.pk", layerClass: "pk-flylayer",
+  alive: function () { return !!model; },
+  catchClass: "pk-catch"          // optional — the destination acknowledges
+});
+FLY.push(function () { FLY.launch(chipNode(), fromFn, toFn, i * FLY.STEP); });
+```
+
+- **Collect during event replay, `flush()` in `postRender`.** A flight
+  launched mid-replay measures a DOM that hasn't caught up with the
+  broadcast, so its target is the *old* layout or nothing at all.
+- **A target is a FUNCTION, never a point.** The loop re-queries it every
+  frame, so a panel that re-renders, scrolls or reflows mid-flight is
+  tracked rather than missed.
+- **The layer is parented inside the game's `<section>`.** Every game
+  palette is scoped there; a body-parented layer resolves each chip's
+  colour to nothing.
+- **`reduceMotion()` gates the game's `collectFlight`, not the engine.**
+  Motion is decoration over a state the DOM already carries, so dropping
+  every flight has to cost nothing but the theater.
+- `onAbort` / `onLand` exist for a count that lags its chip (cities holds
+  an inbound resource out of the hand until it lands, so the landing bump
+  and the increment are one beat). A chip that never launches has to give
+  the held count back — that is what `onAbort` is for.
+
 ### Class prefixes
 
 Shell-rendered nodes carry **`gt-`** and are styled by `styles/table.css`.
@@ -493,6 +582,7 @@ matches what you're changing, and check the blast radius before you start.
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
 | The turn timer, grace window, rejoin, bots, reconnect, teams | `games/table-do.js` | **Every game** | **Re-vendor** into every game worker, redeploy |
+| Away seats (`awayAction`/`adoptAction`), the `standCopy()` wording hook | `games/table.js` + `table-mock.js` + `table-do.js` | **Every game** (no-op without the spec keys) | **Re-vendor** all three workers |
 | The spans ledger, the event archive, the results POST | `games/table-do.js` | **Every game** | **Re-vendor**, redeploy; see [stats.md](stats.md) |
 | What a game records about a finished game | that worker's `src/index.js` (`seatCounters` et al.) | That game only | Redeploy · `node scripts/check.mjs` · maybe an `ALTER TABLE` in `../DeetsAccounts` |
 | Site header, nav, settings menu, toasts, `.page-bar`, `.sotd__bar`, the `tb-` kit | `styles/chrome.css` | **Every page on the site** | — |
@@ -518,15 +608,42 @@ Three rules that follow from the table:
    game and didn't; the duplication survived two games and a bug rode along
    in it. If you find yourself pasting from cities into mahjong, stop.
 
+### Build style, precedent, and taste → design-language.md
+
+**[design-language.md](design-language.md)** carries the precedent half
+of building a game: the design questionnaire, why each bento surface
+exists, the pattern index (game concept → the sibling that already built
+it), the decision trees (bots/rejoin, settings, seat colors vs.
+carve-out, `[ph]` exemptions), the jitter techniques by name, the
+mock-first build order, and the build-style rules that used to live in
+this section. Read it before *designing* anything; read this file before
+*wiring* anything. One rule stays here because it is law, not taste:
+
+- **The universal layout rule: no piece may resize another.** Anything
+  that appears and disappears (a raise tray, a hover hint, a state chip
+  row, a popover) either lives in an absolute overlay or holds its space
+  when empty (`visibility: hidden` ghosts, fixed-height reserved rows,
+  min-heights). Cities wrote the rule; every game inherits it —
+  design-language.md names the enforcement techniques.
+
 ### Known duplication, not yet promoted
 
 Honest list, so the next session doesn't rediscover it:
 
-- **The players tile.** `.cities-pstrip` and `.mj-pstrip` have identical
-  anatomy — same flex geometry, padding, border, accent edge, radius,
-  `.is-active` and `.is-away` states. A `gt-pstrip` primitive is the obvious
-  next promotion; it was left alone because it means renaming classes in
-  both games' JS and CSS, which is a refactor rather than a move.
+- **The players tile.** `.cities-pstrip`, `.mj-pstrip`, and now
+  `.pk-pstrip` have identical anatomy — same flex geometry, padding,
+  border, accent edge, radius, `.is-active` and `.is-away` states. A
+  `gt-pstrip` primitive is the obvious next promotion; it was left alone
+  because it means renaming classes in the games' JS and CSS, which is a
+  refactor rather than a move.
+- **The board-popover kit.** `cities.js` and `poker.js` each carry the
+  hover-preview / click-pin / grace-timer popover machinery and the
+  `.cities-bpop` / `.pk-bpop` panel geometry. Third game that wants a
+  board popover promotes it into `table.js` + `table.css` instead.
+- **The log list's dress.** `.cities-log__list/__line` and
+  `.pk-log__list/__line` are the same rules (0.82rem, 2px gap, thin
+  scrollbars, last line in `--title`); mahjong's differs only in detail.
+  Rides along with whichever of the above gets promoted first.
 - **The panel material** (`--menu-surface` + backdrop-filter + border +
   `--radius-panel` + `--shadow-panel`) is written out six times across
   `chrome.css` and `table.css`. A `.panel` primitive would collapse them,
@@ -570,6 +687,10 @@ Honest list, so the next session doesn't rediscover it:
 
 ## Adding a game
 
+0. **Design it first** — [design-language.md](design-language.md): the
+   questionnaire, the precedents, and the decision trees that turn a
+   design chat with Aditya into a dated decisions list. The doc lands as
+   step 7's opening section.
 1. `<game>/engine.js` — rules, `createGame(opts, ctx)` /
    `applyAction(game, action, ctx)` → `{game, events}` or `err(code)`,
    `ctx = {rand, now}`, plus self-checks.

@@ -49,7 +49,9 @@
     /* ── transport: the shared client, or the game's mock under ?mock ── */
     var useMock = false;
     try { useMock = new URLSearchParams(location.search).has("mock"); } catch (e) {}
-    var T = (useMock && cfg.mock) ? cfg.mock : window.DeetsTransport.create({ api: cfg.api });
+    // cfg.mockDefault: a game whose worker hasn't shipped yet runs the mock
+    // WITHOUT ?mock (poker, pre-phase-2) — drop the flag when the worker lands
+    var T = ((useMock || cfg.mockDefault) && cfg.mock) ? cfg.mock : window.DeetsTransport.create({ api: cfg.api });
 
     /* ── tiny utilities (every game page wants these) ────────────── */
     function el(tag, cls, text) {
@@ -483,17 +485,26 @@
         // at an "anyone" table, and collapses every adoptable (bot-held)
         // seat into one pill's popover.
         if (mine != null) {
-          var sp = pill(S.standButton, function () {
+          // What standing MEANS can change with the re-join policy, so a
+          // game may re-word the pill per render (poker: "Cash out" at a
+          // "none" table, "Sit out" where the stack survives).
+          var sc = (hook("standCopy") ? cfg.standCopy() : null) || {};
+          var sLabel = sc.label || S.standButton;
+          var sp = pill(sLabel, function () {
             if (sp._armed) { send({ type: "stand" }); }
             else {
-              sp._armed = true; sp.querySelector(".tb-pill__label").textContent = S.standConfirm;
-              setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = S.standButton; } }, 2600);
+              sp._armed = true; sp.querySelector(".tb-pill__label").textContent = sc.confirm || S.standConfirm;
+              setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = sLabel; } }, 2600);
             }
           });
+          var sHover = sc.hover || S.standHover;
+          if (sHover) sp.title = sHover;
           TOOLBAR.appendChild(sp);
         } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
+          // adoptable = the drive is holding it (cities/mahjong) or nobody
+          // is (an `away` seat at a game with no live bots — poker)
           var open = (model.seats || []).filter(function (s) {
-            return s && !s.empty && s.phantom && !s.conceded;
+            return s && !s.empty && (s.phantom || s.away) && !s.conceded;
           });
           // no pill at all when nothing is adoptable — a permanently dead
           // "Sit down" at a full human table is noise, not an affordance
@@ -528,9 +539,11 @@
       (hook("settingsRows") ? cfg.settingsRows() : []).forEach(function (r) {
         pop.appendChild(settingRow(r[0], r[1]));
       });
-      var rjV = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
-      var rjNow = (model.settings && model.settings.rejoin) || "rejoin";
-      pop.appendChild(settingRow(S.rejoinLabel, rjV[rjNow] || rjNow));
+      if ((cfg.rejoinModes || ["anyone", "rejoin"]).length > 1) {
+        var rjV = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
+        var rjNow = (model.settings && model.settings.rejoin) || "rejoin";
+        pop.appendChild(settingRow(S.rejoinLabel, rjV[rjNow] || rjNow));
+      }
       wrap.appendChild(pop);
       var entry = { ctrl: wrap, pill: b, pop: pop, kind: "setth" };
       function peek() { if (openEntry !== entry) pop.hidden = false; }
@@ -603,17 +616,21 @@
       // the shared re-join policy row — the base's own setting, one row on
       // every game's lobby (docs/games.md). Changing it also remembers the
       // choice for future tables this browser hosts, across all games.
-      var rjRow = setRow(S.rejoinLabel);
+      // one mode is no choice — a game that locks its policy (poker: "none")
+      // gets no row rather than a single dead chip
       var rjModes = cfg.rejoinModes || ["anyone", "rejoin"];
-      var rjCur = (model.settings && model.settings.rejoin) || "rejoin";
-      var rjLabels = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
-      rjModes.forEach(function (m) {
-        rjRow.opts.appendChild(chip(rjLabels[m] || m, rjCur === m, !model.host, function () {
-          save(REJOIN_PREF_KEY, m);
-          send({ type: "setSettings", rejoin: m });
-        }));
-      });
-      wrap.appendChild(rjRow);
+      if (rjModes.length > 1) {
+        var rjRow = setRow(S.rejoinLabel);
+        var rjCur = (model.settings && model.settings.rejoin) || "rejoin";
+        var rjLabels = { anyone: S.rejoinAnyone, rejoin: S.rejoinRejoin, none: S.rejoinNone };
+        rjModes.forEach(function (m) {
+          rjRow.opts.appendChild(chip(rjLabels[m] || m, rjCur === m, !model.host, function () {
+            save(REJOIN_PREF_KEY, m);
+            send({ type: "setSettings", rejoin: m });
+          }));
+        });
+        wrap.appendChild(rjRow);
+      }
 
       // seats — your own dot (and, for the host, a bot's) is a button that
       // slides open the color picker below the row; colors lock at Start
@@ -724,13 +741,18 @@
         shuf.addEventListener("click", function () { send({ type: "shuffle" }); });
         startRow.appendChild(shuf);
         wrap.appendChild(startRow);
-        wrap.appendChild(el("p", "gt-lobby__hint",
-          !ready ? cfg.startNeedsHint : uneven ? (S.teamsUnevenHint || cfg.startNeedsHint) : S.startHint));
-        // a seat that went dark in the lobby is dealt in as a bot (the worker
-        // does the conversion at Start). Say so before the press, never after —
-        // this counts only humans, since a seat view marks bots connected.
-        var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
-        if (ready && dark) wrap.appendChild(el("p", "gt-lobby__hint", fmt(S.startBotWarn, { n: dark })));
+        // a game whose lobby has to fit a fixed tile can opt out of the hint
+        // line entirely (poker) — the Start button's disabled state already
+        // says "not yet", so the sentence is a nicety, not load-bearing
+        if (!cfg.noStartHint) {
+          wrap.appendChild(el("p", "gt-lobby__hint",
+            !ready ? cfg.startNeedsHint : uneven ? (S.teamsUnevenHint || cfg.startNeedsHint) : S.startHint));
+          // a seat that went dark in the lobby is dealt in as a bot (the worker
+          // does the conversion at Start). Say so before the press, never after —
+          // this counts only humans, since a seat view marks bots connected.
+          var dark = (model.seats || []).filter(function (s) { return s && !s.empty && !s.connected; }).length;
+          if (ready && dark) wrap.appendChild(el("p", "gt-lobby__hint", fmt(S.startBotWarn, { n: dark })));
+        }
       }
       (into || BIG).appendChild(wrap);
     }

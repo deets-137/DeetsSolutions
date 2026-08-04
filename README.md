@@ -35,6 +35,11 @@ tab's count and latest entry.
   faan scoring. Live multiplayer against a Cloudflare Worker;
   `mahjong/?mock` still runs the real rules engine in-page against bot
   seats as a dev tool. Desktop only. See [docs/mahjong.md](docs/mahjong.md).
+- **DeetsPoker** — no-limit Texas hold'em as a cash game, 2–12 seats:
+  fixed buy-in, real chip denominations at the betting line, side pots,
+  busts and re-buys, and sit-outs that keep your stack on the felt.
+  **Phase 1 — no worker yet**, so the page runs the in-page rules engine
+  by default rather than behind `?mock`. See [docs/poker.md](docs/poker.md).
 - **Cool Stuff I Did** — a portfolio of projects, hand-written cards.
 - **Resume** — the resume rendered in the site's design system, with a
   downloadable one-page PDF that is printed from the page itself.
@@ -65,6 +70,7 @@ games/                the shared game foundation (table shell, transport,
                       seat colors, the worker's DO base) — docs/games.md
 cities/               DeetsCities board game (talks to the DeetsCities worker)
 mahjong/              DeetsMahjong (talks to the DeetsMahjong worker)
+poker/                DeetsPoker (mock-only until ../DeetsPoker ships)
 profile/              your account's home — name + color (docs/accounts.md)
 auth/                 sign-in landing pad (talks to the DeetsAccounts worker)
 privacy/              privacy policy (the OAuth consent screen links here)
@@ -115,6 +121,9 @@ by TMDB).
 - [docs/mahjong.md](docs/mahjong.md) — DeetsMahjong: the HK rules
   engine, faan table, claim windows, hidden-info wire protocol, the
   identity / disconnect-grace / rejoin rules, and what's still unbuilt.
+- [docs/poker.md](docs/poker.md) — DeetsPoker: the hold'em engine, the
+  chip ladder, the Winnings ledger, stepping away (sit-out, the ante to
+  return, the three re-join modes), and the phase-2 worker's to-do list.
 - [docs/stats.md](docs/stats.md) — game stats (accounts phase 2):
   standings, what each engine already counts and what it doesn't, the
   results pipeline and D1 schema. **Designed, not built.**
