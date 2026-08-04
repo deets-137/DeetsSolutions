@@ -446,12 +446,80 @@
     function render() {
       if (!model) return;
       if (hook("blockRender") && cfg.blockRender()) return;   // e.g. a drag owns the DOM
+      /* A broadcast repaints the whole page — every game rebuilds its tiles
+         wholesale (`textContent = ""`), which is what makes the render loop
+         simple enough to trust. The cost is that anything the BROWSER was
+         holding rather than the model dies with the old nodes: where a
+         scroller was scrolled to, and which field had the caret. At a
+         twelve-seat poker table someone acts every second or two, so that
+         cost reads as the page fighting you — scroll the roster and it
+         snaps back, start typing a chip value and the caret is gone.
+
+         So: photograph both before the rebuild, put them back after. This
+         is deliberately DUMB — it matches nodes by class + ordinal rather
+         than by identity, because nothing here has a stable id and giving
+         everything one would be a bigger change than the bug is worth. A
+         node that moved or was renamed simply doesn't restore. */
+      var top = snapScroll(TABLE);
+      var caret = snapFocus(TABLE);
       buildToolbar();
       // desktop-only guard
       var narrow = window.matchMedia("(max-width: 56rem)").matches;
       if (narrow) { TABLE.hidden = true; DESKTOP.hidden = false; DESKTOP.textContent = S.desktopOnly; return; }
       DESKTOP.hidden = true; TABLE.hidden = false; GATE.hidden = true;
       cfg.render();
+      restoreScroll(TABLE, top);
+      restoreFocus(TABLE, caret);
+    }
+    /* the class list as a selector — every node these games build is
+       classed, and a scroller's classes don't change between renders (state
+       classes ride items, not the box that scrolls) */
+    function nodeSel(n) {
+      var cls = typeof n.className === "string" ? n.className.trim() : "";
+      return cls ? "." + cls.split(/\s+/).join(".") : null;
+    }
+    function nodeAt(root, sel, i) {
+      var peers = root.querySelectorAll(sel);
+      return peers[i] || null;
+    }
+    function snapScroll(root) {
+      var snap = [];
+      if (!root) return snap;
+      Array.prototype.forEach.call(root.querySelectorAll("*"), function (n) {
+        if (!n.scrollTop && !n.scrollLeft) return;
+        var sel = nodeSel(n);
+        if (!sel) return;
+        var peers = root.querySelectorAll(sel);
+        snap.push({ sel: sel, i: Array.prototype.indexOf.call(peers, n),
+                    top: n.scrollTop, left: n.scrollLeft });
+      });
+      return snap;
+    }
+    function restoreScroll(root, snap) {
+      snap.forEach(function (s) {
+        var n = nodeAt(root, s.sel, s.i);
+        if (!n) return;
+        n.scrollTop = s.top; n.scrollLeft = s.left;
+      });
+    }
+    function snapFocus(root) {
+      var a = document.activeElement;
+      if (!a || !root || !root.contains(a)) return null;
+      var sel = nodeSel(a);
+      if (!sel) return null;
+      var peers = root.querySelectorAll(sel);
+      var o = { sel: sel, i: Array.prototype.indexOf.call(peers, a) };
+      try { o.start = a.selectionStart; o.end = a.selectionEnd; } catch (e) {}
+      return o;
+    }
+    function restoreFocus(root, snap) {
+      if (!snap) return;
+      var n = nodeAt(root, snap.sel, snap.i);
+      if (!n || n === document.activeElement) return;
+      try {
+        n.focus();
+        if (snap.start != null && n.setSelectionRange) n.setSelectionRange(snap.start, snap.end);
+      } catch (e) {}
     }
     // Lock the log's height to the space left under the board, so the right
     // column bottom-aligns with the board tile instead of overflowing past it
@@ -487,19 +555,20 @@
         if (mine != null) {
           // What standing MEANS can change with the re-join policy, so a
           // game may re-word the pill per render (poker: "Cash out" at a
-          // "none" table, "Sit out" where the stack survives).
-          var sc = (hook("standCopy") ? cfg.standCopy() : null) || {};
-          var sLabel = sc.label || S.standButton;
-          var sp = pill(sLabel, function () {
-            if (sp._armed) { send({ type: "stand" }); }
-            else {
-              sp._armed = true; sp.querySelector(".tb-pill__label").textContent = sc.confirm || S.standConfirm;
-              setTimeout(function () { if (sp.isConnected) { sp._armed = false; sp.querySelector(".tb-pill__label").textContent = sLabel; } }, 2600);
-            }
-          });
-          var sHover = sc.hover || S.standHover;
-          if (sHover) sp.title = sHover;
-          TOOLBAR.appendChild(sp);
+          // "none" table, "Sit out" where the stack survives). Returning
+          // FALSE (not null — null is "your wording is fine") withdraws
+          // the pill entirely, for the state where standing is a no-op:
+          // poker's already-sitting-out seat, whose way back is its own
+          // pill two slots to the left.
+          var sc = hook("standCopy") ? cfg.standCopy() : null;
+          if (sc !== false) {
+            sc = sc || {};
+            var sp = confirmPill("stand", sc.label || S.standButton,
+              sc.confirm || S.standConfirm, function () { send({ type: "stand" }); });
+            var sHover = sc.hover || S.standHover;
+            if (sHover) sp.title = sHover;
+            TOOLBAR.appendChild(sp);
+          }
         } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
           // adoptable = the drive is holding it (cities/mahjong) or nobody
           // is (an `away` seat at a game with no live bots — poker)
@@ -514,16 +583,37 @@
       }
       TOOLBAR.appendChild(pill(S.leavePill, function () { leaveTable(); }));
       if (model.host) {
-        var cp = pill(S.closePill, function () {
-          if (cp._armed) { send({ type: "closeTable" }); } else { cp._armed = true; cp.querySelector(".tb-pill__label").textContent = S.closeConfirm; setTimeout(function () { if (cp.isConnected) { cp._armed = false; cp.querySelector(".tb-pill__label").textContent = S.closePill; } }, 2600); }
-        });
-        TOOLBAR.appendChild(cp);
+        TOOLBAR.appendChild(confirmPill("close", S.closePill, S.closeConfirm,
+          function () { send({ type: "closeTable" }); }));
       }
     }
     function pill(label, onClick) {
       var b = el("button", "tb-pill"); b.type = "button";
       b.appendChild(el("span", "tb-pill__label", label));
       b.addEventListener("click", onClick);
+      return b;
+    }
+    /* A two-step pill (click → "Confirm?" → click). The armed flag used to
+       live ON THE BUTTON (`b._armed`), which meant any broadcast — anyone
+       else acting — rebuilt the toolbar and silently disarmed it: you
+       clicked Confirm and nothing happened, because the button you were
+       looking at was two renders younger than the one you armed. The flag
+       lives here now, keyed by name, and the pill reads it on every build.
+       The stored value is the disarm TIMER, so it doubles as the flag. */
+    var ARMED = {};
+    function disarm(key) {
+      if (!ARMED[key]) return;
+      clearTimeout(ARMED[key]);
+      delete ARMED[key];
+    }
+    function confirmPill(key, label, confirmLabel, onGo) {
+      var armed = !!ARMED[key];
+      var b = pill(armed ? confirmLabel : label, function () {
+        if (ARMED[key]) { disarm(key); onGo(); return; }
+        ARMED[key] = setTimeout(function () { disarm(key); render(); }, 2600);
+        render();
+      });
+      if (armed) b.classList.add("is-active");
       return b;
     }
     // Hover = transient peek; click = pin open through the popover kit (so
@@ -1221,6 +1311,7 @@
       buildToolbar: buildToolbar,
       fitLog: fitLog,
       pill: pill,
+      confirmPill: confirmPill,
       chip: chip,
       setRow: setRow,
       choiceRow: choiceRow,

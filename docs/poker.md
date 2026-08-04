@@ -80,6 +80,10 @@ grace-expiry bug and somebody's stack).
   Expiry checks when checking is free, else folds. The timer only runs
   for a present human; with the timer off a player can stall forever and
   the host's kick is the remedy (his call).
+- **Hand recap** (`handOverSec`): how long the settlement card stays up,
+  presets 5/15/30/60s + custom (3–120), default **30**. It has a floor
+  and no "off" because that card is the only place a `reveal` can be
+  asked for. Anyone can cut it short with Next hand.
 - **No bots, ever, in live play.** No bot inherits a poker seat in any
   mode — the drive is a dev tool, not a player. What the three `rejoin`
   modes decide is what **leaving costs**; see "Stepping away" below. The
@@ -108,12 +112,69 @@ grace-expiry bug and somebody's stack).
   math. The cash-out lobby ranks by net (stack − bought), host gets
   Rematch.
 - **12 seats vs six presets**: `--gseat-6..11` fallbacks were added to
-  `styles/table.css` (empty-seat dots), and seats past the presets get a
-  **random clash-free hex** — the mock assigns one on mid-game sit-in;
-  for lobby sits poker.js auto-recolors its own seat when the assigned
-  color clashes (one attempt per clash; profile colors get their shot
-  first via the shell's own seeding). Known gap: two host-added dev bots
-  past seat six can still share a preset — dev-only, lives with it.
+  `styles/table.css` (empty-seat dots), and seats past the presets are
+  assigned by **`Colors.freeColor`** — see docs/games.md, "Seat colors".
+  poker.js still auto-recolors its own seat when a PROFILE color lands on
+  someone (the table can't see that one coming), now drawing from the
+  same generator. The old "two bots past seat six share a preset" gap is
+  closed: it was every seat past the sixth, not two, and they shared an
+  identical hex rather than a near one.
+
+## Hand Rankings + the made hand (chat 2026-08-04)
+
+The hand panel's left column reads top to bottom: "Your Hand", your two
+cards at 1.5x, **what you actually hold**, and a **Hand Rankings** button
+pinned to the bottom (`margin-top: auto`).
+
+The made-hand line is computed CLIENT-SIDE from your own two cards plus
+the public board — `Engine.bestOf` is already exported, and asking the
+table for it would put a hand on the wire that only you may see. `bestOf`
+needs five cards, so preflop the line reads the two in your hand directly
+(you do hold a pair or a high card before the flop, and blanking the line
+for a whole street would be worse). It is always in the layout, blanked
+rather than omitted, so the flop can't jog the panel.
+
+The guide is mahjong's `mj-guide` in poker's clothing: an absolute
+overlay — on the **bento**, not one tile, because the button lives in the
+hand panel and the reading wants the felt's width — a fixed-width panel
+that scrolls inside itself, Escape and backdrop-click to close, and
+deliberately **no entrance animation**, because the page rebuilds on
+every broadcast while it is open and anything that replayed would flicker
+once a second at a busy table. The bento is the one node `paint()` does
+not rebuild, so the overlay is removed by hand at the top of each paint
+or every broadcast would stack another copy.
+
+Nine rows, best first, each carrying a five-card example that IS that
+category — the fastest answer to "does a flush beat a full house" is one
+of each side by side. `HAND_GUIDE`'s keys are the engine's `HAND_NAMES`
+keys, so the row names come from his strings and **the category you
+currently hold lights up**. The examples are checked against
+`Engine.bestOf`, so the guide cannot claim a hand it isn't.
+
+## Rotation (chat 2026-08-04)
+
+A moving dealer button has two readings and the felt can only draw one,
+so the **Rotation** toolbar pill lets the viewer pick:
+
+| option | 12 o'clock | what moves |
+| --- | --- | --- |
+| **Rotate Dealer** (default) | seat order | the D badge walks; every player keeps their chair all game |
+| Rotate Seats | the dealer | the button never moves; everyone else shuffles one seat each hand |
+
+Display only — a per-viewer localStorage preference
+(`deets-poker-rotate`), nothing on the wire, and two people at the same
+table may read it differently. Rotate Seats was the original and only
+behavior; it is a real convention (the button anchors the geometry) but
+it means the table rearranges itself every hand, which is the opposite
+of what a table is for. Hence the default flip.
+
+Related, same conversation: the **1** and **2** blind badges now wear the
+dealer's dress. They were a transparent variant inked in `--pkface` —
+ivory on a seat pill whose background is `--menu-surface`, which is ivory
+in all three light themes. 10–26 redmean units apart, against
+`colors.js`'s own `MIN_DIST` of 60: not subtle, *invisible*, and only in
+half the themes. A carve-out literal used as a foreground is the failure
+mode to watch for here.
 
 ## The settings cascade (chat 2026-08-03)
 
@@ -286,10 +347,14 @@ waiting to be filed.
 
 An away seat is not dealt in, holds its chips, and keeps its name, color
 and token on the roster. `away` rides the seat view as a public boolean
-and `you.away` tells the one person sitting out that the **Sit back in**
+and `you.away` tells the one person sitting out that the **Sit down**
 pill is theirs. The **Stand up** pill re-words itself per mode through
 the shell's `standCopy()` hook — "Cash out" only where that's true,
-"Sit out" everywhere else.
+"Sit out" everywhere else — and **withdraws itself** (the hook returns
+`false`) once you are already sitting out, where "Sit out" next to "Sit
+down" was two pills arguing about the same seat. The exception is a
+`"none"` table: there Stand up means CASH OUT, which is still a real
+thing to do from a sat-out seat, so it stays.
 
 Engine verbs: **`sitOut`** (fold out of the live hand, `away = true`,
 stack untouched) and **`sitBack`** (`away = false`, `owesAnte = true`,
@@ -375,9 +440,19 @@ The hand loop: blinds → deal (two each, left of the button) → preflop
 (UTG opens; heads-up the button is SB and opens; BB keeps the option) →
 flop/turn/river with fresh betting each street → showdown, or fold-through.
 All-in with no one left to act runs the board out. `handOver` is the
-settlement interstitial (reveal at showdown only), auto-advancing after
-6s (`nextHand` skips the wait). Fewer than 2 dealable stacks → `waiting`
-until a re-buy or sit-in.
+settlement interstitial, auto-advancing after `handOverSec` (a host
+setting, 30s default; `nextHand` skips the wait).
+
+The card reads top to bottom: the **board** the hands were made from,
+then the winning line(s), then **every contender as a GRID** — roughly
+square, capped at four across, the column count set by poker.js because a
+shrink-to-fit card collapses CSS `auto-fit` to one column. Twelve rows
+stacked ran the card off the bottom of the felt, which is what the grid
+fixes. A mucked seat is on the grid with its two cards face DOWN: you can
+see that four people went to the river without seeing what they had. The
+footer is the two ends of a settled hand — **Reveal | ☐** on the left,
+**Next hand** on the right (see "Showdown order"). Fewer than 2 dealable
+stacks → `waiting` until a re-buy or sit-in.
 
 Heads-up blind order is handled; the button walks to the next eligible
 seat each hand. **Simplification, recorded:** there is no dead-button /
@@ -388,11 +463,79 @@ like a home game.
 
 Hole cards and the acting seat's options (`you.hole`, `you.options`,
 `you.myVote`, `you.canBuyIn`, `you.away`) ride only each connection's
-`you` — `you.away` is per-viewer purely so the **Sit back in** pill has
+`you` — `you.away` is per-viewer purely so the **Sit down** pill has
 one owner; the seat's own `away` flag is public. The deck
-never leaves the table. Reveals become public ONLY via `handOver.reveal`
-(showdown). Fold-through pots reveal nothing. Never widen these onto the
-broadcast without updating this list (mahjong's rule, same reason).
+never leaves the table.
+
+A live hand can also travel PRIVATELY, to seats that are out of the
+hand — `you.shownToMe`, see "Showing a live hand" below.
+
+Cards become public ONLY through `handOver.hands[]`, one row per seat
+that was still in the pot at the end: `{seat, hole, name, shown}`. A hand
+that mucked has `hole: null` and `name: null` — the cards are not merely
+hidden from the UI, they are **not in the broadcast object**, which is
+what makes the auto-muck real rather than cosmetic. Fold-through pots
+start with every row unshown. Never widen these onto the broadcast
+without updating this list (mahjong's rule, same reason).
+
+### Showing a live hand ("Show To")
+
+Mid-hand, cards can also travel privately. Two rules decide it, both his
+(chat 2026-08-04): **anyone still holding cards may show**, and **only a
+player out of the hand may be shown to** (folded, sitting out, busted,
+waiting for the next deal). That second rule is the whole safety
+argument — a seat that cannot act cannot act on what it sees, so this
+can never move the betting.
+
+The engine keeps only a seat list, `g.showTo[from] = [to, …]`, cleared
+by `tryStartHand`; it lives on the game rather than in a message so a
+reconnect lands on the same table everyone else is looking at. Turning
+that list into cards is the **table's** job: `you.shownToMe` is built
+inside the per-connection branch of `buildView` and carries
+`{seat, hole}` only for the named seat. It is the one channel in this
+game that hands a viewer a hand they don't own, so nothing may widen it.
+Alongside it ride `you.showTargets` (the picker's contents, from the
+engine's `showTargets`) and `you.showedTo` (who you've already shown, so
+the picker can gray them).
+
+The `showTo` **event is public and carries no cards** — the table sees
+that a hand was shown and to whom, exactly as it would across a real
+felt, which is also what makes a silent side-channel between two seats
+impossible. The recipient additionally gets a toast.
+
+On screen: a fifth pill in the action row, the only one **not** gated on
+the turn being yours (the moment you want to show someone is almost
+never your turn — they just folded, you just took it down); it opens a
+checklist of eligible seats behind one Show, because showing can't be
+taken back. The cards land on the felt as `.pk-peek`, an **absolutely
+positioned** box over that seat's chips — a seat is centered on its own
+anchor, so anything that added height would slide it (the flop jitter),
+and every seat would have to reserve the space forever for the one hand
+in fifty that uses it. It clears when the hand ends and the settlement
+card takes over, so the two never draw the same cards at once.
+
+### Showdown order
+
+The engine tracks `g.aggr`, the last seat to bet or raise on the current
+street (preflop that starts as the big blind — the forced bet is still a
+bet; each new street resets it to null). At a showdown the walk starts
+there, or at the first live seat left of the button if nobody bet, and
+goes clockwise: **a seat shows only if it can beat everything already
+face-up**, and everything else mucks. Ties show, because a chopped pot
+needs both halves visible. On top of the walk, **every pot winner always
+tables** — a short stack can take the main pot with the best hand while
+losing the side pot, and a side-pot winner can be beaten by an all-in
+they were never contesting.
+
+Nothing is ever *forced* face-up beyond that. A mucked seat — including
+the lone winner of a fold-through, who was never asked to show anything
+— can table its hand with the **`reveal`** verb for as long as the
+settlement card is up. `reveal` is your own seat only, idempotent, and
+names the hand only when there were five board cards to read it against.
+The client's "Reveal | ☐" checkbox is a **per-viewer localStorage
+preference** (`deets-poker-auto-reveal`, default off) that sends the same
+verb automatically once per hand — never a table setting, never on the
+wire.
 
 ## The view (public fields)
 
@@ -420,6 +563,19 @@ column each player's overall net, diagonal blanked. Sits FIRST, left of
 **Log** — both are cities' board-popover kit (hover previews, click
 pins), bottom-left of the felt. The Log popover carries the mechanical
 hand log in cities' exact log dress; the players tile is roster only.
+
+**The pill row is pinned over the felt and in FLOW in the cash-out.** The
+felt never scrolls, so an overlay anchored to the tile's bottom-left
+corner is exactly right there — it can't move the board. The cash-out
+tile *does* scroll, and an absolutely positioned child of a scroll
+container is pinned to the scrollport rather than to the content: the row
+sat at the bottom of the first screenful and then rode up through the
+standings, landing on top of the Winnings grid at twelve seats. So at
+`over` `buildBoardPops(panel)` mounts the row inside the cash-out panel
+as an ordinary flex item (`.pk-boardbtns--flow`), and the popovers anchor
+to the row instead of to the tile — including dropping `.pk-bpop`'s
+tile-width clamp, which in flow would measure the ROW and crush a 24rem
+log pane to the width of two pills.
 
 At `over` the grid comes out of the popover and lies flat in the
 cash-out panel, so that pill slot carries **Repayment** instead —
@@ -450,16 +606,22 @@ a row has to stay a single box to carry the winner's border and glow.
 ## Page layout — the bento
 
 Three tiles where cities keeps five: the **felt** (big — circular table,
-dealer seat at 12 o'clock, seats around the rim with D/1/2 badges, the
+seats around the rim with D/1/2 badges (all three wear the same dress —
+see "Rotation" below), the
 actor glowing through the shared timer ring when timed, board + pot
 centered, the settlement card floating over, and the **Winnings + Log
 popovers** on its bottom-left corner), the **players tile** (FULL
 player cards in the cities-pstrip anatomy — accent edge, name + D/1/2
 badges, state chip, stack + live bet in the money column — one tall
-column over cities' dice+players+log slots), and the
+column over cities' dice+players+log slots; the tile's height is fixed
+at every seat count, so the LIST scrolls under a pinned title once the
+strips outgrow it), and the
 **hand panel** (role — cities' play grid verbatim: "Your Hand" title
 with the two cards at 1.5× in the left column, the Fold/Check/Call/Raise
-pills top-right with their dictated hover lines as NATIVE TOOLTIPS only,
+pills top-right with their dictated hover lines as NATIVE TOOLTIPS only
+(Show to LEADS that row — it is the one pill not gated on the turn, and
+keeping it clear of Fold/Check/Call/Raise means nobody hits it by muscle
+memory under a clock),
 and the "Raise by" tray beneath them — slider + type-in speak in the
 amount over the current bet, the wire still says raise-to. The tray is
 always in the layout, ghosted when unarmed, so the panel never jitters —
@@ -474,7 +636,7 @@ three things it holds want different ones:
 | phase | box | why |
 | --- | --- | --- |
 | felt | flex, `overflow: visible` | a rich seat should spill past the edge; scrolling a poker table to find the chips is worse than the mess |
-| cash-out | flex, `.is-scroll` | `.pk-cashout` is `align-self: flex-start` — it runs past the tile's height now that the Winnings grid is inline, and a centered flex item that overflows loses its top edge to the scroll |
+| cash-out | flex, `.is-scroll` | `.pk-cashout` is `align-self: flex-start` — it runs past the tile's height now that the Winnings grid is inline, and a centered flex item that overflows loses its top edge to the scroll. Because it scrolls, the pill row goes IN FLOW inside the panel here rather than pinned to the tile corner (see "Winnings") |
 | lobby | block, `.is-scroll .is-lobby` | a **flex** scroll container drops its bottom padding once content overflows — that is what smushed the Start button into the panel edge |
 
 Seat jitter has one cause worth remembering: a seat is centered on its
@@ -597,10 +759,12 @@ width rather than guessing at it).
   never accumulated — a reconnect mid-hand has to land on the same pile
   as everyone else, and a counter would start from zero.
 
-The two are told apart by how they stack: the **deck squares up** and
-grows straight upward, like a deck someone has tapped level; the **burn
-fans sideways** as it grows, because it is a heap of dead cards nobody
-tidies. Same object, two housekeeping habits (`cardPile`'s `dx`).
+**Both piles square up** and grow straight upward, like a deck someone
+has tapped level. The burn was fanned sideways at first — a heap of dead
+cards nobody tidies — but sitting next to the deck it read as a
+different-shaped *object* rather than as a second pile, so he squared it
+(chat 2026-08-04). `cardPile`'s `dx` still fans a pile; both callers
+pass 0.
 
 A pile is one card box with its cards absolutely stacked inside it and
 offset by JS, so depth costs no size — both piles are pinned by their
@@ -638,7 +802,9 @@ and the `win` above already flew them.
 - Bet piles as chips — the bet spot is still the plain `20¢` text pill.
   It is now a flight *target* (chips land on it and it bumps), but it
   doesn't draw the pile itself.
-- Muck/show choices at showdown (v1 reveals every live hand).
+- The `handOverSec` dwell is a LOBBY setting only — like every other
+  table setting, it can't be re-tuned once the game starts. The host's
+  mid-game lever is the Next hand button.
 - **The worker's two secrets.** `SESSION_SECRET` and `INGEST_SECRET` are
   not set on `deets-poker` yet (`npx wrangler secret put NAME`, the same
   values DeetsAccounts holds). Without the first, every seat is a guest

@@ -469,7 +469,7 @@
           else idx = openSeatIndex(t);
           if (idx < 0) return errTo(conn, "full");
           var occupied = t.seats.map(function (s, si) { return s && si !== idx ? s.color : null; });
-          t.seats[idx] = { token: token, name: conn.name, color: Colors.freePreset(occupied), connected: true, phantom: false };
+          t.seats[idx] = { token: token, name: conn.name, color: Colors.freeColor(occupied), connected: true, phantom: false };
           resizeSeats(t);
           return broadcast(t, []);
         }
@@ -512,7 +512,7 @@
           if (bs) { bs.name = bname; bs.tier = btier; }   // re-adding also re-tiers
           else {
             var bocc = t.seats.map(function (s, si) { return s && si !== bi ? s.color : null; });
-            t.seats[bi] = { token: "phantom:" + uid(), name: bname, color: Colors.freePreset(bocc),
+            t.seats[bi] = { token: "phantom:" + uid(), name: bname, color: Colors.freeColor(bocc),
                             connected: true, phantom: true, tier: btier };
           }
           resizeSeats(t);

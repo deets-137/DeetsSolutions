@@ -114,7 +114,7 @@ he dictated in chat.
 | Radio | Done — handwritten throughout |
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
-| Poker | Done — one pass cleared the lot, `repay*` included; zero `[ph]` left |
+| Poker | Done — two passes (2026-08-03, 2026-08-04); zero `[ph]` left |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.
