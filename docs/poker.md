@@ -85,11 +85,11 @@ grace-expiry bug and somebody's stack).
   presets 5/15/30/60s + custom (3–120), default **30**. It has a floor
   and no "off" because that card is the only place a `reveal` can be
   asked for. Anyone can cut it short with Next hand.
-- **No bots, ever, in live play.** No bot inherits a poker seat in any
-  mode — the drive is a dev tool, not a player. What the three `rejoin`
-  modes decide is what **leaving costs**; see "Stepping away" below. The
-  mock keeps host-added **dev bots** so a solo lobby can watch hands play
-  out — see "Bots" below.
+- **Bots are host-added, never inherited.** Bots are first-class
+  opponents (three tiers, live and mock alike — see "Bots" below), but no
+  bot ever *takes over* a poker seat in any mode. What the three `rejoin`
+  modes decide is what **leaving costs**, not who catches the seat; see
+  "Stepping away" below.
 - **Joining a running table** is one setting, **Mid-game Join** (see
   "Stepping away"). There is no separate Seating row — it said the same
   thing twice. `sitIn` (the poker-only verb: a NEW seat appended
@@ -830,15 +830,17 @@ and the `win` above already flew them.
 - The `handOverSec` dwell is a LOBBY setting only — like every other
   table setting, it can't be re-tuned once the game starts. The host's
   mid-game lever is the Next hand button.
-- **The worker's two secrets.** `SESSION_SECRET` and `INGEST_SECRET` are
-  not set on `deets-poker` yet (`npx wrangler secret put NAME`, the same
-  values DeetsAccounts holds). Without the first, every seat is a guest
-  and cross-device return — the point of away seats — doesn't work.
-  Without the second, a finished game waits in the DO's outbox.
+- **The worker's two secrets are SET** (2026-08-03, by rotation — the old
+  values were unrecoverable, so a fresh pair went to all five workers at
+  once via `DeetsPoker/scripts/put-secrets.mjs`; they must match
+  DeetsAccounts or auth degrades silently). Without `SESSION_SECRET`
+  every seat is a guest and cross-device return doesn't work; without
+  `INGEST_SECRET` a finished game waits in the DO's outbox.
 - The profile page prints poker's money counters only once it grows a
   cents formatter — `net`, `bought` and `biggest_pot` land in the
   database now but carry no label yet ([stats.md](stats.md)).
-- The copy pass is **done** (chat 2026-08-03): 79 placeholders cleared in
-  one pass, so every string in `poker/strings.js` is now his and off
-  limits to reword. Only the four `repay*` strings still carry `[ph]`,
-  and they belong to work in flight elsewhere.
+- The copy pass is **done — three passes** (2026-08-03, 2026-08-04 ×2):
+  79 placeholders in the first, the showdown-polish batch in the second,
+  and the six bot-tier labels approved 2026-08-04 with the bots merge.
+  **Zero `[ph]` in `poker/strings.js`** — every string is his and off
+  limits to reword.

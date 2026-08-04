@@ -657,6 +657,3 @@ Measurement above.
 - **DeetsShips has no tiers.** Its `botAct` is a v1 anchor that stages
   legal minimums and never stalls a table. It gets tiers by adding a
   `BOT_TIER_LIST` to `ships/engine.js` and nothing else.
-- **Poker's tier labels are `[ph]`.** `botTier_easy/normal/hard` and the
-  short forms in `poker/strings.js` are placeholders awaiting Aditya's
-  pass — the rest of that file is his.

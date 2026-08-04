@@ -159,12 +159,12 @@ window.POKER_STRINGS = {
       bot editor, and the badge on a bot's seat row. One entry per name
       in the engine's BOT_TIER_LIST — botTier_<name>. The short forms are
       the seat-row picker (falls back to the tier name's first letter). */
-   botTier_easy: "[ph]Easy",
-   botTier_normal: "[ph]Normal",
-   botTier_hard: "[ph]Hard",
-   botTierShort_easy: "[ph]E",
-   botTierShort_normal: "[ph]M",
-   botTierShort_hard: "[ph]H",
+   botTier_easy: "Easy",
+   botTier_normal: "Normal",
+   botTier_hard: "Hard",
+   botTierShort_easy: "E",
+   botTierShort_normal: "M",
+   botTierShort_hard: "H",
    renameGo: "Save",
    renameReset: "Reset",
    renameYouAria: "Edit your name",

@@ -117,7 +117,7 @@ he dictated in chat.
 | Radio | Done — handwritten throughout |
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
-| Poker | Done — two passes (2026-08-03, 2026-08-04); zero `[ph]` left |
+| Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.
@@ -133,7 +133,7 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 | DeetsCities | `cities-api.deets.solutions` | |
 | DeetsMahjong | `mahjong-api.deets.solutions` | |
 | DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
-| DeetsPoker | `poker-api.deets.solutions` | private repo; **secrets not set yet** (guests only, results in the outbox) |
+| DeetsPoker | `poker-api.deets.solutions` | private repo; secrets set 2026-08-03 (rotated across all five workers) |
 
 - **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
   + guardrails). Never call Riot or spend key budget from the browser.

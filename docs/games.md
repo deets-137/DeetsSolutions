@@ -179,10 +179,10 @@ deliberate — the toolbar two-steps the pill because of it.
 
 #### Away seats — a released seat with no bot to catch it
 
-A game with **no bots in live play** (poker: the drive is a dev tool, not
-a player) has nowhere to put a released seat, so it gets a third
-destination between "a bot holds it" and "conceded": the seat goes
-**away**. The roster keeps the seat, its name, color and **token**; the
+A game whose bots **never inherit a seat** (poker: bots are first-class
+opponents, but only ever host-added) has nowhere to put a released seat,
+so it gets a third destination between "a bot holds it" and "conceded":
+the seat goes **away**. The roster keeps the seat, its name, color and **token**; the
 engine stops dealing it in but the position survives intact; the same
 token — or, in the worker, the same uid from any device — walks back in.
 
