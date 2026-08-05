@@ -13,10 +13,14 @@
    is icons — hearts, pips, a level numeral — so most entries here are
    aria labels and hovers rather than visible text.
 
-   Un-prefixed strings below are CARRIED VERBATIM from the poker/cities/
-   mahjong handwritten passes (the shared shell copy — gate, toolbar,
-   lobby seats, color picker, refusals); he already approved those exact
-   words, so they land clean (docs/design-language.md, "[ph]"). */
+   THIS FILE IS PAST ITS PASS. Aditya approved the whole file in one go
+   (chat 2026-08-05, same day as the build): the settings labels first,
+   then everything else — HUD arias, control hovers, the interstitial
+   lines, the dev Lag pill, the desktop guard, the level names in
+   tanks/levels/*.txt. The shell copy was carried verbatim from his
+   poker/cities/mahjong passes to begin with. So the rule now bites the
+   other way: a NEW string still arrives as "[ph]", but nothing already
+   here may be reworded without him. */
 window.TANKS_STRINGS = {
   /* ── bar (carried from cities/poker) ─────────────────────────── */
   tableCodePlaceholder: "Table Code",
@@ -47,9 +51,8 @@ window.TANKS_STRINGS = {
   standButton: "Stand up",
   standConfirm: "Confirm?",
 
-  /* ── lobby (carried from poker unless noted) ─────────────────── */
+  /* ── lobby (carried from poker; settings labels are his own pass) ── */
   lobbyTitle: "Table settings",
-  /* the five settings strings are Aditya's — approved in chat 2026-08-05 */
   livesLabel: "Lives",
   aimLineLabel: "Aim line",
   ffLabel: "Friendly fire",
@@ -89,34 +92,34 @@ window.TANKS_STRINGS = {
   colorBadHex: "Six hex digits, like #1fb0aa",
   colorClashWith: "Too close to {name}",
   /* the lobby preview caption under the rendered level */
-  previewCaption: "[ph] Level {n}",
+  previewCaption: "Level {n}",
 
   /* ── play: HUD (aria/hover only — the HUD itself is icons) ───── */
-  playersTitle: "[ph] Tanks",
-  livesAria: "[ph] {name}: {n} lives",
-  killsAria: "[ph] {name}: {n} kills",
-  campaignAria: "[ph] Level {n}, {left} enemies left",
-  enemyPipAria: "[ph] Enemy tank",
-  controlsDrive: "[ph] WASD to drive",
-  controlsAim: "[ph] Mouse to aim",
-  controlsFire: "[ph] Click to fire — two shells a second, five in the air",
-  controlsMine: "[ph] Space to lay a mine (two per life)",
-  shellsAria: "[ph] {n} of {max} shells ready",
-  minesAria: "[ph] {n} mines left",
-  spectatingNote: "[ph] You're spectating.",
+  playersTitle: "Tanks",
+  livesAria: "{name}: {n} lives",
+  killsAria: "{name}: {n} kills",
+  campaignAria: "Level {n}, {left} enemies left",
+  enemyPipAria: "Enemy tank",
+  controlsDrive: "WASD to drive",
+  controlsAim: "Mouse to aim",
+  controlsFire: "Click to fire — two shells a second, five in the air",
+  controlsMine: "Space to lay a mine (two per life)",
+  shellsAria: "{n} of {max} shells ready",
+  minesAria: "{n} mines left",
+  spectatingNote: "You're spectating.",
 
   /* ── interstitials (over the arena, mahjong's handOver idiom) ── */
-  clearedLine: "[ph] Level {n} cleared!",
-  failedLine: "[ph] Boom. Try again.",
-  nextIn: "[ph] Next level in {s}…",
-  retryIn: "[ph] Back in it in {s}…",
-  wonLine: "[ph] Campaign complete!",
-  lostLine: "[ph] Out of tanks.",
+  clearedLine: "Level {n} cleared!",
+  failedLine: "Boom. Try again.",
+  nextIn: "Next level in {s}…",
+  retryIn: "Back in it in {s}…",
+  wonLine: "Campaign complete!",
+  lostLine: "Out of tanks.",
   rematchButton: "Rematch",
 
   /* ── dev (mock only) ─────────────────────────────────────────── */
-  lagPill: "[ph] Lag {ms}ms",
-  lagPillTip: "[ph] Mock only: extra one-way latency on the sim channel.",
+  lagPill: "Lag {ms}ms",
+  lagPillTip: "Mock only: extra one-way latency on the sim channel.",
 
   /* ── connection / refusals (carried from cities/mahjong/poker) ── */
   connDown: "Reconnecting…",
@@ -130,8 +133,7 @@ window.TANKS_STRINGS = {
   concededToast: "{name} cashed out.",
   leavingToast: "{name} has disconnected.",
   returnedToast: "{name} is back.",
-  /* adapted from poker's (new noun), so it re-arrives as a placeholder */
-  takeoverToast: "[ph] {name}'s tank is on its own.",
+  takeoverToast: "{name}'s tank is on its own.",
   errTurn: "Not your turn.",
   errPhase: "Can't do that right now.",
   errPerm: "You can't do that.",
@@ -141,5 +143,5 @@ window.TANKS_STRINGS = {
   errFlood: "Slow down a moment.",
 
   /* ── desktop-only guard ──────────────────────────────────────── */
-  desktopOnly: "[ph] DeetsTanks needs a wider screen."
+  desktopOnly: "DeetsTanks needs a wider screen."
 };

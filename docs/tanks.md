@@ -529,5 +529,6 @@ ledger:
   the art pass), the `../DeetsTanks` worker (phase 4 — `rt-do.js` gets
   extracted from `transport-mock.js` then, per the promotion rule),
   PvP, stats reporting.
-- **Copy:** every game-facing string is `[ph]`; the un-prefixed ones
-  are carried verbatim from his poker/cities/mahjong passes.
+- **Copy: DONE.** He approved the whole of `strings.js` — and the level
+  names — in one pass, chat 2026-08-05, the same day it was built. Zero
+  `[ph]` left; new strings still arrive prefixed.
