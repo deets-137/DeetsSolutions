@@ -180,6 +180,30 @@
      transport-mock.js) — chips are the ONE place a game may paint its
      own art (docs/games.md, the `--pk*` carve-out). */
   var FELT_STACK = 10, FELT_COLS = 3, RAIL_STACK = 6;
+  /* The third placement: a BET pile, the chips out in front of a seat.
+     It is deliberately the smallest of the three, and the reason is
+     geometry rather than taste. The pot sits at `top: 60%` and reserves
+     a full column plus its amount; the six o'clock seat is centred at
+     92% and stands about 82px tall. That leaves the bottom pile roughly
+     7% of the felt — about 29px — to live in. A felt tray alone reserves
+     40px (`--pkside` × 10), so reusing it would have put chips through
+     the pot at the one seat a host most often takes.
+     Hence 5 × 2 over 3px bands: 15px reserved, which clears. There is
+     also no `×N` count line — a bet is small by nature, and the amount
+     already sits under the pile saying the true number. */
+  var BET_STACK = 5, BET_COLS = 2;
+  /* How far a bet pile sits from its seat's anchor, toward the middle —
+     in PIXELS, not a fraction of the felt, and that is the whole point.
+     A percentage ring was the first attempt and it overlapped the seat
+     at the diagonals: a seat's box is sized in px (name + tag + a 40px
+     tray ≈ 70px tall) and is centred on its anchor, so it reaches ~35px
+     inward whatever the felt measures. A ring pulled in by a percentage
+     clears that easily at 12 and 6 o'clock, where the pull is mostly
+     vertical, and not at all at 10 and 2, where `sin` is small and the
+     pile lands inside the seat that owns it.
+     A fixed pixel pull along the ray gives every angle the same
+     clearance: half a seat (~35) + half a pile (~14) + air. */
+  var BET_PULL = 62;
   // the deck's drawn depth: a look, not a count. Tracking 52 minus what
   // has been dealt would be a second source of truth for something the
   // engine doesn't publish and nobody reads off the felt.
@@ -251,10 +275,11 @@
     return node;
   }
   function chipStacks(tray, opts) {
-    var wrap = el("div", "pk-tray" + (opts.rail ? " pk-tray--rail" : ""));
+    var wrap = el("div", "pk-tray" + (opts.rail ? " pk-tray--rail" : "")
+                                   + (opts.bet ? " pk-tray--bet" : ""));
     if (!tray || !tray.chips) return wrap;
-    var per = opts.rail ? RAIL_STACK : FELT_STACK;
-    var unit = opts.rail ? 6 : 4;          // one band, in CSS px
+    var per = opts.bet ? BET_STACK : opts.rail ? RAIL_STACK : FELT_STACK;
+    var unit = opts.bet ? 3 : opts.rail ? 6 : 4;          // one band, in CSS px
     /* EVERY denomination renders, even at zero. An empty column is
        invisible but still holds its width, so a tray doesn't shuffle
        sideways the moment a rung runs out — and on the rail the key
@@ -264,7 +289,8 @@
       var n = tray.chips[chip.v] || 0;
       var group = el("div", "pk-tray__group");
       var stack = el("div", "pk-tray__stack");
-      var cols = Math.max(1, Math.min(Math.ceil(n / per), opts.rail ? 1 : FELT_COLS));
+      var cap = opts.bet ? BET_COLS : opts.rail ? 1 : FELT_COLS;
+      var cols = Math.max(1, Math.min(Math.ceil(n / per), cap));
       var left = n;
       for (var c = 0; c < cols; c++) {
         var high = Math.min(left, per);
@@ -281,8 +307,10 @@
          a seat is centered on its anchor, so it would re-center and
          slide every time a rung crossed the cap. That is the same
          jitter .pk-seat__tag is blanked to prevent. */
-      group.appendChild(el("span", "pk-tray__count" + (n > per ? "" : " is-blank"),
-        n > per ? fmt(S.chipCount, { n: n }) : " "));
+      if (!opts.bet) {
+        group.appendChild(el("span", "pk-tray__count" + (n > per ? "" : " is-blank"),
+          n > per ? fmt(S.chipCount, { n: n }) : " "));
+      }
       group.appendChild(stack);
       /* the rail doubles as the table's KEY — what a white chip is worth
          is otherwise nowhere on the page. The felt stays bare: twelve
@@ -704,9 +732,14 @@
     var s = seatNode(seat);
     return (s && (FLY.point(s.querySelector(".pk-tray")) || bare(FLY.point(s)))) || potPoint();
   }
+  /* the seat's pile on the betting ring. It is a sibling of the seat now
+     rather than a row inside it, so it is found on the felt by its own
+     seat attribute; the seat itself stays the fallback, bare as ever. */
   function betPoint(seat) {
+    var b = BIG.querySelector('.pk-betpile[data-bet-seat="' + seat + '"]');
+    if (b) { var pt = FLY.point(b.querySelector(".pk-tray")) || FLY.point(b); if (pt) return pt; }
     var s = seatNode(seat);
-    return (s && (FLY.point(s.querySelector(".pk-seat__bet")) || bare(FLY.point(s)))) || potPoint();
+    return (s && bare(FLY.point(s))) || potPoint();
   }
   function potPoint() {
     return FLY.point(BIG.querySelector("[data-pk-pot]")) ||
@@ -1117,6 +1150,12 @@
       var x = 50 + 44 * Math.cos(theta);
       var y = 50 + 42 * Math.sin(theta);
       f.appendChild(feltSeat(seat, x, y));
+      /* The bet pile sits on the SAME ray, pulled toward the middle by a
+         fixed number of pixels — the direction its chips will travel
+         when the street closes. It is a sibling of the seat, not a
+         child: inside, its height would re-centre the seat on every
+         raise (see feltSeat). */
+      f.appendChild(betPile(seat, x, y, theta));
     });
     /* board + pot in the middle. Cards dealt SINCE the last paint pop in,
        staggered left to right, so a flop arrives as three cards rather
@@ -1212,9 +1251,13 @@
     var tag = seatTag(p, away);
     node.appendChild(el("span", "pk-seat__tag" + (tag ? "" : " is-blank"), tag || " "));
     if (p.tray && !p.left) node.appendChild(chipStacks(p.tray, { rail: false }));
-    var bet = p.betStreet > 0;
-    node.appendChild(el("span", "pk-seat__bet" + (bet ? "" : " is-blank"),
-      bet ? fmtMoney(p.betStreet) : " "));
+    /* The bet USED to be a row right here, blanked when empty. It is now
+       a felt-level pile on its own inner ring (see `betPile`): a pile that
+       grew with the bet would have re-centred the seat on EVERY raise —
+       the same jitter as above, firing constantly instead of once a
+       street. Out of the seat's flow, it cannot move anything.
+       The amount stays with the pile rather than here, because what a
+       call costs you is read off that number under the chips. */
     /* A hand shown privately to YOU rides the seat that showed it — that
        is whose cards they are, and the felt is where you already look to
        ask who holds what. It is an ABSOLUTE box over that seat's chips,
@@ -1232,6 +1275,34 @@
       peek.appendChild(el("span", "pk-peek__tag", S.shownToYou));
       node.appendChild(peek);
     }
+    return node;
+  }
+  /* A seat's money out on the betting line, drawn as the chips it was
+     actually pushed in with (`p.betTray` — the engine holds the
+     composition per seat now, so the pile is what the seat paid rather
+     than a racking of the amount).
+
+     It is ALWAYS in the DOM and always reserves its full height, blanked
+     when there is nothing bet — the same rule the trays and the pot
+     follow. A pile that appeared and vanished would shift nothing (it is
+     absolutely positioned) but it would flicker its own spot on the felt
+     as streets opened and closed, and the flights need a target that is
+     there before the chips arrive. */
+  function betPile(i, x, y, theta) {
+    var p = model.players[i];
+    var node = el("div", "pk-betpile");
+    /* the seat's own anchor, walked BET_PULL px back down the ray toward
+       the middle. Mixing % with px is what makes the clearance from the
+       seat constant while the ring itself still scales with the felt. */
+    node.style.left = "calc(" + x + "% - " + (Math.cos(theta) * BET_PULL).toFixed(1) + "px)";
+    node.style.top = "calc(" + y + "% - " + (Math.sin(theta) * BET_PULL).toFixed(1) + "px)";
+    node.setAttribute("data-bet-seat", i);        // flights find the pile through this
+    var amt = (p && p.betStreet) || 0;
+    var live = amt > 0 && !model.handOver;
+    if (!live) node.classList.add("is-blank");
+    node.appendChild(chipStacks(live ? (p.betTray || { chips: {}, odd: 0 })
+                                     : { chips: {}, odd: 0 }, { bet: true }));
+    node.appendChild(el("span", "pk-betpile__amt", live ? fmtMoney(amt) : " "));
     return node;
   }
   /* the hands other people have shown you this hand. Only ever populated
@@ -1379,7 +1450,12 @@
     wrap.appendChild(box);
     left.appendChild(wrap);
     foot.appendChild(left);
-    var next = el("button", "tb-pill gt-lobby__start");
+    /* its own class, not `gt-lobby__start`: that one carries
+       `align-self: flex-start`, which overrode the footer's centring and
+       floated this pill above the Reveal one — and a game restyling a
+       `gt-` node is the rule the cash-out's Rematch already broke once
+       (docs/games.md, "Class prefixes"). */
+    var next = el("button", "tb-pill pk-over__next");
     next.type = "button";
     next.appendChild(el("span", "tb-pill__label", S.nextHandButton));
     next.addEventListener("click", function () { send({ type: "nextHand" }); });
@@ -1626,8 +1702,16 @@
       var slots = el("div", "pk-hole");
       slots.appendChild(cardEl(null, true));
       slots.appendChild(cardEl(null, true));
-      if (p.waiting) slots.appendChild(el("span", "pk-roleline", S.waitingNote));
       handCol.appendChild(slots);
+      /* The waiting note sits UNDER the slots, in the made-hand line's own
+         place — it is the same kind of sentence (what you are holding, or
+         why you are holding nothing), and beside the cards it read as a
+         caption on the right-hand slot. Blanked rather than omitted when
+         there is nothing to say, so this branch reserves exactly the
+         height the dealt-in branch does and the panel can't jog between
+         the two (his call, ss2 2026-08-05). */
+      handCol.appendChild(el("div", "pk-made" + (p.waiting ? "" : " is-blank"),
+        p.waiting ? S.waitingNote : " "));
     }
     // the rankings reference, pinned to the bottom of the hand column
     handCol.appendChild(handGuideButton());

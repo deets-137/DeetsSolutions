@@ -16,7 +16,7 @@ assets/sprites/poker/    chip art (templates: scripts/build-poker-chips.py)
 ../DeetsPoker/           the worker repo (src/index.js is the mock's port)
 ```
 
-`node poker/engine.js` runs the engine's self-checks (290 at last count).
+`node poker/engine.js` runs the engine's self-checks (387 at last count).
 `node scripts/poker-bot-duel.js` measures the bot tiers ([bots.md](bots.md)).
 
 ## Build phases
@@ -126,6 +126,14 @@ grace-expiry bug and somebody's stack).
 The hand panel's left column reads top to bottom: "Your Hand", your two
 cards at 1.5x, **what you actually hold**, and a **Hand Rankings** button
 pinned to the bottom (`margin-top: auto`).
+
+That line's slot is also where **"You're in at the next deal"** goes when
+you are waiting to be dealt in (his call, 2026-08-05). It used to sit
+beside the empty card slots, where it read as a caption on the
+right-hand one; it is the same kind of sentence as the made hand — what
+you are holding, or why you are holding nothing — so it takes the same
+place, blanked when there is nothing to say so the two branches reserve
+identical height.
 
 The made-hand line is computed CLIENT-SIDE from your own two cards plus
 the public board — `Engine.bestOf` is already exported, and asking the
@@ -260,9 +268,24 @@ the biggest chip — true, and useless to look at ($21 is 21 blacks). A
   the point: your chips keep looking like your chips instead of
   re-composing under you every hand. A re-deal is the fallback when a
   tray genuinely can't make change.
+- **A bet is its own pile.** `p.betTray` (same shape, public) holds what
+  a seat has pushed onto the betting line this street, exactly as
+  `p.tray` holds what it still has. The drop `syncTrays` already
+  computed lands there first; `sweepBets` empties every pile into
+  `g.potTray` when a street closes, and again at the top of `settle`,
+  because a fold-through reaches settlement without a street ever
+  closing and the `win` flight has to fly chips already in the middle.
+  Held to `traySum + odd === betStreet` and racked from `betStreet` when
+  it disagrees — which is the **ante**, the one thing that moves cents
+  into `betHand` without touching the line.
+  The pot pile is therefore checked against **`potFloor`** (committed
+  less what is still on the lines), not `potTotal`: a live bet is drawn
+  in front of its seat, and the middle must not claim it too. Engine
+  self-checks hold the whole felt to `pot pile + every bet pile ===
+  potTotal` after every action — **every cent drawn exactly once**.
 - **The pot holds the chips that were pushed into it**, not a racking of
-  its total. `g.potTray` is public and accumulates the *drop* between
-  each tray before a sync and after it, in the same `syncTrays` pass.
+  its total. `g.potTray` is public and accumulates what the sweep hands
+  it, in the same `syncTrays` pass.
   Drawing the pot as `dealTray(pot)` was a true statement about how much
   is in the middle and a false one about what is: four seats limping a
   20¢ blind put eight 10¢ chips in the middle, and racking 80¢ would have
@@ -281,16 +304,51 @@ the biggest chip — true, and useless to look at ($21 is 21 blacks). A
   the total becomes 0, the check fails against the leftover chips, and
   the fallback deals an empty pot.
 
-Rendering is one function, `chipStacks`, in two placements: one group per
-denomination, each group one or more columns of edge-on chips. **On the
-felt** a column holds 10 and spills into a neighbour, up to 3 columns,
-with the `×N` label sitting where the fourth would have started — capped
-groups read as "and more of these" rather than as a shorter stack, and
-the tray wraps rather than shouldering into the seat beside it. **In the
-hand panel** a column holds 6 and stops, because the rail is a readout,
-not a comparison; the cash total **is** its heading — a label over your
-own chips only said what the chips already say. Both his call, chat
-2026-08-03.
+Rendering is one function, `chipStacks`, in three placements: one group
+per denomination, each group one or more columns of edge-on chips. **On
+the felt** a column holds 10 and spills into a neighbour, up to 3
+columns, with the `×N` label sitting where the fourth would have
+started — capped groups read as "and more of these" rather than as a
+shorter stack, and the tray wraps rather than shouldering into the seat
+beside it. **In the hand panel** a column holds 6 and stops, because the
+rail is a readout, not a comparison; the cash total **is** its heading —
+a label over your own chips only said what the chips already say. Both
+his call, chat 2026-08-03.
+
+**A bet pile** is the third, and the smallest: 5 × 2 over 3px bands, and
+no `×N` line at all. The size is measured, not chosen. The pot sits at
+`top: 60%` and reserves a full column plus its amount; the six o'clock
+seat is centred at 92% and stands ~82px tall, which leaves the bottom
+pile about 7% of the felt — some 29px. A felt tray reserves 40px on its
+own (`--pkside × 10`), so reusing it would have run chips through the
+pot at the seat a host most often takes. Five chips over 3px reserve
+15px. The amount **stays under the pile** (unlike the rail) because what
+a call costs you is a number you read, not a heap you judge.
+
+The pile is a **felt-level child**, not a row inside the seat. A seat is
+centred on its anchor, so a pile that grew with the bet would have
+re-centred it on **every raise** — the flop jitter, firing all hand
+instead of once a street. It is always in the DOM and always reserves
+its height, blanked with `visibility` rather than omitted: the flights
+need a target that exists before the chips land, and `visibility:
+hidden` keeps the layout `FLY.point` measures.
+
+**It sits on the seat's own ray, pulled `BET_PULL` PIXELS toward the
+middle** — `calc(<seat>% - cos(θ)·62px)`. A percentage ring was the
+first attempt and it overlapped the seat at the diagonals: a seat's box
+is sized in px (name + tag + a 40px tray ≈ 70px tall) and reaches ~35px
+inward whatever the felt measures, so a percentage pull clears it at 12
+and 6 o'clock, where the pull is mostly vertical, and not at all at 10
+and 2, where `sin` is small. A fixed pixel pull gives every angle the
+same clearance; the ring still scales with the felt because the anchor
+is a percentage.
+
+**The pot moved from `top: 60%` to `54%`** to pay for this. On a
+minimum-height felt the pot reserves ~58px, the six o'clock seat reaches
+~35px up from its 92% anchor and the pile between them wants ~28px:
+121px of content for the 125px between 60% and 92%, which is not a
+layout, it is a coincidence. 54% spends the dead gap that was sitting
+between the board and the pot and leaves the bottom pile ~24px of air.
 
 Two rules keep a stack from *looking* wrong, both learned the hard way:
 
@@ -452,7 +510,14 @@ stacked ran the card off the bottom of the felt, which is what the grid
 fixes. A mucked seat is on the grid with its two cards face DOWN: you can
 see that four people went to the river without seeing what they had. The
 footer is the two ends of a settled hand — **Reveal | ☐** on the left,
-**Next hand** on the right (see "Showdown order"). Fewer than 2 dealable
+**Next hand** on the right (see "Showdown order") — a matched pair: the
+row is `align-items: stretch` so the checkbox-bearing Reveal pill and
+the text-only Next hand share a height, and Next hand wears its own
+`.pk-over__next` rather than `gt-lobby__start`, whose `align-self:
+flex-start` was floating it above its partner. A game restyling a `gt-`
+node is the rule the cash-out's Rematch broke once already; the buy-in
+button in the hand panel still borrows that class and deserves the same
+treatment when it is next touched. Fewer than 2 dealable
 stacks → `waiting` until a re-buy or sit-in.
 
 Heads-up blind order is handled; the button walks to the next eligible
@@ -543,7 +608,8 @@ wire.
 `handNo dealer street board waiting blinds{sb,bb} pot players[] turn{seat}
 handOver handOverAt votes{n,need,seats} transfers turnEndsAt
 over{endedBy,standings,hands,results}` — per-player: `seat stack bought
-inHand folded allIn out left waiting away owesAnte betStreet tray stats`.
+inHand folded allIn out left waiting away owesAnte betStreet tray
+betTray stats`.
 Seat views additionally carry `away` (public, like `conceded`).
 
 ## Winnings — the transfer ledger
@@ -824,9 +890,6 @@ and the `win` above already flew them.
 
 ## Deferred / open
 
-- Bet piles as chips — the bet spot is still the plain `20¢` text pill.
-  It is now a flight *target* (chips land on it and it bumps), but it
-  doesn't draw the pile itself.
 - The `handOverSec` dwell is a LOBBY setting only — like every other
   table setting, it can't be re-tuned once the game starts. The host's
   mid-game lever is the Next hand button.

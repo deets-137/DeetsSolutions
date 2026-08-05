@@ -100,6 +100,26 @@
 
         <article class="project">
           <div class="project__top">
+            <h3 class="project__name">DeetsBeats</h3>
+            <span class="project__status">built</span>
+          </div>
+          <p class="project__pitch">A Bluetooth watchdog that keeps my headphones in stereo.</p>
+          <p class="project__desc">
+            Windows loves to yank a headset out of A2DP the moment any app touches a
+            mic. DeetsBeats sits in the tray, watches the connection, suppresses the
+            Hands-Free profile until a mic is actually wanted, pins the right audio
+            endpoint, and climbs a reconnect ladder when the link drops — same
+            Tauri-and-Rust stack as DeetsMusic for Windows.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Tauri v2</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">Win32 Bluetooth</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
             <h3 class="project__name">DeetsMusic</h3>
             <span class="project__status">building</span>
           </div>
@@ -283,7 +303,8 @@
             Share a table code and go — no install, no account. Every table is its own
             Durable Object holding the whole game, and each player gets a personalized
             view because hands and dev cards are hidden. Drop out mid-game and your seat
-            waits 30 seconds before a bot takes over, then hands it back when you return.
+            waits 30 seconds before a bot takes over, then hands it back when you return —
+            and the host can seat bots outright, each with its own difficulty tier.
             The worker behind it lives in its own private repo.
           </p>
           <div class="project__tags">
@@ -306,8 +327,9 @@
             Built on the shared table foundation DeetsCities runs on, with the hidden
             information taken seriously — your hand, your freshly drawn tile, and your own
             claim options never leave your connection. The rules engine is a pure module
-            that checks itself, and tiles come in two decks you pick for yourself. Its
-            worker is a separate private repo.
+            that checks itself — the bots live inside it too, in three difficulty tiers —
+            and tiles come in two decks you pick for yourself. Its worker is a separate
+            private repo.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -316,6 +338,50 @@
           </div>
           <div class="project__links">
             <a class="project__link" href="/mahjong/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsPoker</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">No-limit hold&rsquo;em cash tables with friends.</p>
+          <p class="project__desc">
+            The third game on the shared table foundation. Money is integer cents and
+            every bet has to break into real chips; hole cards ride only your own
+            connection, and even the bots can&rsquo;t peek — a bot sees exactly what a
+            player in its seat would. Step away and you choose what leaving costs: your
+            stack waits, banks, or forfeits. Its worker is another private repo.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">integer cents</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/poker/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsShips</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">Team-vs-team naval warfare, captains and all.</p>
+          <p class="project__desc">
+            The first real-teams game on the table foundation: two sides of 1&ndash;4
+            seats, one captain per side committing the team&rsquo;s plan each round.
+            Everything hidden is hidden per TEAM — ship positions, staged plans, and
+            sonar results never cross the line; the enemy sees only intel marks, while
+            spectators see everything. The worker is deployed and the tab is in its
+            final pass before it joins the nav.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">teams</span>
           </div>
         </article>
       </div>
@@ -454,6 +520,26 @@
 
         <article class="project">
           <div class="project__top">
+            <h3 class="project__name">DeetsAccounts</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">One sign-in across the whole site.</p>
+          <p class="project__desc">
+            Google sign-in and a profile page with a color you pick in hex — plus the
+            stats pipeline behind it: every game worker reports finished games through
+            an outbox, and the accounts worker is the sole owner of the D1 that keeps
+            your record across cities, mahjong, and poker. Private repo, since it
+            guards the keys.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">D1</span>
+            <span class="project__chip">OAuth</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
             <h3 class="project__name">Oura sleep-lag viz</h3>
             <span class="project__status">built</span>
           </div>
@@ -479,8 +565,9 @@
           <p class="project__pitch">This site.</p>
           <p class="project__desc">
             Hand-rolled HTML/CSS — no build step, no frameworks, no dependencies — running
-            two journals, a League stats tab, shared listening rooms, and two multiplayer
-            games off a common table foundation. Every page rides the same two-axis theme
+            two journals, a League stats tab, shared listening rooms, Google sign-in with
+            per-game stats, and three multiplayer games off a common table foundation.
+            Every page rides the same two-axis theme
             &times; skin token system as the Deets apps: pick a color theme and a
             shape/type/motion skin from the header, and all 30 combinations hold up.
           </p>
