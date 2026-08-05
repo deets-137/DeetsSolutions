@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-04T01:27:14Z",
+  "generated_at": "2026-08-05T19:39:51Z",
   "channel": "song-of-the-day",
-  "count": 351,
+  "count": 353,
   "songs": [
     {
       "post_id": 1,
@@ -8075,6 +8075,52 @@
       "apple_music_url": "https://music.apple.com/us/album/tokyo-lift-5am/1797151472?i=1797151477&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5f/54/10/5f5410cd-a1bd-3ada-e575-84bb87abecd2/mzaf_9488705583950046458.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/7b/9d/9e/7b9d9e39-9933-bcbf-a810-bdf7e455ca57/24CRGIM47947.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 12798,
+      "posted_at": "2026-08-05T04:47:00.865000+00:00",
+      "date": "2026-08-04",
+      "day": "Tue",
+      "month": "08_2026",
+      "track_name": "Red Blossom (5pm)",
+      "artist_name": "Cautious Clay",
+      "album": "The Hours: High Noon",
+      "genre": "R&B/Soul",
+      "duration": "2:41",
+      "duration_sec": 161,
+      "release_date": "2026-07-31",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/red-blossom-5pm/1896264236?i=6766279433",
+      "apple_music_url": "https://music.apple.com/us/album/red-blossom-5pm/1896264236?i=6766279433&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a6/7f/dd/a67fdda1-40be-6cf6-0f7d-de26f554acf8/mzaf_15100229259525543056.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/cb/38/fb/cb38fbd0-af64-978d-2213-4e1f91d34e82/26CRGIM54973.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 12799,
+      "posted_at": "2026-08-05T18:05:02.407000+00:00",
+      "date": "2026-08-05",
+      "day": "Wed",
+      "month": "08_2026",
+      "track_name": "HEADLOCK",
+      "artist_name": "Luci Gang",
+      "album": "Rolling Stone",
+      "genre": "Korean Hip-Hop",
+      "duration": "1:58",
+      "duration_sec": 118,
+      "release_date": "2026-07-06",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/headlock/6783698001?i=6783698079",
+      "apple_music_url": "https://music.apple.com/us/album/headlock/6783698001?i=6783698079&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4f/44/b4/4f44b4d7-7d31-1932-524b-b412607f2e84/mzaf_2846457602607249535.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/74/76/98/747698de-0fbb-f3c3-710e-bf56fb632205/8800388555046_cover.jpg/600x600bb.jpg"
     }
   ]
 }
