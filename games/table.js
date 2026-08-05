@@ -374,6 +374,13 @@
 
     /* ═══ MESSAGE HANDLING ═════════════════════════════════════════ */
     function onMessage(msg) {
+      /* Real-time games (docs/realtime.md): sim-channel traffic — `tick`
+         snapshots and their `ev` flavor — must bypass the shell's
+         model/paint path entirely, or 20 Hz of DOM teardown fights the
+         frame loop. A game CLAIMS such a message by returning true from
+         onRaw; everything else falls through unchanged, and turn-based
+         games (no hook) are untouched. */
+      if (hook("onRaw") && cfg.onRaw(msg)) return;
       if (msg.type === "kicked") { toast(S.kickedMeta, "error"); leaveTable(); return; }
       if (msg.type === "closed") { toast(S.tableClosed, "info"); leaveTable(); return; }
       // another tab on this device took the table — sticky, because the user has

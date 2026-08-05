@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DeetsCities — Deets</title>
+    <title>DeetsTanks — Deets</title>
     <link rel="icon" href="../assets/favicon.png" type="image/png" />
     <script>
       (function () {
@@ -21,20 +21,23 @@
     </script>
     <link rel="stylesheet" href="../styles/chrome.css" />
     <link rel="stylesheet" href="../styles/table.css" />
-    <link rel="stylesheet" href="./cities.css" />
+    <link rel="stylesheet" href="./tanks.css" />
     <script src="../js/controls.js" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
     <script src="./strings.js" defer></script>
     <script src="../games/colors.js" defer></script>
-    <script src="./board-data.js" defer></script>
     <script src="./engine.js" defer></script>
+    <script src="./levels.js" defer></script>
     <script src="../games/transport.js" defer></script>
     <script src="../games/table-mock.js" defer></script>
     <script src="./transport-mock.js" defer></script>
     <script src="../games/table.js" defer></script>
-    <script src="../games/flights.js" defer></script>
-    <script src="./cities.js" defer></script>
+    <script src="./input.js" defer></script>
+    <script src="./art.js" defer></script>
+    <script src="./render.js" defer></script>
+    <script src="./net.js" defer></script>
+    <script src="./tanks.js" defer></script>
     <script src="../js/walkers.js" defer></script>
   </head>
 
@@ -54,10 +57,10 @@
         <div class="nav-group">
           <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
           <div class="nav-group__menu" role="menu">
-            <a href="/cities/" role="menuitem" aria-current="page">DeetsCities</a>
+            <a href="/cities/" role="menuitem">DeetsCities</a>
             <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
             <a href="/poker/" role="menuitem">DeetsPoker</a>
-            <a href="/tanks/" role="menuitem">DeetsTanks</a>
+            <a href="/tanks/" role="menuitem" aria-current="page">DeetsTanks</a>
           </div>
         </div>
         <div class="nav-group">
@@ -79,49 +82,50 @@
     </header>
 
     <main class="site-main">
-      <!-- DeetsCities — a real-time hex-settlement board game (docs/cities.md).
-           Phase 1: the mock transport (transport-mock.js) runs the real rules
-           engine (engine.js) in-page so a full hot-seat game is playable against
-           phantom seats; ?mock selects it (the default until the ../DeetsCities
-           worker at cities-api.deets.solutions lands in Phase 2). Like League and
-           radio, the bar carries a combo box where the journals put an <h1>: the
-           table code IS the title. All flavor copy comes from strings.js.
-           NO trademarks — resources/pieces are generic in code, named in copy. -->
-      <section class="cities">
+      <!-- DeetsTanks — top-down real-time tank arena (docs/tanks.md).
+           Phase 1: the mock transport (transport-mock.js) runs the real
+           engine (engine.js) in-page at 60 Hz; the mock is the DEFAULT
+           until the ../DeetsTanks worker lands (?mock stays the explicit
+           switch either way). The bar carries the table-code combobox
+           (the sibling idiom): the table code IS the title. All flavor
+           copy comes from strings.js. -->
+      <section class="tk">
         <div class="sotd__bar">
           <div class="tb-ctrl gt-code">
-            <!-- aria-label comes from strings.js (cities.js boot) -->
-            <input class="gt-code__input" data-cities-code type="text"
+            <!-- aria-label comes from strings.js (tanks.js boot) -->
+            <input class="gt-code__input" data-tk-code type="text"
                    autocomplete="off" spellcheck="false" />
-            <div class="tb-pop gt-code__pop" data-cities-code-pop hidden></div>
+            <div class="tb-pop gt-code__pop" data-tk-code-pop hidden></div>
           </div>
-          <div class="sotd-toolbar" data-cities-toolbar aria-label="Table controls"></div>
+          <div class="sotd-toolbar" data-tk-toolbar aria-label="Table controls"></div>
         </div>
-        <!-- no meta line under the bar (unlike the journals): the game state
-             already says everything it would, so the bento sits flush under
-             the bar. Transient notices (join refusals, reconnects) ride the
-             toast host instead. -->
 
         <!-- pre-join gate: peek result → sit / watch / open-this-table -->
-        <div class="cities-gate" data-cities-gate hidden></div>
+        <div class="tk-gate" data-tk-gate hidden></div>
 
-        <!-- the bento — stable across all phases; tiles change contents, not
-             places (docs/cities.md, "Page layout — the bento") -->
-        <div class="cities-table" data-cities-table hidden>
-          <div class="cities-bento">
-            <section class="cities-tile cities-tile--big" data-cities-big aria-label="Board"></section>
-            <section class="cities-tile cities-tile--dice" data-cities-dice aria-label="Dice"></section>
-            <section class="cities-tile cities-tile--players" data-cities-players aria-label="Players"></section>
-            <section class="cities-tile cities-tile--log" data-cities-log aria-label="Log"></section>
-            <section class="cities-tile cities-tile--role" data-cities-role aria-label="Your controls"></section>
-            <!-- trade overlay docks over the board's right quarter -->
-            <div class="cities-trade" data-cities-trade hidden></div>
+        <!-- the bento (docs/tanks.md, "Page layout"): arena big tile,
+             participants + campaign counter on the rail, controls strip
+             below (poker's hand-panel slot). No log — his call. The
+             CANVAS is a permanent node: paint() rebuilds its siblings,
+             never it (the sim channel bypasses the paint path). -->
+        <div class="tk-table" data-tk-table hidden>
+          <div class="tk-bento">
+            <section class="tk-tile tk-tile--big" data-tk-big aria-label="Arena">
+              <canvas class="tk-canvas is-hidden" data-tk-canvas></canvas>
+              <div class="tk-lobbywrap" data-tk-lobby></div>
+              <div class="tk-overlay" data-tk-overlay hidden></div>
+            </section>
+            <div class="tk-rail">
+              <section class="tk-tile tk-tile--players" data-tk-players aria-label="Tanks"></section>
+              <section class="tk-tile tk-tile--campaign" data-tk-campaign aria-label="Campaign"></section>
+            </div>
+            <section class="tk-tile tk-tile--role" data-tk-role aria-label="Controls"></section>
           </div>
         </div>
 
-        <!-- desktop-only: below the nav breakpoint the game is swapped for a
-             one-line note (docs/cities.md, "Desktop only") -->
-        <p class="cities-desktop-note" data-cities-desktop hidden></p>
+        <!-- desktop-only: below the nav breakpoint the game is swapped
+             for a one-line note -->
+        <p class="tk-desktop-note" data-tk-desktop hidden></p>
       </section>
     </main>
   </body>

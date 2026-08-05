@@ -1,0 +1,195 @@
+/* DeetsTanks — the game's own art + layout (docs/tanks.md).
+   Loaded after chrome.css → table.css; gt- classes are the shell's and
+   are never restyled here (docs/games.md, "Class prefixes").
+
+   ── The art carve-out ─────────────────────────────────────────────
+   The arena is canvas-drawn, but its palette lives HERE, on the .tk
+   root, read once by render.js (getComputedStyle) — so the fixed
+   literals stay inside the game-art carve-out like every sibling's
+   felt. Wii Play's cork board is the reference: warm tan floor with
+   visible tile seams, raised walls. Seat colors are NOT part of this —
+   player hulls wear --gseat via the seat view's hex (docs/games.md). */
+.tk {
+  --tk-floor-a: #d9c893;
+  --tk-floor-b: #d2c084;
+  --tk-seam: rgba(90, 70, 40, 0.16);
+  --tk-wall: #8a7757;
+  --tk-wall-top: #a08c68;
+  --tk-block: #b98a4e;
+  --tk-block-top: #cda05f;
+  --tk-enemy1: #a3562c;
+  --tk-enemy1-dark: #77401f;
+  --tk-track: rgba(30, 24, 16, 0.55);
+  --tk-bullet: #2e2820;
+  --tk-mine: #3a332a;
+  --tk-mine-arm: #d8442e;
+  --tk-boom: #e0862f;
+  --tk-aim: rgba(40, 90, 160, 0.55);
+}
+
+/* ── the bento (poker's grid: big + rail, role strip below) ────── */
+.tk-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "big rail"
+    "role role";
+  gap: var(--space-3);
+  position: relative;
+  align-items: start;
+}
+.tk-tile {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-3);
+}
+.tk-tile--big {
+  grid-area: big;
+  height: 34rem;
+  position: relative;
+  overflow: hidden;
+}
+.tk-rail {
+  grid-area: rail;
+  height: 34rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.tk-tile--players {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+}
+.tk-tile--campaign {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+/* the controls strip — where poker's hand panel sits, collapsed to a
+   strip because a tank has no hidden state (docs/tanks.md) */
+.tk-tile--role {
+  grid-area: role;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 3.4rem;
+}
+
+/* ── the arena canvas + its two overlays ───────────────────────── */
+.tk-canvas {
+  position: absolute;
+  inset: var(--space-2);
+  width: calc(100% - var(--space-2) * 2);
+  height: calc(100% - var(--space-2) * 2);
+  border-radius: var(--radius-control);
+}
+.tk-canvas.is-hidden { visibility: hidden; }
+.tk-lobbywrap {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.tk-preview { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); margin-top: var(--space-3); }
+.tk-preview__cv { width: 100%; max-width: 24rem; height: 12rem; }
+.tk-preview__cap { margin: 0; color: var(--subtext); font-size: 0.8rem; }
+/* the interstitial card floats over the arena — mahjong's handOver
+   idiom: absolute overlay, never a new layout */
+.tk-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 35%, transparent);
+  border-radius: var(--radius-panel);
+}
+.tk-over {
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.tk-over__line { margin: 0; color: var(--title); font-family: var(--font-title); font-size: 1.15rem; }
+.tk-over__sub { margin: 0; color: var(--subtext); font-size: 0.85rem; min-height: 1.2em; }
+
+/* ── participants: dot · name · hearts · kills ─────────────────── */
+.tk-pstrip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gseat, var(--border));
+  border-radius: var(--radius-control);
+}
+.tk-pstrip.is-empty { opacity: 0.5; border-left-color: var(--border); }
+.tk-pstrip__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.tk-pstrip__nums { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+.tk-hearts { color: var(--stop, #c74a57); letter-spacing: 0.06em; font-size: 0.85rem; }
+.tk-heart.is-spent { opacity: 0.22; }
+.tk-kills { color: var(--subtext); font-family: var(--font-mono); font-size: 0.8rem; white-space: nowrap; }
+
+/* ── campaign: numeral + one pip per enemy still up ────────────── */
+.tk-campaign__num { color: var(--title); font-family: var(--font-title); font-size: 2rem; line-height: 1; }
+.tk-campaign__pips { margin-left: auto; display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.tk-campaign__pip {
+  width: 0.7rem; height: 0.7rem;
+  border-radius: 3px;
+  background: var(--tk-enemy1);
+}
+
+/* ── the controls strip ────────────────────────────────────────── */
+.tk-role__keys { display: flex; align-items: center; gap: var(--space-2); }
+.tk-key {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--subtext);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 0.15rem 0.5rem;
+  cursor: default;
+}
+.tk-role__ammo { margin-left: auto; display: flex; align-items: center; gap: var(--space-4); }
+.tk-pips { display: flex; gap: var(--space-1); }
+.tk-pip {
+  width: 0.55rem; height: 0.55rem;
+  border-radius: 50%;
+  background: var(--title);
+}
+.tk-pip--mine { border-radius: 2px; background: var(--tk-mine-arm); }
+.tk-pip.is-spent { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+.tk-role__note { color: var(--subtext); font-size: 0.85rem; }
+
+/* ── desktop-only guard (the sibling pages' rule) ──────────────── */
+.tk-desktop-note { color: var(--subtext); }
+@media (max-width: 56rem) {
+  .tk-bento { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* motion here is canvas-drawn; the CSS side has nothing to quiet */
+}
