@@ -466,6 +466,17 @@
     return n;
   }
 
+  /* a table persisted before a counter existed heals here — the
+     ensureLedger pattern; an increment must never ride undefined */
+  var STAT_KEYS = ["hands", "wins", "biggestPot", "vpip", "pfr", "threeBets",
+                   "sawFlop", "showdowns", "sdWins", "raises", "calls",
+                   "checks", "folds", "allIns"];
+  function healStats(p) {
+    if (!p.stats) p.stats = {};
+    STAT_KEYS.forEach(function (k) { if (p.stats[k] == null) p.stats[k] = 0; });
+    if (p.stats.bestRank == null) p.stats.bestRank = -1;
+  }
+
   /* ── the betting round ────────────────────────────────────────── */
   function toCall(g, i) {
     var p = g.players[i];
@@ -538,7 +549,15 @@
           return els[Math.floor(ctx.rand() * els.length)];
         })()
       : nextSeat(g, g.dealer, eligible);
-    g.players.forEach(function (p) { if (eligible(p)) { p.inHand = true; p.stats.hands++; } });
+    g.players.forEach(function (p) {
+      if (!eligible(p)) return;
+      p.inHand = true;
+      healStats(p);
+      p.stats.hands++;
+      /* per-hand once-only flags: vpip / pfr / three-bet each count a HAND,
+         not an action, so the first qualifying act sets the flag */
+      p.hv = { vpip: false, pfr: false, tb: false };
+    });
     var headsUp = n === 2;
     var sb = headsUp ? g.dealer : nextSeat(g, g.dealer, inHand);
     var bb = nextSeat(g, sb, inHand);
@@ -604,6 +623,10 @@
     g.street = next;
     var take = next === "flop" ? 3 : 1;
     for (var i = 0; i < take; i++) g.board.push(g.deck.pop());
+    // a run-out flop counts too — all-in seats still see it
+    if (next === "flop") {
+      g.players.forEach(function (p) { if (inHand(p)) { healStats(p); p.stats.sawFlop++; } });
+    }
     events.push({ t: "street", name: next, cards: g.board.slice() });
     return true;
   }
@@ -700,6 +723,12 @@
       ps.forEach(function (p, i) {
         if (!inHand(p)) return;
         scores[i] = bestOf(p.hole.concat(g.board));
+        /* showdown stats count every hand HELD to the end, shown or
+           mucked — bestRank is a lifetime MAX (a hand-category index,
+           0 high card … 8 straight flush), so nothing per-hand leaks */
+        healStats(p);
+        p.stats.showdowns++;
+        if (scores[i].score[0] > p.stats.bestRank) p.stats.bestRank = scores[i].score[0];
       });
     }
     var awards = [];
@@ -753,7 +782,9 @@
     awards.forEach(function (a) { byWinner[a.seat] = (byWinner[a.seat] || 0) + a.amt; });
     Object.keys(byWinner).forEach(function (w) {
       var p = ps[+w];
+      healStats(p);
       p.stats.wins++;
+      if (showdown) p.stats.sdWins++;
       if (byWinner[w] > p.stats.biggestPot) p.stats.biggestPot = byWinner[w];
       events.push({ t: "win", seat: +w, amt: byWinner[w],
                     name: showdown && scores[w] ? scores[w].name : null });
@@ -959,7 +990,11 @@
       away: false, owesAnte: false,
       tray: null,                       // {chips:{value:count}, odd} — syncTrays fills it
       betTray: null,                    // the same shape, for what is ON the betting line
-      stats: { hands: 0, wins: 0, biggestPot: 0 }
+      stats: { hands: 0, wins: 0, biggestPot: 0,
+               vpip: 0, pfr: 0, threeBets: 0, sawFlop: 0,
+               showdowns: 0, sdWins: 0,
+               raises: 0, calls: 0, checks: 0, folds: 0, allIns: 0,
+               bestRank: -1 }
     };
   }
 
@@ -1143,15 +1178,26 @@
     function act(kind, i) {
       var p = g.players[i];
       var call = toCall(g, i);
+      /* the stat sites: every VOLUNTARY act funnels through here, so the
+         blinds never count toward vpip and an all-in player (never
+         pending) can't double-count. `hv` guards the once-per-hand ones;
+         both heal for a hand that started before the counters existed. */
+      healStats(p);
+      var hv = p.hv || (p.hv = {});
       if (kind === "fold") {
+        p.stats.folds++;
         foldSeat(g, i, events);
       } else if (kind === "check") {
         if (call > 0) return err("phase");
+        p.stats.checks++;
         events.push({ t: "check", seat: i });
         delete g.bet.pending[i];
       } else if (kind === "call") {
         if (call === 0) return err("phase");
         var paid = commit(g, i, call);
+        p.stats.calls++;
+        if (g.street === "preflop" && !hv.vpip) { hv.vpip = true; p.stats.vpip++; }
+        if (p.allIn) p.stats.allIns++;
         events.push({ t: "call", seat: i, amt: paid, allIn: p.allIn });
         delete g.bet.pending[i];
       } else if (kind === "raise") {
@@ -1163,8 +1209,17 @@
         var allIn = to === maxTo;
         if (to < min && !allIn) return err("raise");
         if (!allIn && !representable(to, g.settings.chips)) return err("chips");
+        // read "was there already a raise?" BEFORE this raise moves the line
+        var facedRaise = g.street === "preflop" && g.bet.current > g.settings.bigBlind;
         var size = to - g.bet.current;
         commit(g, i, to - p.betStreet);
+        p.stats.raises++;
+        if (g.street === "preflop") {
+          if (!hv.vpip) { hv.vpip = true; p.stats.vpip++; }
+          if (!hv.pfr) { hv.pfr = true; p.stats.pfr++; }
+          if (facedRaise && !hv.tb) { hv.tb = true; p.stats.threeBets++; }
+        }
+        if (p.allIn) p.stats.allIns++;
         var full = size >= g.bet.lastRaise || g.bet.current === 0 ||
                    (g.settings.minRaise !== "prev" && to >= min);
         // a full raise re-opens everyone; a short all-in only re-opens
@@ -2201,6 +2256,38 @@
         if (ledger !== net) bad++;
       });
       eq(bad, 0, "ledger mirrors nets through side pots");
+    })();
+
+    (function statCounters() {
+      // soak a bot table, then hold the counter invariants — the same
+      // shape the stats pipeline will SUM forever (docs/stats.md)
+      var g = botTable(4, 271, ["normal", "hard", "easy", "normal"], 80).g;
+      ok(g.stats.hands >= 40, "stat soak played hands (" + g.stats.hands + ")");
+      var off = [];
+      var sdTotal = 0, sdWinTotal = 0;
+      g.players.forEach(function (p, i) {
+        var s = p.stats;
+        function inv(cond, label) { if (!cond) off.push("seat " + i + ": " + label); }
+        inv(s.vpip <= s.hands, "vpip <= hands");
+        inv(s.pfr <= s.vpip, "pfr <= vpip");
+        inv(s.threeBets <= s.pfr, "threeBets <= pfr");
+        inv(s.sawFlop <= s.hands, "sawFlop <= hands");
+        inv(s.showdowns <= s.sawFlop, "showdowns <= sawFlop");
+        inv(s.sdWins <= s.showdowns, "sdWins <= showdowns");
+        inv(s.sdWins <= s.wins, "sdWins <= wins");
+        inv(s.allIns <= s.hands, "allIns <= hands");
+        inv(s.bestRank >= -1 && s.bestRank <= 8, "bestRank in range");
+        inv(s.showdowns === 0 ? s.bestRank === -1 : s.bestRank >= 0,
+            "bestRank set iff a showdown was reached");
+        inv(s.raises + s.calls + s.checks + s.folds > 0 || s.hands === 0,
+            "a played seat acted");
+        sdTotal += s.showdowns; sdWinTotal += s.sdWins;
+      });
+      inv0(sdWinTotal <= sdTotal, "table sdWins <= table showdowns");
+      function inv0(cond, label) { if (!cond) off.push(label); }
+      eq(off, [], "stat counter invariants hold");
+      var everyone = g.players.reduce(function (a, p) { return a + p.stats.vpip; }, 0);
+      ok(everyone > 0, "somebody voluntarily played a pot (" + everyone + ")");
     })();
 
     var summary = "poker engine selfTest: " + pass + " passed, " + fail + " failed";

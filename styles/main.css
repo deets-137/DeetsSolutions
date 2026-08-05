@@ -2609,7 +2609,10 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
   gap: var(--space-4);
-  align-items: start;
+  /* equal-height bento: boxes sharing a row stretch to it, and the
+     counter list inside absorbs the slack (scrolling when it overflows)
+     so no one game's long tail sets the row height for everyone */
+  align-items: stretch;
 }
 .profile-box {
   display: flex;
@@ -2708,6 +2711,49 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   white-space: nowrap;
 }
 
+/* ── The identity strip ───────────────────────────────────────────
+   One full-width band: color dot + name + record tiles, with the old
+   Appearance editor folded behind its "Edit" pill. */
+.profile-hero { gap: var(--space-3); }
+.profile-hero__id {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  align-self: stretch;
+  flex-wrap: wrap;
+}
+.profile-hero__dot {
+  width: 2.5rem; height: 2.5rem; flex: none;
+  border: 1px solid var(--seat-edge);
+  border-radius: 50%;
+  background: var(--border);           /* colorless account fallback */
+}
+.profile-hero__names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.profile-hero__name {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.profile-hero__record { row-gap: var(--space-2); }
+.profile-hero__when { font-size: 0.78rem; }
+.profile-hero__edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-self: stretch;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
 /* A row of headline numbers. */
 .profile-stats {
   display: flex;
@@ -2731,6 +2777,15 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   letter-spacing: 0.03em;
 }
 .profile-stat__hint { color: var(--subtext); font-size: 0.78rem; }
+/* signed money reads as up or down at a glance */
+.profile-stat__value.is-up, .profile-match__score.is-up { color: var(--go); }
+.profile-stat__value.is-down, .profile-match__score.is-down { color: var(--stop); }
+/* a label with hover text advertises it — dotted underline, help cursor */
+.profile-counters__k.has-tip, .profile-stat.has-tip .profile-stat__label {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
 
 /* Placement distribution — raw counts, one column per finishing place.
    A tie makes these sum to more than games played, which is correct. */
@@ -2761,8 +2816,29 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .profile-dist__n { color: var(--text); font-size: 0.75rem; }
 .profile-dist__k { color: var(--subtext); font-size: 0.7rem; }
 
+/* The bankroll sparkline — poker's stand-in for the placement bars.
+   The viewBox stretches, so strokes pin their width to screen space. */
+.profile-spark__wrap { align-self: stretch; }
+.profile-spark { display: block; width: 100%; height: 3rem; }
+.profile-spark__line {
+  fill: none;
+  stroke: var(--go);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.profile-spark__line.is-down { stroke: var(--stop); }
+.profile-spark__zero {
+  stroke: var(--border);
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
 /* The counter grid: a definition list in two columns, label left,
-   number right, so the numbers form a readable rail. */
+   number right, so the numbers form a readable rail. It is also the
+   bento's pressure valve: it fills whatever height the row left over
+   and scrolls past its cap, so cities' 22 counters and poker's 17
+   can't stretch every box in the row to match. */
 .profile-counters {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -2770,6 +2846,13 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   margin: 0;
   align-self: stretch;
   font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 13rem;
+  overflow-y: auto;
+  align-content: start;
+  scrollbar-width: thin;
+  padding-right: var(--space-1);
 }
 .profile-counters__k { color: var(--subtext); min-width: 0; }
 .profile-counters__v {
@@ -2813,7 +2896,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .profile-match__score {
   color: var(--subtext);
   font-variant-numeric: tabular-nums;
-  flex: 0 0 2.5rem;
+  flex: 0 0 auto;
+  min-width: 2.5rem;   /* poker rows carry "−$16.00", not "10" */
 }
 .profile-match__field { display: flex; gap: 3px; flex: 1 1 auto; flex-wrap: wrap; }
 .profile-match__dot {

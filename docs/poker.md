@@ -525,6 +525,20 @@ seat each hand. **Simplification, recorded:** there is no dead-button /
 dead-blind rule — a seat that busts or joins can shift who posts, exactly
 like a home game.
 
+### Stat counters (2026-08-05)
+
+`p.stats` carries the tracker set beside the original three — `vpip`,
+`pfr`, `threeBets`, `sawFlop`, `showdowns`, `sdWins`, the action tallies
+(`raises`/`calls`/`checks`/`folds`), `allIns`, and `bestRank` — see
+[stats.md](stats.md), "What the engines already give us → Poker" for what
+each counts and where it increments. The load-bearing points: only `act()`
+increments the voluntary ones (so blinds never pollute vpip and the bot's
+blindness guard is untouched — counters record what happened, they are
+never read by `botAct`), per-hand once-only flags ride `p.hv` (reset at
+deal), and `healStats()` heals a table persisted before a counter existed.
+The rates a tracker prints are derived at read time on the profile page,
+never stored.
+
 ## Hidden information
 
 Hole cards and the acting seat's options (`you.hole`, `you.options`,

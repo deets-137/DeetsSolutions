@@ -165,6 +165,30 @@ per-resource — ten more columns for a precision this feature does not want.
 | Hands played | free | `g.stats.hands` |
 | Per-hand history | free | `g.results[]` — rich, and currently thrown away at game over |
 
+### Poker
+
+Landed 2026-08-05, after cities' and mahjong's. Everything below is engine
+instrumentation in `poker/engine.js` (vendored — the usual toll), all of it
+guarded by `healStats()` so a table persisted before a counter existed heals
+on its next hand instead of riding `undefined` into NaN.
+
+| Counter | Counted where | Meaning |
+| --- | --- | --- |
+| `hands`, `wins`, `biggestPot` | pre-existing | dealt in / pots won / best single pot (cents) |
+| `vpip` | first voluntary preflop call or raise, once per hand | hands you chose to play — blinds never count, because only `act()` increments |
+| `pfr` | first preflop raise, once per hand | subset of `vpip` |
+| `threeBets` | preflop raise while `bet.current > bigBlind`, once per hand | re-raise over a raise; subset of `pfr` |
+| `sawFlop` | flop dealt (run-outs included) to a seat still in | denominator for "went to showdown" |
+| `showdowns` | `settle(showdown)` for every seat still in, shown **or mucked** | hands held to the compare |
+| `sdWins` | pot won at showdown | subset of both `wins` and `showdowns` |
+| `raises`/`calls`/`checks`/`folds` | each `act()` branch | action tallies; aggression = raises/calls at read time. A timeout's auto-fold counts (the cities auto-roll precedent); a concede's fold does not — that's an exit, not a decision |
+| `allIns` | a voluntary act leaves stack 0 | forced blind all-ins deliberately don't count |
+| `bestRank` | showdown scoring loop | hand-category MAX (0–8), `-1` = never showed down; mucked hands count — it's a lifetime aggregate, so nothing per-hand leaks |
+
+The per-hand once-only guards ride `p.hv`, reset at each deal. The self-check
+suite holds the subset chain (`threeBets ≤ pfr ≤ vpip ≤ hands`,
+`sdWins ≤ showdowns ≤ sawFlop`) over a soaked bot table.
+
 **Why pungs and chows are "new" and not "derivable".** Melds live on
 `players[i].melds`, but `deal()` resets every player's melds at the start of
 each hand, and only the *winner's* melds are snapshotted into `results[]`.
@@ -440,7 +464,7 @@ its own `src/index.js`:
 | --- | --- | --- | --- |
 | `gameName()` | `"cities"` | `"mahjong"` | `"poker"` |
 | `seatStats(i)` | `g.stats.seats[i]` | `players[i].stats` | `g.results[i]` (net, bought, stack, stats) |
-| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns | → `poker_seats` columns, all cents |
+| `seatCounters(i)` | → `cities_seats` columns | → `mahjong_seats` columns | → `poker_seats` columns (money in cents, tracker counts raw) |
 | `resultDetail()` | — | `g.results[]`, the per-hand history | — |
 
 Poker's `score` **is** its net in cents, which is what a cash game ranks on
@@ -557,10 +581,20 @@ CREATE TABLE mahjong_seats (
 );
 
 -- poker's four money columns are integer CENTS; `net` is signed and sums
--- to zero across a table, `biggest_pot` is a personal best (MAX, not SUM)
+-- to zero across a table, `biggest_pot` is a personal best (MAX, not SUM).
+-- The tracker columns (added 2026-08-05) are raw counts — vpip/pfr/
+-- three_bets/showdowns/sd_wins count HANDS (once each, engine-guarded),
+-- raises/calls/checks/folds count ACTIONS, and the rates a poker tracker
+-- would print (VPIP%, PFR%, aggression) are computed at read time, never
+-- stored. `best_rank` is a hand-category index (0 high card … 8 straight
+-- flush), a MAX like biggest_pot, and -1 until a first showdown.
 CREATE TABLE poker_seats (
   key TEXT NOT NULL, seat INTEGER NOT NULL,
   hands INTEGER, wins INTEGER, biggest_pot INTEGER, net INTEGER, bought INTEGER,
+  vpip INTEGER, pfr INTEGER, three_bets INTEGER, saw_flop INTEGER,
+  showdowns INTEGER, sd_wins INTEGER,
+  raises INTEGER, calls INTEGER, checks INTEGER, folds INTEGER, all_ins INTEGER,
+  best_rank INTEGER,
   PRIMARY KEY (key, seat)
 );
 
@@ -805,9 +839,26 @@ The bento grid was left "deliberately roomy" for exactly this
 ([accounts.md](accounts.md)); stats land as new boxes, not a redesign. Two
 audiences, one page:
 
-**Built 2026-07-29** — five boxes, in `profile/profile.js` + the
+**Built 2026-07-29, reshaped 2026-08-05** — in `profile/profile.js` + the
 `.profile-*` rules in `styles/main.css`. Elo is the one thing sketched here
 that is *not* built (it needs the derived-cache work first).
+
+The 2026-08-05 pass, in brief:
+
+- **The identity strip** — Appearance and Record merged into one full-width
+  hero at the top (color dot, name, record tiles; the editor folds behind
+  an "Edit" pill). The record tiles are unchanged in content.
+- **Equal-height bento** — the grid switched `align-items` to `stretch`, and
+  `.profile-counters` became the pressure valve: it flexes to fill the row
+  and scrolls past `13rem`, so no game's counter tail sets the row height.
+- **Poker speaks money** — a `money()` formatter (cents → `$12.34`), a
+  poker-specific topline (Net / per game / biggest pot / hands, signed and
+  colored), derived tracker rates (VPIP, PFR, went-to-showdown, won-at-
+  showdown, aggression) computed at render time, and a bankroll sparkline
+  built from the match list's `score` fields — zero new data on the wire.
+- **Hover text** — counter labels and derived rates carry `title` tooltips
+  (dotted underline, `cursor: help`) wherever a general reader would
+  otherwise meet unexplained jargon (VPIP, faan, deal-in, 3-bet…).
 
 - **Record** — games, won, podium, and **times left early** beside them, with
   the `leftBy` breakdown. Left early sits next to the wins deliberately: it is

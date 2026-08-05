@@ -2,10 +2,13 @@
    profile page").
 
    Everything on the page is painted from DeetsAccount state: signed out
-   it's one invitation box, signed in it's the bento grid — Appearance
-   (display name + color), then the phase-2 stats boxes fed by
-   GET /me/stats (docs/stats.md): Record, one box per game, match history,
-   and export. Edits go through DeetsAccount.update() → PATCH /me, so the
+   it's one invitation box, signed in it's the bento grid — the identity
+   strip (name + color + record, editor folded behind "Edit"), then the
+   stats boxes fed by GET /me/stats (docs/stats.md): one box per game,
+   match history, and export. Poker's box speaks money — its counters are
+   integer cents, formatted here, with derived tracker rates (VPIP, PFR…)
+   computed at render time and a bankroll sparkline built from the match
+   list. Edits go through DeetsAccount.update() → PATCH /me, so the
    nav button and any other tab pick the change up through the same
    listener plumbing.
 
@@ -34,7 +37,7 @@
      /me revalidate, a save landing) must not eat what's mid-typing —
      same reason the lobby picker keeps ui.colorDraft. Expanded match rows
      live here for the same reason: a repaint must not fold them shut. */
-  var ui = { nameDraft: null, hexDraft: null, open: {} };
+  var ui = { nameDraft: null, hexDraft: null, open: {}, editOpen: false };
 
   /* ── stats (docs/stats.md, "The profile page") ───────────────────
      Fetched HERE rather than in the shared account.js, because that file
@@ -61,7 +64,7 @@
       });
     };
     return {
-      summary: { games: 14, wins: 5, podium: 10, left: 2,
+      summary: { games: 18, wins: 7, podium: 13, left: 2,
                  leftBy: { stand: 1, grace: 1 },
                  firstAt: now - 40 * day, lastAt: now - 2 * 3600000 },
       games: {
@@ -79,9 +82,28 @@
                    placements: { 1: 1, 2: 2, 3: 1, 4: 1 },
                    bests: ["best_faan"],
                    counters: { score: 16, wins: 9, self_draws: 3, deal_ins: 7,
-                               kongs: 4, pungs: 21, chows: 34, best_faan: 8 } }
+                               kongs: 4, pungs: 21, chows: 34, best_faan: 8 } },
+        poker: { games: 4, wins: 2, podium: 3, avgRank: 1.8, bestScore: 2350,
+                 placements: { 1: 2, 2: 1, 4: 1 },
+                 bests: ["biggest_pot", "best_rank"],
+                 counters: { hands: 187, wins: 41, sd_wins: 17, biggest_pot: 1240,
+                             net: 1610, bought: 16000, best_rank: 6,
+                             vpip: 74, pfr: 31, three_bets: 9, saw_flop: 88,
+                             showdowns: 33, all_ins: 6,
+                             raises: 58, calls: 71, checks: 102, folds: 109 } }
       },
       matches: [
+        { key: "poker:demo:1", game: "poker", endedAt: now - 1 * 3600000,
+          seatCount: 4, humans: 3, bots: 1,
+          settings: { buyIn: 4000, bigBlind: 100, chips: [25, 100, 500] },
+          seats: field("p", [{ rank: 1, score: 2350 }, { rank: 2, score: 150 },
+                             { rank: 3, score: -900 }, { rank: 4, score: -1600 }]),
+          spans: [
+            { seat: 0, span: 0, name: "Deets", kind: "user", via: "lobby", exit: null },
+            { seat: 1, span: 0, name: "Sam", kind: "guest", via: "lobby", exit: null },
+            { seat: 2, span: 0, name: "Rook", kind: "bot", via: "lobby", exit: null },
+            { seat: 3, span: 0, name: "Pip", kind: "guest", via: "join", exit: "stand" }
+          ] },
         { key: "cities:demo:0", game: "cities", endedAt: now - 2 * 3600000,
           seatCount: 4, humans: 3, bots: 1, settings: { capacity: 4, timerSec: 60 },
           seats: field("c", [{ rank: 1, score: 10 }, { rank: 2, score: 9 },
@@ -102,6 +124,17 @@
             { seat: 1, span: 0, name: "Sam", kind: "guest", via: "lobby", exit: null, joinedTurn: 0, leftTurn: 8 },
             { seat: 2, span: 0, name: "Rook", kind: "bot", via: "lobby", exit: null, joinedTurn: 0, leftTurn: 8 },
             { seat: 3, span: 0, name: "Pip", kind: "bot", via: "lobby", exit: null, joinedTurn: 0, leftTurn: 8 }
+          ] },
+        { key: "poker:demo:0", game: "poker", endedAt: now - 5 * day,
+          seatCount: 4, humans: 2, bots: 2,
+          settings: { buyIn: 4000, bigBlind: 100, chips: [25, 100, 500] },
+          seats: field("q", [{ rank: 4, score: -1200 }, { rank: 1, score: 2000 },
+                             { rank: 2, score: -300 }, { rank: 3, score: -500 }]),
+          spans: [
+            { seat: 0, span: 0, name: "Deets", kind: "user", via: "lobby", exit: null },
+            { seat: 1, span: 0, name: "Sam", kind: "guest", via: "lobby", exit: null },
+            { seat: 2, span: 0, name: "Rook", kind: "bot", via: "lobby", exit: null },
+            { seat: 3, span: 0, name: "Pip", kind: "bot", via: "lobby", exit: null }
           ] }
       ]
     };
@@ -152,9 +185,10 @@
     return box;
   }
 
-  function appearanceBox(user) {
-    var box = el("section", "profile-box");
-    box.appendChild(el("h2", "profile-box__title", "Appearance"));
+  /* The name/color editor — the lobby picker's anatomy, solo edition.
+     Lives folded inside the hero strip; "Edit" unfolds it. */
+  function appearanceFields(user) {
+    var box = el("div", "profile-hero__edit");
 
     /* Display name — the one thing the lobby picker doesn't let you
        edit, and the whole reason this box exists beyond the swatches. */
@@ -265,6 +299,57 @@
     return box;
   }
 
+  /* The identity strip — who you are and how it's going, one full-width
+     band at the top. Merges the old Appearance and Record boxes: the
+     editor starts folded behind "Edit", and the record tiles ride the
+     strip so the page opens with the reason you visited. */
+  function heroBox(user) {
+    var box = el("section", "profile-box profile-box--wide profile-hero");
+
+    var id = el("div", "profile-hero__id");
+    var dot = el("span", "profile-hero__dot");
+    if (user.color) dot.style.background = user.color;
+    dot.title = user.color || "";
+    id.appendChild(dot);
+    var names = el("div", "profile-hero__names");
+    names.appendChild(el("h2", "profile-hero__name", user.name || "Unnamed"));
+    names.appendChild(el("span", "profile-box__text",
+      "Your name and color follow you to every table."));
+    id.appendChild(names);
+    var edit = el("button", "tb-pill", ui.editOpen ? "Done" : "Edit");
+    edit.type = "button";
+    edit.setAttribute("aria-expanded", ui.editOpen ? "true" : "false");
+    edit.addEventListener("click", function () { ui.editOpen = !ui.editOpen; render(); });
+    id.appendChild(edit);
+    box.appendChild(id);
+
+    var s = stats && stats.summary;
+    if (statsPhase === "ready" && s && s.games) {
+      /* The record tiles. Left early sits beside the wins deliberately:
+         it is the honest other half of a record. */
+      var row = el("div", "profile-stats profile-hero__record");
+      row.appendChild(stat("Games", String(s.games)));
+      row.appendChild(stat("Won", String(s.wins), pct(s.wins, s.games)));
+      row.appendChild(stat("Podium", String(s.podium), pct(s.podium, s.games),
+        "Games finished in the top three."));
+      row.appendChild(stat("Left early", String(s.left || 0),
+        s.left ? Object.keys(s.leftBy || {}).map(function (k) {
+          return s.leftBy[k] + " " + k;
+        }).join(" · ") : null,
+        "Games you stood up from, conceded, or dropped out of before the end."));
+      box.appendChild(row);
+      if (s.lastAt) {
+        box.appendChild(el("p", "profile-box__text profile-hero__when",
+          "Last game " + ago(s.lastAt) + (s.firstAt ? " · first " + ago(s.firstAt) : "")));
+      }
+    } else if (statsPhase === "loading" || statsPhase === "idle") {
+      box.appendChild(el("p", "profile-box__text profile-hero__when", "Counting your games…"));
+    }
+
+    if (ui.editOpen) box.appendChild(appearanceFields(user));
+    return box;
+  }
+
   /* ── the stats boxes ────────────────────────────────────────────── */
 
   var GAMES = {
@@ -275,35 +360,94 @@
   /* Counter labels. Order is the reading order, not the schema's — the
      things you'd actually want to know first. Anything the server sends
      that isn't listed simply isn't shown, so a new column added worker-
-     side doesn't break this page; it just waits for a label. */
+     side doesn't break this page; it just waits for a label.
+
+     Each entry is [column, label, format, hover]. `format` says how the
+     raw integer prints — "money" is CENTS (poker's contract, docs/
+     stats.md), "hand" is a poker hand-category index. `hover` becomes a
+     title tooltip for the jargon a general reader shouldn't need to
+     already know. */
   var LABELS = {
     cities: [
-      ["vp", "Victory points"], ["settlements", "Settlements"], ["cities", "Cities"],
-      ["roads", "Roads"], ["knights", "Knights"],
-      ["dev_bought", "Dev cards bought"], ["dev_played", "Dev cards played"],
-      ["longest_road", "Longest Road held"], ["largest_army", "Largest Army held"],
+      ["vp", "Victory points", null, "The score that wins the game — buildings, awards, and hidden point cards."],
+      ["settlements", "Settlements"], ["cities", "Cities"],
+      ["roads", "Roads"],
+      ["knights", "Knights", null, "Knight cards played — each moves the robber."],
+      ["dev_bought", "Dev cards bought", null, "Development cards — knights, point cards, and one-off powers."],
+      ["dev_played", "Dev cards played"],
+      ["longest_road", "Longest Road held", null, "Games finished holding the Longest Road award (+2 points)."],
+      ["largest_army", "Largest Army held", null, "Games finished holding the Largest Army award (+2 points)."],
       ["rolls", "Dice rolled"], ["gained_rolls", "Resources from rolls"],
       ["gained_trades", "From bank trades"], ["gained_dev", "From dev cards"],
-      ["ptp_trades", "Player trades"], ["ptp_given", "Cards traded away"],
-      ["ptp_received", "Cards traded for"],
-      ["biggest_haul", "Biggest haul"], ["steals", "Cards stolen"],
-      ["victimized", "Times robbed"], ["robber_moved", "Robber moves"],
-      ["discards", "Discarded to 7s"], ["spent", "Resources spent"]
+      ["ptp_trades", "Player trades", null, "Trades made directly with another player."],
+      ["ptp_given", "Cards traded away"], ["ptp_received", "Cards traded for"],
+      ["biggest_haul", "Biggest haul", null, "The most resource cards gained from a single dice roll."],
+      ["steals", "Cards stolen"], ["victimized", "Times robbed"],
+      ["robber_moved", "Robber moves"],
+      ["discards", "Discarded to 7s", null, "A rolled 7 makes every big hand discard half its cards."],
+      ["spent", "Resources spent"]
     ],
     mahjong: [
-      ["score", "Net score"], ["wins", "Hands won"], ["self_draws", "Self-draws"],
-      ["deal_ins", "Deal-ins"], ["best_faan", "Best hand"],
-      ["pungs", "Pungs"], ["chows", "Chows"], ["kongs", "Kongs"]
+      ["score", "Net score"], ["wins", "Hands won"],
+      ["self_draws", "Self-draws", null, "Wins where you drew the winning tile yourself instead of taking a discard."],
+      ["deal_ins", "Deal-ins", null, "Times you discarded the exact tile someone else won on — you pay extra."],
+      ["best_faan", "Best hand", null, "Faan is mahjong's scoring unit — the more faan, the bigger the winning hand."],
+      ["pungs", "Pungs", null, "Sets of three identical tiles."],
+      ["chows", "Chows", null, "Runs of three consecutive tiles in a suit."],
+      ["kongs", "Kongs", null, "Sets of four identical tiles — worth a bonus draw."]
     ],
-    /* Poker's money counters (net, bought, biggest_pot) are deliberately
-       NOT here yet: they are integer CENTS, and this box prints a counter
-       verbatim, so "Net 1234" would be a wrong number rather than $12.34.
-       They land in the database either way — a label is all they're
-       waiting on, once this page grows a money formatter. */
     poker: [
-      ["hands", "Hands played"], ["wins", "Pots won"]
+      ["net", "Lifetime net", "money", "Everything you've won minus everything you've bought in for."],
+      ["hands", "Hands played"],
+      ["wins", "Pots won"],
+      ["sd_wins", "Won at showdown", null, "Pots won by holding the best hand when the cards were compared at the end."],
+      ["biggest_pot", "Biggest pot", "money", "The largest single pot you've ever won."],
+      ["best_rank", "Best hand", "hand", "The strongest five-card hand you've held at a showdown. Folded hands never count."],
+      ["vpip", "Pots entered", null, "VPIP — hands where you chose to put chips in before the flop. Paying the blind doesn't count. High means loose, low means picky."],
+      ["pfr", "Preflop raises", null, "PFR — hands you raised before the flop. The aggressive half of your preflop game."],
+      ["three_bets", "Preflop re-raises", null, "A “3-bet”: someone raised, and you raised them back before the flop."],
+      ["saw_flop", "Flops seen", null, "Hands where you were still in when the first three shared cards hit the table."],
+      ["showdowns", "Showdowns", null, "Hands you held all the way to the end, where the remaining cards get compared."],
+      ["all_ins", "All-ins", null, "Times you put your whole stack on the line."],
+      ["raises", "Raises"], ["calls", "Calls"], ["checks", "Checks"], ["folds", "Folds"],
+      ["bought", "Bought in", "money", "Total chips purchased across every session, re-buys included."]
     ]
   };
+
+  /* Poker money is integer cents on the wire, always (docs/poker.md). */
+  function money(c) {
+    var neg = c < 0 ? "−" : "";
+    return neg + "$" + (Math.abs(c) / 100).toFixed(2);
+  }
+  var HAND_LABELS = ["High card", "Pair", "Two pair", "Three of a kind",
+                     "Straight", "Flush", "Full house", "Four of a kind",
+                     "Straight flush"];
+  function fmtCounter(fmt, v) {
+    if (fmt === "money") return money(v);
+    if (fmt === "hand") return v >= 0 && v < HAND_LABELS.length ? HAND_LABELS[v] : "—";
+    return String(v);
+  }
+
+  /* The derived poker reads — rates a tracker would show, computed here
+     at render time from the stored counts, never stored (docs/stats.md,
+     "facts on the wire, opinions in the client"). */
+  function pokerDerived(c) {
+    var out = [];
+    function rate(n, d, label, tip) {
+      if (d) out.push([label, Math.round((n / d) * 100) + "%", tip]);
+    }
+    rate(c.vpip, c.hands, "VPIP",
+         "Voluntarily Put chips In the Pot — the share of hands you chose to play before the flop. Around 20–30% is typical; higher is looser.");
+    rate(c.pfr, c.hands, "Preflop raise rate",
+         "The share of hands you raised before the flop. Close to your VPIP means you come in raising, not calling.");
+    rate(c.showdowns, c.saw_flop, "Went to showdown",
+         "Of the flops you saw, how often you held on all the way to the end.");
+    rate(c.sd_wins, c.showdowns, "Won at showdown",
+         "When the cards got compared, how often yours were best. Near 50% is the long-run balance point.");
+    if (c.calls) out.push(["Aggression", (Math.round((c.raises / c.calls) * 10) / 10).toFixed(1),
+         "Raises divided by calls. Above 1 means you drive the betting more often than you go along with it."]);
+    return out;
+  }
 
   function pct(n, d) { return d ? Math.round((n / d) * 100) + "%" : "—"; }
   function ord(n) {
@@ -322,33 +466,62 @@
     return new Date(ts).toLocaleDateString();
   }
 
-  function stat(label, value, hint) {
+  function stat(label, value, hint, tip, tone) {
     var s = el("div", "profile-stat");
-    s.appendChild(el("span", "profile-stat__value", value));
+    var v = el("span", "profile-stat__value", value);
+    if (tone) v.classList.add(tone);        // is-up | is-down for signed money
+    s.appendChild(v);
     s.appendChild(el("span", "profile-stat__label", label));
     if (hint) s.appendChild(el("span", "profile-stat__hint", hint));
+    if (tip) { s.title = tip; s.classList.add("has-tip"); }
     return s;
   }
 
-  /* The record. Games played, how they went, and — deliberately beside the
-     wins rather than buried — how often you left one early. */
-  function recordBox(s) {
-    var box = el("section", "profile-box profile-box--wide");
-    box.appendChild(el("h2", "profile-box__title", "Record"));
-    var row = el("div", "profile-stats");
-    row.appendChild(stat("Games", String(s.games)));
-    row.appendChild(stat("Won", String(s.wins), pct(s.wins, s.games)));
-    row.appendChild(stat("Podium", String(s.podium), pct(s.podium, s.games)));
-    row.appendChild(stat("Left early", String(s.left || 0),
-      s.left ? Object.keys(s.leftBy || {}).map(function (k) {
-        return s.leftBy[k] + " " + k;
-      }).join(" · ") : null));
-    box.appendChild(row);
-    if (s.lastAt) {
-      box.appendChild(el("p", "profile-box__text",
-        "Last game " + ago(s.lastAt) + (s.firstAt ? " · first " + ago(s.firstAt) : "")));
+  /* Cumulative net across a game's matches, oldest → newest — the
+     bankroll line. Client-side only: each match row already carries
+     score (poker: net cents), so this is zero new data. */
+  function sparkline(nets, fmt) {
+    var run = 0, vals = [0];
+    nets.forEach(function (n) { run += n; vals.push(run); });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var span = Math.max(1, max - min);
+    var W = 100, H = 28, PAD = 2, NS = "http://www.w3.org/2000/svg";
+    var y = function (v) { return (PAD + (H - 2 * PAD) * (1 - (v - min) / span)).toFixed(2); };
+    var x = function (i) { return ((W * i) / (vals.length - 1)).toFixed(2); };
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("class", "profile-spark");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Running total over your games, now at " + fmt(run));
+    if (min < 0 && max > 0) {
+      var zero = document.createElementNS(NS, "line");
+      zero.setAttribute("x1", 0); zero.setAttribute("x2", W);
+      zero.setAttribute("y1", y(0)); zero.setAttribute("y2", y(0));
+      zero.setAttribute("class", "profile-spark__zero");
+      svg.appendChild(zero);
     }
-    return box;
+    var line = document.createElementNS(NS, "polyline");
+    line.setAttribute("points", vals.map(function (v, i) { return x(i) + "," + y(v); }).join(" "));
+    line.setAttribute("class", "profile-spark__line" + (run < 0 ? " is-down" : ""));
+    svg.appendChild(line);
+    var wrap = el("div", "profile-spark__wrap");
+    wrap.title = "Your running total across these games, oldest on the left.";
+    wrap.appendChild(svg);
+    return wrap;
+  }
+
+  /* My net from each of a game's matches, oldest first. */
+  function myScores(game) {
+    var out = [];
+    ((stats && stats.matches) || []).forEach(function (m) {
+      if (m.game !== game) return;
+      (m.seats || []).forEach(function (s) {
+        if (s.uid && s.uid === myId()) out.push(m.endedAt ? { at: m.endedAt, v: s.score } : null);
+      });
+    });
+    return out.filter(Boolean).sort(function (a, b) { return a.at - b.at; })
+      .map(function (r) { return r.v; });
   }
 
   /* One box per game: the placement distribution, then the counters.
@@ -363,15 +536,38 @@
     box.appendChild(head);
 
     var row = el("div", "profile-stats");
-    row.appendChild(stat("Won", String(g.wins), pct(g.wins, g.games)));
-    row.appendChild(stat("Podium", String(g.podium), pct(g.podium, g.games)));
-    if (g.avgRank != null) row.appendChild(stat("Avg place", (Math.round(g.avgRank * 10) / 10).toFixed(1)));
-    if (g.bestScore != null) row.appendChild(stat("Best score", String(g.bestScore)));
+    var c = g.counters || {};
+    if (name === "poker") {
+      /* A cash game keeps score in money, so the board-game topline
+         (won/podium/avg place) gives way to the bankroll one. */
+      var net = c.net || 0;
+      row.appendChild(stat("Net", money(net), null,
+        "Everything you've won minus everything you've bought in for.",
+        net > 0 ? "is-up" : net < 0 ? "is-down" : null));
+      if (g.games) row.appendChild(stat("Per game", money(Math.round(net / g.games)),
+        null, "Your average result per session."));
+      if (c.biggest_pot != null) row.appendChild(stat("Biggest pot", money(c.biggest_pot),
+        null, "The largest single pot you've ever won."));
+      if (c.hands != null) row.appendChild(stat("Hands", String(c.hands)));
+    } else {
+      row.appendChild(stat("Won", String(g.wins), pct(g.wins, g.games)));
+      row.appendChild(stat("Podium", String(g.podium), pct(g.podium, g.games),
+        "Games finished in the top three."));
+      if (g.avgRank != null) row.appendChild(stat("Avg place", (Math.round(g.avgRank * 10) / 10).toFixed(1)));
+      if (g.bestScore != null) row.appendChild(stat("Best score", String(g.bestScore)));
+    }
     box.appendChild(row);
 
-    /* Raw placement, not normalised — 3rd of 6 and 3rd of 3 are stored the
-       same and shown the same until there's a reason to decide otherwise. */
-    var ranks = Object.keys(g.placements || {}).map(Number).sort(function (a, b) { return a - b; });
+    /* Poker trades the placement bars for the bankroll sparkline; the
+       board games keep their raw placement distribution — 3rd of 6 and
+       3rd of 3 are stored the same and shown the same until there's a
+       reason to decide otherwise. */
+    var ranks = name === "poker" ? []
+      : Object.keys(g.placements || {}).map(Number).sort(function (a, b) { return a - b; });
+    if (name === "poker") {
+      var nets = myScores("poker");
+      if (nets.length >= 2) box.appendChild(sparkline(nets, money));
+    }
     if (ranks.length) {
       var most = 0;
       ranks.forEach(function (r) { most = Math.max(most, g.placements[r]); });
@@ -396,13 +592,24 @@
 
     var bests = g.bests || [];
     var grid = el("dl", "profile-counters");
-    (LABELS[name] || []).forEach(function (pair) {
-      var v = (g.counters || {})[pair[0]];
-      if (v == null) return;
-      var isBest = bests.indexOf(pair[0]) >= 0;
-      var dt = el("dt", "profile-counters__k", pair[1] + (isBest ? " (best)" : ""));
+    function counterRow(label, value, tip) {
+      var dt = el("dt", "profile-counters__k", label);
+      if (tip) { dt.title = tip; dt.classList.add("has-tip"); }
       grid.appendChild(dt);
-      grid.appendChild(el("dd", "profile-counters__v", String(v)));
+      grid.appendChild(el("dd", "profile-counters__v", value));
+    }
+    /* Poker's derived rates lead its list — computed here, never stored. */
+    if (name === "poker") {
+      pokerDerived(c).forEach(function (d) { counterRow(d[0], d[1], d[2]); });
+    }
+    // poker's topline already shows these three; don't say them twice
+    var shown = name === "poker" ? ["net", "hands", "biggest_pot"] : [];
+    (LABELS[name] || []).forEach(function (pair) {
+      var v = c[pair[0]];
+      if (v == null || shown.indexOf(pair[0]) >= 0) return;
+      var isBest = bests.indexOf(pair[0]) >= 0;
+      counterRow(pair[1] + (isBest ? " (best)" : ""), fmtCounter(pair[2], v),
+        (pair[3] || "") + (isBest ? (pair[3] ? " " : "") + "A single-game best, not a lifetime total." : "") || null);
     });
     if (grid.childNodes.length) box.appendChild(grid);
     return box;
@@ -422,7 +629,12 @@
     head.appendChild(el("span", "profile-match__game", (GAMES[m.game] || {}).label || m.game));
     head.appendChild(el("span", "profile-match__place",
       mine ? placeLabel(mine.rank, mine.tied) : "—"));
-    head.appendChild(el("span", "profile-match__score", mine ? String(mine.score) : ""));
+    var sc = el("span", "profile-match__score",
+      mine ? (m.game === "poker" ? money(mine.score) : String(mine.score)) : "");
+    if (mine && m.game === "poker" && mine.score) {
+      sc.classList.add(mine.score > 0 ? "is-up" : "is-down");
+    }
+    head.appendChild(sc);
 
     /* The field as its seat colours, in seat order — the same colours the
        table wore, so a game is recognisable at a glance. */
@@ -477,7 +689,7 @@
       else if (s.kind === "guest") who.appendChild(el("span", "profile-tag", "guest"));
       tr.appendChild(who);
       tr.appendChild(el("td", null, placeLabel(s.rank, s.tied)));
-      tr.appendChild(el("td", null, String(s.score)));
+      tr.appendChild(el("td", null, m.game === "poker" ? money(s.score) : String(s.score)));
       tb.appendChild(tr);
     });
     tbl.appendChild(tb);
@@ -557,12 +769,8 @@
 
   function statsBoxes() {
     var out = [];
-    if (statsPhase === "loading" || statsPhase === "idle") {
-      var l = el("section", "profile-box");
-      l.appendChild(el("h2", "profile-box__title", "Games"));
-      l.appendChild(el("p", "profile-box__text", "Counting…"));
-      return [l];
-    }
+    // the hero strip already says "Counting your games…"
+    if (statsPhase === "loading" || statsPhase === "idle") return [];
     if (statsPhase === "error" || !stats) {
       var e = el("section", "profile-box");
       e.appendChild(el("h2", "profile-box__title", "Games"));
@@ -584,7 +792,6 @@
       z.appendChild(go);
       return [z];
     }
-    out.push(recordBox(s));
     Object.keys(stats.games || {}).sort().forEach(function (k) {
       out.push(gameBox(k, stats.games[k]));
     });
@@ -635,7 +842,7 @@
     });
     toolbar.appendChild(out);
 
-    grid.appendChild(appearanceBox(user));
+    grid.appendChild(heroBox(user));
     statsBoxes().forEach(function (b) { grid.appendChild(b); });
     loadStats();   // no-op once it's loading or landed
   }
