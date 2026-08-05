@@ -104,6 +104,9 @@
 .tk-preview__cap { margin: 0; color: var(--subtext); font-size: 0.8rem; }
 /* the interstitial card floats over the arena — mahjong's handOver
    idiom: absolute overlay, never a new layout */
+/* the author display beats the UA's [hidden] rule, so hidden must be
+   restated — without this the invisible overlay eats every lobby click */
+.tk-overlay[hidden] { display: none; }
 .tk-overlay {
   position: absolute;
   inset: 0;

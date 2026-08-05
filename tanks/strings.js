@@ -47,13 +47,14 @@ window.TANKS_STRINGS = {
   standButton: "Stand up",
   standConfirm: "Confirm?",
 
-  /* ── lobby (carried from poker unless [ph]) ──────────────────── */
+  /* ── lobby (carried from poker unless noted) ─────────────────── */
   lobbyTitle: "Table settings",
-  livesLabel: "[ph] Lives",
-  aimLineLabel: "[ph] Aim line",
-  ffLabel: "[ph] Friendly fire",
-  settingOn: "[ph] On",
-  settingOff: "[ph] Off",
+  /* the five settings strings are Aditya's — approved in chat 2026-08-05 */
+  livesLabel: "Lives",
+  aimLineLabel: "Aim line",
+  ffLabel: "Friendly fire",
+  settingOn: "On",
+  settingOff: "Off",
   startButton: "Start game",
   shufflePill: "Shuffle",
   seatOpen: "Open seat",
