@@ -181,6 +181,53 @@
     function seatName(i) { return (model && model.seats && model.seats[i] && model.seats[i].name) || ("Seat " + (i + 1)); }
     function seatedCount() { return ((model && model.seats) || []).filter(function (s) { return s && !s.empty; }).length; }
 
+    /* ── "your turn" title flash ───────────────────────────────────
+       A hidden tab is the one place a turn can pass unnoticed, and with
+       the timer armed an unnoticed turn is a folded hand and a lost
+       blind. The tab strip is the only surface we own when the page
+       isn't being looked at, so the title alternates with the game's
+       own `yourTurnToast` — his words, already approved for exactly
+       this meaning, which is why this needs no new copy and why a game
+       opts in merely by HAVING that string.
+
+       Only while the tab is HIDDEN: flashing a title someone is already
+       reading is noise, and the toast covers that case. `model.turn.seat`
+       is the shared convention the DO's own deadline already runs on
+       (dlSig/armAlarm), so this needs nothing per-game.
+
+       Two things are load-bearing. The base title is captured only when
+       NOT already flashing, or a second start would capture our own
+       alert text and "restore" the page to it permanently. And under
+       reduced motion the alert is set ONCE and left there — the
+       information survives, the blinking doesn't. */
+    var flash = { base: null, timer: null, on: false };
+    var FLASH_MS = 1200;
+
+    function turnIsMine() {
+      var mine = mySeat();
+      return !!(model && model.turn && mine != null && model.turn.seat === mine);
+    }
+    function stopTitleFlash() {
+      if (flash.timer) { clearInterval(flash.timer); flash.timer = null; }
+      if (flash.base != null) { document.title = flash.base; flash.base = null; }
+      flash.on = false;
+    }
+    function syncTitleFlash() {
+      var want = !!S.yourTurnToast && document.hidden && joined && turnIsMine();
+      if (!want) { stopTitleFlash(); return; }
+      if (flash.on) return;                       // already running — never re-capture
+      flash.on = true;
+      flash.base = document.title;                // captured UNFLASHED
+      document.title = S.yourTurnToast;
+      if (reduceMotion()) return;                 // said once, left up
+      var lit = true;
+      flash.timer = setInterval(function () {
+        lit = !lit;
+        document.title = lit ? S.yourTurnToast : flash.base;
+      }, FLASH_MS);
+    }
+    document.addEventListener("visibilitychange", syncTitleFlash);
+
     /* ═══ BAR: code combobox + recents ═════════════════════════════ */
     if (BAR_INPUT) {
       BAR_INPUT.placeholder = S.tableCodePlaceholder || "";
@@ -314,6 +361,7 @@
       conn = null; model = null; joined = false; code = null; logLines.length = 0;
       if (connToast) { connToast.dismiss(); connToast = null; }
       clearGraceToasts();
+      stopTitleFlash();     // the tab is nobody's turn now — give the title back
       wantSit = false; createdTable = false;
       ui.colorOpen = ui.colorDraft = ui.botEdit = ui.botDraft = null;
       ui.botFocus = false; ui.settingsPinned = false;
@@ -385,6 +433,7 @@
       GATE.hidden = true;
       render();
       if (hook("postRender")) cfg.postRender();
+      syncTitleFlash();     // the turn may have just become (or stopped being) mine
     }
     /* Shared reactions to the presence events every table emits, then the
        game's own handler, then the log line it asks for. */

@@ -521,6 +521,30 @@ global, so every ring but the last silently froze.
 A game that wants no timer simply never offers `timerSec` — nothing else to
 turn off.
 
+### "Your turn" title flash
+
+A hidden tab is the one place a turn can pass unnoticed, and with the
+timer armed an unnoticed turn is a folded hand. `games/table.js`
+alternates the document title with the game's own `S.yourTurnToast`
+whenever it is your turn **and** `document.hidden` — the tab strip being
+the only surface we own when nobody is looking at the page.
+
+There is no new copy and no new hook: a game **opts in by having
+`yourTurnToast`**, which cities, mahjong and poker all already did for
+the on-page toast. Turn detection is the shared `model.turn.seat`
+convention the DO's own `dlSig`/`armAlarm` already run on, so nothing is
+per-game. Under `prefers-reduced-motion` the alert is set once and left
+up — the information survives, the blinking doesn't.
+
+Two things are load-bearing if this is ever touched:
+
+- The base title is captured **only when not already flashing**. A
+  second start would otherwise capture its own alert text and "restore"
+  the page to it permanently.
+- The interval tracks its phase in a **closure**, not by comparing
+  `document.title` — a game whose title happened to equal the alert
+  string would stick.
+
 ### Fly-ins: `games/flights.js`
 
 **A game does not write a flight loop.** Cities grew one, mahjong copied
