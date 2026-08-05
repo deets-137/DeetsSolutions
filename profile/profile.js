@@ -751,10 +751,12 @@
      link works because the session cookie is SameSite=Lax and this is a
      top-level GET, so the download carries it. */
   function dataBox() {
-    var box = el("section", "profile-box");
-    box.appendChild(el("h2", "profile-box__title", "Your data"));
-    box.appendChild(el("p", "profile-box__text",
-      "Every seat of every game you played, yours and everyone else's. CSV opens in a spreadsheet; JSON keeps the nesting."));
+    var box = el("section", "profile-box profile-box--wide profile-data");
+    var body = el("div", "profile-data__lead");
+    body.appendChild(el("h2", "profile-box__title", "Your data"));
+    body.appendChild(el("p", "profile-box__text",
+      "Every seat of every game you played, yours and everyone else's, as CSV — it opens straight into a spreadsheet."));
+    box.appendChild(body);
     var row = el("div", "profile-field__row");
     [["seats", "Results"], ["spans", "Who sat where"], ["games", "Games"]].forEach(function (p) {
       var a = el("a", "tb-pill", p[1] + " · CSV");

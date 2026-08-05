@@ -2862,6 +2862,23 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   text-align: right;
 }
 
+/* The export strip — a wide, low box: blurb left, the CSV pills right,
+   folding to stacked on narrow screens. */
+.profile-data {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+.profile-data__lead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
 /* Match history — League's row anatomy: a summary you can scan, opening
    onto the whole field. */
 .profile-matches {
