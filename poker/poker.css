@@ -187,17 +187,9 @@
    half the themes. The class stays: it still carries its own tooltip, and
    it is where a deliberate distinction would go if he wants one. */
 .pk-seat__badge--blind { background: var(--pkface); color: var(--pkink-black); border-color: var(--pkface-edge); }
-/* the seat's live bet, floated toward the middle of the felt */
-.pk-seat__bet {
-  font-size: 0.72rem;
-  color: var(--pkface);
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 999px;
-  padding: 0 var(--space-2);
-}
 .pk-seat__tag { font-size: 0.68rem; color: var(--pkface); opacity: 0.85; }
 /* space held, nothing drawn — a seat that changes height moves itself */
-.pk-seat__tag.is-blank, .pk-seat__bet.is-blank, .pk-tray__count.is-blank { visibility: hidden; }
+.pk-seat__tag.is-blank, .pk-tray__count.is-blank { visibility: hidden; }
 
 /* ── chip trays ───────────────────────────────────────────────────
    A tray is one GROUP per denomination; a group is a `×N` count over one
@@ -302,6 +294,53 @@
 .pk-tray--rail .pk-tray__stack { height: calc(var(--pkside) * 6); justify-content: center; }
 .pk-tray--rail .pk-tray__count { font-size: 0.68rem; color: var(--subtext); opacity: 1; }
 
+/* The third placement: a BET pile, out on the felt in front of a seat.
+   The smallest of the three, and for a measured reason rather than a
+   taste one. The pot sits at `top: 60%` and reserves a full column plus
+   its amount; the six o'clock seat is centred at 92% and stands about
+   82px tall. That leaves the bottom pile roughly 7% of the felt — some
+   29px — to live in, and a felt tray reserves 40px on its own. Five
+   chips over 3px bands reserve 15px, which clears with room either side.
+   There is no count line here (chipStacks omits it): a bet is small by
+   nature, and the amount underneath already states the true number. */
+.pk-tray--bet {
+  --pkchipw: 10px;
+  --pkside: 3px;
+  gap: var(--space-1);
+  min-height: calc(var(--pkside) * 5);
+}
+.pk-tray--bet .pk-tray__stack { height: calc(var(--pkside) * 5); }
+
+/* A seat's money on the betting line: its own felt child on an inner
+   ring, NOT a row inside the seat. A seat is centred on its anchor, so a
+   pile that grew with the bet would have re-centred it on every raise —
+   the flop jitter, firing all hand. Out of that flow it moves nothing.
+   Always present and always reserving its height, blanked when there is
+   nothing bet: the flights need a target that exists before the chips
+   land, and a box that came and went would flicker its own spot. */
+.pk-betpile {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+.pk-betpile__amt {
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--pkface);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* space held, nothing drawn — same rule as the seat's own blanked rows */
+.pk-betpile.is-blank { visibility: hidden; }
+
 /* board + pot, centered on the felt */
 .pk-board {
   position: absolute; left: 50%; top: 44%;
@@ -309,9 +348,17 @@
   display: flex; gap: var(--space-1);
 }
 /* the pot: its chips, with the amount under them. The stack grows UP
-   from a fixed baseline so the number never moves as the pot swells. */
+   from a fixed baseline so the number never moves as the pot swells.
+
+   `top` was 60% until bet piles landed. The bottom of the felt is the
+   crowded part: on a minimum-height felt (26rem) the pot reserves ~58px,
+   the six o'clock seat reaches ~35px up from its 92% anchor, and the bet
+   pile between them wants ~28px. That is 121px of content for the 125px
+   between 60% and 92% — a four-pixel margin, which is not a layout, it
+   is a coincidence. 54% spends the dead gap that was sitting between the
+   board and the pot instead, and gives the bottom pile ~24px of air. */
 .pk-pot {
-  position: absolute; left: 50%; top: 60%;
+  position: absolute; left: 50%; top: 54%;
   transform: translate(-50%, 0);
   color: var(--pkface);
   font-size: 0.9rem;
@@ -831,12 +878,20 @@
 /* the footer: the two ends of a settled hand. `space-between` with the
    reveal group left and Next hand right, and `width: 100%` so the two
    pin to the card's edges however narrow the hands above happen to be. */
+/* `stretch`, not `center`: the two ends of a settled hand are one
+   control each and should read as a matched pair, but the Reveal pill
+   carries a checkbox and Next hand carries only text, so centring left
+   them different heights. Stretching hands both the taller one's box and
+   each pill centres its own label inside it. */
 .pk-over__foot {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: stretch; justify-content: space-between;
   gap: var(--space-3); width: 100%;
   padding-top: var(--space-2);
   border-top: 1px solid var(--pkface-edge);
 }
+/* the right end of that pair — see overFoot() for why this is not
+   `gt-lobby__start` */
+.pk-over__next { cursor: pointer; justify-content: center; }
 /* "Reveal | ☐" is ONE pill split by a hairline (his sketch), wearing the
    shell's `tb-pill` + `tb-pill__value` dress — League's "Queue | Arena ▾".
    The pill carries the border and the padding moves INTO the halves, so

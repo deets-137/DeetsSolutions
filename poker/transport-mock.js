@@ -130,6 +130,7 @@
           away: p.away, owesAnte: p.owesAnte,
           betStreet: p.betStreet,
           tray: p.tray,                  // the stack, as the chips it's made of
+          betTray: p.betTray,            // and what of it is out on the betting line
           stats: p.stats
         };
       });

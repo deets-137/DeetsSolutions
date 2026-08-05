@@ -300,6 +300,38 @@
     }
     return s;
   }
+  /* What is actually IN the middle: everything committed this hand, less
+     whatever is still sitting on the betting line in front of a seat.
+     Live bets are drawn as their own piles now, so the pot pile must not
+     also claim them — the same chips would be on the felt twice. The two
+     agree the instant a street closes, because the sweep empties every
+     bet pile into the pot. */
+  function potFloor(g) {
+    var s = 0;
+    for (var i = 0; i < g.players.length; i++) {
+      var p = g.players[i];
+      if (p) s += (p.betHand || 0) - (p.betStreet || 0);
+    }
+    return s;
+  }
+  /* A street closes: every pile in front of a seat is pushed into the
+     middle. The pot takes the CHIPS that were bet — which is the whole
+     reason for holding them per seat rather than racking the new total. */
+  function sweepBets(g) {
+    if (!g.potTray) g.potTray = { chips: {}, odd: 0 };
+    var pot = g.potTray;
+    for (var i = 0; i < g.players.length; i++) {
+      var p = g.players[i];
+      if (!p || !p.betTray) continue;
+      for (var v in p.betTray.chips) {
+        if (Object.prototype.hasOwnProperty.call(p.betTray.chips, v)) {
+          pot.chips[v] = (pot.chips[v] || 0) + p.betTray.chips[v];
+        }
+      }
+      pot.odd += p.betTray.odd;
+      p.betTray = { chips: {}, odd: 0 };
+    }
+  }
   function copyChips(t) {
     var c = {}, v;
     for (v in t) if (Object.prototype.hasOwnProperty.call(t, v)) c[v] = t[v];
@@ -307,30 +339,54 @@
   }
   function syncTrays(g) {
     if (!g.potTray) g.potTray = { chips: {}, odd: 0 };
-    var pot = g.potTray, v;
-    for (var i = 0; i < g.players.length; i++) {
-      var p = g.players[i];
+    var pot = g.potTray, v, i, p;
+    /* The drop — the chips that just left a tray — now lands on that
+       seat's own pile rather than in the middle. It is the same
+       subtraction as before, held one step longer: the pot gets it at
+       the sweep, which is exactly when the felt animates it moving. */
+    for (i = 0; i < g.players.length; i++) {
+      p = g.players[i];
+      if (p && !p.left && !p.betTray) p.betTray = { chips: {}, odd: 0 };
       var was = p && !p.left && p.tray ? { chips: copyChips(p.tray.chips), odd: p.tray.odd } : null;
       syncTray(p, g.settings.chips);
       if (!was || !p.tray) continue;
       if (traySum(p.tray.chips) + p.tray.odd >= traySum(was.chips) + was.odd) continue;
+      var bt = p.betTray;
       for (v in was.chips) if (Object.prototype.hasOwnProperty.call(was.chips, v)) {
-        pot.chips[v] = (pot.chips[v] || 0) + was.chips[v] - (p.tray.chips[v] || 0);
+        bt.chips[v] = (bt.chips[v] || 0) + was.chips[v] - (p.tray.chips[v] || 0);
       }
       for (v in p.tray.chips) if (Object.prototype.hasOwnProperty.call(p.tray.chips, v)) {
         if (!Object.prototype.hasOwnProperty.call(was.chips, v)) {
-          pot.chips[v] = (pot.chips[v] || 0) - p.tray.chips[v];
+          bt.chips[v] = (bt.chips[v] || 0) - p.tray.chips[v];
         }
       }
-      pot.odd += was.odd - p.tray.odd;
+      bt.odd += was.odd - p.tray.odd;
+    }
+    /* Every pile is held to the number of record, the pot's own rule
+       applied per seat. The case that genuinely trips it is an ANTE:
+       it moves cents into betHand and never into betStreet, so a seat
+       that owes one drops more than its bet and the composition
+       disagrees. Racking from `betStreet` is then both truthful about
+       the amount and right about what the line holds. */
+    for (i = 0; i < g.players.length; i++) {
+      p = g.players[i];
+      if (!p || !p.betTray) continue;
+      var okBet = p.betTray.odd >= 0;
+      for (v in p.betTray.chips) if (Object.prototype.hasOwnProperty.call(p.betTray.chips, v)) {
+        if (p.betTray.chips[v] < 0) okBet = false;
+        if (!p.betTray.chips[v]) delete p.betTray.chips[v];
+      }
+      if (!okBet || traySum(p.betTray.chips) + p.betTray.odd !== (p.betStreet || 0)) {
+        p.betTray = dealTray(p.betStreet || 0, g.settings.chips);
+      }
     }
     var sane = pot.odd >= 0;
     for (v in pot.chips) if (Object.prototype.hasOwnProperty.call(pot.chips, v)) {
       if (pot.chips[v] < 0) sane = false;
       if (!pot.chips[v]) delete pot.chips[v];              // a spent rung leaves no group
     }
-    if (!sane || traySum(pot.chips) + pot.odd !== potTotal(g)) {
-      g.potTray = dealTray(potTotal(g), g.settings.chips);
+    if (!sane || traySum(pot.chips) + pot.odd !== potFloor(g)) {
+      g.potTray = dealTray(potFloor(g), g.settings.chips);
     }
   }
 
@@ -467,6 +523,7 @@
       if (alive(p) && p.stack === 0) p.out = true;
       p.inHand = false; p.folded = false; p.allIn = false;
       p.betStreet = 0; p.betHand = 0; p.hole = null;
+      p.betTray = { chips: {}, odd: 0 };   // the line is clear before the deal
     });
     g.handOver = null; g.board = []; g.turn = null; g.street = null;
     g.showTo = {};                    // private shows die with their hand
@@ -553,6 +610,7 @@
   function streetDone(g, ctx, events) {
     // one player left standing → the pot walks over uncontested
     if (countBy(g, inHand) <= 1) return settle(g, events, false);
+    sweepBets(g);                     // the piles go in before the line clears
     g.players.forEach(function (p) { if (p) p.betStreet = 0; });
     g.aggr = null;                    // a new street has no aggressor yet
     g.bet.current = 0; g.bet.lastRaise = g.settings.bigBlind; g.bet.capped = {};
@@ -585,6 +643,11 @@
   function settle(g, events, showdown) {
     g.turn = null;
     ensureLedger(g);
+    /* A hand cannot be settled with money still on the betting line: the
+       fold-through path reaches here without a street ever closing, and
+       the `win` flight has to fly chips that are already in the middle. */
+    sweepBets(g);
+    g.players.forEach(function (p) { if (p) p.betStreet = 0; });
     var ps = g.players;
     // refund the uncalled top of the last bet
     var maxI = null, maxV = 0, secV = 0;
@@ -802,6 +865,7 @@
       p.stack += p.betHand;
       p.betHand = 0; p.betStreet = 0; p.inHand = false; p.folded = false;
       p.allIn = false; p.hole = null;
+      p.betTray = { chips: {}, odd: 0 };   // a cancelled hand leaves no pile
     });
     g.street = null; g.turn = null; g.board = []; g.handOver = null;
   }
@@ -894,6 +958,7 @@
       out: false, left: false, waiting: false,
       away: false, owesAnte: false,
       tray: null,                       // {chips:{value:count}, odd} — syncTrays fills it
+      betTray: null,                    // the same shape, for what is ON the betting line
       stats: { hands: 0, wins: 0, biggestPot: 0 }
     };
   }
@@ -1521,11 +1586,34 @@
          fallback exists to catch exactly that), and it is genuinely
          ACCUMULATED — a pot of three quarters must not come back as the
          50¢-and-a-25¢ that `dealTray` would rack 75¢ into. */
+      /* Every cent committed this hand is drawn exactly once: either on a
+         seat's own betting line or in the middle, never both and never
+         neither. This is the guarantee that lets the felt draw two kinds
+         of pile without double-counting a single chip. */
+      function feltTotal(gg) {
+        var s = traySum(gg.potTray.chips) + gg.potTray.odd;
+        gg.players.forEach(function (p) {
+          if (p && p.betTray) s += traySum(p.betTray.chips) + p.betTray.odd;
+        });
+        return s;
+      }
+      function linesHold(gg, when) {
+        gg.players.forEach(function (p, i) {
+          if (!p || !p.betTray) return;
+          eq(traySum(p.betTray.chips) + p.betTray.odd, p.betStreet || 0,
+             "seat " + i + "'s pile is exactly its bet " + when);
+        });
+      }
       var g = mkGame(4, 21);
-      // mkGame has already dealt a hand, so the blinds are in the middle —
-      // which is the first thing the accumulation has to have got right
+      // mkGame has already dealt a hand, so the blinds are posted — and a
+      // blind sits on the BETTING LINE, not in the middle, until a street
+      // closes. The pot pile is empty and the two blinds are in front of
+      // their seats, which is where a real table would have them.
       eq(potTotal(g), g.settings.bigBlind * 1.5, "the blinds are the opening pot");
-      eq(traySum(g.potTray.chips) + g.potTray.odd, potTotal(g), "and the pot holds the chips they were posted with");
+      eq(potFloor(g), 0, "but nothing has reached the middle yet");
+      eq(traySum(g.potTray.chips) + g.potTray.odd, 0, "so the pot pile is empty");
+      eq(feltTotal(g), potTotal(g), "and the blinds are on the felt exactly once");
+      linesHold(g, "at the deal");
       var acted = 0;
       for (var n = 0; n < 40 && g.phase !== "over"; n++) {
         if (!g.turn) break;
@@ -1535,29 +1623,68 @@
         var r = applyAction(g, { type: o.toCall > 0 ? "call" : "check", seat: i }, mkCtx(n + 9));
         if (r.error) break;
         g = r.game; acted++;
-        eq(traySum(g.potTray.chips) + g.potTray.odd, potTotal(g),
-           "the pot's chips add up to the pot after action " + acted);
+        eq(traySum(g.potTray.chips) + g.potTray.odd, potFloor(g),
+           "the pot's chips add up to the middle after action " + acted);
+        eq(feltTotal(g), potTotal(g),
+           "every cent is drawn exactly once after action " + acted);
+        linesHold(g, "after action " + acted);
       }
       ok(acted > 3, "the pot loop actually played (" + acted + " actions)");
 
       /* the accumulation itself, in isolation: three seats each push one
-         25¢ chip, and the middle must hold three 25¢ chips — dealTray
-         would have racked the same 75¢ as 50¢ + 25¢. */
+         25¢ chip. The chips must land on their own lines first, and the
+         SWEEP must move those same three quarters into the middle —
+         dealTray would have racked the same 75¢ as 50¢ + 25¢. */
       var q = mkGame(3, 31);
       q.settings.chips = [25, 50, 100];
       q.potTray = { chips: {}, odd: 0 };
-      q.players.forEach(function (p) { p.tray = { chips: { 25: 4 }, odd: 0 }; p.stack = 100; p.betHand = 0; });
-      q.players.forEach(function (p) { p.stack -= 25; p.betHand += 25; });
+      q.players.forEach(function (p) {
+        p.tray = { chips: { 25: 4 }, odd: 0 }; p.stack = 100;
+        p.betHand = 0; p.betStreet = 0; p.betTray = { chips: {}, odd: 0 };
+      });
+      q.players.forEach(function (p) { p.stack -= 25; p.betHand += 25; p.betStreet += 25; });
       syncTrays(q);
-      eq(q.potTray.chips[25], 3, "three quarters pushed in are three quarters in the pot");
+      q.players.forEach(function (p, i) {
+        eq(p.betTray.chips[25], 1, "seat " + i + " has one quarter on its line");
+      });
+      eq(traySum(q.potTray.chips) + q.potTray.odd, 0, "nothing is in the middle before the sweep");
+      sweepBets(q);
+      eq(q.potTray.chips[25], 3, "three quarters swept in are three quarters in the pot");
       eq(q.potTray.chips[50], undefined, "the pot did not re-rack them into a 50¢");
       eq(traySum(q.potTray.chips), 75, "and they still add up to 75¢");
+      q.players.forEach(function (p, i) {
+        eq(traySum(p.betTray.chips) + p.betTray.odd, 0, "seat " + i + "'s line is clear after the sweep");
+      });
+
+      /* an ANTE is the one thing that moves cents without touching the
+         betting line, so the seat drops more than its bet. The pile must
+         rack from betStreet rather than claim chips the line doesn't hold,
+         and the ante has to turn up in the middle instead. */
+      var a = mkGame(2, 51);
+      a.settings.chips = [25, 50, 100];
+      a.potTray = { chips: {}, odd: 0 };
+      a.players.forEach(function (p) {
+        p.tray = { chips: { 25: 8 }, odd: 0 }; p.stack = 200;
+        p.betHand = 0; p.betStreet = 0; p.betTray = { chips: {}, odd: 0 };
+      });
+      var ap = a.players[0];
+      ap.stack -= 75; ap.betHand += 75; ap.betStreet += 25;   // a 25¢ blind + a 50¢ ante
+      syncTrays(a);
+      eq(traySum(ap.betTray.chips) + ap.betTray.odd, 25, "the ante is not on the betting line");
+      eq(traySum(a.potTray.chips) + a.potTray.odd, potFloor(a), "and the ante is already in the middle");
+      eq(feltTotal(a), potTotal(a), "the anteing seat still draws every cent once");
 
       // a composition that can't be true falls back to racking the total
       var f = mkGame(2, 41);
       f.potTray = { chips: { 25: -3 }, odd: 0 };
       syncTrays(f);
-      ok(traySum(f.potTray.chips) + f.potTray.odd === potTotal(f), "a broken pot re-racks to its total");
+      ok(traySum(f.potTray.chips) + f.potTray.odd === potFloor(f), "a broken pot re-racks to its total");
+      // and the same guard, one level down, on a seat's own pile
+      var b = mkGame(2, 61);
+      b.players[0].betTray = { chips: { 25: -2 }, odd: 0 };
+      syncTrays(b);
+      eq(traySum(b.players[0].betTray.chips) + b.players[0].betTray.odd, b.players[0].betStreet,
+         "a broken bet pile re-racks to its bet");
     })();
 
     (function evaluator() {
