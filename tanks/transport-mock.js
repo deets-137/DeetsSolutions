@@ -72,9 +72,14 @@
         var msg = {
           type: "tick", n: g.tick,
           tanks: g.tanks.map(function (tk) {
+            var inp = tk.seat != null && t._inputs ? t._inputs[tk.seat] : null;
             return { x: tk.x, y: tk.y, h: tk.hull, tr: tk.turret,
                      al: tk.alive ? 1 : 0, seat: tk.seat, type: tk.type,
-                     sh: tk.seat != null ? shellsReady(g, tk) : 0, mn: tk.mines };
+                     sh: tk.seat != null ? shellsReady(g, tk) : 0, mn: tk.mines,
+                     // the ACK: the last input seq folded into this pose.
+                     // Contract — the client's reconciliation replays
+                     // everything after it (docs/tanks.md, "Feel").
+                     q: inp && inp.q != null ? inp.q : -1 };
           }),
           mines: g.mines.map(function (m) {
             return { x: m.x, y: m.y, a: g.tick - m.born >= Engine.MINE_ARM ? 1 : 0 };
@@ -184,8 +189,9 @@
       var seat = H.seatOfToken(t, conn.token);
       if (seat == null) return true;                            // spectators steer nothing
       if (!t._inputs) t._inputs = {};
-      var cur = t._inputs[seat] || { d: 0, a: null, f: 0, m: 0 };
+      var cur = t._inputs[seat] || { d: 0, a: null, f: 0, m: 0, q: -1 };
       cur.d = msg.d | 0;
+      if (msg.q != null) cur.q = msg.q | 0;   // acked back on the tick channel
       if (msg.a != null && isFinite(msg.a)) cur.a = +msg.a;
       if (msg.f) cur.f = 1;      // sticky until the next step consumes it
       if (msg.m) cur.m = 1;

@@ -72,6 +72,9 @@
       },
       drive: drive,
       mouse: mouse,
+      /* a latch is waiting — the sender flushes on the spot rather
+         than letting a click sit out the heartbeat interval */
+      pending: function () { return !!(fireLatch || mineLatch); },
       /* one packet's worth: latches clear, held state repeats. Holding
          the button keeps firing at the engine's own 2/s cap. */
       consume: function () {

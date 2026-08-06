@@ -5,6 +5,25 @@
    renderer's geometric placeholder (the house pattern — games.md,
    "Conventions"). His hand-drawn pass swaps in with zero code.
 
+   PER-LEVEL TERRAIN ART. A level names a `theme`, and a theme is just
+   a folder: assets/sprites/tanks/<theme>/tile-floor.png and friends.
+   The probe is lazy — a theme is only asked for when a level using it
+   loads — and the fallback chain has three rungs, so every rung is
+   playable on its own:
+
+       <theme>/tile-wall.png   →  the theme's CSS colours  →  cork
+
+   That means a theme can be pure colour (one CSS block, no files), or
+   pure art, or a mix where only the floor is drawn. Nothing has to be
+   finished for anything to work.
+
+   FLOOR VARIANTS. tile-floor-1.png … -3.png, if present, are picked
+   per cell by a hash of its coordinates — texture across the ground
+   without any randomness, so every client draws the identical floor
+   and nothing rides the wire. Variants are only probed when the base
+   floor tile actually loaded, so a colour-only theme costs no 404s
+   beyond its four base tiles.
+
    The 8 hull facings will be pre-rotated into an offscreen cache here
    when hull.png lands (docs/tanks.md, "Draw big, display small") —
    until then this is just the probe. window.TanksArt. */
@@ -12,18 +31,73 @@
   "use strict";
 
   var BASE = "../assets/sprites/tanks/";
-  var NAMES = ["hull", "turret", "bullet", "mine", "tile-floor", "tile-wall", "tile-block"];
-  var imgs = {}, state = {};   // name -> "ok" | "miss"
+  var NAMES = ["hull", "turret", "bullet", "mine"];
+  var TILES = ["tile-floor", "tile-wall", "tile-block", "tile-hole"];
+  var FLOOR_VARIANTS = 3;
 
-  NAMES.forEach(function (name) {
+  var imgs = {}, state = {};   // key -> "ok" | "miss"
+  var themes = {};             // theme -> { probed: true, floors: n }
+
+  function probe(key, url, onOk) {
+    if (state[key]) return;
+    state[key] = "pending";
     var im = new Image();
-    im.onload = function () { state[name] = "ok"; imgs[name] = im; };
-    im.onerror = function () { state[name] = "miss"; };
-    im.src = BASE + name + ".png";
-  });
+    im.onload = function () { state[key] = "ok"; imgs[key] = im; if (onOk) onOk(); };
+    im.onerror = function () { state[key] = "miss"; };
+    im.src = url;
+  }
+
+  NAMES.forEach(function (n) { probe(n, BASE + n + ".png"); });
+  // the themeless tiles stay probed for backward compatibility: a level
+  // with no theme draws cork, and cork's art may sit at the top level
+  TILES.forEach(function (n) { probe(n, BASE + n + ".png"); });
+
+  function key(theme, name) { return theme + "/" + name; }
+
+  /* Ask for a theme's tiles. Idempotent and lazy — called by the
+     renderer on setLevel, so a theme nobody plays costs nothing. */
+  function useTheme(theme) {
+    if (!theme || themes[theme]) return;
+    themes[theme] = { floors: 0 };
+    TILES.forEach(function (n) {
+      probe(key(theme, n), BASE + theme + "/" + n + ".png",
+        n === "tile-floor" ? function () { probeVariants(theme); } : null);
+    });
+  }
+  function probeVariants(theme) {
+    for (var v = 1; v <= FLOOR_VARIANTS; v++) {
+      (function (n) {
+        probe(key(theme, "tile-floor-" + n), BASE + theme + "/tile-floor-" + n + ".png",
+          function () { if (themes[theme].floors < n) themes[theme].floors = n; });
+      })(v);
+    }
+  }
+
+  /* The tile to draw for this cell, or null to fall back to colour.
+     `x`/`y` only matter for the floor, and only to pick a variant. */
+  function tile(theme, name, x, y) {
+    var k = theme ? key(theme, name) : null;
+    if (name === "tile-floor" && k && state[k] === "ok") {
+      var n = (themes[theme] && themes[theme].floors) || 0;
+      if (n > 0) {
+        // a cheap deterministic spread — same cell, same tile, every client
+        var h = ((x * 73856093) ^ (y * 19349663)) >>> 0;
+        var pick = h % (n + 1);
+        if (pick > 0) {
+          var vk = key(theme, "tile-floor-" + pick);
+          if (state[vk] === "ok") return imgs[vk];
+        }
+      }
+      return imgs[k];
+    }
+    if (k && state[k] === "ok") return imgs[k];
+    return state[name] === "ok" ? imgs[name] : null;   // themeless fallback
+  }
 
   window.TanksArt = {
     has: function (name) { return state[name] === "ok"; },
-    img: function (name) { return imgs[name] || null; }
+    img: function (name) { return imgs[name] || null; },
+    useTheme: useTheme,
+    tile: tile
   };
 })();

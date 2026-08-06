@@ -14,6 +14,8 @@
   --tk-floor-b: #d2c084;
   --tk-seam: rgba(90, 70, 40, 0.16);
   --tk-wall: #8a7757;
+  --tk-hole: #4a4034;
+  --tk-hole-rim: #332c23;
   --tk-wall-top: #a08c68;
   --tk-block: #b98a4e;
   --tk-block-top: #cda05f;
@@ -25,6 +27,71 @@
   --tk-mine-arm: #d8442e;
   --tk-boom: #e0862f;
   --tk-aim: rgba(40, 90, 160, 0.55);
+}
+
+/* ── per-level themes (docs/tanks.md, "Per-level art") ────────────
+   A level names one with a `theme` header line; render.js stamps it on
+   this root as data-tk-theme and re-reads the palette. Cork above is
+   the default and the fallback.
+
+   TO ADD A LOOK: copy a block, rename it, change the hexes. That is
+   the whole procedure — no JS, no build step, no registry to keep in
+   sync. Only override what differs; everything unset inherits cork.
+
+   To add hand-drawn TILES instead of (or on top of) colours, drop
+   PNGs into assets/sprites/tanks/<theme>/ — tile-floor, tile-wall,
+   tile-block, tile-hole, plus tile-floor-1..3 for floor variety. They
+   are probed once when a level using the theme loads, and anything
+   missing falls back to these colours. Draw tiles at roughly display
+   size (~64px); do NOT upscale chunky art, or the floor reads at a
+   different apparent resolution from the tanks (docs/tanks.md, "Floor
+   art and the one rule"). */
+
+/* snow — bright, cold, low-contrast ground so shells stay legible */
+.tk[data-tk-theme="snow"] {
+  --tk-floor-a: #e8eef2;
+  --tk-floor-b: #dde5ec;
+  --tk-seam: rgba(70, 90, 110, 0.14);
+  --tk-wall: #8fa3b4;
+  --tk-wall-top: #b3c4d1;
+  --tk-block: #6f8496;
+  --tk-block-top: #8ba0b0;
+  --tk-hole: #2f3b45;
+  --tk-hole-rim: #1d262d;
+  --tk-track: rgba(40, 55, 70, 0.42);
+  --tk-scorch: rgba(30, 40, 50, 0.30);
+}
+
+/* dusk — warm dark ground; walls read as silhouette */
+.tk[data-tk-theme="dusk"] {
+  --tk-floor-a: #3a3350;
+  --tk-floor-b: #342e48;
+  --tk-seam: rgba(200, 190, 230, 0.10);
+  --tk-wall: #241f34;
+  --tk-wall-top: #4a4166;
+  --tk-block: #6b4a7a;
+  --tk-block-top: #8a629b;
+  --tk-hole: #14111d;
+  --tk-hole-rim: #0a0810;
+  --tk-track: rgba(10, 8, 16, 0.55);
+  --tk-bullet: #f2e6c0;
+  --tk-aim: rgba(150, 190, 255, 0.55);
+  --tk-scorch: rgba(0, 0, 0, 0.35);
+}
+
+/* rust — industrial floor plate, oxidised walls */
+.tk[data-tk-theme="rust"] {
+  --tk-floor-a: #6e5a48;
+  --tk-floor-b: #66533f;
+  --tk-seam: rgba(20, 14, 8, 0.28);
+  --tk-wall: #4a3a2c;
+  --tk-wall-top: #7a6247;
+  --tk-block: #9c5a2e;
+  --tk-block-top: #c2743c;
+  --tk-hole: #1c1610;
+  --tk-hole-rim: #0e0a07;
+  --tk-track: rgba(15, 10, 6, 0.6);
+  --tk-scorch: rgba(10, 6, 3, 0.4);
 }
 
 /* ── the bento (poker's grid: big + rail, role strip below) ────── */

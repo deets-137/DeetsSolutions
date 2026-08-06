@@ -7,12 +7,12 @@ tick, the authority model, the Durable Object posture and the cost
 model), which is itself a sibling of the turn-based one
 ([games.md](games.md)).
 
-**Nothing is built.** No branch, no files, no worker, no sprites. This
-document is the design record from chats on **2026-08-05**, written to be
-buildable from cold — file layout, module boundaries, API surfaces, the
-level format, the art pipeline. Two things are still Aditya's to invent
-and they block the engine: **the terrain vocabulary** and **the enemy
-tank types**. Everything is shaped to receive them.
+**Built and playable on branch `DeetsTanks`** — the game, the level
+designer, the terrain vocabulary and the full enemy cast all landed
+**2026-08-05**. No worker and no sprites yet. Read "State of the tab"
+at the bottom for the honest ledger of what exists; the sections
+between are the design record from that day's chats, kept because they
+carry the reasoning rather than just the outcome.
 
 ---
 
@@ -96,8 +96,10 @@ tanks/levels/*.txt          the campaign, one plain-text grid per level (source)
 
 assets/sprites/tanks/       built sprites + README
 art-src/tanks/*.png         his MS Paint originals (512px, magenta background)
+assets/sprites/tanks/<theme>/  per-level terrain tiles (cork, snow shipped)
 scripts/build-tanks-art.py  chroma-key → trim → recolor → downsample; emits templates
 scripts/build-tanks-levels.py  validates every level, emits tanks/levels.js
+scripts/build-tanks-tiles.py   seeds a theme's terrain tiles from tanks.css
 
 ../DeetsTanks/              phase 4; does not exist yet
   src/index.js              TanksTable extends RealtimeTable
@@ -209,24 +211,39 @@ legibly in git, it can be hand-edited without launching anything, and a
 corrupt one is obvious at a glance.
 
 ```
-name   [ph] Crossfire
+name   Crossfire
 tier   3
 
 legend
   .  floor
-  #  wall, indestructible
-  =  block, destructible
+  #  wall, indestructible — stops tanks AND shells (ricochet)
+  =  block, destructible — a shell opens it
+  o  hole — stops tanks, shells fly OVER it
   P  player spawn
   1..n  enemy spawn, digit = tank type
+
+tune
+  bulletSpeed 7
+  player.mines 4
+  enemy6.bounceDepth 3
 
 grid
   ####################
   #..P.......=......1#
   #....====..=..###..#
-  #....=........###..#
+  #....=...oo...###..#
   #2.........=......P#
   ####################
 ```
+
+**The hole is the terrain decision** (his call, 2026-08-05). It is the
+only cell that makes "where can I drive" and "where can I shoot"
+different questions — every other cell answers both the same way, which
+is why a grid of walls alone can only ever be a maze. It costs one
+extra solidity test: `solid()` governs tanks, `solidShell()` governs
+shells and line-of-sight, and an enemy can therefore shoot you across a
+gap it cannot cross. Holes block flood-fill reachability exactly like
+walls.
 
 Position and type ride the **same character** — the retro trick, and it
 keeps the grid readable as a picture of the level.
@@ -243,14 +260,96 @@ keeps the grid readable as a picture of the level.
   zero fetches at runtime and validation that runs at build time, not
   only in the designer. Thirty levels is ~15 KB.
 
-`validateLevel` checks: grid rectangular, exactly one player spawn per
-supported seat, no spawn inside a wall, every enemy reachable from a
-player spawn (flood fill), legend covers every character used.
+`validateLevel` checks: grid rectangular, border fully walled, no spawn
+inside terrain, every enemy reachable from a player spawn (flood fill),
+every enemy digit present in `ENEMY_TYPES`, and every `tune` key present
+in `TUNE_SPEC`.
 
-**Blocked on him:** the legend above is a placeholder. The real terrain
-vocabulary — destructible blocks, holes that stop tanks but not shells,
-teleporters, whatever else — is a set of mechanics, and mechanics are his
-to invent.
+---
+
+## Tuning
+
+A level may override physics in a `tune` block. Added 2026-08-05 on his
+ask — "so I can modify as I get more of a feel for the game".
+
+**It lives in the level file, and that is not a stylistic choice.** The
+worker vendors `engine.js` byte-identically and receives only the level;
+the client predicts against that same copy. Physics that are not *in the
+level text* cannot survive the trip to the server, so a designer-local
+tuning store would desync the moment the game left the mock. Putting it
+in the file also means tuning needs no wire change at all.
+
+```
+scope.key value          # bulletSpeed 7 / player.mines 4 / enemy6.bounceDepth 3
+```
+
+- **`TUNE_SPEC` in `engine.js` is the single source of truth** —
+  `[default, min, max, unit, scope]` per key. The parser validates
+  against it, the build script reads it, and `designer.html` **builds
+  its entire panel from it**. Adding a knob is one edit.
+- **Values are in human units** — tiles/second, shells/second, seconds —
+  because the file is hand-written. `resolveTune` converts once at parse
+  time into the per-tick values the hot paths read, so `step()` never
+  does a string lookup.
+- **Precedence: spec default < global < enemy type < scoped.** The type
+  is more specific than a level-wide override; the explicit scope beats
+  everything.
+- Scopes are `` (global), `player`, `enemy1`..`enemy9`. AI-only keys
+  (`bounceDepth`, `evade`, `turnRate`, `aimErr`) refuse a `player`
+  scope; global-only keys (`tankR`, the mine geometry) refuse any scope.
+
+**The clamps are load-bearing, not politeness.** `stepBullet` advances a
+shell one position per tick and tests the tile it lands in, so a shell
+faster than ~0.5 tiles/tick passes straight **through** a one-tile wall.
+`bulletSpeed`'s ceiling is that tunnelling threshold with headroom, and
+raising it requires sub-stepping `stepBullet` first. The engine
+self-checks assert the ceiling stays below the threshold.
+
+### Shells are per-actor, not global
+
+`bulletSpeed` and `bounces` resolve per tank, so the Lancer's flat rocket
+and the Banker's slow two-bounce shell are tuning, not new code. Two
+consequences that were latent bugs:
+
+- **The shell carries its own bounce budget** (`mb`), stamped at fire
+  time and **carried on the `fire` event**, because clients fly shells
+  locally from that one event — a client that fell back to a global
+  constant would kill the shell a bounce early and diverge.
+- `bounceDepth` (how many ricochets the AI *plans* through) and
+  `bounces` (how many the shell *survives*) are different numbers. A
+  type with `bounceDepth: 2` and a one-bounce shell would calmly plan
+  shots its own ammunition cannot complete.
+
+## The pipeline — run this after editing levels
+
+**Aditya designs levels in the designer, saves the `.txt` into
+`tanks/levels/`, and then this has to run.** Nothing picks up a new or
+edited level until it does: `levels.js` is generated, and a static site
+has no directory listing, so the file on disk is invisible to the game
+until it is inlined.
+
+```
+python scripts/build-tanks-levels.py
+```
+
+That validates every level and rewrites `tanks/levels.js`. It **fails
+loudly** — a ragged grid, an open border, a spawn inside terrain, an
+unreachable enemy, an enemy digit with no `ENEMY_TYPES` entry, or a
+`tune` key that is not in `TUNE_SPEC` all stop the build with the file
+and the reason named. A clean run prints one `ok` line per level.
+
+Then confirm the sim still agrees with itself:
+
+```
+node tanks/engine.js
+```
+
+**If a future session is asked to "run the level pipeline", that is the
+whole of it** — the two commands above, in that order, then report what
+the validator said. Nothing else regenerates from a level edit; art and
+tiles are a separate, deliberately manual path (see "The tile pack").
+
+---
 
 ## The level designer
 
@@ -260,8 +359,46 @@ dependency, no server: one page that reads and writes text.
 
 - **Paint terrain** from a tile palette; drag to fill, right-click to erase.
 - **Place spawns** — player start and each enemy, picking the type as it drops.
+- **Open any campaign level** from a picker fed by the generated
+  `levels.js`, or start the next one with "+ new level N".
 - **Import** by paste or drop; **export** by clipboard copy or download.
   He saves into `tanks/levels/`. That is the whole round trip.
+
+### The number is the filename
+
+`levels.js` is generated from `tanks/levels/*.txt` in sorted order, so
+**the slot a level occupies and the file it lives in are the same
+fact**. A `number` field inside the file would be a second source of
+truth for one thing, and the two would disagree the first time one was
+renamed. So the designer's `#` box drives the download filename
+(`07` → `07.txt`) and the `name` line is the title — nothing else is
+stored.
+
+A browser cannot write into the repo, so the round trip closes by hand
+and the page says so, with the exact path and command:
+
+```
+save  ->  tanks/levels/NN.txt  ->  python scripts/build-tanks-levels.py
+```
+
+The slot is compared against the committed source, so it reads
+**saved / edited / new**, and `revert` restores a campaign level. That
+comparison is normalised for BOM and CRLF — and the build script now
+reads levels as `utf-8-sig`, because Notepad and the designer's own
+download both happily write a BOM, and one riding into `levels.js` is
+an invisible stray character at the head of the first `name` line.
+
+### Appearance
+
+The page is **pinned to Moonlight + Ocean** (his call) rather than
+reading the site's saved axes: it is a private tool with one intended
+look. It can pin them statically because `controls.js` only *applies*
+an axis from inside `buildMenu()`, which no-ops without a
+`[data-settings]` mount — so the script is loaded purely for the
+injected ocean layer, whose wave geometry lives in it and must not be
+copied here. Content sits at `z-index: 1` above the fixed layer.
+Moonlight's status lights are monochrome by design, so validation
+severity carries a glyph (`✕ ! ✓`) rather than riding colour alone.
 - **Validate** inline via `engine.validateLevel`, with failures shown
   against the grid.
 - **Play-test in place** — a button that boots the in-page mock on
@@ -332,6 +469,89 @@ framing. Same house pattern as `build-mahjong-tiles.py` and
 per stable filename and falls back to a geometric placeholder, so the
 game is playable before a single sprite exists, and a README sits in the
 sprites folder.
+
+### Per-level art
+
+A level names a look with a `theme` header line (`theme snow`), and it
+resolves in **two layers, deliberately split by what each is good at**:
+
+| | where | adding one |
+| --- | --- | --- |
+| colours | `tanks.css`, `.tk[data-tk-theme="…"]` | copy a block, change the hexes |
+| tiles | `assets/sprites/tanks/<theme>/*.png` | drop PNGs in a folder |
+
+Colours stay in CSS because that is already where the game's art
+carve-out lives — canvas cannot use `var()`, but `getComputedStyle`
+can, so `render.js` stamps `data-tk-theme` on the `.tk` root and
+re-reads the palette. The alternative, a JS theme registry, would be a
+second place to hold the same facts and would need keeping in sync with
+the CSS forever.
+
+**The fallback chain has three rungs and every rung is playable:**
+
+```
+<theme>/tile-wall.png  →  the theme's CSS colours  →  cork
+```
+
+So a theme can be pure colour (one CSS block, no files), pure art, or a
+mix where only the floor is drawn. Nothing has to be finished for
+anything to work, and neither half requires a code change.
+
+- **`theme` is carried by the engine, never interpreted.** All
+  rendering is client-side and the server does not know what a pixel
+  is; the engine's only job is to keep the name attached to its level.
+- **An unknown theme is not a validation error.** It falls back to cork
+  at draw time. A cosmetic name must never be able to fail a level that
+  plays perfectly well, and the build script does not police it either.
+- **Floor variants**: `tile-floor-1..3.png` are picked per cell by a
+  hash of its coordinates — texture without randomness, so every client
+  draws the identical floor and nothing rides the wire. Only probed if
+  the base floor tile actually loaded, so a colour-only theme costs no
+  extra 404s.
+- Probing is **lazy** — a theme is only requested when a level using it
+  loads — and once per filename, the existing house pattern.
+### The tile pack
+
+**Cork is the reference set.** `assets/sprites/tanks/cork/` holds seven
+real PNGs in the repo, generated once by
+`scripts/build-tanks-tiles.py`, which reads the palette out of
+`tanks.css` rather than carrying a second copy of it. `snow/` ships
+too. Adding a theme's colours is still one CSS block; seeding its art
+is one command:
+
+```
+python scripts/build-tanks-tiles.py            # cork + snow
+python scripts/build-tanks-tiles.py dusk rust  # any named theme
+```
+
+**The designer's `tile pack` button copies cork under the new name.**
+Not a re-render — it fetches the committed PNGs and rezips them as
+`<theme>-tiles.zip`, which unzips straight into
+`assets/sprites/tanks/`. So a new theme begins as seven finished tiles
+to paint over, byte-identical to what ships, and there is exactly one
+place the shapes are authored. If cork cannot be fetched (the page
+opened straight off disk) it falls back to rendering the templates from
+the theme's colours with `render.js`'s own primitives; same filenames
+either way, and the button says which happened.
+
+Re-running the generator **overwrites the folder**, so never point it
+at a theme whose hand art has landed unless you mean to reset that set
+— the same rule `build-poker-chips.py` carries.
+
+The archive is written by hand, **store-only, no compression**: no
+dependency is allowed on this site, seven small PNGs gain nothing from
+deflate, and STORE needs no deflate implementation — just CRC32 and the
+header layout. Verified by writing a real archive, having Python's
+`zipfile` open it and run `testzip()`, and hashing every entry against
+the cork pack on disk.
+
+- The designer has an `art` field with the known themes as
+  suggestions. It is free text, because the themes live in CSS and
+  there is no registry to enumerate: add a block, type the name.
+
+Cork, snow, dusk and rust ship as colour themes; **cork and snow also
+ship tile art**, dusk and rust are colour-only until someone runs the
+generator at them.
 
 ### Floor art and the one rule
 
@@ -408,8 +628,15 @@ Per [realtime.md](realtime.md), nothing game-specific:
 
 ### Wire
 
-Client → server: `input`, ~20 Hz, carrying the **last N ticks** of input
-rather than one, so a dropped packet costs nothing.
+Client → server: `input`, a 20 Hz heartbeat **plus an immediate send on
+every press and release**, carrying `q` — the client sim step the input
+belongs to.
+
+Server → client: every tick message's per-seat entry carries `q` back,
+**the last input seq folded into that pose**. This is contract, not
+decoration: it is what the client's seq-replay reconciliation reads,
+and a worker that omits it puts the sliding back (see "State of the
+tab").
 
 Server → client: `tick` (snapshot, 20 Hz) and `ev` (typed events: fire,
 hit, death, block destroyed, level cleared).
@@ -485,11 +712,97 @@ Phases 1–5 ship with **no worker repo in existence**, behind
 
 ---
 
+## The enemy cast
+
+Approved by him 2026-08-05, **all seven built the same day**. What
+separates them is *only these numbers* — the brain is one routine and
+every behaviour is a tune key, so a new type is a registry entry rather
+than new code, and a level can dial any of them.
+
+| # | name | speed | bounceDepth | rate | reaction | mines | evade | what the level teaches |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Sentry | — | 0 | 0.25/s | 0.6 s | — | — | aiming |
+| 2 | Rover | 1.4 | 1 | 0.5/s | 0.45 s | — | — | ricochets exist |
+| 3 | Lancer | — | 0 | 1.2/s | 0.3 s | — | — | flat fast rocket; never stand in a lane |
+| 4 | Sapper | 2.6 | 1 | 0.4/s | 0.4 s | ✓ | — | area denial |
+| 5 | Duelist | 2.9 | 1 | 1.1/s | 0.18 s | — | ✓ | it dodges; you must lead |
+| 6 | Banker | — | 2 | 0.7/s | 0.35 s | — | — | cover stops being safe |
+| 7 | Marshal | 3.4 | 2 | 1.4/s | 0.12 s | ✓ | ✓ | the finale |
+
+`bounceDepth` is the dial that decides whether cover works; `reaction`
+is the one that decides whether you get time to react to *them*.
+
+### The brain
+
+One routine in `engine.js` (house rule — never in a mock, never in a
+worker), fully deterministic: `prngNext(g)` is the only randomness and
+the tick is the only clock, because the client re-runs this exact code
+to predict. A self-check asserts no brain function so much as mentions
+`Math.random` or `Date.now`, and that two runs on one seed are
+byte-identical.
+
+- **Aim.** Turn toward the **solved** angle, not the player. The
+  original code turned toward the player and merely *gated* on
+  `aimSolve`, so the first type with `bounceDepth > 0` would have lined
+  up on a target behind a wall and fired straight into it. Aiming at
+  the solution is also what makes a bank readable — the barrel visibly
+  swings off-player before it fires.
+- **Drive.** Range-keeping, not pathfinding: score the 8 facings for
+  closing/backing off/strafing around a 3.6–8.0 tile band, with seeded
+  jitter and hysteresis so hulls neither twitch nor march in lockstep.
+  **Deliberate non-goal: no A\*.** A tank that solves the maze reads as
+  a hunter, and Wii Play's do not hunt — they mill about and shoot.
+- **Evade.** Project the tank onto each incoming shell's line; if it
+  will pass within 0.85 tiles, sidestep perpendicular *toward the side
+  it is already on* — the short way out, not a dive across the path.
+- **Mines.** Dropped behind while moving, capped by the type's
+  allowance.
+
+### The solve budget
+
+A bank search is not free, so it runs only when the tank could actually
+shoot (cooldown clear, a shell spare) and at most every 12 ticks,
+**staggered by the tank's own index** so a room full of Bankers never
+all solve on the same tick. Measured: **0.18 ms per solve**, worst case
+~0.09 ms/tick of a 16.7 ms frame with six solvers.
+
+`aimSolve` samples headings and flies each with the **real
+`stepBullet`**, which is the property that matters: the plan and the
+shell are the same physics by construction, so a planned bank cannot
+miss for a reason the planner never modelled. Two-phase — a 48-heading
+coarse sweep scored by *closest approach* to find the corridor, then
+ternary search inside it. Both halves were wrong first time and the
+reasons are worth keeping:
+
+- refining by stepping ±w and halving is a hill-climb, but the
+  landscape is piecewise (one continuous corridor per bounce sequence,
+  cliffs between), so it stalls on a cliff;
+- refining only the single best coarse sample assumes the coarse winner
+  is in the winning corridor, and a blocked direct path often scores a
+  deceptively small closest approach. The best three are each refined.
+
+**Measured against ground truth** (a 0.1° sweep over all 2398 blocked
+shooter/target pairs in a test room, 2314 of which admit a one-bounce
+hit): **76.9% recall, zero false positives.** Never claiming a shot it
+cannot make is the property worth having; the misses are fine, and
+arguably good — the tank retries five times a second against a moving
+player, so the rate that matters is far higher, and a Banker that found
+every bank instantly would be oppressive. Widening the search to 72
+headings and 5 corridors bought 0.2% recall for 1.6× the cost, which is
+why it is 48 and 3.
+
+**Types carry difficulty, count carries tempo** — a level's tier is
+roughly its worst enemy; the number of them sets how frantic it is. Six
+Sentries is busy, not hard; one Banker is hard.
+
+Enemy livery is `art` on the registry entry, read by the renderer and
+the designer palette, so a new type is visible the moment it exists.
+Names are **internal identifiers, not copy** — nothing in the UI shows
+them. If an interstitial ever names what you just beat, they become
+`strings.js` entries and arrive `[ph]`.
+
 ## Still to design
 
-- **Terrain vocabulary.** Blocks the legend and the engine. His to invent.
-- **Enemy tank types.** What distinguishes them, and whether "harder"
-  means better types, more of them, or both. Blocks the AI table above.
 - **Co-op lives.** The lives *count* is now a table setting; whether
   the pool is per-player or shared is still open, as is whether a dead
   player respawns next level or sits out.
@@ -521,12 +834,84 @@ ledger:
   hook — a game may claim a message (returns true) before the shell's
   model/paint path sees it. No-op for every existing game; it is how
   `tick` traffic bypasses the 20 Hz repaint trap.
-- **Prediction simplification, recorded:** own-tank correction is a
-  smooth blend toward the latest snapshot (snap past 0.6 tiles), not a
-  seq-replay of unacked inputs. Revisit only if live latency makes the
-  blend visible.
-- **Not built:** `tanks/designer.html`, `build-tanks-art.py` (waits on
-  the art pass), the `../DeetsTanks` worker (phase 4 — `rt-do.js` gets
+- **Prediction, revised 2026-08-05 (the sliding fix).** The first cut
+  blended the predicted hull toward the latest snapshot every tick. It
+  felt like driving on ice, and the mock's own lag knob shows why: the
+  server pose is a round trip old, so the blend pulled *backwards* the
+  whole time you drove and *forwards* after you let go. Measured
+  against a pure local sim, the hull coasted **0.49 tiles at 110 ms
+  RTT and 2.0 tiles at 600 ms** past the key release. Three changes:
+
+  1. **Seq-replay reconciliation.** Every predicted step is stamped
+     with a local seq and kept in a history ring; the input verb
+     carries the seq (`q`), the tick channel acks it back per seat
+     (`tanks[].q` — **wire contract**, the worker must send it), and
+     the client replays its unacked inputs onto the server pose before
+     comparing. Like with like, instead of pose vs. round trip.
+  2. **A dead zone sized to the inputs still in flight.** Even after
+     the replay the server trails by a constant phase — it ran N ticks
+     to reach the input it is acking. That gap is not error and must
+     not be corrected; it collapses on its own the moment you stop,
+     because then both sims stop. Only the *moving* unacked inputs
+     count toward the tolerance, so a standing tank has none and
+     converges hard.
+  3. **Press and release go out on the frame they happen**, not on the
+     next 20 Hz packet. The heartbeat stays for loss.
+
+  After: the coast is **flat at every lag** — 0.15 tiles on the first
+  stop of a level (a one-time startup offset being spent) and under
+  0.05 tiles, ~3 px, on every stop after that.
+
+  The trap worth remembering: *do not correct toward a server that has
+  not yet heard from you.* Before the first ack the server's pose is a
+  tank nobody has told to move, and easing toward it was costing a
+  whole trip time of travel off the line.
+- **`tanks/designer.html` BUILT, 2026-08-05.** Unlisted dev page at
+  `/tanks/designer.html`. Paint terrain and spawns, resize, import by
+  paste or drop, export by copy or download, live validation off the
+  engine's own `validateLevel`, a tuning panel, and a campaign picker
+  that opens levels 0..N or starts the next one. Pinned to Moonlight +
+  Ocean. Verified headless (34 checks under a DOM stub: registry-driven
+  palette and scopes, tune round-trip through the file, clamping, scope
+  rules, text-edit round-trip, campaign open / edit / revert / new
+  slot, save-target naming, play-test boot).
+
+  Three properties worth keeping:
+
+  1. **It imports the real `engine.js` and `render.js`.** The grid you
+     paint on is the game's renderer and every message is the engine's
+     own. WYSIWYG is structural, so the editor cannot drift — the
+     failure that kills most homemade level editors inside a month.
+  2. **The palette and the tuning panel are GENERATED** from
+     `ENEMY_TYPES` and `TUNE_SPEC`. Adding an enemy or a knob to the
+     engine adds it to the designer with no page edit.
+  3. **Play-test is a LOCAL sim, deliberately not the mock** — no
+     lobby, no netcode, no latency. It is the feel-and-tune loop and
+     wants zero ceremony between a keystroke and the result; **tuning
+     values apply live, mid-play**, which is the whole point of the
+     panel. The netcode is exercised at `/tanks/`, where it belongs.
+
+- **Duplication removed:** `build-tanks-levels.py` used to carry a
+  hardcoded `KNOWN_TYPES` with a "keep in sync" comment. It now reads
+  `ENEMY_TYPES` and `TUNE_SPEC` out of `engine.js` via node, so adding
+  an enemy is one edit in one file instead of two with a silent build
+  failure when you forget the second.
+
+- **The enemy cast is BUILT** (2026-08-05) — all seven types, plus
+  bank-shot planning in `aimSolve`, driving, evasion and mine-laying.
+  Engine self-checks 63 -> 84.
+
+- **Per-level art themes BUILT** (2026-08-05) — `theme` on the level,
+  colours as CSS blocks, tiles as per-theme sprite folders, a designer
+  field, and a `tile pack` button that copies the cork pack under a new
+  name as a zip. Four colour themes shipped; `cork/` and `snow/` tile
+  art committed via `scripts/build-tanks-tiles.py`. Still **flat
+  generated art, not hand-drawn** — it is the thing to paint over. Engine
+  self-checks 84 -> 87; designer harness 34 -> 43, plus a separate
+  pack harness that validates the archive with Python's `zipfile`.
+
+- **Not built:** `build-tanks-art.py` (waits on the art
+  pass), the `../DeetsTanks` worker (phase 4 — `rt-do.js` gets
   extracted from `transport-mock.js` then, per the promotion rule),
   PvP, stats reporting.
 - **Copy: DONE.** He approved the whole of `strings.js` — and the level

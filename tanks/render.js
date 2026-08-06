@@ -15,6 +15,77 @@
 (function () {
   "use strict";
 
+  /* ── the tile primitives ─────────────────────────────────────────
+     ONE definition of what each terrain cell looks like, used by the
+     renderer AND by the designer's theme-pack export. The sharing is
+     the point: the PNG template he paints over is pixel-for-pixel what
+     the game would otherwise have drawn, so a half-finished pack never
+     disagrees with the flat-colour tiles sitting next to it. */
+  function drawFloor(c, X, Y, s, P, alt) {
+    c.fillStyle = alt ? P.floorA : P.floorB;
+    c.fillRect(X, Y, s, s);
+    c.strokeStyle = P.seam;
+    c.lineWidth = 1;
+    c.strokeRect(X + 0.5, Y + 0.5, s - 1, s - 1);
+  }
+  function drawWall(c, X, Y, s, P) {
+    c.fillStyle = P.wall;
+    c.fillRect(X, Y, s, s);
+    c.fillStyle = P.wallTop;
+    c.fillRect(X + 1, Y + 1, s - 2, Math.max(2, s * 0.22));
+  }
+  function drawHole(c, X, Y, s, P) {
+    // a hole reads as depth, not as an object: the cork is cut away, so
+    // it must never carry the wall's lit top edge
+    c.fillStyle = P.hole;
+    c.fillRect(X, Y, s, s);
+    c.fillStyle = P.holeRim;
+    c.fillRect(X, Y, s, Math.max(2, s * 0.16));
+  }
+  function drawBlock(c, X, Y, s, P) {
+    c.fillStyle = P.block;
+    c.fillRect(X + 1, Y + 1, s - 2, s - 2);
+    c.fillStyle = P.blockTop;
+    c.fillRect(X + 2, Y + 2, s - 4, Math.max(2, s * 0.2));
+  }
+
+  function readPalette() {
+    var cs = getComputedStyle(document.querySelector(".tk") || document.body);
+    function c(name, fb) { var v = cs.getPropertyValue(name).trim(); return v || fb; }
+    return {
+      floorA: c("--tk-floor-a", "#d9c893"),
+      floorB: c("--tk-floor-b", "#d2c084"),
+      seam: c("--tk-seam", "rgba(90,70,40,0.16)"),
+      wall: c("--tk-wall", "#8a7757"),
+      hole: c("--tk-hole", "#4a4034"),
+      holeRim: c("--tk-hole-rim", "#332c23"),
+      wallTop: c("--tk-wall-top", "#a08c68"),
+      block: c("--tk-block", "#b98a4e"),
+      blockTop: c("--tk-block-top", "#cda05f"),
+      enemy: c("--tk-enemy1", "#a3562c"),
+      enemyDark: c("--tk-enemy1-dark", "#77401f"),
+      track: c("--tk-track", "rgba(30,24,16,0.55)"),
+      bullet: c("--tk-bullet", "#2e2820"),
+      mine: c("--tk-mine", "#3a332a"),
+      mineArm: c("--tk-mine-arm", "#d8442e"),
+      boom: c("--tk-boom", "#e0862f"),
+      aim: c("--tk-aim", "rgba(40,90,160,0.55)"),
+      scorch: c("--tk-scorch", "rgba(40,30,20,0.35)")
+    };
+  }
+  /* Read a theme's colours WITHOUT disturbing what is on screen: stamp,
+     read, put back exactly what was there (including nothing). */
+  function paletteFor(theme) {
+    var root = document.querySelector(".tk");
+    if (!root) return readPalette();
+    var prev = root.getAttribute("data-tk-theme");
+    root.setAttribute("data-tk-theme", theme || "cork");
+    var P = readPalette();
+    if (prev === null) root.removeAttribute("data-tk-theme");
+    else root.setAttribute("data-tk-theme", prev);
+    return P;
+  }
+
   function create(canvas) {
     var ctx = canvas.getContext("2d");
     var level = null, blocks = null;
@@ -23,28 +94,22 @@
     var tile = 32, ox = 0, oy = 0, dpr = 1;
     var pal = null;
 
+    /* The theme is stamped on the .tk root and the palette re-read from
+       it. Canvas cannot use var(), but getComputedStyle can — so the
+       colours stay in CSS where the rest of the game art lives, and a
+       new look is a CSS block rather than a JS registry that has to be
+       kept in sync with one (docs/tanks.md, "Per-level art"). */
+    function applyTheme() {
+      var root = document.querySelector(".tk");
+      var t = (level && level.theme) || "cork";
+      if (root && root.getAttribute("data-tk-theme") !== t) {
+        root.setAttribute("data-tk-theme", t);
+        pal = null;                       // colours changed under us
+      }
+      if (window.TanksArt) window.TanksArt.useTheme(t);
+    }
     function palette() {
-      if (pal) return pal;
-      var cs = getComputedStyle(document.querySelector(".tk") || document.body);
-      function c(name, fb) { var v = cs.getPropertyValue(name).trim(); return v || fb; }
-      pal = {
-        floorA: c("--tk-floor-a", "#d9c893"),
-        floorB: c("--tk-floor-b", "#d2c084"),
-        seam: c("--tk-seam", "rgba(90,70,40,0.16)"),
-        wall: c("--tk-wall", "#8a7757"),
-        wallTop: c("--tk-wall-top", "#a08c68"),
-        block: c("--tk-block", "#b98a4e"),
-        blockTop: c("--tk-block-top", "#cda05f"),
-        enemy: c("--tk-enemy1", "#a3562c"),
-        enemyDark: c("--tk-enemy1-dark", "#77401f"),
-        track: c("--tk-track", "rgba(30,24,16,0.55)"),
-        bullet: c("--tk-bullet", "#2e2820"),
-        mine: c("--tk-mine", "#3a332a"),
-        mineArm: c("--tk-mine-arm", "#d8442e"),
-        boom: c("--tk-boom", "#e0862f"),
-        aim: c("--tk-aim", "rgba(40,90,160,0.55)"),
-        scorch: c("--tk-scorch", "rgba(40,30,20,0.35)")
-      };
+      if (!pal) pal = readPalette();
       return pal;
     }
 
@@ -66,6 +131,14 @@
     function px(wx) { return ox + wx * tile; }
     function py(wy) { return oy + wy * tile; }
 
+    /* A theme's tile art, or null to fall back to its colours. Every
+       cell asks; art.js answers from whatever has actually landed, so
+       a half-drawn theme renders half-drawn rather than not at all. */
+    function art(name, x, y) {
+      var A = window.TanksArt;
+      if (!A || !A.tile) return null;
+      return A.tile((level && level.theme) || "cork", name, x, y);
+    }
     function paintStatic() {
       var P = palette();
       staticCv.width = canvas.width; staticCv.height = canvas.height;
@@ -76,16 +149,17 @@
           var ch = level.cells[y][x];
           var X = px(x), Y = py(y);
           // cork-board floor under everything, visible seams (on-style)
-          s.fillStyle = (x + y) % 2 ? P.floorA : P.floorB;
-          s.fillRect(X, Y, tile, tile);
-          s.strokeStyle = P.seam;
-          s.lineWidth = 1;
-          s.strokeRect(X + 0.5, Y + 0.5, tile - 1, tile - 1);
+          var fi = art("tile-floor", x, y);
+          if (fi) s.drawImage(fi, X, Y, tile, tile);
+          else drawFloor(s, X, Y, tile, P, (x + y) % 2);
           if (ch === "#") {
-            s.fillStyle = P.wall;
-            s.fillRect(X, Y, tile, tile);
-            s.fillStyle = P.wallTop;
-            s.fillRect(X + 1, Y + 1, tile - 2, Math.max(2, tile * 0.22));
+            var wi = art("tile-wall", x, y);
+            if (wi) s.drawImage(wi, X, Y, tile, tile);
+            else drawWall(s, X, Y, tile, P);
+          } else if (ch === "o") {
+            var hi = art("tile-hole", x, y);
+            if (hi) s.drawImage(hi, X, Y, tile, tile);
+            else drawHole(s, X, Y, tile, P);
           }
         }
       }
@@ -150,10 +224,9 @@
         for (var x = 0; x < level.w; x++) {
           if (level.cells[y][x] !== "=" || !blocks || blocks[y * level.w + x] !== 1) continue;
           var X = px(x), Y = py(y);
-          ctx.fillStyle = P.block;
-          ctx.fillRect(X + 1, Y + 1, tile - 2, tile - 2);
-          ctx.fillStyle = P.blockTop;
-          ctx.fillRect(X + 2, Y + 2, tile - 4, Math.max(2, tile * 0.2));
+          var bi = art("tile-block", x, y);
+          if (bi) ctx.drawImage(bi, X, Y, tile, tile);
+          else drawBlock(ctx, X, Y, tile, P);
         }
       }
       // mines under the hulls
@@ -189,7 +262,13 @@
         if (tk.seat != null) {
           color = (seatColors && seatColors[tk.seat]) || "#888";
           dark = shade(color, 0.62);
-        } else { color = P.enemy; dark = P.enemyDark; }
+        } else {
+          // enemy livery comes from the TYPE REGISTRY, so a new type is
+          // visible the moment it exists — no renderer edit, no CSS edit
+          var ty = window.TanksEngine.ENEMY_TYPES[tk.type];
+          color = (ty && ty.art) || P.enemy;
+          dark = shade(color, 0.62);
+        }
         drawTank(tk, color, dark);
       });
       (scene.bullets || []).forEach(function (b) {
@@ -214,7 +293,11 @@
     }
 
     return {
-      setLevel: function (lv, blk) { level = lv; blocks = blk; staticDirty = true; resize(); },
+      setLevel: function (lv, blk) {
+        level = lv; blocks = blk; staticDirty = true;
+        applyTheme();                     // before resize: it may drop `pal`
+        resize();
+      },
       setBlocks: function (blk) { blocks = blk; },
       resize: function () { resize(); staticDirty = true; },
       draw: draw,
@@ -244,5 +327,30 @@
     r.draw(scene, seatColors || []);
   }
 
-  window.TanksRender = { create: create, preview: preview };
+  /* ── theme-pack templates (docs/tanks.md, "Per-level art") ──────
+     Render one tile at display size from a theme's colours, using the
+     SAME primitives the game draws with. The designer packs these into
+     a zip so a new theme starts as something to paint over rather than
+     a blank canvas — which is also why walls and blocks are drawn on
+     top of their floor here: the template is a complete, opaque tile,
+     and he can erase back to transparency if he wants the floor to
+     show through. */
+  var TILE_KINDS = ["tile-floor", "tile-floor-1", "tile-floor-2", "tile-floor-3",
+                    "tile-wall", "tile-block", "tile-hole"];
+  function tileTemplate(kind, size, theme) {
+    var cv = document.createElement("canvas");
+    cv.width = cv.height = size || 64;
+    var c = cv.getContext("2d"), s = cv.width, P = paletteFor(theme);
+    if (kind.indexOf("tile-floor") === 0) { drawFloor(c, 0, 0, s, P, false); return cv; }
+    drawFloor(c, 0, 0, s, P, false);
+    if (kind === "tile-wall") drawWall(c, 0, 0, s, P);
+    else if (kind === "tile-block") drawBlock(c, 0, 0, s, P);
+    else if (kind === "tile-hole") { c.clearRect(0, 0, s, s); drawHole(c, 0, 0, s, P); }
+    return cv;
+  }
+
+  window.TanksRender = {
+    create: create, preview: preview,
+    TILE_KINDS: TILE_KINDS, tileTemplate: tileTemplate, paletteFor: paletteFor
+  };
 })();

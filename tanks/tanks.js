@@ -325,17 +325,26 @@
       if (!(model && model.game && model.game.aimLine)) scene.aim = null;
       RENDER.draw(scene, seatColors());
     }
+    sendInput(now, inp);
     hudTick(now);
     requestAnimationFrame(loop);
   }
 
-  /* input → table at 20 Hz; fire/mine latches are consumed here so a
-     click between packets is never lost */
-  setInterval(function () {
-    if (!model || model.phase !== "playing" || mySeat() == null) return;
+  /* input → table: a 20 Hz heartbeat, but EVERY press and release goes
+     out on the frame it happened. Waiting out the interval meant the
+     server drove you for up to 50 ms after you let go, and that stale
+     motion came back as the hull coasting past the stop (docs/tanks.md,
+     "Feel"). `q` is the local sim step the input belongs to — net.js's
+     seq-replay reconciliation is what reads it back. */
+  var lastSend = 0, lastDrive = -1;
+  function sendInput(now, inp) {
+    if (!model || model.phase !== "playing" || mySeat() == null || !inp) return;
+    var d = inp.d | 0;
+    if (!(d !== lastDrive || INPUT.pending() || now - lastSend >= 50)) return;
+    lastSend = now; lastDrive = d;
     var lm = INPUT.consume();
-    send({ type: "input", d: INPUT.drive(), a: lastAim, f: lm.f, m: lm.m });
-  }, 50);
+    send({ type: "input", d: d, a: lastAim, f: lm.f, m: lm.m, q: NET.seq() });
+  }
 
   TBL.boot();
 })();

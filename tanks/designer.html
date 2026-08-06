@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<!-- Pinned to Moonlight + Ocean rather than reading the site's saved
+     appearance: this is a private tool with one intended look, and
+     controls.js only APPLIES an axis from inside buildMenu(), which
+     no-ops here (no [data-settings] mount). So the attributes below
+     stand and the script is loaded purely for the injected ocean
+     layer — the wave trains are its geometry, and copying them here
+     would be exactly the duplication the house rules forbid. -->
+<html lang="en" data-theme="moonlight" data-skin="ocean">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Tanks level designer</title>
+<link rel="stylesheet" href="../styles/chrome.css">
+<link rel="stylesheet" href="tanks.css">
+<!--
+  DeetsTanks — THE LEVEL DESIGNER (docs/tanks.md, "The level designer").
+
+  An unlisted dev page: not in the nav, not linked, no build step, no
+  dependency, same spirit as the untracked design-matrix.html. One page
+  that reads and writes the plain-text level format and nothing else —
+  a level typed in Notepad opens here, and a level built here opens in
+  Notepad.
+
+  THE RULE THAT KEEPS IT HONEST: this page imports the REAL engine.js
+  and the REAL render.js. The grid you paint on is the game's own
+  renderer, and every validation message comes from the engine's own
+  validateLevel. WYSIWYG is therefore structural — the editor CANNOT
+  drift from the game, which is the failure that kills most homemade
+  level editors inside a month.
+
+  Two things are generated from registries rather than written here:
+    - the terrain + enemy palette, from engine.js ENEMY_TYPES
+    - the whole tuning panel, from engine.js TUNE_SPEC
+  Add an enemy or a knob to the engine and it appears here by itself.
+
+  Copy note: the labels below are inline on purpose. strings.js governs
+  user-facing product copy; this is a private dev tool that ships no
+  copy, exactly as design-matrix.html does.
+-->
+<style>
+  /* z-index 1: the injected .ocean layer sits at 0, fixed behind everything */
+  .dz { max-width: 1180px; margin: 0 auto; padding: var(--space-5) var(--space-4);
+        position: relative; z-index: 1; }
+  .dz__title { font-family: var(--font-title); font-weight: var(--fw-title);
+               font-size: var(--fs-title); color: var(--title); letter-spacing: 0.06em;
+               text-transform: uppercase; margin: 0 0 var(--space-4); }
+  .dz__title small { display: block; font-family: var(--font-body); font-size: 0.78rem;
+                     letter-spacing: 0; text-transform: none; color: var(--subtext);
+                     font-weight: 400; margin-top: 0.2rem; }
+  .dz__bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center;
+             margin-bottom: var(--space-4); padding: var(--space-3);
+             background: var(--card); border: 1px solid var(--panel-border);
+             border-radius: var(--radius-card); }
+  .dz select { background: var(--surface); color: var(--text);
+               border: 1px solid var(--border); border-radius: var(--radius-control);
+               padding: 0.3rem 0.5rem; font: inherit; font-size: 0.86rem; }
+  .dz__sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 var(--space-1); }
+  .dz__dirty { color: var(--title); font-size: 0.76rem; }
+  .dz__save { margin-top: var(--space-2); font-size: 0.78rem; color: var(--subtext); }
+  .dz__save code { font-family: ui-monospace, monospace; color: var(--text); }
+  .dz__bar label { color: var(--subtext); font-size: 0.82rem; }
+  .dz input[type="text"], .dz input[type="number"] {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-control);
+    padding: 0.3rem 0.5rem; font: inherit; font-size: 0.86rem;
+  }
+  .dz__grow { flex: 1 1 auto; }
+
+  .dz__main { display: grid; grid-template-columns: 172px minmax(0, 1fr) 236px;
+              gap: var(--space-4); align-items: start; }
+  .dz__rail h2 { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--subtext);
+                 margin: 0 0 var(--space-2); font-weight: 400; text-transform: lowercase; }
+  .dz__rail + .dz__rail, .dz__group + .dz__group { margin-top: var(--space-4); }
+
+  .dz-chip { display: flex; align-items: center; gap: 0.5rem; width: 100%;
+             padding: 0.28rem 0.45rem; margin-bottom: 3px; cursor: pointer;
+             background: transparent; color: var(--text); font: inherit; font-size: 0.82rem;
+             border: 1px solid transparent; border-radius: var(--radius-control); text-align: left; }
+  .dz-chip:hover { background: var(--surface-hover); }
+  .dz-chip.is-on { border-color: var(--title); color: var(--title); background: var(--surface-hover); }
+  .dz-chip__sw { width: 13px; height: 13px; border-radius: 3px; flex: none; }
+  .dz-chip.is-stub .dz-chip__sw { outline: 1px dashed var(--subtext); outline-offset: 1px; }
+  .dz-chip__key { margin-left: auto; color: var(--subtext); font-size: 0.72rem;
+                  font-family: ui-monospace, monospace; }
+  .dz-chip.is-stub .dz-chip__key::after { content: " slot"; }
+
+  .dz__stage { border: 1px solid var(--panel-border); border-radius: var(--radius-panel);
+               overflow: hidden; background: var(--canvas); }
+  .dz__cv { display: block; width: 100%; aspect-ratio: 20 / 12; cursor: crosshair; }
+  .dz__under { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4);
+               margin-top: var(--space-2); font-size: 0.78rem; color: var(--subtext); }
+
+  .dz-flag { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem;
+             border-radius: var(--radius-control); font-size: 0.76rem;
+             border: 1px solid var(--border); }
+  /* Moonlight's lights are monochrome by design (themes.css), so severity
+     cannot ride color here — each flag carries its own glyph. */
+  .dz-flag::before { font-family: ui-monospace, monospace; opacity: 0.8; }
+  .dz-flag.is-bad { border-color: var(--stop); color: var(--stop); }
+  .dz-flag.is-bad::before { content: "✕"; }
+  .dz-flag.is-warn { border-color: var(--pause); color: var(--pause); }
+  .dz-flag.is-warn::before { content: "!"; }
+  .dz-flag.is-ok { color: var(--subtext); }
+  .dz-flag.is-ok::before { content: "✓"; }
+
+  .dz-tune { display: grid; grid-template-columns: 1fr 64px; gap: 4px 6px; align-items: center; }
+  .dz-tune label { font-size: 0.78rem; color: var(--text); }
+  .dz-tune label span { color: var(--subtext); font-size: 0.68rem; }
+  .dz-tune input { width: 100%; }
+  .dz-tune input.is-set { border-color: var(--title); color: var(--title); }
+
+  .dz__text { width: 100%; min-height: 200px; margin-top: var(--space-4);
+              background: var(--surface); color: var(--text); border: 1px solid var(--border);
+              border-radius: var(--radius-control); padding: var(--space-3);
+              font-family: ui-monospace, monospace; font-size: 0.8rem; line-height: 1.45;
+              white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+  .dz__note { color: var(--subtext); font-size: 0.76rem; margin: var(--space-2) 0 0; }
+  .dz.is-playing .dz__cv { cursor: none; }
+</style>
+</head>
+<body>
+<div class="tk dz" data-dz>
+
+  <h1 class="dz__title">Tanks level designer
+    <small>Unlisted dev tool. The campaign is <code>tanks/levels/*.txt</code>;
+      filename order is level order.</small></h1>
+
+  <div class="dz__bar">
+    <label for="dzPick">level</label>
+    <select id="dzPick"></select>
+    <label for="dzSlot">#</label>
+    <input type="number" id="dzSlot" value="0" min="0" max="98" style="width:3.4rem">
+    <span class="dz__dirty" id="dzDirty"></span>
+    <span class="dz__sep"></span>
+    <label for="dzName">title</label>
+    <input type="text" id="dzName" value="Untitled" size="16">
+    <label for="dzTier">tier</label>
+    <input type="number" id="dzTier" value="0" min="0" max="99" style="width:3.4rem">
+    <label for="dzTheme">art</label>
+    <input type="text" id="dzTheme" value="cork" size="7" list="dzThemes">
+    <datalist id="dzThemes"></datalist>
+    <button class="tb-pill" type="button" id="dzPack"><span class="tb-pill__label">tile pack</span></button>
+    <label for="dzW">size</label>
+    <input type="number" id="dzW" value="20" min="5" max="40" style="width:3.4rem">
+    <input type="number" id="dzH" value="12" min="5" max="30" style="width:3.4rem">
+    <span class="dz__grow"></span>
+    <button class="tb-pill" type="button" id="dzRevert"><span class="tb-pill__label">revert</span></button>
+    <button class="tb-pill" type="button" id="dzCopy"><span class="tb-pill__label">copy</span></button>
+    <button class="tb-pill" type="button" id="dzDl"><span class="tb-pill__label">save</span></button>
+    <button class="tb-pill" type="button" id="dzPlay"><span class="tb-pill__label">play-test</span></button>
+  </div>
+
+  <div class="dz__main">
+    <div>
+      <div class="dz__rail">
+        <h2>terrain</h2>
+        <div id="dzTerr"></div>
+      </div>
+      <div class="dz__rail">
+        <h2>enemies</h2>
+        <div id="dzFoes"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="dz__stage"><canvas class="dz__cv" id="dzCv"></canvas></div>
+      <div class="dz__under" id="dzStats"></div>
+      <div class="dz__under" id="dzFlags"></div>
+      <textarea class="dz__text" id="dzText" spellcheck="false"
+                aria-label="Level source"></textarea>
+      <p class="dz__note">Drag to paint, right-click to erase. Edit the text
+        directly and it loads back — the file is the only format.</p>
+      <p class="dz__save" id="dzSave"></p>
+    </div>
+
+    <div>
+      <div class="dz__rail">
+        <h2>tuning</h2>
+        <select id="dzScope" style="width:100%"></select>
+        <div class="dz-tune" id="dzTune" style="margin-top:var(--space-2)"></div>
+        <p class="dz__note">Blank = inherited. Values are live during
+          play-test, and every one of them lands in the level file.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script src="levels.js"></script>
+<script src="art.js"></script>
+<script src="render.js"></script>
+<script src="input.js"></script>
+<script src="../js/controls.js"></script>
+<script>
+(function () {
+  "use strict";
+  var E = window.TanksEngine;
+
+  /* ── state. `rows` is the RAW grid (spawns and digits still in it);
+     everything else derives. The composed text is the only artefact —
+     nothing is stored that cannot be typed into the file by hand. ── */
+  var st = { name: "Untitled", tier: 0, theme: "cork", rows: [], over: {} };
+
+  /* Art themes are CSS blocks in tanks.css, so there is no registry to
+     read — the field is free text and these are only suggestions. Add
+     a block there, type its name here, and it renders. */
+  var THEME_HINTS = ["cork", "snow", "dusk", "rust"];
+  var sel = ".";
+  var level = null, blocks = null, problems = [];
+  var game = null, raf = 0;                      // play-test
+
+  /* ── the campaign ────────────────────────────────────────────────
+     THE NUMBER IS THE FILENAME. `levels.js` is generated from
+     tanks/levels/*.txt in sorted order, so the slot a level occupies
+     and the file it lives in are the same fact — storing a second
+     `number` field inside the file would be two sources of truth for
+     one thing, and they would disagree the first time one was renamed.
+     So: slot drives the filename, the `name` line is the title.
+
+     A browser cannot write into the repo, so "save" downloads the file
+     under its correct name and the round trip closes by hand:
+       tanks/levels/NN.txt  ->  python scripts/build-tanks-levels.py  */
+  var CAMPAIGN = window.TANKS_LEVELS || [];
+  var slot = 0;
+  function titleOf(src) {
+    var m = String(src).match(/^\s*name\s+(.*)$/m);
+    return (m && m[1].trim()) || "untitled";
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function fileName() { return pad(slot) + ".txt"; }
+  function isCampaign() { return slot < CAMPAIGN.length; }
+  // has this slot drifted from what is committed? Normalised, because a
+  // BOM or a CRLF from a hand-edited file is not an edit to the level.
+  function norm(s) {
+    return String(s).replace(/^﻿/, "").replace(/\r\n/g, "\n").replace(/\s+$/, "");
+  }
+  function dirty() {
+    if (!isCampaign()) return true;
+    return norm(compose()) !== norm(CAMPAIGN[slot]);
+  }
+
+  var TERRAIN = [
+    { c: ".", n: "floor", art: "#d9c893" },
+    { c: "#", n: "wall", art: "#8a7757" },
+    { c: "=", n: "block", art: "#b98a4e" },
+    { c: "o", n: "hole", art: "#4a4034" },
+    { c: "P", n: "spawn", art: "#3d7fd6" }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var CV = $("dzCv");
+  var R = window.TanksRender.create(CV);
+  var IN = window.TanksInput.create(CV);
+
+  /* ── the file IS the format: compose and parse the same text ───── */
+  function compose() {
+    var out = "name  " + st.name + "\ntier  " + st.tier + "\n";
+    if (st.theme && st.theme !== "cork") out += "theme " + st.theme + "\n";
+    var lines = [];
+    Object.keys(st.over).forEach(function (scope) {
+      Object.keys(st.over[scope]).forEach(function (k) {
+        lines.push("  " + (scope ? scope + "." : "") + k + " " + st.over[scope][k]);
+      });
+    });
+    if (lines.length) out += "\ntune\n" + lines.sort().join("\n") + "\n";
+    return out + "\ngrid\n" + st.rows.join("\n") + "\n";
+  }
+  function loadText(text) {
+    var rows = [], over = {}, name = "Untitled", tier = 0, theme = "cork", mode = "";
+    String(text).split(/\r?\n/).forEach(function (raw) {
+      var line = raw.replace(/\s+$/, "");
+      if (mode === "grid") { if (line.length) rows.push(line); return; }
+      var t = line.trim();
+      if (!t) return;
+      if (t === "grid") { mode = "grid"; return; }
+      if (t === "tune") { mode = "tune"; return; }
+      if (mode === "tune") {
+        var tm = t.match(/^(\S+)\s+(\S+)$/);
+        if (!tm) return;
+        var k = E.tuneKey(tm[1]);
+        if (!k) return;
+        (over[k.scope] = over[k.scope] || {})[k.key] = +tm[2];
+        return;
+      }
+      var m = t.match(/^(name|tier|theme)\s+(.*)$/);
+      if (m) {
+        if (m[1] === "name") name = m[2];
+        else if (m[1] === "theme") theme = m[2].trim().toLowerCase();
+        else tier = m[2] | 0;
+      }
+    });
+    if (!rows.length) return false;
+    // square it off rather than refusing — a ragged paste is still work
+    var w = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+    rows = rows.map(function (r) { return (r + new Array(w + 1).join(".")).slice(0, w); });
+    st = { name: name, tier: tier, theme: theme, rows: rows, over: over };
+    $("dzName").value = name; $("dzTier").value = tier; $("dzTheme").value = theme;
+    $("dzW").value = w; $("dzH").value = rows.length;
+    return true;
+  }
+
+  /* ── the grid ──────────────────────────────────────────────────── */
+  function blank(w, h) {
+    var rows = [];
+    for (var y = 0; y < h; y++) {
+      var r = "";
+      for (var x = 0; x < w; x++) {
+        r += (x === 0 || y === 0 || x === w - 1 || y === h - 1) ? "#" : ".";
+      }
+      rows.push(r);
+    }
+    rows[1] = setAt(rows[1], 1, "P");
+    rows[2] = setAt(rows[2], 1, "P");
+    rows[h - 2] = setAt(rows[h - 2], w - 2, "1");
+    return rows;
+  }
+  function setAt(row, i, ch) { return row.slice(0, i) + ch + row.slice(i + 1); }
+
+  function resize(w, h) {
+    var rows = [];
+    for (var y = 0; y < h; y++) {
+      var src = st.rows[y] || "";
+      var r = "";
+      for (var x = 0; x < w; x++) r += src[x] || ".";
+      rows.push(r);
+    }
+    // the border is always wall — an open border is never a level, and
+    // silently fixing it beats reporting it on every resize
+    for (var x2 = 0; x2 < w; x2++) {
+      rows[0] = setAt(rows[0], x2, "#");
+      rows[h - 1] = setAt(rows[h - 1], x2, "#");
+    }
+    for (var y2 = 0; y2 < h; y2++) {
+      rows[y2] = setAt(rows[y2], 0, "#");
+      rows[y2] = setAt(rows[y2], w - 1, "#");
+    }
+    st.rows = rows;
+    CV.style.aspectRatio = w + " / " + h;
+  }
+
+  function paintCell(x, y, erase) {
+    if (y < 0 || y >= st.rows.length || x < 0 || x >= st.rows[0].length) return;
+    var ch = erase ? "." : sel;
+    if (st.rows[y][x] === ch) return;
+    st.rows[y] = setAt(st.rows[y], x, ch);
+    sync();
+  }
+
+  /* ── render: the GAME's renderer, on the level as parsed by the
+     GAME's parser. Nothing here approximates anything. ──────────── */
+  function sync(fromText) {
+    if (!fromText) $("dzText").value = compose();
+    try {
+      level = E.parseLevel(compose());
+    } catch (e) {
+      level = null;
+      flags([{ bad: true, t: e.message }]);
+      return;
+    }
+    blocks = [];
+    for (var y = 0; y < level.h; y++)
+      for (var x = 0; x < level.w; x++)
+        blocks.push(level.cells[y][x] === "=" ? 1 : 0);
+    problems = E.validateLevel(level);
+    CV.style.aspectRatio = level.w + " / " + level.h;
+    R.setLevel(level, blocks);
+    if (!game) drawEdit();
+    stats(); flags(null); tunePanel(); campaignBar();
+  }
+
+  /* ── the campaign bar: picker, slot, dirty mark, save instruction ── */
+  function picker() {
+    var sc = $("dzPick");
+    sc.textContent = "";
+    CAMPAIGN.forEach(function (src, i) {
+      var o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = i + " · " + titleOf(src);
+      sc.appendChild(o);
+    });
+    var n = document.createElement("option");
+    n.value = "new";
+    n.textContent = "+ new level " + CAMPAIGN.length;
+    sc.appendChild(n);
+    sc.value = isCampaign() ? String(slot) : "new";
+  }
+  function campaignBar() {
+    $("dzSlot").value = slot;
+    var d = dirty();
+    $("dzDirty").textContent = isCampaign() ? (d ? "edited" : "saved") : "new";
+    var save = $("dzSave");
+    save.textContent = "";
+    save.appendChild(document.createTextNode("Save writes "));
+    var f = document.createElement("code");
+    f.textContent = "tanks/levels/" + fileName();
+    save.appendChild(f);
+    save.appendChild(document.createTextNode(
+      isCampaign() ? " — overwrite it, then " : " — drop it in, then "));
+    var c = document.createElement("code");
+    c.textContent = "python scripts/build-tanks-levels.py";
+    save.appendChild(c);
+    $("dzRevert").style.display = (isCampaign() && d) ? "" : "none";
+  }
+  function openSlot(n) {
+    slot = n;
+    if (isCampaign()) loadText(CAMPAIGN[n]);
+    else { st = { name: "Untitled", tier: 0, theme: "cork", rows: blank(20, 12), over: {} };
+           $("dzName").value = st.name; $("dzTier").value = 0; $("dzTheme").value = "cork";
+           $("dzW").value = 20; $("dzH").value = 12; }
+    picker(); sync();
+  }
+
+  function drawEdit() {
+    var scene = { tanks: [], bullets: [], mines: [], effects: [], aim: null };
+    level.spawns.forEach(function (s, i) {
+      scene.tanks.push({ x: s.x, y: s.y, h: 1, tr: E.dirAngle(1), al: 1, seat: i });
+    });
+    level.enemies.forEach(function (e) {
+      scene.tanks.push({ x: e.x, y: e.y, h: 5, tr: E.dirAngle(5), al: 1,
+                         seat: null, type: e.type });
+    });
+    R.draw(scene, ["#3d7fd6", "#c8a326"]);
+  }
+
+  function stats() {
+    var el = $("dzStats");
+    el.textContent = "";
+    var bits = [level.w + " × " + level.h,
+                level.spawns.length + " spawns",
+                level.enemies.length + " enemies",
+                "tier " + level.tier];
+    bits.forEach(function (b) {
+      var s = document.createElement("span"); s.textContent = b; el.appendChild(s);
+    });
+  }
+
+  function flags(custom) {
+    var el = $("dzFlags");
+    el.textContent = "";
+    var list = custom;
+    if (!list) {
+      list = problems.map(function (p) { return { bad: true, t: p }; });
+      // a slot enemy is placeable and exportable — a note, never a block
+      var stubs = {};
+      level.enemies.forEach(function (e) {
+        var ty = E.ENEMY_TYPES[e.type];
+        if (ty && ty.stub) stubs[ty.name] = 1;
+      });
+      Object.keys(stubs).forEach(function (n) {
+        list.push({ warn: true, t: n + " has no behaviour yet" });
+      });
+      if (!list.length) list = [{ ok: true, t: "valid" }];
+    }
+    list.forEach(function (f) {
+      var s = document.createElement("span");
+      s.className = "dz-flag " + (f.bad ? "is-bad" : f.warn ? "is-warn" : "is-ok");
+      s.textContent = f.t;
+      el.appendChild(s);
+    });
+  }
+
+  /* ── the palettes, GENERATED from the registries ───────────────── */
+  function chip(o, key, stub) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "dz-chip" + (stub ? " is-stub" : "") + (sel === key ? " is-on" : "");
+    var sw = document.createElement("span");
+    sw.className = "dz-chip__sw";
+    sw.style.background = o.art || "#888";
+    b.appendChild(sw);
+    var n = document.createElement("span");
+    n.textContent = o.n || o.name;
+    b.appendChild(n);
+    var k = document.createElement("span");
+    k.className = "dz-chip__key";
+    k.textContent = stub ? "" : key;
+    b.appendChild(k);
+    b.addEventListener("click", function () { sel = key; palettes(); });
+    return b;
+  }
+  function palettes() {
+    var t = $("dzTerr"), f = $("dzFoes");
+    t.textContent = ""; f.textContent = "";
+    TERRAIN.forEach(function (o) { t.appendChild(chip(o, o.c, false)); });
+    Object.keys(E.ENEMY_TYPES).forEach(function (d) {
+      var ty = E.ENEMY_TYPES[d];
+      f.appendChild(chip(ty, d, !!ty.stub));
+    });
+  }
+
+  /* ── the tuning panel, GENERATED from TUNE_SPEC ────────────────── */
+  function scopes() {
+    var out = [["", "global"], ["player", "player"]];
+    Object.keys(E.ENEMY_TYPES).forEach(function (d) {
+      out.push(["enemy" + d, E.ENEMY_TYPES[d].name.toLowerCase()]);
+    });
+    return out;
+  }
+  function keysFor(scope) {
+    return Object.keys(E.TUNE_SPEC).filter(function (k) {
+      var s = E.TUNE_SPEC[k][4];
+      if (!scope) return true;                      // global sees everything
+      if (scope === "player") return s === "a";
+      return s === "a" || s === "e";                // an enemy scope adds the AI keys
+    });
+  }
+  /* what this key resolves to today, in HUMAN units — the same
+     precedence the engine uses: default < global < enemy type < scope */
+  function effective(scope, k) {
+    var v = (st.over[""] || {})[k];
+    if (v == null) v = E.TUNE_SPEC[k][0];
+    var m = /^enemy([1-9])$/.exec(scope);
+    if (m && E.ENEMY_TYPES[m[1]] && E.ENEMY_TYPES[m[1]][k] != null) v = E.ENEMY_TYPES[m[1]][k];
+    var own = (st.over[scope] || {})[k];
+    if (own != null) v = own;
+    return v;
+  }
+  function tunePanel() {
+    var scope = $("dzScope").value;
+    var box = $("dzTune");
+    box.textContent = "";
+    keysFor(scope).forEach(function (k) {
+      var spec = E.TUNE_SPEC[k];
+      var set = (st.over[scope] || {})[k] != null;
+      var lab = document.createElement("label");
+      lab.setAttribute("for", "tn_" + k);
+      lab.textContent = k;
+      if (spec[3]) {
+        var u = document.createElement("span");
+        u.textContent = " " + spec[3];
+        lab.appendChild(u);
+      }
+      var inp = document.createElement("input");
+      inp.type = "number"; inp.id = "tn_" + k;
+      inp.min = spec[1]; inp.max = spec[2];
+      inp.step = (spec[2] - spec[1]) > 20 ? 1 : 0.05;
+      inp.value = set ? st.over[scope][k] : "";
+      inp.placeholder = String(Math.round(effective(scope, k) * 1000) / 1000);
+      inp.title = k + " — default " + spec[0] + ", range " + spec[1] + "–" + spec[2] +
+                  (spec[3] ? " " + spec[3] : "");
+      if (set) inp.className = "is-set";
+      inp.addEventListener("input", function () {
+        var raw = inp.value.trim();
+        st.over[scope] = st.over[scope] || {};
+        if (raw === "") delete st.over[scope][k];
+        else st.over[scope][k] = E.clampTune(k, +raw);
+        if (!Object.keys(st.over[scope]).length) delete st.over[scope];
+        $("dzText").value = compose();
+        applyTuneLive();
+        if (!game) sync();
+      });
+      box.appendChild(lab); box.appendChild(inp);
+    });
+  }
+  /* the point of the whole panel: a knob moved MID-PLAY takes effect on
+     the next tick, so tuning is felt rather than guessed at */
+  function applyTuneLive() {
+    if (!game) return;
+    try { game.level.tune = E.resolveTune(st.over); } catch (e) { /* mid-typing */ }
+  }
+
+  /* ── play-test: the real engine, locally, at 60 Hz ──────────────
+     DELIBERATELY not the mock: no lobby, no netcode, no latency. This
+     is the feel-and-tune loop, and it wants zero ceremony between a
+     keystroke and the result. The netcode is exercised by the game
+     itself at /tanks/, which is where it belongs. ─────────────────── */
+  function play() {
+    if (game) return stop();
+    if (problems.length) { flags([{ bad: true, t: "fix the level first" }]); return; }
+    try {
+      game = E.createGame({ levels: [compose()], seats: 1,
+        settings: { lives: 3, aimLine: true, friendlyFire: false },
+        seed: 1234 }, { rand: Math.random });
+    } catch (e) { flags([{ bad: true, t: e.message }]); return; }
+    delete game._boot;
+    document.querySelector("[data-dz]").classList.add("is-playing");
+    $("dzPlay").querySelector(".tb-pill__label").textContent = "stop";
+    IN.setEnabled(true);
+    var acc = 0, last = 0;
+    raf = requestAnimationFrame(function loop(now) {
+      if (!game) return;
+      if (!last) last = now;
+      acc += Math.min(100, now - last); last = now;
+      var me = game.tanks[0];
+      var aim = me ? aimAt(me) : 0;
+      while (acc >= 1000 / E.TICK_HZ) {
+        acc -= 1000 / E.TICK_HZ;
+        var lm = IN.consume();
+        E.step(game, { 0: { d: IN.drive(), a: aim, f: lm.f, m: lm.m } });
+      }
+      drawPlay();
+      if (game.phase !== "playing") {         // cleared or wiped — say so, don't just freeze
+        var won = game.result === "cleared";
+        drawPlay();
+        stop();
+        flags([{ ok: won, warn: !won, t: won ? "cleared" : "destroyed" }]);
+        return;
+      }
+      raf = requestAnimationFrame(loop);
+    });
+  }
+  function aimAt(me) {
+    if (!IN.mouse.in) return me.turret;
+    var w = R.toWorld(IN.mouse.x, IN.mouse.y);
+    return Math.atan2(w.y - me.y, w.x - me.x);
+  }
+  function drawPlay() {
+    R.setBlocks(game.blocks);
+    R.draw({
+      tanks: game.tanks.map(function (t) {
+        return { x: t.x, y: t.y, h: t.hull, tr: t.turret,
+                 al: t.alive ? 1 : 0, seat: t.seat, type: t.type };
+      }),
+      bullets: game.bullets, mines: game.mines.map(function (m) {
+        return { x: m.x, y: m.y, a: game.tick - m.born >= game.level.tune.global.mineArm ? 1 : 0 };
+      }),
+      effects: [], aim: null
+    }, ["#3d7fd6", "#c8a326"]);
+  }
+  function stop() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0; game = null;
+    IN.setEnabled(false);
+    document.querySelector("[data-dz]").classList.remove("is-playing");
+    $("dzPlay").querySelector(".tb-pill__label").textContent = "play-test";
+    sync();
+  }
+
+  /* ═══ THE TILE PACK ═════════════════════════════════════════════
+     "New theme" starts as a COPY OF THE CORK PACK under the new name.
+     Cork is the reference set — real PNGs in the repo, generated once
+     by scripts/build-tanks-tiles.py — so a new theme begins as seven
+     finished tiles to paint over rather than anything derived on the
+     fly. One authoring path, one set of shapes, and what he opens in
+     Paint is byte-identical to what ships.
+
+     If cork cannot be fetched (the page opened straight off disk, say)
+     it falls back to rendering the templates from the theme's colours
+     with render.js's own primitives. Same filenames either way; the
+     button says which happened.
+
+     Delivered as a ZIP because the alternative is seven separate
+     downloads landing loose in his Downloads folder. No dependency is
+     allowed on this site (CLAUDE.md), so the writer below is a
+     STORE-only zip — no compression, which for seven small PNGs costs
+     nothing and removes any need for a deflate implementation. Entries
+     are named "<theme>/tile-*.png" so the whole archive unzips
+     straight into assets/sprites/tanks/. */
+  var CORK_DIR = "../assets/sprites/tanks/cork/";
+  var CRC_TABLE = (function () {
+    var t = [], c, n, k;
+    for (n = 0; n < 256; n++) {
+      c = n;
+      for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(u8) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function bytes(str) {
+    var u = new Uint8Array(str.length);
+    for (var i = 0; i < str.length; i++) u[i] = str.charCodeAt(i) & 0xFF;
+    return u;
+  }
+  // a canvas' PNG bytes, without the async toBlob dance
+  function pngBytes(cv) {
+    var b64 = cv.toDataURL("image/png").split(",")[1];
+    var bin = atob(b64);
+    var u = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u;
+  }
+  function zip(files) {                    // [{name, data:Uint8Array}]
+    var chunks = [], central = [], offset = 0;
+    function u16(n) { return String.fromCharCode(n & 0xFF, (n >>> 8) & 0xFF); }
+    function u32(n) {
+      return String.fromCharCode(n & 0xFF, (n >>> 8) & 0xFF,
+                                 (n >>> 16) & 0xFF, (n >>> 24) & 0xFF);
+    }
+    files.forEach(function (f) {
+      var crc = crc32(f.data), n = f.data.length;
+      // version 20, no flags, method 0 (store), fixed DOS timestamp
+      var local = "PK\x03\x04" + u16(20) + u16(0) + u16(0) + u16(0) + u16(0x21) +
+                  u32(crc) + u32(n) + u32(n) + u16(f.name.length) + u16(0) + f.name;
+      chunks.push(bytes(local), f.data);
+      central.push("PK\x01\x02" + u16(20) + u16(20) + u16(0) + u16(0) + u16(0) + u16(0x21) +
+                   u32(crc) + u32(n) + u32(n) + u16(f.name.length) +
+                   u16(0) + u16(0) + u16(0) + u16(0) + u32(0) + u32(offset) + f.name);
+      offset += local.length + n;
+    });
+    var dir = central.join("");
+    var end = "PK\x05\x06" + u16(0) + u16(0) + u16(files.length) + u16(files.length) +
+              u32(dir.length) + u32(offset) + u16(0);
+    chunks.push(bytes(dir), bytes(end));
+    return new Blob(chunks, { type: "application/zip" });
+  }
+
+  var PACK_NOTE = [
+    "DeetsTanks tile pack - a copy of the cork set, renamed.",
+    "",
+    "Unzip into  assets/sprites/tanks/  so the folder lands beside the",
+    "README there. The game probes these once, the first time a level",
+    "with  theme <name>  loads. Anything you delete falls back to the",
+    "theme's CSS colours, so a half-finished pack is fine.",
+    "",
+    "  tile-floor.png    the ground",
+    "  tile-floor-1..3   optional variants, picked per cell by position",
+    "  tile-wall.png     indestructible wall",
+    "  tile-block.png    destructible block",
+    "  tile-hole.png     hole - tanks blocked, shells fly over",
+    "",
+    "These are 64x64, which is display size. DO NOT scale them up: a",
+    "16px tile blown up 4x reads at a different apparent resolution",
+    "from the tanks and the eye catches it instantly. Paint at 64.",
+    "",
+    "Walls and blocks are drawn here on top of their floor so each tile",
+    "is complete on its own; erase back to transparency if you want the",
+    "floor showing through.",
+    ""
+  ].join("\r\n");
+
+  function deliver(theme, files, how) {
+    files.push({ name: theme + "/README.txt", data: bytes(PACK_NOTE) });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(zip(files));
+    a.download = theme + "-tiles.zip";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    var lab = $("dzPack").querySelector(".tb-pill__label");
+    lab.textContent = how;
+    setTimeout(function () { lab.textContent = "tile pack"; }, 1800);
+  }
+  // the fallback: no cork on disk, so draw the shapes instead
+  function renderedPack(theme) {
+    var R = window.TanksRender;
+    deliver(theme, R.TILE_KINDS.map(function (kind) {
+      return { name: theme + "/" + kind + ".png",
+               data: pngBytes(R.tileTemplate(kind, 64, theme)) };
+    }), "rendered");
+  }
+  function makePack() {
+    var theme = st.theme || "cork";
+    var kinds = window.TanksRender.TILE_KINDS;
+    if (typeof fetch !== "function") return renderedPack(theme);
+    $("dzPack").querySelector(".tb-pill__label").textContent = "…";
+    Promise.all(kinds.map(function (kind) {
+      return fetch(CORK_DIR + kind + ".png").then(function (r) {
+        if (!r.ok) throw new Error(kind + " " + r.status);
+        return r.arrayBuffer();
+      }).then(function (buf) {
+        return { name: theme + "/" + kind + ".png", data: new Uint8Array(buf) };
+      });
+    })).then(function (files) {
+      deliver(theme, files, "copied cork");
+    })["catch"](function () {
+      renderedPack(theme);
+    });
+  }
+
+  /* ── wiring ────────────────────────────────────────────────────── */
+  var down = false;
+  function cellOf(ev) {
+    var r = CV.getBoundingClientRect();
+    var w = R.toWorld(ev.clientX - r.left, ev.clientY - r.top);
+    return { x: Math.floor(w.x), y: Math.floor(w.y) };
+  }
+  CV.addEventListener("mousedown", function (ev) {
+    if (game) return;
+    ev.preventDefault();
+    down = true;
+    var c = cellOf(ev);
+    paintCell(c.x, c.y, ev.button === 2);
+  });
+  CV.addEventListener("mousemove", function (ev) {
+    if (game || !down) return;
+    var c = cellOf(ev);
+    paintCell(c.x, c.y, (ev.buttons & 2) === 2);
+  });
+  window.addEventListener("mouseup", function () { down = false; });
+  CV.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+
+  $("dzName").addEventListener("input", function () { st.name = this.value; sync(); });
+  $("dzTier").addEventListener("input", function () { st.tier = this.value | 0; sync(); });
+  $("dzTheme").addEventListener("input", function () {
+    st.theme = this.value.trim().toLowerCase() || "cork";
+    sync();                       // render.js restamps the root and re-reads
+  });
+  function onSize() {
+    resize(Math.max(5, $("dzW").value | 0), Math.max(5, $("dzH").value | 0));
+    sync();
+  }
+  $("dzW").addEventListener("change", onSize);
+  $("dzH").addEventListener("change", onSize);
+  $("dzScope").addEventListener("change", tunePanel);
+
+  $("dzPick").addEventListener("change", function () {
+    openSlot(this.value === "new" ? CAMPAIGN.length : this.value | 0);
+  });
+  $("dzSlot").addEventListener("change", function () {
+    slot = Math.max(0, Math.min(98, this.value | 0));
+    picker(); campaignBar();
+  });
+  $("dzRevert").addEventListener("click", function () {
+    if (isCampaign()) openSlot(slot);
+  });
+
+  $("dzText").addEventListener("input", function () {
+    if (loadText(this.value)) sync(true);
+  });
+  // import by drop, the other half of the round trip
+  window.addEventListener("dragover", function (e) { e.preventDefault(); });
+  window.addEventListener("drop", function (e) {
+    e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () { if (loadText(fr.result)) sync(); };
+    fr.readAsText(f);
+  });
+
+  $("dzCopy").addEventListener("click", function () {
+    navigator.clipboard.writeText(compose());
+    this.querySelector(".tb-pill__label").textContent = "copied";
+    var b = this;
+    setTimeout(function () { b.querySelector(".tb-pill__label").textContent = "copy"; }, 1200);
+  });
+  $("dzDl").addEventListener("click", function () {
+    if (problems.length) { flags([{ bad: true, t: "fix the level before saving" }]); return; }
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([compose()], { type: "text/plain" }));
+    a.download = fileName();                 // the slot IS the filename
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $("dzPack").addEventListener("click", makePack);
+  $("dzPlay").addEventListener("click", play);
+  window.addEventListener("resize", function () { R.resize(); if (!game) drawEdit(); });
+
+  // boot
+  var sc = $("dzScope");
+  scopes().forEach(function (s) {
+    var o = document.createElement("option");
+    o.value = s[0]; o.textContent = s[1];
+    sc.appendChild(o);
+  });
+  THEME_HINTS.forEach(function (t) {
+    var o = document.createElement("option");
+    o.value = t;
+    $("dzThemes").appendChild(o);
+  });
+  palettes();
+  openSlot(0);          // land on level 0 — his campaign, not a blank page
+})();
+</script>
+</body>
+</html>
