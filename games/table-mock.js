@@ -85,7 +85,7 @@
           settings: s.settings, seats: s.seats || [], game: s.game || null,
           teamColors: s.teamColors || null,
           log: s.log || [], v: s.v || 1, touched: s.touched || 0,
-          conns: [], timer: null, timerFor: null, turnEndsAt: null, driving: false
+          conns: [], timer: null, timerFor: null, timerBonus: 0, turnEndsAt: null, driving: false
         };
         EXTRA_KEYS.forEach(function (k) { t[k] = s[k] == null ? EXTRA[k]() : s[k]; });
         // legacy saves carried color NAMES ("red"); seats are hex now
@@ -288,7 +288,7 @@
     /* ── the table deadline (the DO's alarm, setTimeout edition) ─── */
     function disarmTimer(t) {
       if (t.timer) { clearTimeout(t.timer); t.timer = null; }
-      t.turnEndsAt = null; t.timerFor = null;
+      t.turnEndsAt = null; t.timerFor = null; t.timerBonus = 0;
     }
     function armTimer(t) {
       var g = t.game;
@@ -297,15 +297,21 @@
       // re-arm only when the obligation itself changed, so unrelated
       // broadcasts don't reset a running countdown (the worker's dlSig rule)
       var sig = spec.dlSig ? spec.dlSig(t) : null;
-      if (t.timer && t.timerFor === sig) return;
+      // ...unless the game granted the SAME obligation more time (cities' trade
+      // bonus). Then the deadline moves by the growth alone — the countdown
+      // stretches, it doesn't start over (games/table-do.js, deadlineBonusMs)
+      var bonus = spec.deadlineBonusMs ? (spec.deadlineBonusMs(t) || 0) : 0;
+      if (t.timer && t.timerFor === sig && bonus === t.timerBonus) return;
       if (t.timer) clearTimeout(t.timer);
+      if (t.timerFor === sig && t.turnEndsAt != null) t.turnEndsAt += bonus - (t.timerBonus || 0);
+      else t.turnEndsAt = now() + ms + bonus;
       t.timerFor = sig;
-      t.turnEndsAt = now() + ms;
+      t.timerBonus = bonus;
       t.timer = setTimeout(function () {
-        t.timer = null; t.turnEndsAt = null; t.timerFor = null;
+        t.timer = null; t.turnEndsAt = null; t.timerFor = null; t.timerBonus = 0;
         var r = applyEngine(t, { type: "timerExpire" });
         if (!r.error) { broadcast(t, r.events); postApply(t); }
-      }, ms);
+      }, Math.max(0, t.turnEndsAt - now()));
     }
 
     /* ── bot drive (engine validates every attempt) ─────────────── */
@@ -653,7 +659,7 @@
                 settings: Object.assign({ rejoin: "rejoin" }, spec.defaultSettings()),
                 seats: [], game: null, log: [],
                 teamColors: spec.teams ? Colors.PRESETS.slice(0, spec.teams) : null,
-                v: 1, touched: now(), conns: [], timer: null, timerFor: null,
+                v: 1, touched: now(), conns: [], timer: null, timerFor: null, timerBonus: 0,
                 turnEndsAt: null, driving: false
               };
               EXTRA_KEYS.forEach(function (k) { t[k] = EXTRA[k](); });

@@ -50,6 +50,9 @@ on the existing zone). Expected load: 1–2 tables at a time.
   independent d6. No card-deck/"balanced" dice mode.
 - **Turn timers are a table setting.** Default **off**; host may pick
   45 / 60 / 90 / 120 s per turn. Expiry auto-resolves (see "Timers").
+- **A completed trade buys the turn more clock.** "Trade Bonus Time" —
+  10 (default) / 20 / 30 s or a custom 5–60, or Off. Only offered when
+  there is a timer to extend (see "Timers").
 - **Spectators are first-class.** Anyone may watch a running or full
   table; spectators get a dedicated view (public state only + the
   betting panel where players see their hand).
@@ -305,6 +308,21 @@ pending → random legal hex, no steal; otherwise → end turn. Timer
 suspends while the current player is inside their disconnect grace
 window (see below); once a seat goes to a bot the timer no longer
 applies to it — bots act on their own.
+
+**The trade bonus.** With a timer running, every *completed* trade —
+bank/harbour (`bankTrade`) or a closed player-to-player offer
+(`execTrade`, the one site a ptp trade completes) — adds
+`settings.tradeBonusSec` to the **current turn's** clock. It accumulates
+**uncapped** within the turn and dies with it. The engine only counts
+the milliseconds owed, on `turn.bonusMs` (public, so the shell's ring
+scales to the stretched budget via cities' `timerBudget`); the table is
+what moves the deadline, through the base's `deadlineBonusMs()` hook
+([games.md](games.md), "The one alarm") — it pushes `turnEndsAt` out by
+the *growth*, so the countdown stretches instead of restarting. An
+interrupt (discard, robber) runs on its own shorter window and gets no
+bonus; the accrued time is waiting when the turn comes back. A table
+with the timer Off never accrues one — there is no clock to extend, and
+the setting row isn't offered.
 
 **Disconnects → grace → bot takeover.** A dropped seat stays reserved
 for its token — a reconnect with the same token reclaims it, always.

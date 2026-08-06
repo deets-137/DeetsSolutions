@@ -57,6 +57,8 @@ window.CITIES_STRINGS = {
   timerOff:        "Off",
   timerSecs:       "{n}s",
   timerCustom:     "#s",   /* the custom-seconds box — Aditya's, chat 2026-08-02 */
+  bonusLabel:      "Trade Bonus Time",   /* Aditya's wording, chat 2026-08-05 */
+  bonusOff:        "Off",
   bettingLabel:    "[ph]Spectator betting",   // [ph] OK to ship — betting is unbuilt (v1.1); Aditya's call (chat 2026-07-21)
   bettingOn:       "On",
   bettingOff:      "Off",

@@ -125,12 +125,24 @@
     onRematch: resetGameUi,
     lobbySettings: lobbySettings,
     settingsRows: function () {
-      return [
-        [S.capacityLabel, String(model.settings.capacity)],
-        [S.timerLabel, model.settings.timerSec ? fmt(S.timerSecs, { n: model.settings.timerSec }) : S.timerOff],
-        [S.bettingLabel, model.settings.betting ? S.bettingOn : S.bettingOff],
-        [S.resViewLabel, model.settings.resView !== false ? S.bettingOn : S.bettingOff]
+      var st = model.settings;
+      var rows = [
+        [S.capacityLabel, String(st.capacity)],
+        [S.timerLabel, st.timerSec ? fmt(S.timerSecs, { n: st.timerSec }) : S.timerOff]
       ];
+      // the bonus only reads as a setting when there's a clock to extend
+      if (st.timerSec) { var bsec = bonusSec(st); rows.push([S.bonusLabel, bsec ? fmt(S.timerSecs, { n: bsec }) : S.bonusOff]); }
+      rows.push([S.bettingLabel, st.betting ? S.bettingOn : S.bettingOff]);
+      rows.push([S.resViewLabel, st.resView !== false ? S.bettingOn : S.bettingOff]);
+      return rows;
+    },
+    /* the clock's budget: the host's turn timer plus whatever trades have
+       already bought this turn, so the ring stays a true fraction and the
+       readout doesn't overflow its own arc (games/table.js, "Turn timer") */
+    timerBudget: function () {
+      var sec = (model.settings && model.settings.timerSec) || 0;
+      if (!sec) return 0;
+      return sec + Math.round(((model.turn && model.turn.bonusMs) || 0) / 1000);
     }
   });
   // shell utilities under their old names — the rest of the file is unchanged
@@ -515,6 +527,11 @@
     renderBoard();
   }
 
+  /* The bonus a trade buys the turn. A table saved before the setting
+     existed carries no value and takes the default — the same fallback the
+     transports apply at createGame, so the row never lies about the table. */
+  function bonusSec(st) { return st.tradeBonusSec == null ? 10 : st.tradeBonusSec; }
+
   /* The shell renders the lobby (title, seats, bots, seat colors, Start);
      these are DeetsCities' own setting rows, declared as chip choices. */
   function lobbySettings(wrap) {
@@ -527,6 +544,17 @@
     // plus a free box for any budget the presets don't offer (5–600s)
     timerRow.opts.appendChild(TBL.numChip("timerSec", st.timerSec, [0, 45, 60, 90, 120], S.timerCustom, 5, 600));
     wrap.appendChild(timerRow);
+    // how much clock a completed trade buys the turn — bank/harbour and
+    // player-to-player alike, uncapped within the turn. Only offered when
+    // there IS a clock: with the timer Off it has nothing to extend.
+    if (st.timerSec) {
+      var bonus = bonusSec(st);
+      var bonusRow = TBL.choiceRow(S.bonusLabel, "tradeBonusSec",
+        [[0, S.bonusOff], [10, fmt(S.timerSecs, { n: 10 })], [20, fmt(S.timerSecs, { n: 20 })],
+         [30, fmt(S.timerSecs, { n: 30 })]], bonus);
+      bonusRow.opts.appendChild(TBL.numChip("tradeBonusSec", bonus, [0, 10, 20, 30], S.timerCustom, 5, 60));
+      wrap.appendChild(bonusRow);
+    }
     wrap.appendChild(TBL.choiceRow(S.bettingLabel, "betting",
       [[true, S.bettingOn], [false, S.bettingOff]], !!st.betting));
     // in-game resources view (the board's Resources popover; default on)

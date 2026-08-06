@@ -50,7 +50,7 @@
     gameVerbs: { roll: 1, place: 1, buyDev: 1, playDev: 1, discard: 1, moveRobber: 1,
                  steal: 1, bankTrade: 1, offer: 1, respond: 1, close: 1, cancel: 1, endTurn: 1 },
 
-    defaultSettings: function () { return { capacity: 3, timerSec: 0, betting: false, resView: true }; },
+    defaultSettings: function () { return { capacity: 3, timerSec: 0, tradeBonusSec: 10, betting: false, resView: true }; },
     // cities opts into "None" — the engine speaks `concede` (docs/cities.md)
     rejoinModes: ["anyone", "rejoin", "none"],
     minSeats: function () { return 3; },
@@ -143,6 +143,11 @@
         var tsec = msg.timerSec | 0;
         if (tsec >= 0 && tsec <= 600) t.settings.timerSec = tsec;
       }
+      if (msg.tradeBonusSec != null) {
+        // the per-trade bonus: 0 (off) through 60s, presets plus a custom box
+        var bsec = msg.tradeBonusSec | 0;
+        if (bsec >= 0 && bsec <= 60) t.settings.tradeBonusSec = bsec;
+      }
       if (msg.betting != null) t.settings.betting = !!msg.betting;
       if (msg.resView != null) t.settings.resView = !!msg.resView;
       return null;
@@ -150,7 +155,11 @@
     createGame: function (t, seated, ctx) {
       return Engine.createGame({
         seats: seated.map(function (s) { return { name: s.name, color: s.color }; }),
-        settings: { timerSec: t.settings.timerSec, betting: t.settings.betting }
+        // a table saved before the bonus existed carries no setting — it takes
+        // the default, which is what its lobby row has been showing
+        settings: { timerSec: t.settings.timerSec,
+                    tradeBonusSec: t.settings.tradeBonusSec == null ? 10 : t.settings.tradeBonusSec,
+                    betting: t.settings.betting }
       }, ctx);
     },
     onStart: function (t) {
@@ -189,6 +198,16 @@
       var actor = activeActor(t);
       if (actor == null || t.seats[actor].phantom) return null;
       return t.settings.timerSec * 1000;
+    },
+    /* the trade bonus the engine has granted THIS turn (docs/cities.md,
+       "Timers") — a running total the core folds into the live deadline */
+    deadlineBonusMs: function (t) {
+      var g = t.game;
+      if (!g || g.phase !== "main") return 0;
+      // an interrupt (discard, robber) runs on its own shorter window and is
+      // nobody's trading time — the bonus waits for the turn to come back
+      if (g.turn.pending) return 0;
+      return g.turn.bonusMs || 0;
     },
     dlSig: function (t) {
       var g = t.game;

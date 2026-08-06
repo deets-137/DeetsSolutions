@@ -109,6 +109,11 @@ export class GameTable {
   extraCommand() { return false; }         // game-specific verb; true = handled
   deadlineFor() { return null; }           // ms window for the table's one deadline
   dlSig() { return null; }                 // stable signature of that obligation
+  // Extra ms the GAME has granted the obligation now standing (cities' trade
+  // bonus). Read as a running total, not a delta: armAlarm pushes turnEndsAt
+  // out by however much it grew, so a bonus lengthens a live countdown instead
+  // of restarting it — which is what re-arming under a new dlSig would do.
+  deadlineBonusMs() { return 0; }
   needsPhantom() { return false; }
   phantomOne() { return false; }
 
@@ -117,7 +122,7 @@ export class GameTable {
     if (this.t) return this.t;
     const extra = Object.keys(this.EXTRA_STATE);
     const keys = ["settings", "seats", "game", "log", "v", "meta",
-                  "turnEndsAt", "emptyAt", "timerFor", "teamColors",
+                  "turnEndsAt", "emptyAt", "timerFor", "timerBonus", "teamColors",
                   "spans", "rematchIndex", "arcN", "arcBuf", "startedAt"].concat(extra);
     const v = await this.ctx.storage.get(keys);
     const meta = v.get("meta") || {};
@@ -132,6 +137,7 @@ export class GameTable {
       turnEndsAt: v.get("turnEndsAt") || null,
       emptyAt: v.get("emptyAt") || null,      // when sockets last hit zero (fuse)
       timerFor: v.get("timerFor") || null,    // signature of the obligation the timer is for
+      timerBonus: v.get("timerBonus") || 0,   // game-granted ms already folded into turnEndsAt
       teamColors: v.get("teamColors") || null, // real-teams games: one color per SIDE
       // stats plumbing (docs/stats.md) — all of it resets with the game
       spans: v.get("spans") || [],            // occupancy ledger: who sat where, when, how they left
@@ -150,6 +156,7 @@ export class GameTable {
     const rec = {
       settings: t.settings, seats: t.seats, game: t.game, log: t.log,
       v: t.v, turnEndsAt: t.turnEndsAt, emptyAt: t.emptyAt, timerFor: t.timerFor,
+      timerBonus: t.timerBonus,
       teamColors: t.teamColors,
       spans: t.spans, rematchIndex: t.rematchIndex, arcN: t.arcN, arcBuf: t.arcBuf,
       startedAt: t.startedAt,
@@ -602,7 +609,7 @@ export class GameTable {
         catch (e) { /* a settle-up that failed must not cost the table its final broadcast */ }
         await this.reportResults();
       })();
-      this.t.turnEndsAt = null; this.t.timerFor = null;
+      this.t.turnEndsAt = null; this.t.timerFor = null; this.t.timerBonus = 0;
     }
     return res;
   }
@@ -624,11 +631,15 @@ export class GameTable {
       const ms = this.deadlineFor();
       if (ms != null) {
         const sig = this.dlSig();
-        if (t.timerFor !== sig) { t.timerFor = sig; t.turnEndsAt = now + ms; }
+        const bonus = this.deadlineBonusMs() || 0;
+        if (t.timerFor !== sig) { t.timerFor = sig; t.timerBonus = bonus; t.turnEndsAt = now + ms + bonus; }
+        // same obligation, more bonus: extend the LIVE deadline by the growth,
+        // never re-stamp it — a re-stamp would hand back the seconds already spent
+        else if (bonus !== t.timerBonus) { t.turnEndsAt += bonus - t.timerBonus; t.timerBonus = bonus; }
         deadlines.push(t.turnEndsAt);
-      } else { t.turnEndsAt = null; t.timerFor = null; }
+      } else { t.turnEndsAt = null; t.timerFor = null; t.timerBonus = 0; }
       if (this.needsPhantom()) deadlines.push(now + BOT_STEP);
-    } else { t.turnEndsAt = null; t.timerFor = null; }
+    } else { t.turnEndsAt = null; t.timerFor = null; t.timerBonus = 0; }
     if (deadlines.length) this.ctx.storage.setAlarm(Math.min(...deadlines));
     else this.ctx.storage.deleteAlarm();
   }
@@ -676,7 +687,7 @@ export class GameTable {
     //    interstitial) — never while a bot still owes the action: it's driven
     if (g && g.phase !== "over" && t.turnEndsAt && now >= t.turnEndsAt && !this.needsPhantom()) {
       const r = this.applyEngine({ type: "timerExpire" });
-      if (!r.error) { events = events.concat(r.events || []); changed = true; t.turnEndsAt = null; t.timerFor = null; }
+      if (!r.error) { events = events.concat(r.events || []); changed = true; t.turnEndsAt = null; t.timerFor = null; t.timerBonus = 0; }
     }
     if (changed) await this.broadcast(events);
     // 3. one bot step, if a bot must act
@@ -763,7 +774,7 @@ export class GameTable {
       if (!this.isHost(token)) return this.errTo(ws, "perm");
       if (!t.game || t.game.phase !== "over") return this.errTo(ws, "phase");
       t.game = null;
-      t.turnEndsAt = null; t.timerFor = null;
+      t.turnEndsAt = null; t.timerFor = null; t.timerBonus = 0;
       // a rematch is a NEW result, so it gets the next idempotency key and a
       // clean ledger and archive. The chunks must actually go: the next game
       // numbers from zero again and would otherwise read the old game's.

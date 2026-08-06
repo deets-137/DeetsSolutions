@@ -629,7 +629,7 @@ A real-teams game also overrides `TEAMS` (see "Teams").
 constant), `maskEvent`, `compactSeatsAtStart`, `onStart`, `onGameOver`,
 `onRematch` (drop any per-game state the discarded game owned; neither game
 needs it yet), `onJoined`, `extraCommand` (a verb the engine doesn't own —
-cities' `bet`), and the results hooks `seatStats(i)`, `seatCounters(i)`,
+cities' `bet`), `deadlineBonusMs()` (see "The one alarm"), and the results hooks `seatStats(i)`, `seatCounters(i)`,
 `resultDetail()` ([stats.md](stats.md)).
 
 **The base records a finished game itself.** `onGameOver()` is the game's own
@@ -646,7 +646,12 @@ A single storage alarm multiplexes four deadlines, nearest wins:
 2. **the table deadline** — `deadlineFor()` ms, re-armed only when `dlSig()`
    changes, so unrelated broadcasts don't reset a running countdown. Only a
    **connected human's** clock runs: a disconnected player is the grace
-   window's business, a bot's is the drive cadence's
+   window's business, a bot's is the drive cadence's. `deadlineBonusMs()`
+   (optional, default 0) is the one way to move a *live* deadline: the base
+   reads it as a running total and pushes `turnEndsAt` out by however much it
+   grew, so a game can lengthen a countdown mid-obligation without restarting
+   it (cities' trade bonus). Re-arming under a new `dlSig` would hand back the
+   seconds already spent — that is why the bonus is a total, not an event
 3. **bot cadence** — 700 ms per action while `needsPhantom()`
 4. **the idle fuse** — empty for an hour and the table evaporates
 

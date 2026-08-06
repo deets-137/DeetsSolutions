@@ -192,7 +192,7 @@
       frame: frame,
       board: board,
       seatCount: n,
-      settings: opts.settings || { timerSec: 0, betting: false },
+      settings: opts.settings || { timerSec: 0, tradeBonusSec: 0, betting: false },
       players: players,
       bank: bank,
       devDeck: deck,
@@ -202,7 +202,7 @@
       roadLens: [],                         // per-seat longest contiguous road (public)
       offers: [],
       offerSeq: 0,
-      turn: { seat: order[0], rolled: false, dice: null, devPlayed: false, pending: null },
+      turn: { seat: order[0], rolled: false, dice: null, devPlayed: false, pending: null, bonusMs: 0 },
       setup: { seq: order, i: 0, need: "settlement", lastVid: null },
       winner: null,
       stats: newStats(n, ctx.now),
@@ -517,7 +517,7 @@
         if (g.setup.i >= g.setup.seq.length) {
           g.phase = "main";
           g.setup = null;
-          g.turn = { seat: firstLive(g), rolled: false, dice: null, devPlayed: false, pending: null };
+          g.turn = { seat: firstLive(g), rolled: false, dice: null, devPlayed: false, pending: null, bonusMs: 0 };
           g.stats.turns = 1;
           events.push({ t: "turn", seat: g.turn.seat, n: 1 });
         } else {
@@ -624,7 +624,7 @@
       g.phase = "main";
       g.setup = null;
       // firstLive, not 0 — a seat can concede during the draft ("None" mode)
-      g.turn = { seat: firstLive(g), rolled: false, dice: null, devPlayed: false, pending: null };
+      g.turn = { seat: firstLive(g), rolled: false, dice: null, devPlayed: false, pending: null, bonusMs: 0 };
       g.stats.turns = 1;
       events.push({ t: "turn", seat: g.turn.seat, n: 1 });
     } else {
@@ -905,6 +905,20 @@
     return err("bad");
   }
 
+  /* ── the trade bonus (docs/cities.md, "Timers") ────────────────
+     A completed trade — bank/harbour or player-to-player — buys the
+     CURRENT TURN more clock. The engine only counts the milliseconds
+     owed on `turn.bonusMs`; the table (games/table-do.js and its mock)
+     is what pushes `turnEndsAt` out by the delta, because the clock has
+     never lived in here. Accumulates uncapped and dies with the turn.
+     Silent when the table runs no clock, or the host set the bonus to
+     Off — a stopped clock has nothing to extend. */
+  function tradeBonus(g) {
+    var s = g.settings || {};
+    if (!s.timerSec || !s.tradeBonusSec) return;
+    g.turn.bonusMs = (g.turn.bonusMs || 0) + s.tradeBonusSec * 1000;
+  }
+
   /* ── bank / harbour trade ─────────────────────────────────────── */
   function bankTrade(g, a, ctx, events) {
     if (g.phase !== "main" || !g.turn.rolled || g.turn.pending) return err("phase");
@@ -920,6 +934,7 @@
     g.players[seat].hand[get] += n; g.bank[get] -= n;
     g.stats.seats[seat].gained.trades[get] += n;
     events.push({ t: "bankTrade", seat: seat, give: give, get: get, rate: rate, n: n });
+    tradeBonus(g);
     return null;
   }
 
@@ -1022,6 +1037,7 @@
     gs.trades++; gs.given += out; gs.received += back;
     ts.trades++; ts.given += back; ts.received += out;
     events.push({ t: "trade", from: giver, to: taker, give: clone(o.give), get: clone(o.get) });
+    tradeBonus(g);
     return null;
   }
   function cancelOffer(g, a, ctx, events) {
@@ -1040,6 +1056,7 @@
     do { g.turn.seat = (g.turn.seat + 1) % g.seatCount; }
     while (g.players[g.turn.seat].conceded);
     g.turn.rolled = false; g.turn.dice = null; g.turn.devPlayed = false; g.turn.pending = null;
+    g.turn.bonusMs = 0;                 // the trade bonus is the TURN's, and dies with it
     g.stats.turns++;
   }
   function firstLive(g) {
@@ -1688,6 +1705,44 @@
       ok(!r6.error, "last decline accepted"); g = r6.game;
       eq(g.offers.length, 0, "fully-declined offer removed");
       ok((r6.events || []).some(function (e) { return e.t === "offerGone" && e.declined; }), "offerGone(declined) emitted");
+    })();
+
+    /* the trade bonus: both trade shapes pay, it accumulates uncapped,
+       it dies with the turn, and a clockless table never accrues one */
+    (function () {
+      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 60, tradeBonusSec: 10 } }, ctx);
+      g.phase = "main"; g.setup = null;
+      g.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null, bonusMs: 0 };
+      g.stats.turns = 1;
+      eq(g.turn.bonusMs, 0, "bonus: a fresh turn owes nothing");
+
+      // 1. a bank trade pays
+      g.players[0].hand.wood = 8;
+      g = applyAction(g, { type: "bankTrade", give: "wood", get: "brick" }, ctx).game;
+      eq(g.turn.bonusMs, 10000, "bonus: a bank trade adds 10s");
+      // 2. and stacks, uncapped
+      g = applyAction(g, { type: "bankTrade", give: "wood", get: "brick" }, ctx).game;
+      eq(g.turn.bonusMs, 20000, "bonus: a second bank trade stacks");
+
+      // 3. a closed player trade pays the same
+      g.players[0].hand.ore = 1; g.players[1].hand.sheep = 1;
+      g = applyAction(g, { type: "offer", seat: 0, give: { ore: 1 }, get: { sheep: 1 } }, ctx).game;
+      var bid = g.offers[0].id;
+      g = applyAction(g, { type: "respond", seat: 1, offerId: bid, action: "accept" }, ctx).game;
+      g = applyAction(g, { type: "close", seat: 0, offerId: bid, accepter: 1 }, ctx).game;
+      eq(g.turn.bonusMs, 30000, "bonus: a closed player trade adds 10s");
+
+      // 4. it does not survive the turn
+      g = applyAction(g, { type: "endTurn", seat: 0 }, ctx).game;
+      eq(g.turn.bonusMs, 0, "bonus: the next turn starts clean");
+
+      // 5. no clock (or the bonus set to Off) accrues nothing
+      var g2 = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0, tradeBonusSec: 10 } }, ctx);
+      g2.phase = "main"; g2.setup = null;
+      g2.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null, bonusMs: 0 };
+      g2.players[0].hand.wood = 4;
+      g2 = applyAction(g2, { type: "bankTrade", give: "wood", get: "brick" }, ctx).game;
+      eq(g2.turn.bonusMs, 0, "bonus: an untimed table accrues nothing");
     })();
 
     /* immutability: a rejected action leaves the input untouched */
