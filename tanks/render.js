@@ -166,31 +166,59 @@
       staticDirty = false;
     }
 
+    /* Hulls and turrets: hand-drawn sprite when one has landed, the
+       geometric placeholder when it has not, decided per tank rather
+       than per game — so a half-finished cast renders half-finished
+       instead of all-or-nothing, exactly like the terrain tiles.
+
+       ALL SPRITES FACE UP, so both rotate by (angle + 90°). No
+       pre-rotated facing cache: the hull's 8 headings are DISCRETE, so
+       a given facing resamples to the identical pixels every frame and
+       cannot crawl — crawl comes from angles that change slightly
+       frame to frame, which is the turret, and the turret is
+       oversampled 3x for exactly that reason. A cache would buy a
+       little CPU on a canvas that draws at most eight tanks. */
+    function tankSprite(kind, tk, hex) {
+      var A = window.TanksArt;
+      if (!A || !A.tankArt) return null;
+      return A.tankArt(kind, tk.seat != null ? tk.seat : null, tk.type, hex);
+    }
     function drawTank(tk, color, dark) {
       var X = px(tk.x), Y = py(tk.y);
       var r = 0.34 * tile;
       var hullA = window.TanksEngine.dirAngle(tk.h || tk.hull || 1);
+      var hi = tankSprite("hull", tk, color);
       ctx.save();
       ctx.translate(X, Y);
       ctx.rotate(hullA + Math.PI / 2);          // sprite convention: faces up
-      // tracks
-      ctx.fillStyle = palette().track;
-      roundRect(-r * 1.18, -r, r * 0.42, r * 2, r * 0.16);
-      roundRect(r * 0.76, -r, r * 0.42, r * 2, r * 0.16);
-      // hull
-      ctx.fillStyle = color;
-      roundRect(-r * 0.8, -r * 0.92, r * 1.6, r * 1.84, r * 0.24);
+      if (hi) {
+        ctx.drawImage(hi, -tile / 2, -tile / 2, tile, tile);
+      } else {
+        // tracks
+        ctx.fillStyle = palette().track;
+        roundRect(-r * 1.18, -r, r * 0.42, r * 2, r * 0.16);
+        roundRect(r * 0.76, -r, r * 0.42, r * 2, r * 0.16);
+        // hull
+        ctx.fillStyle = color;
+        roundRect(-r * 0.8, -r * 0.92, r * 1.6, r * 1.84, r * 0.24);
+      }
       ctx.restore();
       // turret rotates freely, above the hull
       var ta = tk.tr != null ? tk.tr : tk.turret;
+      var ti = tankSprite("turret", tk, color);
       ctx.save();
       ctx.translate(X, Y);
-      ctx.rotate(ta);
-      ctx.fillStyle = dark;
-      ctx.fillRect(0, -0.055 * tile * 2, 0.52 * tile, 0.11 * tile * 2);
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
-      ctx.fill();
+      if (ti) {
+        ctx.rotate(ta + Math.PI / 2);           // the sprite points up
+        ctx.drawImage(ti, -tile / 2, -tile / 2, tile, tile);
+      } else {
+        ctx.rotate(ta);
+        ctx.fillStyle = dark;
+        ctx.fillRect(0, -0.055 * tile * 2, 0.52 * tile, 0.11 * tile * 2);
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
     function roundRect(x, y, w, h, rr) {
@@ -230,11 +258,17 @@
         }
       }
       // mines under the hulls
+      var mineImg = window.TanksArt && window.TanksArt.img("mine");
       (scene.mines || []).forEach(function (m) {
-        ctx.beginPath();
-        ctx.arc(px(m.x), py(m.y), tile * 0.16, 0, Math.PI * 2);
-        ctx.fillStyle = P.mine;
-        ctx.fill();
+        if (mineImg) {
+          var ms = tile * 0.5;
+          ctx.drawImage(mineImg, px(m.x) - ms / 2, py(m.y) - ms / 2, ms, ms);
+        } else {
+          ctx.beginPath();
+          ctx.arc(px(m.x), py(m.y), tile * 0.16, 0, Math.PI * 2);
+          ctx.fillStyle = P.mine;
+          ctx.fill();
+        }
         if (m.a) {                         // armed: the classic blink
           var on = Math.floor(performance.now() / 300) % 2 === 0;
           ctx.beginPath();
@@ -271,7 +305,13 @@
         }
         drawTank(tk, color, dark);
       });
+      var shell = window.TanksArt && window.TanksArt.img("bullet");
       (scene.bullets || []).forEach(function (b) {
+        if (shell) {
+          var sz = tile * 0.5;
+          ctx.drawImage(shell, px(b.x) - sz / 2, py(b.y) - sz / 2, sz, sz);
+          return;
+        }
         ctx.beginPath();
         ctx.arc(px(b.x), py(b.y), Math.max(2, tile * 0.09), 0, Math.PI * 2);
         ctx.fillStyle = P.bullet;

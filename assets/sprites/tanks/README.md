@@ -7,13 +7,21 @@ art ships by landing a file (docs/tanks.md, "Art").
 
 | File | What |
 | --- | --- |
-| `hull.png` | one hull drawing, facing up, centred on its rotation pivot |
-| `turret.png` | one turret drawing, centred on the pivot where it meets the hull |
+| `hull.png` / `turret.png` | the neutral master — TINTED to the seat colour |
+| `hull-p1` / `turret-p1` | seat 0, blue — used verbatim, ignores the picker |
+| `hull-p2` / `turret-p2` | seat 1, red — used verbatim |
+| `hull-eN` / `turret-eN` | one pair per enemy type, in that type's livery |
 | `bullet.png` | a shell |
 | `mine.png` | a mine |
-| `tile-floor.png` | one floor tile (~display size — do not upscale chunky art) |
-| `tile-wall.png` | one indestructible wall tile |
-| `tile-block.png` | one destructible block tile |
+| `<theme>/tile-*.png` | terrain, per art theme — see below |
+
+All tank sprites **face up** and are 192px (3x a 64px tile). Regenerate
+the templates with `python scripts/build-tanks-art.py` — it OVERWRITES,
+so not once hand art has landed.
+
+Delete any file and that actor falls back to the geometric placeholder;
+delete `hull-p1.png` and seat 0 goes back to following its colour
+picker.
 
 Source originals live in `art-src/tanks/` (512×512, solid magenta
 `#FF00FF` background); `scripts/build-tanks-art.py` (to be written with

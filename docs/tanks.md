@@ -435,6 +435,44 @@ and every artifact — crawl, jaggies, mushy diagonals — disappears.
 Drawing at 512 is also just easier with a mouse than drawing at 32, and
 the downsample quietly cleans up wobbly edges for free.
 
+### What he actually draws — WIRED, 2026-08-05
+
+`scripts/build-tanks-art.py` emits the templates and **`drawTank` now
+consults them**. That second half is the part that was missing: the
+probe had existed since the MVP but the renderer only ever drew
+geometry, so a hull.png dropped in would have loaded and been ignored.
+
+| file | who uses it |
+| --- | --- |
+| `hull.png`, `turret.png` | the neutral master — **tinted** to the seat colour |
+| `hull-p1`, `turret-p1` | seat 0, blue — used **verbatim** |
+| `hull-p2`, `turret-p2` | seat 1, red — used verbatim |
+| `hull-eN`, `turret-eN` | one pair per `ENEMY_TYPES` entry, in that type's `art` |
+| `bullet.png`, `mine.png` | shells and mines |
+
+- **Every sprite FACES UP.** Both hull and turret rotate by
+  (angle + 90°). 192px, three times a 64px tile, drawn into a one-tile
+  box — draw big, display small.
+- **The fallback is per tank, not per game**, exactly like terrain
+  tiles: a half-drawn cast renders half-drawn rather than all-or-
+  nothing. Delete any file and that actor returns to primitives.
+- **No pre-rotated facing cache**, and the earlier plan for one was
+  wrong about why. The hull's 8 headings are *discrete*, so a given
+  facing resamples to identical pixels every frame and cannot crawl;
+  crawl comes from angles that shift slightly frame to frame, which is
+  the turret, and the turret is oversampled 3× for exactly that reason.
+  A cache would buy a little CPU on a canvas drawing at most 8 tanks.
+
+**The seat-colour trade, his call 2026-08-05.** He asked for a blue
+player 1 and a red player 2. Seat colour is the cross-game `--gseat`
+contract and players pick it in the lobby, so a per-seat file cannot
+also follow the picker. The resolution: **a per-seat file is used
+verbatim and that seat stops following its colour picker; the neutral
+master is tinted and does.** Both paths ship, it is opt-in per file,
+and deleting `hull-p1.png` hands seat 0 back to the picker. Worth
+knowing that `--gseat-0` is red and `--gseat-1` is blue, so the p1/p2
+templates deliberately invert the default order.
+
 ### What he actually draws
 
 - **`hull.png`** — one drawing. Facing "up".
@@ -917,7 +955,15 @@ ledger:
   self-checks 84 -> 87; designer harness 34 -> 43, plus a separate
   pack harness that validates the archive with Python's `zipfile`.
 
-- **Not built:** `build-tanks-art.py` (waits on the art
+- **Tank sprites WIRED + templates generated** (2026-08-05) —
+  `build-tanks-art.py` emits 22 templates (neutral master, per-seat
+  blue/red, per-enemy-type, shell, mine) and `drawTank` draws them,
+  falling back per tank. Verified headless: sprites drawn when landed,
+  primitives when not, per-seat/per-type selection, and the tint cache.
+  Still **flat generated art, not hand-drawn.**
+
+- **Not built:** the `art-src/` 512px chroma-key pipeline (the
+  templates are edited directly at 192px instead, which skips it) (waits on the art
   pass), the `../DeetsTanks` worker (phase 4 — `rt-do.js` gets
   extracted from `transport-mock.js` then, per the promotion rule),
   PvP, stats reporting.

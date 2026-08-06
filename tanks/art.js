@@ -31,7 +31,13 @@
   "use strict";
 
   var BASE = "../assets/sprites/tanks/";
+  /* Tank sprites, per actor. `hull`/`turret` are the neutral master and
+     get TINTED to the seat colour; `hull-p1`/`-p2` and `hull-eN` are
+     used verbatim, already in their own colour. All of them FACE UP —
+     the renderer rotates by (angle + 90°). */
   var NAMES = ["hull", "turret", "bullet", "mine"];
+  for (var s = 1; s <= 2; s++) NAMES.push("hull-p" + s, "turret-p" + s);
+  for (var e = 1; e <= 9; e++) NAMES.push("hull-e" + e, "turret-e" + e);
   var TILES = ["tile-floor", "tile-wall", "tile-block", "tile-hole"];
   var FLOOR_VARIANTS = 3;
 
@@ -94,10 +100,44 @@
     return state[name] === "ok" ? imgs[name] : null;   // themeless fallback
   }
 
+  /* Tint the neutral master toward a seat colour, cached per pairing.
+     `source-atop` paints only where the sprite already has pixels, so
+     the silhouette survives; the alpha keeps his shading readable
+     underneath instead of flooding it flat. This is what lets the
+     --gseat picker keep working over hand-drawn art — a per-seat file
+     opts out of it by being used verbatim. */
+  var tints = {};
+  function tinted(name, hex) {
+    var im = imgs[name];
+    if (!im || !hex) return im || null;
+    var k = name + "|" + hex;
+    if (tints[k]) return tints[k];
+    var cv = document.createElement("canvas");
+    cv.width = im.width; cv.height = im.height;
+    var c = cv.getContext("2d");
+    c.drawImage(im, 0, 0);
+    c.globalCompositeOperation = "source-atop";
+    c.globalAlpha = 0.72;
+    c.fillStyle = hex;
+    c.fillRect(0, 0, cv.width, cv.height);
+    tints[k] = cv;
+    return cv;
+  }
+
+  /* The sprite for one tank, or null to fall back to the geometry.
+     Per-actor file first, neutral master (tinted) second. */
+  function tankArt(kind, seat, type, hex) {
+    var own = seat != null ? kind + "-p" + (seat + 1) : kind + "-e" + type;
+    if (state[own] === "ok") return imgs[own];
+    if (state[kind] === "ok") return tinted(kind, hex);
+    return null;
+  }
+
   window.TanksArt = {
     has: function (name) { return state[name] === "ok"; },
     img: function (name) { return imgs[name] || null; },
     useTheme: useTheme,
-    tile: tile
+    tile: tile,
+    tankArt: tankArt
   };
 })();
