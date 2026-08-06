@@ -515,8 +515,8 @@ anything to work, and neither half requires a code change.
 **Cork is the reference set.** `assets/sprites/tanks/cork/` holds seven
 real PNGs in the repo, generated once by
 `scripts/build-tanks-tiles.py`, which reads the palette out of
-`tanks.css` rather than carrying a second copy of it. `snow/` ships
-too. Adding a theme's colours is still one CSS block; seeding its art
+`tanks.css` rather than carrying a second copy of it. `snow/`, `dusk/`
+and `rust/` ship too. Adding a theme's colours is still one CSS block; seeding its art
 is one command:
 
 ```
@@ -545,13 +545,19 @@ header layout. Verified by writing a real archive, having Python's
 `zipfile` open it and run `testzip()`, and hashing every entry against
 the cork pack on disk.
 
-- The designer has an `art` field with the known themes as
-  suggestions. It is free text, because the themes live in CSS and
-  there is no registry to enumerate: add a block, type the name.
+- **The designer's theme dropdown reads the stylesheet.** It walks
+  `document.styleSheets` for `.tk[data-tk-theme="…"]` selectors, so
+  the list is whatever `tanks.css` actually defines — add a block and
+  it appears, with no list to update. (There was a hardcoded one; it
+  went stale immediately, which is the same duplication the enemy
+  palette and the tune panel already avoid by reading their
+  registries.) Themes with committed tiles are marked `· art`, a
+  theme the open level names but the CSS has lost is kept and marked
+  `· no css`, and `+ new theme…` names one that does not exist yet —
+  the workflow being: name it, pull a tile pack, then write the CSS.
 
-Cork, snow, dusk and rust ship as colour themes; **cork and snow also
-ship tile art**, dusk and rust are colour-only until someone runs the
-generator at them.
+Cork, snow, dusk and rust ship as colour themes, and **all four ship
+tile art** under `assets/sprites/tanks/<theme>/`.
 
 ### Floor art and the one rule
 
@@ -903,10 +909,11 @@ ledger:
 
 - **Per-level art themes BUILT** (2026-08-05) — `theme` on the level,
   colours as CSS blocks, tiles as per-theme sprite folders, a designer
-  field, and a `tile pack` button that copies the cork pack under a new
-  name as a zip. Four colour themes shipped; `cork/` and `snow/` tile
-  art committed via `scripts/build-tanks-tiles.py`. Still **flat
-  generated art, not hand-drawn** — it is the thing to paint over. Engine
+  dropdown read from the stylesheet, and a `tile pack` button that
+  copies the cork pack under a new name as a zip. Four themes shipped
+  (cork, snow, dusk, rust), **all four with tile art committed** via
+  `scripts/build-tanks-tiles.py`. Still **flat generated art, not
+  hand-drawn** — it is the thing to paint over. Engine
   self-checks 84 -> 87; designer harness 34 -> 43, plus a separate
   pack harness that validates the archive with Python's `zipfile`.
 

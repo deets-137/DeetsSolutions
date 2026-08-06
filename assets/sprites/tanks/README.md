@@ -62,7 +62,8 @@ resolution from the downsampled tanks, and the eye catches it instantly
 ### Starting a pack
 
 `cork/` is the reference set and it is already here — seven flat tiles
-generated from the palette in `tanks/tanks.css`. `snow/` too. They are
+generated from the palette in `tanks/tanks.css`. `snow/`, `dusk/` and
+`rust/` ship too, so every theme the CSS defines has a pack. They are
 NOT hand-drawn; they are the thing to paint over.
 
 To start another theme, open `tanks/designer.html`, type a name in the

@@ -139,8 +139,8 @@
     <label for="dzTier">tier</label>
     <input type="number" id="dzTier" value="0" min="0" max="99" style="width:3.4rem">
     <label for="dzTheme">art</label>
-    <input type="text" id="dzTheme" value="cork" size="7" list="dzThemes">
-    <datalist id="dzThemes"></datalist>
+    <select id="dzTheme"></select>
+    <input type="text" id="dzThemeNew" size="8" placeholder="new name" hidden>
     <button class="tb-pill" type="button" id="dzPack"><span class="tb-pill__label">tile pack</span></button>
     <label for="dzW">size</label>
     <input type="number" id="dzW" value="20" min="5" max="40" style="width:3.4rem">
@@ -203,10 +203,32 @@
      nothing is stored that cannot be typed into the file by hand. ── */
   var st = { name: "Untitled", tier: 0, theme: "cork", rows: [], over: {} };
 
-  /* Art themes are CSS blocks in tanks.css, so there is no registry to
-     read — the field is free text and these are only suggestions. Add
-     a block there, type its name here, and it renders. */
-  var THEME_HINTS = ["cork", "snow", "dusk", "rust"];
+  /* ── the theme list, READ FROM THE STYLESHEET ────────────────────
+     Art themes are `.tk[data-tk-theme="x"]` blocks in tanks.css, and
+     that IS the registry — so enumerate it rather than keeping a hand
+     written list here. (There was one, it went stale immediately, and
+     it was the same duplication the enemy palette and the tune panel
+     already avoid by reading their registries.) `.tk` itself is cork.
+
+     Same-origin, so cssRules is readable; the try/catch is for the
+     cross-origin sheets a browser extension can inject. */
+  function cssThemes() {
+    var found = { cork: 1 };
+    var sheets = document.styleSheets || [];
+    for (var i = 0; i < sheets.length; i++) {
+      var rules = null;
+      try { rules = sheets[i].cssRules; } catch (e) { continue; }
+      if (!rules) continue;
+      for (var j = 0; j < rules.length; j++) {
+        var sel = rules[j].selectorText;
+        if (!sel) continue;
+        var re = /\.tk\[data-tk-theme=["']?([a-z0-9-]+)["']?\]/gi, hit;
+        while ((hit = re.exec(sel))) found[hit[1].toLowerCase()] = 1;
+      }
+    }
+    return Object.keys(found).sort();
+  }
+  var artThemes = {};        // theme -> has committed tile art (async)
   var sel = ".";
   var level = null, blocks = null, problems = [];
   var game = null, raf = 0;                      // play-test
@@ -296,7 +318,7 @@
     var w = Math.max.apply(null, rows.map(function (r) { return r.length; }));
     rows = rows.map(function (r) { return (r + new Array(w + 1).join(".")).slice(0, w); });
     st = { name: name, tier: tier, theme: theme, rows: rows, over: over };
-    $("dzName").value = name; $("dzTier").value = tier; $("dzTheme").value = theme;
+    $("dzName").value = name; $("dzTier").value = tier;
     $("dzW").value = w; $("dzH").value = rows.length;
     return true;
   }
@@ -367,7 +389,54 @@
     CV.style.aspectRatio = level.w + " / " + level.h;
     R.setLevel(level, blocks);
     if (!game) drawEdit();
-    stats(); flags(null); tunePanel(); campaignBar();
+    stats(); flags(null); tunePanel(); campaignBar(); paintThemes();
+  }
+
+  /* ── the theme picker ────────────────────────────────────────────
+     Every theme tanks.css defines, plus whatever the open level asks
+     for even if the CSS has gone (a level must never silently lose its
+     theme just because the block was renamed), plus a way to name a
+     brand-new one — which is a real workflow: name it, pull a tile
+     pack, then write the CSS block. */
+  function paintThemes() {
+    var sc = $("dzTheme");
+    var list = cssThemes();
+    var cur = st.theme || "cork";
+    var known = list.indexOf(cur) >= 0;
+    sc.textContent = "";
+    list.forEach(function (t) {
+      var o = document.createElement("option");
+      o.value = t;
+      o.textContent = t + (artThemes[t] ? " · art" : "");
+      sc.appendChild(o);
+    });
+    if (!known) {
+      var o2 = document.createElement("option");
+      o2.value = cur;
+      o2.textContent = cur + " · no css";
+      sc.appendChild(o2);
+    }
+    var n = document.createElement("option");
+    n.value = "__new";
+    n.textContent = "+ new theme…";
+    sc.appendChild(n);
+    sc.value = cur;
+  }
+  /* Which themes actually have tiles committed, so the list says so
+     rather than making him go and look. One quiet probe per theme,
+     once — the same house pattern art.js already uses. */
+  function probeArt() {
+    if (typeof fetch !== "function") return;
+    cssThemes().forEach(function (t) {
+      if (t in artThemes) return;
+      artThemes[t] = false;
+      fetch("../assets/sprites/tanks/" + t + "/tile-floor.png", { method: "HEAD" })
+        .then(function (r) {
+          if (!r.ok) return;
+          artThemes[t] = true;
+          paintThemes();
+        })["catch"](function () {});
+    });
   }
 
   /* ── the campaign bar: picker, slot, dirty mark, save instruction ── */
@@ -407,7 +476,7 @@
     slot = n;
     if (isCampaign()) loadText(CAMPAIGN[n]);
     else { st = { name: "Untitled", tier: 0, theme: "cork", rows: blank(20, 12), over: {} };
-           $("dzName").value = st.name; $("dzTier").value = 0; $("dzTheme").value = "cork";
+           $("dzName").value = st.name; $("dzTier").value = 0;
            $("dzW").value = 20; $("dzH").value = 12; }
     picker(); sync();
   }
@@ -787,9 +856,25 @@
 
   $("dzName").addEventListener("input", function () { st.name = this.value; sync(); });
   $("dzTier").addEventListener("input", function () { st.tier = this.value | 0; sync(); });
-  $("dzTheme").addEventListener("input", function () {
-    st.theme = this.value.trim().toLowerCase() || "cork";
+  $("dzTheme").addEventListener("change", function () {
+    if (this.value === "__new") {
+      var box = $("dzThemeNew");
+      box.hidden = false; box.value = ""; box.focus();
+      this.value = st.theme || "cork";
+      return;
+    }
+    $("dzThemeNew").hidden = true;
+    st.theme = this.value;
     sync();                       // render.js restamps the root and re-reads
+  });
+  $("dzThemeNew").addEventListener("input", function () {
+    var v = this.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    st.theme = v || "cork";
+    sync();
+  });
+  $("dzThemeNew").addEventListener("change", function () {
+    this.hidden = true;           // committed: it is an option now
+    paintThemes();
   });
   function onSize() {
     resize(Math.max(5, $("dzW").value | 0), Math.max(5, $("dzH").value | 0));
@@ -849,11 +934,7 @@
     o.value = s[0]; o.textContent = s[1];
     sc.appendChild(o);
   });
-  THEME_HINTS.forEach(function (t) {
-    var o = document.createElement("option");
-    o.value = t;
-    $("dzThemes").appendChild(o);
-  });
+  probeArt();
   palettes();
   openSlot(0);          // land on level 0 — his campaign, not a blank page
 })();
