@@ -9,7 +9,8 @@ model), which is itself a sibling of the turn-based one
 
 **Built and playable on branch `DeetsTanks`** — the game, the level
 designer, the terrain vocabulary and the full enemy cast all landed
-**2026-08-05**. No worker and no sprites yet. Read "State of the tab"
+**2026-08-05**; the campaign, levels 0-10, landed **2026-08-07** (see
+"The campaign"). No worker and no sprites yet. Read "State of the tab"
 at the bottom for the honest ledger of what exists; the sections
 between are the design record from that day's chats, kept because they
 carry the reasoning rather than just the outcome.
@@ -845,6 +846,55 @@ Names are **internal identifiers, not copy** — nothing in the UI shows
 them. If an interstitial ever names what you just beat, they become
 `strings.js` entries and arrive `[ph]`.
 
+## The campaign — levels 0-10
+
+Built 2026-08-07. Eleven levels, one file each in `tanks/levels/`, all
+20x12. The ramp is built out of the cast table above rather than out of
+raw enemy count: **a level introduces one idea, then the next level
+makes you use it while something else is happening.**
+
+| # | name | theme | cast | what it teaches |
+| --- | --- | --- | --- | --- |
+| 00 | First Contact | cork | 1 Sentry | aiming, in an empty room |
+| 01 | Corridors | cork | 2 Sentry | walls, and shooting down a lane |
+| 02 | Bank Shot | cork | 2 Rover | they move, and they bank |
+| 03 | The Gap | dusk | 2 Lancer | **holes** — it shoots across what you cannot cross |
+| 04 | Minefield | snow | Sapper + Rover | mines, and rooms you can be sealed into |
+| 05 | Demolition | rust | Lancer + 2 Rover | destructible blocks are cover you spend |
+| 06 | Sidestep | cork | Duelist + Rover | it dodges; lead it |
+| 07 | Cover Story | dusk | 2 Banker | cover stops being safe |
+| 08 | The Swarm | snow | Sapper + 2 Rover + 2 Duelist | tempo — five of them |
+| 09 | Crossfire | rust | Banker + Duelist + Sapper | all three pressures at once |
+| 10 | The Marshal | rust | Marshal + Banker + Duelist | the finale |
+
+Three things about them worth keeping:
+
+- **Level 03 is where the terrain vocabulary finishes.** Walls arrive on
+  01 and blocks on 05, but the hole is the only cell that makes "where
+  can I drive" and "where can I shoot" different questions, so it gets a
+  level that is *only* that: two Lancers behind a trench with a single
+  bridge, and a `tune` block softening their fire rate for the
+  introduction. It is also the first level that would be unfair without
+  the `solid`/`solidShell` split working correctly.
+- **Count carries tempo, types carry difficulty** — the rule from the
+  cast table, applied, and the probe made it order the levels. 08 is
+  the busiest and 09 the nastiest, and they were originally the other
+  way round: five mid-tier tanks split by a wall column can be peeled
+  off one at a time, while a Banker, a Duelist and a Sapper sharing a
+  hole-split arena cannot. Three enemies out-killed five, so the two
+  swapped slots. 10 is three again, and one of them is a Marshal.
+- **Difficulty was measured, not eyeballed.** A headless probe drives a
+  naive hunter through every level (weave in, fire on line of sight) and
+  reports attempts, deaths and shots taken. It is a smell test, not a
+  test — it has no pathfinding, so a level that traps it reads as a
+  timeout rather than a death, and the two are told apart in the output.
+  What it caught: 05 originally ran two Lancers and spiked above 08 in
+  deaths, and 10 ran five enemies. Both were trimmed.
+
+**Their names are `[ph]`.** Levels 00 and 01 carry his words; 02-10
+are placeholders awaiting his pass, which is the one thing between this
+campaign and shipping.
+
 ## Still to design
 
 - **Co-op lives.** The lives *count* is now a table setting; whether
@@ -863,7 +913,7 @@ them. If an interstitial ever names what you just beat, they become
 (`mockDefault: true`), playable at `/tanks/` on localhost. Honest
 ledger:
 
-- **Built:** `engine.js` (42 self-checks green), levels 0–1 +
+- **Built:** `engine.js` (42 self-checks green), levels 0–10 +
   `scripts/build-tanks-levels.py` + generated `levels.js`,
   `transport-mock.js` (the 60 Hz sim loop, the 20 Hz tick channel, the
   `setLag` injector, the toolbar Lag pill), `net.js` (prediction /
@@ -967,6 +1017,9 @@ ledger:
   pass), the `../DeetsTanks` worker (phase 4 — `rt-do.js` gets
   extracted from `transport-mock.js` then, per the promotion rule),
   PvP, stats reporting.
-- **Copy: DONE.** He approved the whole of `strings.js` — and the level
-  names — in one pass, chat 2026-08-05, the same day it was built. Zero
-  `[ph]` left; new strings still arrive prefixed.
+- **Copy: `strings.js` DONE, nine level names OPEN.** He approved the
+  whole of `strings.js` — and the names of levels 00 and 01 — in one
+  pass, chat 2026-08-05, the same day it was built. `strings.js` still
+  carries zero `[ph]`. The nine levels added 2026-08-07 carry `[ph]`
+  names (see "The campaign"), and by the house rule nothing carrying
+  `[ph]` ships — so that pass is a merge gate.

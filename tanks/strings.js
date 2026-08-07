@@ -20,7 +20,11 @@
    tanks/levels/*.txt. The shell copy was carried verbatim from his
    poker/cities/mahjong passes to begin with. So the rule now bites the
    other way: a NEW string still arrives as "[ph]", but nothing already
-   here may be reworded without him. */
+   here may be reworded without him.
+
+   ONE EXCEPTION, 2026-08-07: the campaign grew to eleven levels, and
+   the names of levels 02-10 (in tanks/levels/*.txt, not in this file)
+   arrived "[ph]" and are still waiting. Nothing in THIS file changed. */
 window.TANKS_STRINGS = {
   /* ── bar (carried from cities/poker) ─────────────────────────── */
   tableCodePlaceholder: "Table Code",
