@@ -22,7 +22,17 @@
   --tk-enemy1: #a3562c;
   --tk-enemy1-dark: #77401f;
   --tk-track: rgba(30, 24, 16, 0.55);
+  /* a shell is a BALL sitting on the board, not a dot punched into it:
+     -lit is the light side, -rim the far edge, --tk-shadow the contact
+     shadow it drops. render.js shades between them (docs/tanks.md,
+     "Shells"), so a theme gets its own shell for free. */
   --tk-bullet: #2e2820;
+  --tk-bullet-lit: #cdbfa4;
+  --tk-bullet-rim: #14110c;
+  --tk-shadow: rgba(40, 30, 18, 0.28);
+  /* the turret wears the hull's colour and sits ON it, so it needs an
+     edge of its own or the barrel reads as part of the body */
+  --tk-turret-rim: rgba(22, 17, 11, 0.85);
   --tk-mine: #3a332a;
   --tk-mine-arm: #d8442e;
   --tk-boom: #e0862f;
@@ -60,6 +70,9 @@
   --tk-hole-rim: #1d262d;
   --tk-track: rgba(40, 55, 70, 0.42);
   --tk-scorch: rgba(30, 40, 50, 0.30);
+  --tk-bullet-lit: #ccd9e4;
+  --tk-shadow: rgba(45, 65, 85, 0.26);
+  --tk-turret-rim: rgba(16, 26, 36, 0.85);
 }
 
 /* dusk — warm dark ground; walls read as silhouette */
@@ -75,6 +88,11 @@
   --tk-hole-rim: #0a0810;
   --tk-track: rgba(10, 8, 16, 0.55);
   --tk-bullet: #f2e6c0;
+  --tk-bullet-lit: #fffaf0;
+  --tk-bullet-rim: #8d7a4a;
+  --tk-shadow: rgba(0, 0, 0, 0.38);
+  /* dark ground: the barrel needs a LIGHT rim to survive overhanging it */
+  --tk-turret-rim: rgba(240, 235, 255, 0.6);
   --tk-aim: rgba(150, 190, 255, 0.55);
   --tk-scorch: rgba(0, 0, 0, 0.35);
 }
@@ -92,6 +110,9 @@
   --tk-hole-rim: #0e0a07;
   --tk-track: rgba(15, 10, 6, 0.6);
   --tk-scorch: rgba(10, 6, 3, 0.4);
+  --tk-bullet-lit: #d6c5a8;
+  --tk-shadow: rgba(12, 8, 4, 0.34);
+  --tk-turret-rim: rgba(8, 5, 3, 0.88);
 }
 
 /* ── the bento (poker's grid: big + rail, role strip below) ────── */

@@ -1,4 +1,4 @@
-name  [ph] Minefield
+name  Minefield
 tier  3
 theme snow
 

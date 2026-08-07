@@ -42,11 +42,91 @@
     c.fillStyle = P.holeRim;
     c.fillRect(X, Y, s, Math.max(2, s * 0.16));
   }
+  /* ── the shell ───────────────────────────────────────────────────
+     Wii Play's shells are BALLS resting on the board, and two things
+     do that work: the sphere is lit from one side (so it has a near
+     edge and a far edge instead of being a filled circle), and it
+     drops a contact shadow slightly off it (so it sits ABOVE the cork
+     rather than being a hole in it). A flat disc has neither and reads
+     as a pellet no matter what size it is.
+
+     The shadow is the renderer's, never the sprite's: it belongs to
+     the board's lighting, so it must not rotate or travel with the
+     art, and a hand-drawn bullet.png gets one for free.
+
+     Same recipe as build-tanks-art.py's `sphere` — the template he
+     paints over is what the game would otherwise have drawn, exactly
+     like the tile primitives above. */
+  function drawShellShadow(c, X, Y, d, P) {
+    c.beginPath();
+    c.ellipse(X + d * 0.12, Y + d * 0.18, d * 0.48, d * 0.36, 0, 0, Math.PI * 2);
+    c.fillStyle = P.shadow;
+    c.fill();
+  }
+  function drawShell(c, X, Y, d, P) {
+    var r = d / 2, lx = X - r * 0.34, ly = Y - r * 0.40;
+    var g = c.createRadialGradient(lx, ly, r * 0.06, X, Y, r * 1.06);
+    g.addColorStop(0, P.bulletLit);
+    g.addColorStop(0.42, P.bullet);
+    g.addColorStop(1, P.bulletRim);
+    c.beginPath();
+    c.arc(X, Y, r, 0, Math.PI * 2);
+    c.fillStyle = g;
+    c.fill();
+    // one tight specular — the highlight is what says "polished", and
+    // it is why this reads as a ball at 6 px across
+    c.beginPath();
+    c.arc(lx, ly, r * 0.26, 0, Math.PI * 2);
+    c.fillStyle = P.bulletLit;
+    c.fill();
+  }
   function drawBlock(c, X, Y, s, P) {
     c.fillStyle = P.block;
     c.fillRect(X + 1, Y + 1, s - 2, s - 2);
     c.fillStyle = P.blockTop;
     c.fillRect(X + 2, Y + 2, s - 4, Math.max(2, s * 0.2));
+  }
+
+  /* ── the turret's outline (his ask, 2026-08-07) ──────────────────
+     The turret wears the hull's own colour and sits directly on it, so
+     at a glance the barrel dissolves into the body and you cannot tell
+     where the tank is pointing — the one thing you must read
+     instantly. A rim fixes it.
+
+     It is built from the SPRITE'S OWN SILHOUETTE rather than baked
+     into the PNG: draw the art ringed around the origin, keep only the
+     alpha, flood that with the rim colour, then the art on top. That
+     way it costs nothing when his hand-drawn turret lands (no second
+     file to redraw, no rim to hand-draw again for every enemy livery),
+     it follows the theme's own colour, and the geometric fallback in
+     drawTank gets the same treatment from the same token.
+
+     Module scope, not per-renderer, so the lobby preview — which
+     builds a fresh renderer every time it draws — shares the cache
+     with the arena. Keyed by sprite in a WeakMap, then by colour, so
+     a tint that falls out of use is collectable along with its rim. */
+  var RIM_W = 0.035;                   // of the sprite's own width
+  var RD = Math.SQRT1_2;
+  var RIM_RING = [[1, 0], [-1, 0], [0, 1], [0, -1],
+                  [RD, RD], [RD, -RD], [-RD, RD], [-RD, -RD]];
+  var rims = (typeof WeakMap === "function") ? new WeakMap() : null;
+  function rimmed(img, hex) {
+    if (!img || !hex || !rims) return null;
+    var per = rims.get(img);
+    if (per && per[hex]) return per[hex];
+    var w = Math.max(1, Math.round(img.width * RIM_W));
+    var cv = document.createElement("canvas");
+    cv.width = img.width + w * 2; cv.height = img.height + w * 2;
+    var c = cv.getContext("2d");
+    RIM_RING.forEach(function (d) { c.drawImage(img, w + d[0] * w, w + d[1] * w); });
+    c.globalCompositeOperation = "source-in";     // keep the silhouette only
+    c.fillStyle = hex;
+    c.fillRect(0, 0, cv.width, cv.height);
+    c.globalCompositeOperation = "source-over";
+    c.drawImage(img, w, w);
+    if (!per) { per = {}; rims.set(img, per); }
+    per[hex] = cv;
+    return cv;
   }
 
   function readPalette() {
@@ -66,6 +146,10 @@
       enemyDark: c("--tk-enemy1-dark", "#77401f"),
       track: c("--tk-track", "rgba(30,24,16,0.55)"),
       bullet: c("--tk-bullet", "#2e2820"),
+      bulletLit: c("--tk-bullet-lit", "#cdbfa4"),
+      bulletRim: c("--tk-bullet-rim", "#14110c"),
+      shadow: c("--tk-shadow", "rgba(40,30,18,0.28)"),
+      turretRim: c("--tk-turret-rim", "rgba(22,17,11,0.85)"),
       mine: c("--tk-mine", "#3a332a"),
       mineArm: c("--tk-mine-arm", "#d8442e"),
       boom: c("--tk-boom", "#e0862f"),
@@ -183,6 +267,7 @@
       if (!A || !A.tankArt) return null;
       return A.tankArt(kind, tk.seat != null ? tk.seat : null, tk.type, hex);
     }
+
     function drawTank(tk, color, dark) {
       var X = px(tk.x), Y = py(tk.y);
       var r = 0.34 * tile;
@@ -210,14 +295,30 @@
       ctx.translate(X, Y);
       if (ti) {
         ctx.rotate(ta + Math.PI / 2);           // the sprite points up
-        ctx.drawImage(ti, -tile / 2, -tile / 2, tile, tile);
+        var ri = rimmed(ti, palette().turretRim);
+        if (ri) {
+          // the rim grows the sprite box, so the art inside stays one tile
+          var k = ri.width / ti.width;
+          ctx.drawImage(ri, -tile * k / 2, -tile * k / 2, tile * k, tile * k);
+        } else {
+          ctx.drawImage(ti, -tile / 2, -tile / 2, tile, tile);
+        }
       } else {
         ctx.rotate(ta);
+        ctx.lineWidth = Math.max(1, tile * 0.045);
+        ctx.strokeStyle = palette().turretRim;
+        ctx.lineJoin = "round";
+        // barrel first, mantlet over it — so the barrel's inner edge is
+        // covered rather than drawn as a seam across the turret
         ctx.fillStyle = dark;
-        ctx.fillRect(0, -0.055 * tile * 2, 0.52 * tile, 0.11 * tile * 2);
+        ctx.beginPath();
+        ctx.rect(0, -0.11 * tile, 0.52 * tile, 0.22 * tile);
+        ctx.fill();
+        ctx.stroke();
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
       }
       ctx.restore();
     }
@@ -305,17 +406,24 @@
         }
         drawTank(tk, color, dark);
       });
+      /* Shells last, over everything: the lethal object must always
+         stay legible. The shadow goes down first for every shell, so a
+         ball never lands on top of its neighbour's shadow. `d` is the
+         ball's DISPLAY diameter either way — 0.18 tiles, the engine's
+         BULLET_R doubled — so what you see is exactly the hitbox, and
+         a sprite's own art occupies the same fraction of its box. */
       var shell = window.TanksArt && window.TanksArt.img("bullet");
+      var bd = Math.max(3, tile * 0.18);
+      (scene.bullets || []).forEach(function (b) {
+        drawShellShadow(ctx, px(b.x), py(b.y), bd, P);
+      });
       (scene.bullets || []).forEach(function (b) {
         if (shell) {
           var sz = tile * 0.5;
           ctx.drawImage(shell, px(b.x) - sz / 2, py(b.y) - sz / 2, sz, sz);
           return;
         }
-        ctx.beginPath();
-        ctx.arc(px(b.x), py(b.y), Math.max(2, tile * 0.09), 0, Math.PI * 2);
-        ctx.fillStyle = P.bullet;
-        ctx.fill();
+        drawShell(ctx, px(b.x), py(b.y), bd, P);
       });
       // effects: expanding boom rings, ~350 ms of theater
       var now = performance.now();

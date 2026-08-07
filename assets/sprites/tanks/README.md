@@ -16,8 +16,22 @@ art ships by landing a file (docs/tanks.md, "Art").
 | `<theme>/tile-*.png` | terrain, per art theme — see below |
 
 All tank sprites **face up** and are 192px (3x a 64px tile). Regenerate
-the templates with `python scripts/build-tanks-art.py` — it OVERWRITES,
-so not once hand art has landed.
+the templates with `python scripts/build-tanks-art.py` — it OVERWRITES.
+**Name the ones you want and only those are written**, which is how you
+regenerate one sprite without touching the painted ones next to it:
+
+    python scripts/build-tanks-art.py bullet
+    python scripts/build-tanks-art.py hull-e3 turret-e3
+
+Two of these are drawn ON TOP of by the renderer, so do not draw them
+into the sprite yourself or they will double up:
+
+- **the turret's outline.** `render.js` rims whatever turret art it is
+  given, from the sprite's own silhouette, in the theme's
+  `--tk-turret-rim`. So draw the turret bare.
+- **the shell's contact shadow.** It belongs to the board's lighting,
+  not to the ball, so the renderer drops it. `bullet.png` is the ball
+  alone — lit from the upper left, with its highlight.
 
 Delete any file and that actor falls back to the geometric placeholder;
 delete `hull-p1.png` and seat 0 goes back to following its colour

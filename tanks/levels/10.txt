@@ -1,4 +1,4 @@
-name  [ph] The Marshal
+name  The Marshal
 tier  6
 theme rust
 

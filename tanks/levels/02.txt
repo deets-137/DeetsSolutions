@@ -1,4 +1,4 @@
-name  [ph] Bank Shot
+name  Bank Shot
 tier  2
 
 grid

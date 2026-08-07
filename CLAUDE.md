@@ -119,7 +119,7 @@ he dictated in chat.
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
-| Tanks | `strings.js` done — whole-file pass 2026-08-05 (build day), zero `[ph]` left. The nine level names added 2026-08-07 (`tanks/levels/02..10.txt`) still carry `[ph]` |
+| Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.

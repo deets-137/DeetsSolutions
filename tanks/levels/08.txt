@@ -1,4 +1,4 @@
-name  [ph] The Swarm
+name  The Swarm
 tier  5
 theme snow
 

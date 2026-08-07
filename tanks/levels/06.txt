@@ -1,4 +1,4 @@
-name  [ph] Sidestep
+name  Sidestep
 tier  4
 
 grid

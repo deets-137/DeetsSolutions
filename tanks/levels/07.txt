@@ -1,4 +1,4 @@
-name  [ph] Cover Story
+name  Cover Story
 tier  4
 theme dusk
 

@@ -22,9 +22,9 @@
    other way: a NEW string still arrives as "[ph]", but nothing already
    here may be reworded without him.
 
-   ONE EXCEPTION, 2026-08-07: the campaign grew to eleven levels, and
-   the names of levels 02-10 (in tanks/levels/*.txt, not in this file)
-   arrived "[ph]" and are still waiting. Nothing in THIS file changed. */
+   The campaign grew to eleven levels on 2026-08-07 and he adopted all
+   nine new names the same day, so tanks/levels/*.txt is past its pass
+   too. Nothing in THIS file changed then. */
 window.TANKS_STRINGS = {
   /* ── bar (carried from cities/poker) ─────────────────────────── */
   tableCodePlaceholder: "Table Code",

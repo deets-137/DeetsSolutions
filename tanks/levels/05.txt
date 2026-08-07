@@ -1,4 +1,4 @@
-name  [ph] Demolition
+name  Demolition
 tier  3
 theme rust
 

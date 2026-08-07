@@ -503,7 +503,11 @@ and writes `assets/sprites/tanks/`.
 
 The same script **emits blank templates** — correct canvas size, the tile
 circle drawn as a guide, the pivot marked — so he is never guessing at
-framing. Same house pattern as `build-mahjong-tiles.py` and
+framing. It takes **sprite names** and writes only those
+(`build-tanks-art.py bullet`), added 2026-08-07: the blanket
+"never re-run once hand art has landed" rule is the wrong shape for a
+set finished one sprite at a time, and it had already become a real
+hazard with a painted `turret.png` sitting in the folder. Same house pattern as `build-mahjong-tiles.py` and
 `build-poker-chips.py`. Art ships by landing a file: the game probes once
 per stable filename and falls back to a geometric placeholder, so the
 game is playable before a single sprite exists, and a README sits in the
@@ -656,6 +660,43 @@ in v1**. Prefer an integer scale factor if the floor ends up chunky.
 
 Render loop is `requestAnimationFrame`; the sim runs on a fixed-timestep
 accumulator, entirely decoupled ([realtime.md](realtime.md)).
+
+### Two things the renderer draws that the sprites must not
+
+Both landed 2026-08-07 on his eye, and both are deliberately **not**
+baked into the PNGs.
+
+**The shell is a ball, not a dot.** A flat disc reads as a pellet at
+any size. Two things fix that and neither is size: the sphere is lit
+from one side, so it has a near edge and a far edge, and it drops a
+**contact shadow** slightly off itself, so it sits *above* the cork
+instead of being a hole punched in it. The shadow is the board's
+lighting rather than the shell's art — it must not rotate or travel
+with a sprite — so `render.js` drops it under whatever shell is drawn,
+sprite or primitive, and a hand-drawn `bullet.png` gets one free. The
+one detail that matters in practice: **the specular is drawn, not
+implied by the gradient.** A shell plays at roughly 8 px, where a
+gradient alone has collapsed back into a dot and only the highlight
+still says "ball".
+
+**The turret wears an outline.** It is the hull's own colour sitting
+directly on the hull, so without a rim the barrel dissolves into the
+body and you cannot read where a tank is pointing — which is the one
+thing that must be legible at a glance. `rimmed()` builds it from the
+**sprite's own silhouette** (draw the art ringed around the origin,
+keep the alpha, flood it with `--tk-turret-rim`, put the art back on
+top), cached per sprite and colour in a module-level WeakMap so the
+lobby preview shares it with the arena.
+
+Doing it from the silhouette rather than in the template is what makes
+it survive the art pass: his hand-drawn turret is rimmed the day it
+lands, with no second file, and no rim to hand-draw again for each of
+the seven enemy liveries. It also means the rim is **themeable** — on
+dusk it goes light, because a dark rim on that near-black floor loses
+the part of the barrel that overhangs the ground.
+
+Both colours are tokens on `.tk` like the rest of the carve-out, so a
+theme gets its own shell and its own rim by copying a block.
 
 ---
 
@@ -891,9 +932,9 @@ Three things about them worth keeping:
   What it caught: 05 originally ran two Lancers and spiked above 08 in
   deaths, and 10 ran five enemies. Both were trimmed.
 
-**Their names are `[ph]`.** Levels 00 and 01 carry his words; 02-10
-are placeholders awaiting his pass, which is the one thing between this
-campaign and shipping.
+**The names are his.** 02-10 went up as `[ph]` placeholders and he
+adopted all nine unchanged, chat 2026-08-07 — so they are handwritten
+copy now and off-limits like the rest.
 
 ## Still to design
 
@@ -1017,9 +1058,8 @@ ledger:
   pass), the `../DeetsTanks` worker (phase 4 — `rt-do.js` gets
   extracted from `transport-mock.js` then, per the promotion rule),
   PvP, stats reporting.
-- **Copy: `strings.js` DONE, nine level names OPEN.** He approved the
-  whole of `strings.js` — and the names of levels 00 and 01 — in one
-  pass, chat 2026-08-05, the same day it was built. `strings.js` still
-  carries zero `[ph]`. The nine levels added 2026-08-07 carry `[ph]`
-  names (see "The campaign"), and by the house rule nothing carrying
-  `[ph]` ships — so that pass is a merge gate.
+- **Copy: DONE.** He approved the whole of `strings.js` — and the names
+  of levels 00 and 01 — in one pass, chat 2026-08-05, the same day it
+  was built, and the nine names of levels 02-10 on 2026-08-07, the day
+  they were written. Zero `[ph]` left anywhere in the tab; new strings
+  still arrive prefixed.
