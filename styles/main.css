@@ -1707,6 +1707,68 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   transition: background var(--dur-fast) var(--ease-ui),
               transform var(--dur-fast) var(--ease-ui);
 }
+/* volume: a level-filled pill that drops a vertical scrubber, ported
+   from DeetsMusic's chrome-right control (docs/radio.md, "Volume").
+   The pill borrows .radio-np__btn wholesale so it sits on the transport
+   line at exactly the transport's size — one footprint, not a second. */
+.radio-vol { position: relative; display: inline-flex; }
+.radio-vol__pill { position: relative; overflow: hidden; }
+/* the tinted fill mirrors the level, behind the glyph */
+.radio-vol__pill-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  height: 100%;
+  background: color-mix(in srgb, var(--title) 22%, transparent);
+  transition: width var(--dur-fast) var(--ease-ui);
+  pointer-events: none;
+}
+.radio-vol__glyph { position: relative; display: inline-flex; }
+.radio-vol__panel {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.radio-vol__panel[hidden] { display: none; }
+.radio-vol__mute {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  background: none;
+  color: var(--title);
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.radio-vol__mute:hover { background: var(--surface-hover); }
+.radio-vol__mute svg { width: 1rem; height: 1rem; fill: currentColor; }
+/* the slider is .radio-scrub stood on end — same track, same fill, same
+   tokens, so the card's two bars cannot drift apart */
+.radio-vol__slider {
+  flex: none;
+  width: 6px;
+  height: 5.5rem;
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
+  touch-action: none;
+}
+.radio-vol__fill { width: 100%; height: 0%; }
 .radio-np__btn:hover { background: var(--surface-hover); transform: var(--hover-lift); }
 .radio-np__btn svg { width: 1.1rem; height: 1.1rem; fill: currentColor; }
 .radio-np__btn--play { width: 2.9rem; height: 2.9rem; }

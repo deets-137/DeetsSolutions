@@ -30,7 +30,8 @@ Start at [README.md](README.md). Then:
 | Site structure, tokens, chrome | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
 | **Designing a NEW game** | **[design-language.md](docs/design-language.md)** — the precedents, decision trees, and questionnaire |
-| Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md) |
+| Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md), [tanks.md](docs/tanks.md) |
+| **Real-time games (tanks, doom)** | **[realtime.md](docs/realtime.md)** — read before tanks.md; owns the tick, authority, DO posture |
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
 | Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
@@ -118,6 +119,7 @@ he dictated in chat.
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
+| Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.

@@ -66,6 +66,18 @@
   var ICON_RADIO = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9 18 4"/><rect x="3.5" y="9" width="17" height="11" rx="2"/><circle cx="9" cy="14.5" r="2.5"/><path d="M15 12.5h3M15 15h3M15 17.5h2"/></svg>';
   var ICON_UNPLUG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8.5h3a3.5 3.5 0 0 1 0 7H9z"/><path d="M15.5 10.5H19M15.5 13.5H19"/><path d="M9 12H6.5C4.7 12 4 13.3 4 15v2"/><path d="M20.5 7.5 22 6M20.5 16.5 22 18"/></svg>';
   /* account-state sigils — DeetsMusic's login button anatomy (main.ts) */
+  /* speaker at three levels. The "off" glyph is a bare cone rather than
+     a slashed one: at 1.1rem a slash reads as noise against the waves
+     it crosses, and the ABSENCE of waves is already the clearest
+     possible "nothing is coming out" (DeetsMusic does the same). */
+  var VOL_CONE = '<path d="M4 9.5h3.6L12 6v12L7.6 14.5H4z"/>';
+  var VOL_WAVE = ' fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>';
+  var ICON_VOL_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true">' + VOL_CONE + '</svg>';
+  var ICON_VOL_LOW = '<svg viewBox="0 0 24 24" aria-hidden="true">' + VOL_CONE +
+    '<path d="M15 9.6a3.6 3.6 0 0 1 0 4.8"' + VOL_WAVE + '</svg>';
+  var ICON_VOL_HIGH = '<svg viewBox="0 0 24 24" aria-hidden="true">' + VOL_CONE +
+    '<path d="M15 9.6a3.6 3.6 0 0 1 0 4.8"' + VOL_WAVE +
+    '<path d="M18 7a7.5 7.5 0 0 1 0 10"' + VOL_WAVE + '</svg>';
   var ICON_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   var ICON_WAIT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h8M4 14h8M5 2c0 5 6 5 6 12M11 2c0 5-6 5-6 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
@@ -972,6 +984,151 @@
     });
   }
 
+  /* ── output level (DeetsMusic's volume pill, ported) ─────────────
+     A level-filled pill in the transport row that drops a flyout with
+     a mute toggle over a vertical slider — his ask, 2026-08-07, and
+     the same anatomy as DeetsMusic's chrome-right control.
+
+     THE ONE RULE: volume is PER LISTENER and never touches the wire.
+     The room is a shared clock over a shared queue; how loud it is in
+     your kitchen is not part of that, and a synced volume would let
+     any listener deafen the rest. So it is localStorage on this device
+     and a setter on each engine, alongside the video-tier toggle,
+     which is device-local for the same reason (docs/radio.md).
+
+     Mute is stored as its own flag rather than as level 0, so
+     unmuting can restore where you were. `prev` is the level to come
+     back to when you unmute off a slider you dragged to zero. */
+  var VOL_KEY = "deets.radio.volume", MUTE_KEY = "deets.radio.muted";
+  var volLevel = Math.max(0, Math.min(1, +load(VOL_KEY, 1)));
+  var volMuted = !!load(MUTE_KEY, false);
+  var volPrev = volLevel > 0 ? volLevel : 1;
+  var volNodes = null;
+  function volOut() { return volMuted ? 0 : volLevel; }
+  function volApply() {
+    var v = volOut();
+    if (A && A.setVolume) A.setVolume(v);
+    if (Y && Y.setVolume) Y.setVolume(v);
+    volPaint();
+  }
+  function volSet(v, commit) {
+    volLevel = Math.max(0, Math.min(1, v));
+    if (volLevel > 0) { volMuted = false; volPrev = volLevel; }
+    else volMuted = true;              // dragged to the floor reads as muted
+    if (commit) { save(VOL_KEY, volLevel); save(MUTE_KEY, volMuted); }
+    volApply();
+  }
+  function volToggleMute() {
+    if (volMuted) { volMuted = false; if (volLevel === 0) volLevel = volPrev; }
+    else { volPrev = volLevel > 0 ? volLevel : volPrev; volMuted = true; }
+    save(VOL_KEY, volLevel); save(MUTE_KEY, volMuted);
+    volApply();
+  }
+  /* three states, because a speaker with no waves is the only glyph
+     that reads as "off" at this size without a slash fighting it */
+  function volIcon(v) {
+    if (v <= 0) return ICON_VOL_OFF;
+    return v < 0.5 ? ICON_VOL_LOW : ICON_VOL_HIGH;
+  }
+  function volPaint() {
+    if (!volNodes) return;
+    var v = volOut(), pct = Math.round(v * 100);
+    volNodes.fill.style.height = pct + "%";
+    volNodes.pillFill.style.width = pct + "%";
+    volNodes.mute.innerHTML = volIcon(v);
+    volNodes.mute.setAttribute("aria-pressed", volMuted ? "true" : "false");
+    volNodes.pill.innerHTML = "";
+    volNodes.pill.appendChild(volNodes.pillFill);
+    var glyph = el("span", "radio-vol__glyph");
+    glyph.innerHTML = volIcon(v);
+    volNodes.pill.appendChild(glyph);
+    volNodes.slider.setAttribute("aria-valuenow", String(pct));
+    volNodes.slider.setAttribute("aria-valuetext", fmt(S.volPercent, { n: pct }));
+  }
+  function buildVol() {
+    var ctrl = el("div", "radio-vol");
+    var pill = el("button", "radio-np__btn radio-vol__pill");
+    pill.type = "button";
+    pill.setAttribute("aria-haspopup", "true");
+    pill.setAttribute("aria-expanded", "false");
+    pill.setAttribute("aria-label", S.volLabel);
+    var pillFill = el("span", "radio-vol__pill-fill");
+    pillFill.setAttribute("aria-hidden", "true");
+    var pop = el("div", "radio-vol__panel");
+    pop.hidden = true;
+    pop.setAttribute("role", "group");
+    pop.setAttribute("aria-label", S.volLabel);
+    var mute = el("button", "radio-vol__mute");
+    mute.type = "button";
+    mute.setAttribute("aria-label", S.volMute);
+    mute.addEventListener("click", volToggleMute);
+    /* the slider IS the scrub bar's geometry, stood on end — same
+        track, same fill, same tokens, so the two bars in this card
+        cannot drift apart */
+    var slider = el("div", "radio-vol__slider radio-scrub");
+    var fill = el("div", "radio-scrub__fill radio-vol__fill");
+    slider.appendChild(fill);
+    slider.setAttribute("role", "slider");
+    slider.setAttribute("tabindex", "0");
+    slider.setAttribute("aria-label", S.volLabel);
+    slider.setAttribute("aria-valuemin", "0");
+    slider.setAttribute("aria-valuemax", "100");
+    var entry = { ctrl: ctrl, pill: pill, pop: pop };
+    pill.addEventListener("click", function () { togglePop(entry); });
+
+    /* pointer capture, so a drag that leaves the 26px-wide track keeps
+       tracking instead of stranding the handle */
+    var dragging = false;
+    function levelAt(e) {
+      var r = slider.getBoundingClientRect();
+      if (!r.height) return volLevel;
+      return Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height));
+    }
+    slider.addEventListener("pointerdown", function (e) {
+      dragging = true;
+      slider.setPointerCapture(e.pointerId);
+      volSet(levelAt(e), false);
+      e.preventDefault();
+    });
+    slider.addEventListener("pointermove", function (e) {
+      if (dragging) volSet(levelAt(e), false);
+    });
+    function end(e) {
+      if (!dragging) return;
+      dragging = false;
+      volSet(levelAt(e), true);          // one write per drag, not per pixel
+    }
+    slider.addEventListener("pointerup", end);
+    slider.addEventListener("pointercancel", end);
+    slider.addEventListener("keydown", function (e) {
+      var step = e.key === "PageUp" || e.key === "PageDown" ? 0.2 : 0.05;
+      var v = null;
+      if (e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "PageUp") v = volOut() + step;
+      else if (e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "PageDown") v = volOut() - step;
+      else if (e.key === "Home") v = 0;
+      else if (e.key === "End") v = 1;
+      else if (e.key === "m" || e.key === "M") { volToggleMute(); e.preventDefault(); return; }
+      if (v == null) return;
+      e.preventDefault();
+      volSet(v, true);
+    });
+    pop.appendChild(mute);
+    pop.appendChild(slider);
+    ctrl.appendChild(pill);
+    ctrl.appendChild(pop);
+    volNodes = { pill: pill, pillFill: pillFill, mute: mute,
+                 slider: slider, fill: fill };
+    volPaint();
+    return ctrl;
+  }
+
+  /* Push the stored level into both engines NOW, before any card is
+     built: a room can start playing while the listener is still on the
+     gate, and it must not come up at full on a device that was left
+     muted. Each engine holds the number and re-applies it whenever its
+     player is (re)created. */
+  volApply();
+
   /* ── now-playing strip (transport + countdown + progress) ─────── */
   var npNodes = null;
   var activeEngine = null;   // whichever follower tick() is feeding (A or Y)
@@ -1028,6 +1185,10 @@
     });
     play.classList.add("radio-np__btn--play");
     var next = mk(ICON_NEXT, S.ariaSkip, function () { send("skip"); });
+    /* volume sits after the transport, the DeetsMusic order: the
+       controls that change the ROOM first, then the one that only
+       changes your own speakers */
+    controls.appendChild(buildVol());
     /* shell-strip stand-ins, riding INSIDE the card under the transport
        (CSS shows them only in the bottom strip, where the return pill is
        hidden): Radio Room = home, Disconnect asks twice like Close Room */

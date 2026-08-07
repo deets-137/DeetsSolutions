@@ -83,6 +83,20 @@
     layer.appendChild(box);
     document.body.appendChild(layer);
   }
+  /* ── output level ────────────────────────────────────────────────
+     Per listener, never on the wire (see apple.js for the why). The
+     iframe is built lazily and rebuilt on failure, and it comes up at
+     100 every time, so the level is STORED and re-applied on ready —
+     pushing it once would be lost by the next player. YouTube's scale
+     is 0..100, radio.js speaks 0..1. */
+  var level = 1;
+  function applyLevel() {
+    if (!player || !playerReady) return;
+    try { player.setVolume(Math.round(level * 100)); } catch (e) {}
+    /* an iframe at volume 0 still counts as unmuted, which is what we
+       want: mute is just level 0 here, one concept, not two */
+  }
+
   function ensurePlayer() {
     if (player || creating) return;
     creating = true;
@@ -96,7 +110,10 @@
           origin: location.origin
         },
         events: {
-          onReady: function () { playerReady = true; creating = false; },
+          onReady: function () {
+            playerReady = true; creating = false;
+            applyLevel();      // a fresh iframe starts at 100
+          },
           onError: function (e) {
             /* embed-disabled / dead video: mark it and fall through to
                the Apple preview tier on the next tick */
@@ -587,6 +604,10 @@
     attachTo: function (el) { targetEl = el; },
     follow: follow,
     note: function () { return note; },
+    setVolume: function (v) {
+      level = Math.max(0, Math.min(1, +v || 0));
+      applyLevel();
+    },
     stop: stop,
     resolve: resolve,
     lookup: lookup,

@@ -186,6 +186,12 @@ window.RADIO_STRINGS = {
   kickedMeta:     "You have been disconnected by the owner.",
   nameTaken:      "That tag is already taken, try another one!",
   roomFull:       "Room is full.",
+  /* volume pill (ported from DeetsMusic, 2026-08-07). Device-local —
+     these never describe the room, only this listener's speakers. */
+  volLabel:   "Volume",
+  volMute:    "Mute",
+  volPercent: "{n}%",
+
   ariaKick:       "Kick {name}",
   ariaCapQueue:   "Queue edits for {name}",
   ariaCapPlayer:  "Player control for {name}"

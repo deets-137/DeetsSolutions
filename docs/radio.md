@@ -488,10 +488,13 @@ disconnected/reconnected, and the six aria labels — joined the chrome
 that was already done (toolbar pills, Close-Room flow, Invite toast,
 Music-Source block, create-confirm, name label, column/section labels,
 Up next / Previously, the Your-stations group label, every menu item).
-The only `[ph]` mentions left in the file are in its header comment,
-which documents the convention. (The countdown needs no copy — bare
-digits, and at zero the album cover filling in is the go signal.
-Decided.)
+(The countdown needs no copy — bare digits, and at zero the album cover
+filling in is the go signal. Decided.)
+
+**Still true after 2026-08-07:** the volume control added three
+strings — `volLabel`, `volMute`, `volPercent`, all aria/aria-valuetext
+only, since the control itself is a glyph and a bar — and he approved
+all three the same day. The file is back to zero `[ph]`.
 
 ### The blank cover is a hand-drawn sprite
 
@@ -652,6 +655,7 @@ token system; every component here is re-expressed in this site's
 | Context menu | `context-menu.ts` | right-click menu kit: Play Next / Move to Top / Move to Bottom / Remove on queue rows; Add to Queue / Play Next on search + history rows |
 | History log | `history-card.ts` | hero + "Previously" list, newest first, append-only with real repeats |
 | Empty art | shared | `♪` placeholder block idiom |
+| Volume | `chrome-right` (`.vol`) | **built 2026-08-07** — a level-filled pill that drops a flyout with a mute toggle over a vertical slider. See "Volume" below. |
 
 Explicitly **not** ported: library/playlists/rewind/radio-stations cards,
 album-color aurora, the card/layout-bus engine (three fixed columns don't
@@ -664,6 +668,51 @@ holds the room controls. Per the site's deliberate-duplication convention
 (`sotd.js` / `movies.js` / `league.js` each carry their own copy of the
 toolbar/popover kit), `radio.js` carries its own too — a fix to that
 machinery must be mirrored across all four.
+
+## Volume (built 2026-08-07)
+
+His ask: DeetsMusic's volume control, in the player bar. Same anatomy —
+a level-filled pill on the transport line, dropping a flyout with a
+mute toggle over a vertical slider.
+
+**Volume is per listener and never touches the wire, and that is the
+whole design.** The room owns a clock over a shared queue ("The core
+mechanic"); how loud it is in your kitchen is not part of what is being
+synced, and a room-wide level would let any listener deafen everyone
+else. So it sits in `localStorage` on this device, beside the video
+tier toggle, which is device-local for exactly the same reason.
+
+**The level is stored by each engine, not pushed once.** Radio has
+three output surfaces and *none of them exists when the page loads*:
+MusicKit is configured lazily on the first full track, the YouTube
+iframe is built lazily and rebuilt after an embed failure, and the
+preview `<audio>` is the only one that is there from the start. A
+player that comes up after the listener set their level comes up at
+full — YouTube's iframe always starts at 100. So `RadioApple.setVolume`
+and `RadioYouTube.setVolume` each *keep* the number and re-apply it at
+every point a player is created or becomes ready, and `radio.js` pushes
+the stored level once at load, before any card is built, so a room that
+starts playing while the listener is still at the gate does not come up
+loud on a device that was left muted.
+
+Details worth keeping:
+
+- **Mute is a flag, not level 0**, so unmuting restores where you were.
+  Dragging the slider to the floor *does* read as muted (there is no
+  meaningful difference to the listener), and the remembered level is
+  what you come back to.
+- **One write per drag.** The pointer handlers set the level live and
+  persist only on release, so a slow drag is not a hundred
+  `localStorage` writes.
+- **The slider is `.radio-scrub` stood on end** — the same track, fill
+  and tokens as the progress bar three inches away. Two bars in one
+  card that drift apart is exactly the sort of thing nobody notices
+  until a theme change makes it obvious.
+- **The "off" glyph is a bare cone, not a slashed speaker.** At
+  `1.1rem` a slash reads as noise against the waves it crosses, and the
+  absence of waves already says it. DeetsMusic makes the same call.
+- Keyboard: the slider is a real `role="slider"` — arrows, PageUp/Down,
+  Home/End, and `m` to mute.
 
 ## Build order (UI first)
 

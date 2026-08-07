@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsTanks — Deets</title>
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "viper" : "fairy"; }
+          document.documentElement.setAttribute("data-theme", t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "cyberstorm" : "press"; }
+          if (s === "desk") s = "press";   /* retired skin → successor */
+          document.documentElement.setAttribute("data-skin", s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/chrome.css" />
+    <link rel="stylesheet" href="../styles/table.css" />
+    <link rel="stylesheet" href="./tanks.css" />
+    <script src="../js/controls.js" defer></script>
+    <script src="../js/account.js" defer></script>
+    <script src="../js/toast.js" defer></script>
+    <script src="./strings.js" defer></script>
+    <script src="../games/colors.js" defer></script>
+    <script src="./engine.js" defer></script>
+    <script src="./levels.js" defer></script>
+    <script src="../games/transport.js" defer></script>
+    <script src="../games/table-mock.js" defer></script>
+    <script src="./transport-mock.js" defer></script>
+    <script src="../games/table.js" defer></script>
+    <script src="./input.js" defer></script>
+    <script src="./art.js" defer></script>
+    <script src="./render.js" defer></script>
+    <script src="./net.js" defer></script>
+    <script src="./tanks.js" defer></script>
+    <script src="../js/walkers.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
+            <a href="/poker/" role="menuitem">DeetsPoker</a>
+            <a href="/tanks/" role="menuitem" aria-current="page">DeetsTanks</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <!-- DeetsTanks — top-down real-time tank arena (docs/tanks.md).
+           Phase 1: the mock transport (transport-mock.js) runs the real
+           engine (engine.js) in-page at 60 Hz; the mock is the DEFAULT
+           until the ../DeetsTanks worker lands (?mock stays the explicit
+           switch either way). The bar carries the table-code combobox
+           (the sibling idiom): the table code IS the title. All flavor
+           copy comes from strings.js. -->
+      <section class="tk">
+        <div class="sotd__bar">
+          <div class="tb-ctrl gt-code">
+            <!-- aria-label comes from strings.js (tanks.js boot) -->
+            <input class="gt-code__input" data-tk-code type="text"
+                   autocomplete="off" spellcheck="false" />
+            <div class="tb-pop gt-code__pop" data-tk-code-pop hidden></div>
+          </div>
+          <div class="sotd-toolbar" data-tk-toolbar aria-label="Table controls"></div>
+        </div>
+
+        <!-- pre-join gate: peek result → sit / watch / open-this-table -->
+        <div class="tk-gate" data-tk-gate hidden></div>
+
+        <!-- the bento (docs/tanks.md, "Page layout"): arena big tile,
+             participants + campaign counter on the rail, controls strip
+             below (poker's hand-panel slot). No log — his call. The
+             CANVAS is a permanent node: paint() rebuilds its siblings,
+             never it (the sim channel bypasses the paint path). -->
+        <div class="tk-table" data-tk-table hidden>
+          <div class="tk-bento">
+            <section class="tk-tile tk-tile--big" data-tk-big aria-label="Arena">
+              <canvas class="tk-canvas is-hidden" data-tk-canvas></canvas>
+              <div class="tk-lobbywrap" data-tk-lobby></div>
+              <div class="tk-overlay" data-tk-overlay hidden></div>
+            </section>
+            <div class="tk-rail">
+              <section class="tk-tile tk-tile--players" data-tk-players aria-label="Tanks"></section>
+              <section class="tk-tile tk-tile--campaign" data-tk-campaign aria-label="Campaign"></section>
+            </div>
+            <section class="tk-tile tk-tile--role" data-tk-role aria-label="Controls"></section>
+          </div>
+        </div>
+
+        <!-- desktop-only: below the nav breakpoint the game is swapped
+             for a one-line note -->
+        <p class="tk-desktop-note" data-tk-desktop hidden></p>
+      </section>
+    </main>
+  </body>
+</html>
