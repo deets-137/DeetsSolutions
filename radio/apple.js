@@ -46,6 +46,7 @@
     }).then(function () {
       music = window.MusicKit.getInstance();
       configuring = null;
+      applyLevel();          // the instance is new; it starts at full
       notifyAuth();          // isAuthorized may already be true from a past visit
       return music;
     }, function (err) {
@@ -196,6 +197,21 @@
   audio.preload = "auto";
   var audioUrl = null;
   var audioBlocked = false;
+
+  /* ── output level ────────────────────────────────────────────────
+     PER LISTENER, never on the wire: the room syncs what is playing
+     and where it is, not how loud your speakers are. radio.js owns the
+     level and its persistence; this side only applies it.
+
+     It is stored rather than pushed once because both surfaces come
+     and go — MusicKit is configured lazily on the first full track, so
+     a level set before that would land on nothing. Every apply point
+     re-reads `level`. */
+  var level = 1;
+  function applyLevel() {
+    try { audio.volume = level; } catch (e) {}
+    try { if (music) music.volume = level; } catch (e) {}
+  }
 
   /* full-track engine bookkeeping. MusicKit's setQueue()/play() promises
      can hang without settling when called mid-transition, so every latch
@@ -414,6 +430,13 @@
     follow: follow,
     note: function () { return note; },
     setPreviews: function (on) { previewsOn = !!on; },
+    /* 0..1, and it covers BOTH surfaces — the hidden preview <audio>
+       and MusicKit — so a listener's level survives a track dropping
+       from full to preview mid-room */
+    setVolume: function (v) {
+      level = Math.max(0, Math.min(1, +v || 0));
+      applyLevel();
+    },
     stop: stop
   };
 })();
