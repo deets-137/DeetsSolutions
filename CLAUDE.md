@@ -115,7 +115,7 @@ he dictated in chat.
 
 | Page | State of his pass |
 | --- | --- |
-| Radio | Done — handwritten throughout, except the three volume-control aria strings added 2026-08-07, which carry `[ph]` |
+| Radio | Done — handwritten throughout |
 | Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
 | Cities | Underway |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |

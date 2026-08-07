@@ -491,11 +491,10 @@ Up next / Previously, the Your-stations group label, every menu item).
 (The countdown needs no copy — bare digits, and at zero the album cover
 filling in is the go signal. Decided.)
 
-**Open since 2026-08-07:** the volume control added three strings —
-`volLabel`, `volMute`, `volPercent` — and they carry `[ph]`, so the
-file is no longer at zero. All three are aria/aria-valuetext only;
-nothing visible on the page reads them, since the control is a glyph
-and a bar. They still need his pass before this ships.
+**Still true after 2026-08-07:** the volume control added three
+strings — `volLabel`, `volMute`, `volPercent`, all aria/aria-valuetext
+only, since the control itself is a glyph and a bar — and he approved
+all three the same day. The file is back to zero `[ph]`.
 
 ### The blank cover is a hand-drawn sprite
 
