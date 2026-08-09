@@ -75,7 +75,7 @@
   /* An inline-SVG layer (two <path pathLength="1"> bolts) injected into
      <body> by controls.js, that a skin opts into. The GEOMETRY is a skin
      token (CSS d: path(...)); the ink is a theme ROLE. Base is inert. */
-  --storm-display: none;             /* cyberstorm opts in */
+  --storm-display: none;             /* retro-future opts in */
   --storm-ink:     var(--title);
   --storm-glow:    none;
   --storm-w:       2px;
@@ -261,11 +261,11 @@
 }
 
 /* ============================================================
-   CYBERSTORM — electric/futuristic. Machined sci-fi type, every
+   RETRO-FUTURE — electric/futuristic. Machined sci-fi type, every
    corner cut square, lightning bolts slow-drawing down a circuit
    grid behind the content.
    ============================================================ */
-[data-skin="cyberstorm"] {
+[data-skin="retro-future"] {
   --font-title: "Orbitron", "Segoe UI", system-ui, sans-serif;
   --font-body:  "Rajdhani", "Segoe UI", system-ui, sans-serif;
   --fw-title:   700;
@@ -300,7 +300,7 @@
   --dur-fast:   0.08s;
   --hover-lift: translateY(-1px);
 }
-/* CyberStorm's strike cycle: the bolt draws top→bottom over ~60% of its
+/* Retro-Future's strike cycle: the bolt draws top→bottom over ~60% of its
    period (dashoffset 1→0 against pathLength=1), flickers once at full reach,
    cuts to dark, and rests until the next strike. Both bolts run THESE
    keyframes at different --storm-cycle-* durations. */

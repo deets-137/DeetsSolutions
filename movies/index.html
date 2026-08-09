@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="fairy" data-skin="cyberstorm">
+<html lang="en" data-theme="lilac" data-skin="retro-future">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,13 +9,16 @@
       (function () {
         try {
           var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "retro-future" };
           var t = localStorage.getItem("deets-theme");
-          if (!t) { t = dark ? "viper" : "fairy"; }
-          document.documentElement.setAttribute("data-theme", t);
+          if (!t) { t = dark ? "black-red" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
           var s = localStorage.getItem("deets-skin");
-          if (!s) { s = dark ? "cyberstorm" : "press"; }
-          if (s === "desk") s = "press";   /* retired skin → successor */
-          document.documentElement.setAttribute("data-skin", s);
+          if (!s) { s = dark ? "retro-future" : "press"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
         } catch (e) {}
       })();
     </script>

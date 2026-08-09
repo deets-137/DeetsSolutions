@@ -14,35 +14,35 @@
       attr: "data-theme",
       key: "deets-theme",
       // No saved choice: follow the OS light/dark preference, landing on
-      // Fairy (light) or Viper (dark). Both axes read the SAME preference,
-      // so a first visit lands on one of two curated pairs — Press × Fairy
-      // or CyberStorm × Viper. Kept in sync with the inline pre-paint
-      // script in each page's <head>.
-      def: function () { return prefersDark() ? "viper" : "fairy"; },
+      // Lilac (light) or Black & Red (dark). Both axes read the SAME
+      // preference, so a first visit lands on one of two curated pairs —
+      // Press × Lilac or Retro-Future × Black & Red. Kept in sync with the
+      // inline pre-paint script in each page's <head>.
+      def: function () { return prefersDark() ? "black-red" : "lilac"; },
       options: [
-        { id: "fairy",     label: "Fairy" },
-        { id: "glade",     label: "Glade" },
-        { id: "sepia",     label: "Sepia" },
-        { id: "moonlight", label: "Moonlight" },
-        { id: "hornet",    label: "Hornet" },
-        { id: "viper",     label: "Viper" },
+        { id: "lilac",        label: "Lilac" },
+        { id: "green",        label: "Green" },
+        { id: "sepia",        label: "Sepia" },
+        { id: "moonlight",    label: "Moonlight" },
+        { id: "black-yellow", label: "Black & Yellow" },
+        { id: "black-red",    label: "Black & Red" },
       ],
     },
     skin: {
       attr: "data-skin",
       key: "deets-skin",
       // No saved choice: the skin follows the OS light/dark preference too —
-      // Press on light (ink on stock wants a light stock), CyberStorm on
+      // Press on light (ink on stock wants a light stock), Retro-Future on
       // dark. Pairs with the theme default above; no longer a screen-width
       // call. Kept in sync with the inline pre-paint script in each page's
       // <head>.
-      def: function () { return prefersDark() ? "cyberstorm" : "press"; },
+      def: function () { return prefersDark() ? "retro-future" : "press"; },
       options: [
-        { id: "vanilla",    label: "Vanilla" },
-        { id: "press",      label: "Press" },
-        { id: "ocean",      label: "Ocean" },
-        { id: "glass",      label: "Glass" },
-        { id: "cyberstorm", label: "CyberStorm" },
+        { id: "vanilla",      label: "Vanilla" },
+        { id: "press",        label: "Press" },
+        { id: "ocean",        label: "Ocean" },
+        { id: "glass",        label: "Glass" },
+        { id: "retro-future", label: "Retro-Future" },
       ],
     },
   };
@@ -61,7 +61,19 @@
   // Retired ids still sitting in someone's localStorage, mapped to their
   // successor. Kept in sync with the inline pre-paint script in each page's
   // <head>, which applies the same map before first paint.
-  var RETIRED = { desk: "press" };
+  //
+  // One map serves BOTH axes — safe only while no id appears on both. The
+  // 2026-08-08 rename is the bulk of it: four themes and one skin traded
+  // their vibe names for what they actually are, and a visitor who picked
+  // one of them keeps their choice instead of falling back to the default.
+  var RETIRED = {
+    desk:       "press",         // retired skin → successor
+    fairy:      "lilac",
+    glade:      "green",
+    hornet:     "black-yellow",
+    viper:      "black-red",
+    cyberstorm: "retro-future",
+  };
 
   function current(axis) {
     try {

@@ -17,13 +17,14 @@
                  out of register behind cards and menus. Only the
                  Press skin prints it (skin.css), but the choice is
                  the THEME's — which of its own accents survives as
-                 a solid 4px block on that theme's stock. Fairy and
-                 Glade pick their pink/magenta over a washed-out
+                 a solid 4px block on that theme's stock. Lilac and
+                 Green pick their pink/magenta over a washed-out
                  mint or fern; Sepia's terracotta is the classic riso
-                 red on parchment; Hornet and Viper print their hi-vis
-                 signature straight; Moonlight, whose accents are all
-                 near-white, mixes its silver back toward the canvas
-                 so the plate reads as a tone rather than a headlight.
+                 red on parchment; Black & Yellow and Black & Red
+                 print their hi-vis signature straight; Moonlight,
+                 whose accents are all near-white, mixes its silver
+                 back toward the canvas so the plate reads as a tone
+                 rather than a headlight.
    ============================================================ */
 
 /* ── Runtime album roles (ALBUM-COLOR.md) ─────────────────────
@@ -42,7 +43,7 @@
   --ink-2: var(--go);
 }
 
-[data-theme="fairy"] {
+[data-theme="lilac"] {
   color-scheme: light;
   --canvas:  var(--paint-dewy-lilac);
   --go:      var(--paint-fae-mint);
@@ -68,7 +69,7 @@
   --scrollbar-hover: rgba(67, 48, 107, 0.44);
 }
 
-[data-theme="glade"] {
+[data-theme="green"] {
   color-scheme: light;
   --canvas:  var(--paint-dewy-chartreuse);
   --go:      var(--paint-fern);
@@ -146,7 +147,7 @@
   --scrollbar-hover: rgba(199, 211, 227, 0.40);
 }
 
-[data-theme="hornet"] {
+[data-theme="black-yellow"] {
   color-scheme: dark;
   --canvas:  var(--paint-pitch);
   --go:      var(--paint-hazard);   /* monochrome yellow family — no green/red: */
@@ -172,7 +173,7 @@
   --scrollbar-hover: rgba(255, 212, 0, 0.40);
 }
 
-[data-theme="viper"] {
+[data-theme="black-red"] {
   color-scheme: dark;
   --canvas:  var(--paint-pitch);
   --go:      var(--paint-siren);    /* monochrome red family — no green/yellow: */
