@@ -13,10 +13,14 @@ one page-local script.
 
 Two orthogonal axes, ported from the DeetsMusic app:
 
-- **Theme = color only**, set as `data-theme` on `<html>`: Fairy, Glade,
-  Sepia, Moonlight, Hornet, Viper.
+- **Theme = color only**, set as `data-theme` on `<html>`: Lilac, Green,
+  Sepia, Moonlight, Black & Yellow, Black & Red. Every one of the six is
+  named for the color it is rather than a mood it evokes — describing the
+  mood is the skin axis's job.
 - **Skin = everything that isn't color** (type, shape, material, motion),
-  set as `data-skin`: Vanilla, Press, Ocean, Glass, CyberStorm.
+  set as `data-skin`: Vanilla, Press, Ocean, Glass, Retro-Future.
+
+Ids are the lowercase slug of the label (`black-yellow`, `retro-future`).
 
 Any theme pairs with any skin — 6 × 5 = 30 combos, all of which every
 component must survive. That works because tokens cascade in strict tiers:
@@ -46,7 +50,7 @@ banners documenting every role.
 known constraints are documented in [ui.md](ui.md)), persists both choices
 in `localStorage` (`deets-theme` / `deets-skin`), and injects two inert
 decorative SVG layers that individual skins opt into via a display token:
-the **storm** (CyberStorm's lightning bolts) and the **ocean** (Ocean's
+the **storm** (Retro-Future's lightning bolts) and the **ocean** (Ocean's
 three rolling wave trains — seamless sine-period `<pattern>` tiles, each an
 opaque fill under a hairline crest so nearer swells occlude farther ones).
 In both cases the geometry lives in `controls.js`, the ink is a theme role,
@@ -54,9 +58,38 @@ and the motion is skin tokens.
 
 Each page resolves both axes inline in `<head>`, before CSS paints, so
 there's no flash of the wrong look. A saved choice wins; otherwise both axes
-follow the OS light/dark preference, landing on **Press × Fairy** (light) or
-**CyberStorm × Viper** (dark). That default logic lives in two places on purpose — the pre-paint head script on every
+follow the OS light/dark preference, landing on **Press × Lilac** (light) or
+**Retro-Future × Black & Red** (dark). That default logic lives in two places on purpose — the pre-paint head script on every
 page and the AXES table in `controls.js` — and they must be kept in sync.
+
+### Renaming a theme or skin id
+
+An id is a contract with every visitor's `localStorage`, so a rename is a
+migration, not a find-and-replace. Three things move together:
+
+1. The `[data-theme]` / `[data-skin]` block in `themes.css` / `skin.css`, the
+   `options` entry in `controls.js`, and the `<html>` attributes on all 14
+   pages.
+2. A **`RETIRED` entry** in `controls.js` mapping old id → new. `current()`
+   resolves through it and `apply()` writes the new id back, so a saved choice
+   self-heals on first load instead of silently falling back to the default.
+   One map serves both axes, which is safe only while no id appears on both.
+3. The **same map, mirrored into all 14 pre-paint head scripts** — an id
+   resolved only after `controls.js` runs is exactly the flash of the wrong
+   look those blocks exist to prevent.
+
+There is also a cache hazard specific to renames: HTML and CSS are separate
+requests, so a visitor can hold new markup and an old stylesheet that has never
+heard of the new id. `_headers` (see "Local dev & deploy") shrinks that window
+to nothing in the normal case. To close it by construction — worth it for a
+rename that lands during heavy traffic — go two-phase: ship the CSS carrying
+**both** selectors (`[data-theme="fairy"], [data-theme="lilac"]`), flip the
+HTML in a later deploy, then drop the alias.
+
+The 2026-08-08 rename (Fairy → Lilac, Glade → Green, Hornet → Black & Yellow,
+Viper → Black & Red, CyberStorm → Retro-Future) did 1–3 but not the two-phase
+dance, and briefly rendered unstyled for anyone holding a cached stylesheet.
+That is what prompted `_headers`.
 
 ## Sprite walkers
 
@@ -237,13 +270,13 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   LinkedIn pill in the page bar, plus the updated-on `.page-meta` line
   (restamped by the rebuild script).
 - The body sits on `.resume__sheet` — the skin's card material — so busy
-  canvases (CyberStorm's grid, Glass's aurora) stay behind a plate.
+  canvases (Retro-Future's grid, Glass's aurora) stay behind a plate.
   Vanilla's card is flush with the canvas by design.
 - Entry heads mirror the source PDF: a bold company + location
   `.resume__row`, then an italic role + dates row. Rows don't wrap — the
   left text flexes and wraps internally while the right column holds the
   first line — so dates stay right-aligned in every skin, including the
-  wide-set CyberStorm faces. One company with several roles nests
+  wide-set Retro-Future faces. One company with several roles nests
   `.resume__role-group`s under a single company row.
 - The in-page `media="print"` stylesheet **is** the PDF layout, and is
   deliberately theme-exempt (paper, not a theme surface): it collapses
@@ -295,6 +328,19 @@ header carries this warning.
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.
+- **`_headers` (repo root) overrides Pages' asset caching.** Pages serves
+  HTML as `max-age=0` but static assets as `max-age=14400` — four hours in
+  which a returning browser uses its cached CSS/JS *without asking*. Since
+  the HTML is always fresh, a deploy pairs new markup with an old stylesheet,
+  which is how the theme rename shipped a site that rendered unstyled for
+  anyone who had visited recently. `_headers` sets `max-age=0,
+  must-revalidate` on `/*.css` and `/*.js`, trading a ~100-byte 304 per asset
+  per load for never thinking about it again. Three things worth knowing:
+  `must-revalidate` alone does not help (it only applies once a response is
+  already stale); purging the Cloudflare cache does not help (the stale copy
+  is on the visitor's disk, not at the edge); and the globs match by
+  extension, not directory, so per-tab and per-game assets are covered too.
+  The generated JSONs are deliberately left on the default.
 - After editing resume content, `powershell -File
   scripts/build-resume-pdf.ps1` restamps the updated-on date and reprints
   the downloadable PDF; commit the page and PDF together.

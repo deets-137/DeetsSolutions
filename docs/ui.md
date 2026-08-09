@@ -75,15 +75,23 @@ right gutter (`.flyout__item::after`).
 `apply(axis, id)` sets `data-theme` / `data-skin` on `<html>` and persists to
 `localStorage` under `deets-theme` / `deets-skin`. A saved choice wins;
 otherwise **both** axes follow the OS light/dark preference, landing on one
-of two curated pairs: **Press × Fairy** in light, **CyberStorm × Viper** in
-dark. (Screen width no longer enters into it — the old CyberStorm-desktop /
-Ocean-mobile split is gone.)
+of two curated pairs: **Press × Lilac** in light, **Retro-Future × Black &
+Red** in dark. (Screen width no longer enters into it — the old
+Retro-Future-desktop / Ocean-mobile split is gone.)
+
+A saved choice is resolved through `RETIRED`, a map of retired ids to their
+successor, before it is applied — and `apply()` then writes the successor
+back, so the migration self-heals on first load. One map serves both axes
+(safe only while no id sits on both). It currently carries the retired `desk`
+skin plus the five ids renamed on 2026-08-08; see
+[architecture.md](architecture.md), "Renaming a theme or skin id".
 
 That default logic lives in **two places on purpose**: the `AXES[...].def`
 fields in `controls.js`, and the inline pre-paint `<script>` in every page's
 `<head>` (which resolves both axes before CSS paints, so there's no flash of
-the wrong look). **Change one, change the other** — they must stay in sync.
-Adding a page means copying that head script too.
+the wrong look). The `RETIRED` map is mirrored there too, as `R`. **Change
+one, change the other** — all three must stay in sync. Adding a page means
+copying that head script too.
 
 ### Dismissal and keyboard
 

@@ -1,0 +1,38 @@
+# Cloudflare Pages reads this at the site root. Plain text, no build step.
+#
+# Pages' default for static assets is `max-age=14400` — four hours in which a
+# returning visitor's browser serves CSS/JS from disk WITHOUT asking whether it
+# changed. HTML is already `max-age=0`, so a deploy lands new markup against
+# stale styles, and the PAIRING is what breaks: the 2026-08-08 theme rename
+# shipped `data-theme="lilac"` to browsers still holding a themes.css that only
+# knew `fairy`, and those rendered unstyled until the window expired. Mobile,
+# with nothing cached, was fine — which is the tell for this whole class of bug.
+#
+# `must-revalidate` does NOT prevent it. That directive governs what a cache may
+# do once a response is already stale; inside the freshness window the browser
+# never asks at all.
+#
+# Purging the Cloudflare cache does not prevent it either. The stale copy is on
+# the visitor's disk, not at the edge.
+#
+# So: revalidate every stylesheet and script, wherever it lives. The globs are
+# by EXTENSION rather than by directory on purpose — `/styles/*` and `/js/*`
+# would miss the per-tab and per-game assets (radio/radio.js, tanks/tanks.css,
+# games/table.js), which go stale exactly the same way. Each match costs one
+# conditional request per load, answered with a ~100-byte 304 when nothing moved.
+#
+# NOT covered, deliberately: the generated data files (sotd/songs.json,
+# movies/movies.json). They inherit the 4h default, so a nightly refresh can be
+# up to four hours late for a returning visitor. Harmless for a once-a-day feed;
+# add `/*.json` here if that ever reads as a bug.
+#
+# The alternative to all of this — versioned URLs (`chrome.css?v=…`) plus a long
+# immutable max-age — is strictly faster and strictly easier to forget, since
+# with no build step the stamping is manual. Revisit if the asset count ever
+# makes the 304s worth avoiding.
+
+/*.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.js
+  Cache-Control: public, max-age=0, must-revalidate

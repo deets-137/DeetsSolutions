@@ -20,6 +20,12 @@ served flat.
   site. After any edit: `powershell -File scripts/build-resume-pdf.ps1`,
   commit both.
 - **Never edit a vendored file without re-vendoring.** See "Games" below.
+- **Never rename a theme or skin id without a `RETIRED` entry.** The id is a
+  contract with every visitor's `localStorage`. Add old → new to `RETIRED` in
+  `controls.js` **and** to the mirrored `R` map in all 14 pre-paint head
+  scripts, or everyone who picked that option silently loses it. Full
+  procedure: [architecture.md](docs/architecture.md), "Renaming a theme or
+  skin id".
 
 ## Docs map
 
@@ -50,6 +56,11 @@ narrowest file that needs it.
 - Games never link `main.css`: `chrome.css` → `table.css` → `<game>/<game>.css`.
 - `.page-bar` (Home, Resume, Cool Stuff) mirrors the journals' `.sotd__bar`
   geometry — keep the two in sync.
+- `_headers` (repo root) holds CSS/JS to `max-age=0, must-revalidate`,
+  overriding Cloudflare Pages' 4-hour asset default. Without it a deploy
+  serves fresh HTML against a stale stylesheet. Don't lengthen it without
+  versioned asset URLs to go with it ([architecture.md](docs/architecture.md),
+  "Local dev & deploy").
 
 ## Duplication: deliberate in journals, forbidden in games
 

@@ -50,14 +50,14 @@ tab's count and latest entry.
 Every page has a two-axis appearance system, picked from the Vibe menu in the
 header and remembered per visitor:
 
-- **Theme** (color): Fairy, Glade, Sepia, Moonlight, Hornet, Viper
-- **Skin** (shape, type, motion): Vanilla, Press, Ocean, Glass, CyberStorm
+- **Theme** (color): Lilac, Green, Sepia, Moonlight, Black & Yellow, Black & Red
+- **Skin** (shape, type, motion): Vanilla, Press, Ocean, Glass, Retro-Future
 
 Any theme pairs with any skin — 30 combinations, driven entirely by CSS
 tokens. Nothing in the site's styles hardcodes a color or a geometry value.
 
 First visits (no saved choice) follow the OS light/dark preference on both
-axes, landing on Press × Fairy in light or CyberStorm × Viper in dark.
+axes, landing on Press × Lilac in light or Retro-Future × Black & Red in dark.
 
 ## Structure
 
@@ -142,6 +142,10 @@ Then open http://localhost:8787.
 ## Deploy
 
 Cloudflare Pages, wired to this repo — push and it deploys.
+
+`_headers` at the root sets `max-age=0, must-revalidate` on every `.css` and
+`.js`, overriding Pages' four-hour default so a deploy can't pair fresh HTML
+with a stale stylesheet in a returning visitor's browser.
 
 ## License
 
