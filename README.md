@@ -1,5 +1,7 @@
 # Deets.Solutions
 
+**Status:** live at [deets.solutions](https://deets.solutions) · **Platform:** static site on Cloudflare Pages — no framework, no build step, no dependencies
+
 My personal website — a hand-built static site. Plain HTML/CSS/JS: no
 framework, no build step, no runtime dependencies. It doubles as a hub
 for recruiters (portfolio + resume) and for friends (the journals).
@@ -127,7 +129,8 @@ by TMDB).
   return, the three re-join modes), and the phase-2 worker's to-do list.
 - [docs/stats.md](docs/stats.md) — game stats (accounts phase 2):
   standings, what each engine already counts and what it doesn't, the
-  results pipeline and D1 schema. **Designed, not built.**
+  results pipeline and D1 schema. **Live since 2026-07-29** — the schema,
+  `/ingest`, `/me/stats`, and `/me/export` all ship in DeetsAccounts.
 
 ## Run locally
 
