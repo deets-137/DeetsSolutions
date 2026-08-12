@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-11T02:00:15Z",
+  "generated_at": "2026-08-12T02:00:15Z",
   "channel": "song-of-the-day",
-  "count": 359,
+  "count": 360,
   "songs": [
     {
       "post_id": 1,
@@ -8259,6 +8259,29 @@
       "apple_music_url": "",
       "preview_url": "",
       "artwork_url": "https://i.scdn.co/image/ab67616d0000b273361d711120142f467651a312"
+    },
+    {
+      "post_id": 15653,
+      "posted_at": "2026-08-11T04:49:02.721000+00:00",
+      "date": "2026-08-10",
+      "day": "Mon",
+      "month": "08_2026",
+      "track_name": "Location",
+      "artist_name": "Khalid",
+      "album": "American Teen",
+      "genre": "R&B/Soul",
+      "duration": "3:39",
+      "duration_sec": 219,
+      "release_date": "2016-08-26",
+      "release_year": 2016,
+      "age_yrs": 10,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/location/1200868601?i=1200868875",
+      "apple_music_url": "https://music.apple.com/us/album/location/1200868601?i=1200868875&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8e/f8/66/8ef866e9-5d33-1f6d-3ce6-7d7f8a060c41/mzaf_4830540290440739615.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f8/45/5a/f8455a71-8307-aa9a-9c95-3d22efe0804f/886446326146.jpg/600x600bb.jpg"
     }
   ]
 }
