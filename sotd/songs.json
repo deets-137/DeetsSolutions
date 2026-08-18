@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-17T00:21:25Z",
+  "generated_at": "2026-08-18T02:00:16Z",
   "channel": "song-of-the-day",
-  "count": 367,
+  "count": 369,
   "songs": [
     {
       "post_id": 1,
@@ -8443,6 +8443,52 @@
       "apple_music_url": "https://music.apple.com/us/album/australia/669287796?i=669287835&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/b7/51/b5/b751b5d1-6d01-844a-1a3d-1d4151f0217f/mzaf_18033249189875433188.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/79/b0/5f/79b05fca-d8d8-2029-84ca-8348bb5c8e23/TheShins_WincingTheNightAway_1425px.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 2203,
+      "posted_at": "2026-08-17T05:17:58.529000+00:00",
+      "date": "2026-08-16",
+      "day": "Sun",
+      "month": "08_2026",
+      "track_name": "La Vida (feat. E-40)",
+      "artist_name": "Snow Tha Product",
+      "album": "Black Panther: Wakanda Forever - Music From and Inspired By",
+      "genre": "Alte",
+      "duration": "",
+      "duration_sec": null,
+      "release_date": "2022-11-04",
+      "release_year": 2022,
+      "age_yrs": 4,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/la-vida-feat-e-40/1653546033?i=1653546277",
+      "apple_music_url": "https://music.apple.com/us/album/la-vida-feat-e-40/1653546033?i=1653546277",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b2/b0/12/b2b01225-54ce-d7e5-7ad3-61346b79a080/mzaf_5925056678939729571.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/e9/a0/16/e9a016aa-a82f-8e67-50b2-f1101e0be964/22UM1IM30248.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 2204,
+      "posted_at": "2026-08-17T06:12:08.253000+00:00",
+      "date": "2026-08-16",
+      "day": "Sun",
+      "month": "08_2026",
+      "track_name": "Lisztomania",
+      "artist_name": "Phoenix",
+      "album": "Wolfgang Amadeus Phoenix",
+      "genre": "Pop",
+      "duration": "",
+      "duration_sec": null,
+      "release_date": "2009-01-01",
+      "release_year": 2009,
+      "age_yrs": 17,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Mace",
+      "url": "https://music.apple.com/us/album/lisztomania/1771710012?i=1771710017",
+      "apple_music_url": "https://music.apple.com/us/album/lisztomania/1771710012?i=1771710017",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e4/fe/9d/e4fe9d67-4b61-0386-5111-642c8389b0a2/mzaf_13255323035106283142.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/28/8d/ab/288dabdd-f8de-80f6-1aab-40a24cb1b33f/00892038002190_Cover.jpg/600x600bb.jpg"
     }
   ]
 }
