@@ -86,9 +86,10 @@
       <div class="prose">
         <h2>What DeetsFilm collects</h2>
         <p>
-          Nothing. There is no account, no sign-in, no analytics, no advertising,
-          no tracking pixel, and no server belonging to this project that the
-          extension talks to.
+          Nothing about you. There is no account, no sign-in, no analytics, no
+          advertising, and no tracking pixel. The extension talks to one small
+          server I run, described below, which keeps no logs and stores nothing
+          about you.
         </p>
 
         <h2>What it does on your computer</h2>
@@ -110,17 +111,35 @@
 
         <h2>The one request it makes</h2>
         <p>
-          To turn a title into the right Letterboxd page, DeetsFilm asks
-          <a href="https://www.themoviedb.org/">The Movie Database</a> to look the
-          film up. That request contains the film's title and nothing else — no
-          identifier, no account, nothing about you. TMDB is a third party with its
-          own <a href="https://www.themoviedb.org/privacy-policy">privacy
-          policy</a>, and like any request your browser makes, it carries your IP
-          address to them.
+          To turn a title into the right Letterboxd page, DeetsFilm asks a small
+          server I run on Cloudflare to look the film up in
+          <a href="https://www.themoviedb.org/">The Movie Database</a>. That
+          request contains the film's title and nothing else — no identifier, no
+          account, nothing about you — and the server keeps no log of it.
+          Cloudflare itself records ordinary request metadata, including IP
+          addresses, under its own policy, the same as it does for the rest of
+          deets.solutions. If the server is unreachable the extension asks TMDB
+          directly instead — TMDB is a third party with its own
+          <a href="https://www.themoviedb.org/privacy-policy">privacy policy</a>,
+          and like any request your browser makes, it carries your IP address to
+          whoever answers it.
         </p>
         <p>
           Results are cached on your device so re-watching a film asks nobody
           anything.
+        </p>
+
+        <h2>Dynamic timing (optional, off by default)</h2>
+        <p>
+          The right moment to interrupt is a property of the film, not a
+          setting — a post-credits scene changes it. If you turn this on,
+          DeetsFilm can send a film's numeric database id and a number of
+          seconds: the moment you flagged as the film's real ending, a thumbs
+          up or down on a time somebody else suggested, and, alongside a flag,
+          the time it had suggested to you. That is the entire message. No
+          account, no name, no timestamp of when you watched, no record of
+          which service you used, and no IP address is stored alongside it.
+          It is off until you turn it on, and turning it off stops it.
         </p>
 
         <h2>Letterboxd</h2>
