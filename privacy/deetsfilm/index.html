@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="retro-future">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy — DeetsFilm</title>
+    <meta
+      name="description"
+      content="What the DeetsFilm browser extension collects, which is nothing."
+    />
+    <link rel="icon" href="../../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "retro-future" };
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "black-red" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "retro-future" : "press"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../../styles/chrome.css" />
+    <script src="../../js/controls.js" defer></script>
+    <script src="../../js/toast.js" defer></script>
+    <script src="../../js/account.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../../sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="../../movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../../cities/" role="menuitem">DeetsCities</a>
+            <a href="../../mahjong/" role="menuitem">DeetsMahjong</a>
+            <a href="../../poker/" role="menuitem">DeetsPoker</a>
+            <a href="../../tanks/" role="menuitem">DeetsTanks</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../../radio/" role="menuitem">DeetsRadio</a>
+            <a href="../../league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="../../cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="../../resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <section class="page-bar">
+        <h1 class="page-bar__title">Privacy — DeetsFilm</h1>
+      </section>
+
+      <p class="page-meta">
+        DeetsFilm is a browser extension that notices when the film you are
+        watching is ending and offers you a link to its Letterboxd page. The short
+        version: it stores nothing, sends nothing anywhere, and has no account.
+      </p>
+
+      <div class="prose">
+        <h2>What DeetsFilm collects</h2>
+        <p>
+          Nothing. There is no account, no sign-in, no analytics, no advertising,
+          no tracking pixel, and no server belonging to this project that the
+          extension talks to.
+        </p>
+
+        <h2>What it does on your computer</h2>
+        <ul>
+          <li>
+            On the streaming sites you enable, it reads <strong>how far through the
+            video you are</strong> and <strong>the title on the page</strong>. That
+            is the whole of what it looks at. It cannot see the picture, and it
+            does not read your account, your profile, your viewing history, or
+            anything else on the page.
+          </li>
+          <li>
+            It keeps your <strong>settings</strong> — whether the card appears
+            automatically, whether it shows poster art, how early it appears, and
+            which services it watches — in your browser's extension storage. Those
+            never leave your device.
+          </li>
+        </ul>
+
+        <h2>The one request it makes</h2>
+        <p>
+          To turn a title into the right Letterboxd page, DeetsFilm asks
+          <a href="https://www.themoviedb.org/">The Movie Database</a> to look the
+          film up. That request contains the film's title and nothing else — no
+          identifier, no account, nothing about you. TMDB is a third party with its
+          own <a href="https://www.themoviedb.org/privacy-policy">privacy
+          policy</a>, and like any request your browser makes, it carries your IP
+          address to them.
+        </p>
+        <p>
+          Results are cached on your device so re-watching a film asks nobody
+          anything.
+        </p>
+
+        <h2>Letterboxd</h2>
+        <p>
+          DeetsFilm never signs in to Letterboxd, never logs a film for you, and
+          never touches your account. Clicking the card opens a normal Letterboxd
+          page in a normal tab; everything after that is between you and
+          Letterboxd, under their terms and their privacy policy. DeetsFilm is not
+          affiliated with Letterboxd or with any streaming service.
+        </p>
+
+        <h2>Permissions, and why</h2>
+        <p>
+          Your browser will say DeetsFilm can read and change data on the streaming
+          sites you turn on. It needs that to see the video's progress and the film
+          title on the page. It asks for each service only when you enable that
+          service, and for nothing else — turning a service off withdraws it.
+        </p>
+
+        <h2>Changes</h2>
+        <p>
+          If DeetsFilm ever starts sending anything anywhere, this page is updated
+          before that ships, not after. Any such feature would be off by default
+          and would ask first.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          It is a personal project by one person. Email me with anything — a
+          question, a correction, or a demand that I explain myself.
+        </p>
+
+        <h2>The rest of the site</h2>
+        <p>
+          This page covers the extension only. The site you are reading it on has
+          its own, equally short, <a href="../">privacy page</a>.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
