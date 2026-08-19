@@ -87,9 +87,12 @@
           </div>
           <p class="project__pitch">A full Apple Music player for Windows 11.</p>
           <p class="project__desc">
-            Frameless custom chrome, full DRM playback with a live-synced gapless queue,
-            Apple Music sign-in with a local SQLite library cache, and a deeply themeable
-            UI — 6 themes &times; 5 skins driven by a token system.
+            The application plays Apple Music tracks with DRM on Windows 11.
+            The queue is gapless and stays in sync. You sign in with your
+            Apple Music account, and the application keeps a copy of your
+            library in a local SQLite database. The window has custom chrome
+            and no frame. The interface has 6 themes and 5 skins, which a
+            token system controls.
           </p>
           <div class="project__tags">
             <span class="project__chip">Tauri v2</span>
@@ -109,13 +112,14 @@
           </div>
           <p class="project__pitch">A browser extension that catches the credits.</p>
           <p class="project__desc">
-            When the film you are watching is wrapping up, a small printed card
-            appears in the corner with a one-click deep link to its Letterboxd page.
-            Knowing the film is ending is the whole problem: a four-source clock reads
-            the player, and the right moment can be crowd-sourced per film, because a
-            post-credits scene moves it. Live-verified on Netflix, Hulu, Disney+, Prime
-            Video, and HBO Max. It has no account and stores nothing about you &mdash;
-            the one request it makes carries a title and nothing else.
+            The extension shows a card when the film that you watch is near
+            its end. The card contains a link to the film page on
+            Letterboxd. To find the end, the extension reads the video
+            player from four sources. You can also send the correct end time
+            for a film, because a scene after the credits moves it. The
+            extension operates on Netflix, Hulu, Disney+, Prime Video, and
+            HBO Max. It has no account, it keeps no data about you, and its
+            one request contains only a film title.
           </p>
           <div class="project__tags">
             <span class="project__chip">MV3 extension</span>
@@ -134,11 +138,14 @@
           </div>
           <p class="project__pitch">A Bluetooth watchdog that keeps my headphones in stereo.</p>
           <p class="project__desc">
-            Windows loves to yank a headset out of A2DP the moment any app touches a
-            mic. DeetsBeats sits in the tray, watches the connection, suppresses the
-            Hands-Free profile until a mic is actually wanted, pins the right audio
-            endpoint, and climbs a reconnect ladder when the link drops — same
-            Tauri-and-Rust stack as DeetsMusic for Windows.
+            Windows moves a Bluetooth headset from stereo to the Hands-Free
+            profile when an application opens the microphone. DeetsBeats
+            prevents this. The program runs in the system tray and monitors
+            the connection. It disables the Hands-Free profile until you
+            need the microphone, and it selects the correct audio device. If
+            the connection stops, the program connects again at longer
+            intervals. It uses Tauri and Rust, the same as DeetsMusic for
+            Windows.
           </p>
           <div class="project__tags">
             <span class="project__chip">Tauri v2</span>
@@ -154,10 +161,13 @@
           </div>
           <p class="project__pitch">An Apple Music client with a memory.</p>
           <p class="project__desc">
-            Imports your library via MusicKit and plays it through an app-owned queue
-            built for future cross-provider mixing — then layers on the personal stuff:
-            Song of the Day journaling with playlist export, rank-choice
-            &ldquo;Feelings&rdquo; tagging, and CloudKit-synced storage.
+            The application imports your library with MusicKit and plays it
+            from a queue that the application controls. This design permits
+            tracks from more than one service at a later time. The
+            application also records one song for each day and exports these
+            songs to a playlist. You can tag each song with your feelings
+            and put the tags in order of preference. CloudKit keeps the data
+            in sync.
           </p>
           <div class="project__tags">
             <span class="project__chip">SwiftUI</span>
@@ -176,10 +186,11 @@
           </div>
           <p class="project__pitch">An isometric pixel-art world of my life.</p>
           <p class="project__desc">
-            Started as a walkable museum of the music of my life; the vision is mid-pivot
-            and the world stayed. A multi-room isometric map with real collision physics,
-            a hand-drawn caricature of me, a dog that follows breadcrumbs, and a mahjong
-            corner in progress.
+            DeetsLife is an isometric world in pixel art. It started as a
+            museum of the music in my life. The subject changed, but the
+            world stayed. The map has more than one room and uses collision
+            physics. It contains a drawing of me, a dog that follows a path,
+            and a mahjong area that is not complete.
           </p>
           <div class="project__tags">
             <span class="project__chip">Godot 4</span>
@@ -198,10 +209,13 @@
           </div>
           <p class="project__pitch">A blackjack trainer disguised as a blackjack game.</p>
           <p class="project__desc">
-            Play full hands, then flip the trainer card to see the live math — dealer bust
-            odds, your bust odds, and the EV of every move. It scores decision quality, not
-            luck: the +EV move is &ldquo;right&rdquo; even when the hand loses. The pure-Swift
-            EV engine is unit-tested against published basic-strategy numbers.
+            You play full blackjack hands. A trainer card then shows the
+            mathematics for the hand. It gives the bust probability for the
+            dealer and for you, and the expected value of each move. The
+            trainer measures the quality of your decision, not your luck. A
+            move with a positive expected value is correct, even if you lose
+            the hand. Unit tests compare the Swift engine with published
+            basic-strategy values.
           </p>
           <div class="project__tags">
             <span class="project__chip">Swift 6</span>
@@ -220,9 +234,11 @@
           </div>
           <p class="project__pitch">A spatial workspace for designing board games.</p>
           <p class="project__desc">
-            Design cards, units, pieces, tiles, and rules with friends on a 3&times;3
-            spatial canvas. Native macOS on Core Data + CloudKit; the successor to
-            Henhouse, my earlier web take on the same idea.
+            You and your friends design the cards, units, pieces, tiles, and
+            rules of a board game. The workspace is a canvas of 3 by 3
+            areas. The application is native macOS and uses Core Data and
+            CloudKit. It replaces Henhouse, my earlier web application for
+            the same purpose.
           </p>
           <div class="project__tags">
             <span class="project__chip">Swift</span>
@@ -242,9 +258,10 @@
           </div>
           <p class="project__pitch">Trip planning where friends follow along.</p>
           <p class="project__desc">
-            One organizer plans the trip; everyone else installs the app and rides
-            shotgun. SwiftUI + SwiftData with CloudKit sharing wired in — the first
-            build is live on TestFlight.
+            One person plans the trip. The other persons install the
+            application and follow the plan. The application uses SwiftUI,
+            SwiftData, and CloudKit sharing. The first build is available on
+            TestFlight.
           </p>
           <div class="project__tags">
             <span class="project__chip">SwiftUI</span>
@@ -263,10 +280,12 @@
           </div>
           <p class="project__pitch">A student-forward Learning Management System.</p>
           <p class="project__desc">
-            An LMS that brings color and joy to education software — modules under one
-            umbrella so teachers get holistic views of students, counselors see the whole
-            student journey, and schools set up robust systems in one easy go. Full-stack
-            build with a front end, back end, and Docker deployment.
+            Rogers is a learning management system for schools. Its modules
+            are in one system. Thus a teacher sees all the data for a
+            student, and a counselor sees the full history of a student. A
+            school installs the full system one time. The colors are
+            brighter than usual education software. The project has a front
+            end, a back end, and a Docker deployment.
           </p>
           <div class="project__tags">
             <span class="project__chip">TypeScript</span>
@@ -285,9 +304,10 @@
           </div>
           <p class="project__pitch">A fresh take on personal health-data visualization.</p>
           <p class="project__desc">
-            Pulls from HealthKit and the Oura API to do analytics fully on-device —
-            sleep and cardio first. Built on the same design system as the rest of the
-            Deets apps.
+            The application reads data from HealthKit and from the Oura API.
+            It calculates all the analytics on the device. Sleep data and
+            cardiovascular data are first. It uses the same design system as
+            the other Deets applications.
           </p>
           <div class="project__tags">
             <span class="project__chip">SwiftUI</span>
@@ -306,11 +326,13 @@
           </div>
           <p class="project__pitch">A pixel-art sprite, animation, and slideshow editor.</p>
           <p class="project__desc">
-            Three surfaces over one document — draw sprites frame by frame, arrange them
-            into scenes and sequence those into a presentable deck, then browse the whole
-            cabinet. The brain is a UI-agnostic Rust crate where every mutation is a
-            command, which later lets an AI drive the editor the same way a person does.
-            Settled as a spec; the build comes next.
+            The application shows three views of one document. You draw
+            sprites frame by frame, put the frames into scenes, put the
+            scenes into a sequence, and then examine all the work. A Rust
+            crate contains the logic and has no user interface. Each change
+            to the document is a command. Thus an AI can operate the editor
+            in the same manner as a person. The specification is complete,
+            and the build is next.
           </p>
           <div class="project__tags">
             <span class="project__chip">Rust</span>
@@ -329,12 +351,13 @@
           </div>
           <p class="project__pitch">A hex-board trading game, playable in a browser tab.</p>
           <p class="project__desc">
-            Share a table code and go — no install, no account. Every table is its own
-            Durable Object holding the whole game, and each player gets a personalized
-            view because hands and dev cards are hidden. Drop out mid-game and your seat
-            waits 30 seconds before a bot takes over, then hands it back when you return —
-            and the host can seat bots outright, each with its own difficulty tier.
-            The worker behind it lives in its own private repo.
+            You send a table code to your friends. An installation and an
+            account are not necessary. Each table is a Durable Object that
+            holds all the game data, and its worker is in a private
+            repository. Each player sees a different view, because the cards
+            in a hand are secret. If a player disconnects, a bot takes the
+            seat after 30 seconds and gives it back when the player returns.
+            The host can also add bots, and each bot has a difficulty level.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -353,12 +376,13 @@
           </div>
           <p class="project__pitch">Four-seat Hong Kong mahjong, same table, same rules.</p>
           <p class="project__desc">
-            Built on the shared table foundation DeetsCities runs on, with the hidden
-            information taken seriously — your hand, your freshly drawn tile, and your own
-            claim options never leave your connection. The rules engine is a pure module
-            that checks itself — the bots live inside it too, in three difficulty tiers —
-            and tiles come in two decks you pick for yourself. Its worker is a separate
-            private repo.
+            The game is Hong Kong mahjong for four players, and it uses the
+            same table system as DeetsCities. Your hand, the tile that you
+            draw, and your claim options stay on your connection only. The
+            rules engine is a separate module that tests itself, and it
+            contains the bots. Each bot has one of three difficulty levels.
+            You select one of two tile designs for your own screen. The
+            worker is in a private repository.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -377,11 +401,14 @@
           </div>
           <p class="project__pitch">No-limit hold&rsquo;em cash tables with friends.</p>
           <p class="project__desc">
-            The third game on the shared table foundation. Money is integer cents and
-            every bet has to break into real chips; hole cards ride only your own
-            connection, and even the bots can&rsquo;t peek — a bot sees exactly what a
-            player in its seat would. Step away and you choose what leaving costs: your
-            stack waits, banks, or forfeits. Its worker is another private repo.
+            This is the third game on the shared table system. It is no-
+            limit Texas hold&rsquo;em for cash. The application counts money
+            in whole cents, and each bet must divide into the available
+            chips. Your hole cards stay on your connection only, and a bot
+            sees only the data that a player in the same seat sees. When you
+            leave a table, you select the result: the table keeps your
+            stack, the system banks it, or you lose it. The worker is in a
+            private repository.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -400,14 +427,13 @@
           </div>
           <p class="project__pitch">A top-down tank arena with slow, ricocheting shells.</p>
           <p class="project__desc">
-            Eleven hand-designed campaign levels, three lives, and an enemy cast that
-            gets meaner as the terrain does. The hull turns in eight facings on WASD
-            while the turret tracks the mouse freely, and every shell is a deterministic
-            projectile — your shells bank one wall and die on the next, and the enemy
-            cast is tiered by how deep it is willing to aim a ricochet. It sits on the
-            same table foundation as the others, but the 60 Hz sim currently runs in-page
-            against a mock that speaks the real wire protocol, so the campaign is playable
-            long before its worker exists.
+            The game has 11 levels for one player, and it gives you three
+            lives. The enemy tanks and the terrain become more difficult at
+            each level. The body of the tank turns to 8 directions with the
+            W, A, S, and D keys. The turret turns to any angle and follows
+            the mouse. A shell turns at the first wall and stops at the
+            second wall. The game uses the shared table system, but the
+            simulation runs in your browser at 60 Hz against a mock server.
           </p>
           <div class="project__tags">
             <span class="project__chip">real-time sim</span>
@@ -426,12 +452,13 @@
           </div>
           <p class="project__pitch">Team-vs-team naval warfare, captains and all.</p>
           <p class="project__desc">
-            The first real-teams game on the table foundation: two sides of 1&ndash;4
-            seats, one captain per side committing the team&rsquo;s plan each round.
-            Everything hidden is hidden per TEAM — ship positions, staged plans, and
-            sonar results never cross the line; the enemy sees only intel marks, while
-            spectators see everything. The worker is deployed and the tab is in its
-            final pass before it joins the nav.
+            This is the first game with teams on the shared table system.
+            There are two teams of 1 to 4 players. One captain on each team
+            sends the plan of the team in each round. The positions of the
+            ships, the plans, and the sonar results stay in one team. The
+            other team sees only the marks on its map, but a spectator sees
+            all the data. The worker operates, and the page is in its last
+            review before it goes into the navigation menu.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -450,11 +477,13 @@
           </div>
           <p class="project__pitch">The design system behind every Deets app.</p>
           <p class="project__desc">
-            A Swift package holding the shared visual language — 8 color themes and 4
-            skins (glass, comic, retro, sunshine), semantic typography, and reusable
-            glass components — so every app looks and feels identical without
-            copy-pasting a theme layer. Ships its own WCAG contrast auditor and an
-            on-device AI palette generator.
+            DeetsKit is a Swift package that contains the design system for
+            the Deets applications. It has 8 color themes and 4 skins:
+            glass, comic, retro, and sunshine. It also has typography roles
+            and components with a glass appearance. Thus each application
+            has the same appearance, and no application holds a copy of the
+            theme code. The package includes a WCAG contrast test tool and a
+            palette generator that operates on the device.
           </p>
           <div class="project__tags">
             <span class="project__chip">Swift package</span>
@@ -473,9 +502,12 @@
           </div>
           <p class="project__pitch">A local agent harness for Ollama-served models.</p>
           <p class="project__desc">
-            FastAPI + WebSocket streaming into a browser UI built as a self-arranging
-            bento panel system that the model itself can rearrange, with tool packs
-            for chess, D&amp;D, blog editing, and coding — plus a Discord bridge.
+            Harness operates the models that Ollama supplies on your own
+            computer. The server uses Python and FastAPI, and it sends the
+            data to the browser through a WebSocket. The interface is a set
+            of panels, and the model can also move them. Tool packs are
+            available for chess, Dungeons &amp; Dragons, blog edits, and
+            code. A bridge connects the system to Discord.
           </p>
           <div class="project__tags">
             <span class="project__chip">Python</span>
@@ -494,9 +526,11 @@
           </div>
           <p class="project__pitch">Modeling how US education is actually doing.</p>
           <p class="project__desc">
-            A data pipeline over the Stanford Education Data Archive and NCES data —
-            district-level test scores as queryable timeseries, built with DuckDB and
-            shipped as portable SQLite, headed toward public visualizations.
+            This is a data pipeline for the Stanford Education Data Archive
+            and for NCES data. It makes the test scores of each school
+            district available as a time series. DuckDB processes the data,
+            and the result is a portable SQLite file. Public charts are the
+            next step.
           </p>
           <div class="project__tags">
             <span class="project__chip">Python</span>
@@ -515,10 +549,12 @@
           </div>
           <p class="project__pitch">Every link ever posted in a Discord channel, exported.</p>
           <p class="project__desc">
-            Reads the hyperlinks out of a channel and writes them to deduped, grouped
-            Markdown and CSV — as a slash-command bot, a CLI, or a local web trigger.
-            It&rsquo;s where this site&rsquo;s Song of the Day journal and movie log come
-            from, with iTunes/Apple Music enrichment along the way.
+            The tool reads the hyperlinks in a Discord channel. It writes
+            them to Markdown files and CSV files, removes the duplicates,
+            and puts the remainder into groups. You start it as a Discord
+            command, as a command-line program, or from a local web page. It
+            adds data from iTunes and Apple Music to each song. It supplies
+            the Song of the Day journal and the movie log on this site.
           </p>
           <div class="project__tags">
             <span class="project__chip">Python</span>
@@ -536,10 +572,13 @@
           </div>
           <p class="project__pitch">Shared listening rooms, one Durable Object each.</p>
           <p class="project__desc">
-            The worker behind this site&rsquo;s radio tab: hibernatable WebSockets carry a
-            communal queue with synced playback, an alarm keeps empty rooms ticking, and a
-            D1 registry matches songs across catalogs. The room owns a clock, never audio —
-            zero dependencies, free-tier discipline throughout.
+            This worker operates the radio page on this site. Each room is a
+            Durable Object with WebSockets that can hibernate. The room
+            holds a shared queue and keeps the playback of all listeners in
+            sync. An alarm keeps an empty room in operation, and a D1
+            database matches the songs between music services. The room
+            controls the time only, and it does not send audio. The worker
+            has no dependencies and stays in the free service level.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -558,10 +597,12 @@
           </div>
           <p class="project__pitch">The live stats engine behind the League tab.</p>
           <p class="project__desc">
-            A dependency-free worker that proxies the Riot API so the key never reaches
-            the browser, normalizes matches into a D1 store, and runs a budgeted cron
-            crawler that backfills each player&rsquo;s history ~1,000 games deep without
-            ever blowing the rate limit.
+            This worker supplies the data for the League page. It sends the
+            requests to the Riot API, so the key stays out of the browser.
+            It puts the match data into a D1 database in one format. A
+            scheduled task collects approximately 1,000 earlier games for
+            each player. The task controls its own rate, so it stays below
+            the limit of the API. The worker has no dependencies.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -580,11 +621,12 @@
           </div>
           <p class="project__pitch">One sign-in across the whole site.</p>
           <p class="project__desc">
-            Google sign-in and a profile page with a color you pick in hex — plus the
-            stats pipeline behind it: every game worker reports finished games through
-            an outbox, and the accounts worker is the sole owner of the D1 that keeps
-            your record across cities, mahjong, and poker. Private repo, since it
-            guards the keys.
+            This worker supplies one sign-in for the full site. You sign in
+            with Google, and you set the color of your profile page as a hex
+            value. Each game worker sends its completed games to an outbox.
+            This worker reads the outbox, and it owns the D1 database that
+            holds your record for cities, mahjong, and poker. The repository
+            is private, because it holds the keys.
           </p>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -600,8 +642,8 @@
           </div>
           <p class="project__pitch">Interactive sleep &amp; stress cycles from my Oura Ring.</p>
           <p class="project__desc">
-            A visualization exploring the lag between stress and sleep quality using my
-            own ring data.
+            This chart shows the time between a change in stress and a
+            change in sleep quality. The data comes from my own Oura ring.
           </p>
           <div class="project__tags">
             <span class="project__chip">data viz</span>
@@ -619,12 +661,14 @@
           </div>
           <p class="project__pitch">This site.</p>
           <p class="project__desc">
-            Hand-rolled HTML/CSS — no build step, no frameworks, no dependencies — running
-            two journals, a League stats tab, shared listening rooms, Google sign-in with
-            per-game stats, and four games off a common table foundation.
-            Every page rides the same two-axis theme
-            &times; skin token system as the Deets apps: pick a color theme and a
-            shape/type/motion skin from the header, and all 30 combinations hold up.
+            This site is HTML and CSS. It has no build step, no framework,
+            and no dependencies. It contains two journals, a League
+            statistics page, shared listening rooms, Google sign-in with
+            statistics for each game, and four games on one table system.
+            Each page uses the same two token systems as the Deets
+            applications: one for color, and one for shape, type, and
+            motion. You select a theme and a skin in the header, and all 30
+            combinations are correct.
           </p>
           <div class="project__tags">
             <span class="project__chip">HTML/CSS</span>
