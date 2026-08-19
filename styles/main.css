@@ -1128,20 +1128,6 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .resume__list li::marker { color: var(--subtext); }
 
-.resume__skills {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--space-5);
-}
-.resume__skillhead {
-  font-family: var(--font-body);
-  font-weight: normal;
-  color: var(--subtext);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 /* ============================================================
    League — player stats rendered by league/league.js from the
    DeetsLeague worker. Reuses the journals' bar/toolbar/pill kit
