@@ -1,8 +1,488 @@
 {
- "generated_at": "2026-07-08T06:55:15Z",
- "source": "letterboxd-export",
- "count": 298,
+ "generated_at": "2026-08-19T21:49:59Z",
+ "source": "letterboxd",
+ "count": 315,
  "movies": [
+  {
+   "name": "Men in Black II",
+   "year": 2002,
+   "decade": "2000s",
+   "uri": "https://boxd.it/2a0y",
+   "logged_date": "2026-08-18",
+   "watched_date": "2026-08-18",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.0,
+   "liked": true,
+   "review": "They're just making stuff up now lmao, the beatboxing as an alien language got me",
+   "review_date": "2026-08-18",
+   "watches": [
+    {
+     "date": "2026-08-18",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": "They're just making stuff up now lmao, the beatboxing as an alien language got me"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/enA22EPyzc2WQ1VVyY7zxresQQr.jpg"
+  },
+  {
+   "name": "Men in Black 3",
+   "year": 2012,
+   "decade": "2010s",
+   "uri": "https://boxd.it/103U",
+   "logged_date": "2026-08-18",
+   "watched_date": "2026-08-18",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": "MiB -> MiB 3 -> MiB 2 for me. Fun trilogy.\n\n\"Mommy, why did the president take my chocolate milk\" is an insane line.",
+   "review_date": "2026-08-18",
+   "watches": [
+    {
+     "date": "2026-08-18",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": "MiB -> MiB 3 -> MiB 2 for me. Fun trilogy.\n\n\"Mommy, why did the president take my chocolate milk\" is an insane line."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/90DdoEStzeObs96fsYf4GG544iN.jpg"
+  },
+  {
+   "name": "Men in Black",
+   "year": 1997,
+   "decade": "1990s",
+   "uri": "https://boxd.it/2a0I",
+   "logged_date": "2026-08-18",
+   "watched_date": "2026-08-18",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": "Always a fun time.",
+   "review_date": "2026-08-18",
+   "watches": [
+    {
+     "date": "2026-08-18",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": "Always a fun time."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/uLOmOF5IzWoyrgIF5MfUnh5pa1X.jpg"
+  },
+  {
+   "name": "The Last House",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/MZEw",
+   "logged_date": "2026-08-15",
+   "watched_date": "2026-08-14",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 2.0,
+   "liked": true,
+   "review": "Supposedly, this movie is not a comedy. Fun Netflix slop sci-fi lowkey",
+   "review_date": "2026-08-15",
+   "watches": [
+    {
+     "date": "2026-08-14",
+     "rating": 2.0,
+     "rewatch": false,
+     "review": "Supposedly, this movie is not a comedy. Fun Netflix slop sci-fi lowkey"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/6JU7E8Vv2M11egkctWVOScxWR75.jpg"
+  },
+  {
+   "name": "Elysium",
+   "year": 2013,
+   "decade": "2010s",
+   "uri": "https://boxd.it/2cBm",
+   "logged_date": "2026-08-14",
+   "watched_date": "2026-08-13",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 3.0,
+   "liked": true,
+   "review": null,
+   "review_date": null,
+   "watches": [
+    {
+     "date": "2026-08-13",
+     "rating": 3.0,
+     "rewatch": false,
+     "review": null
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/aRjuJuPXHtVs6YegfeeQWXGRs1E.jpg"
+  },
+  {
+   "name": "The Hunger Games: The Ballad of Songbirds & Snakes",
+   "year": 2023,
+   "decade": "2020s",
+   "uri": "https://boxd.it/pZCY",
+   "logged_date": "2026-08-13",
+   "watched_date": "2026-08-12",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.0,
+   "liked": true,
+   "review": "Silly me thinking Snow would have a redemption arc (I need to rewatch the rest of the series lol…)",
+   "review_date": "2026-08-13",
+   "watches": [
+    {
+     "date": "2026-08-12",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": "Silly me thinking Snow would have a redemption arc (I need to rewatch the rest of the series lol…)"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/mBaXZ95R2OxueZhvQbcEWy2DqyO.jpg"
+  },
+  {
+   "name": "Idhayam Murali",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/T1cc",
+   "logged_date": "2026-08-13",
+   "watched_date": "2026-08-12",
+   "watch_count": 2,
+   "rewatch": true,
+   "rating": 3.5,
+   "liked": true,
+   "review": "Bro is me fr\n\n(Jk but such a fun movie lol, very cheesy Gen Z romcom)",
+   "review_date": "2026-08-13",
+   "watches": [
+    {
+     "date": "2026-08-12",
+     "rating": 3.5,
+     "rewatch": true,
+     "review": null
+    },
+    {
+     "date": "2026-08-09",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": "Bro is me fr\n\n(Jk but such a fun movie lol, very cheesy Gen Z romcom)"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/8gfs5OsGINENFAl0h1XZPNup9lI.jpg"
+  },
+  {
+   "name": "The Drama",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/OA2w",
+   "logged_date": "2026-04-03",
+   "watched_date": "2026-08-06",
+   "watch_count": 3,
+   "rewatch": true,
+   "rating": 5.0,
+   "liked": true,
+   "review": "Banger, also perhaps the same set / location for the wedding here and in BND",
+   "review_date": "2026-08-08",
+   "watches": [
+    {
+     "date": "2026-08-06",
+     "rating": 5.0,
+     "rewatch": true,
+     "review": "Banger, also perhaps the same set / location for the wedding here and in BND"
+    },
+    {
+     "date": "2026-04-07",
+     "rating": 5.0,
+     "rewatch": true,
+     "review": "Hi, I’m Emma\n\n😭"
+    },
+    {
+     "date": "2026-04-02",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "😭\n\nThat ending wrapped up everything in such a beautiful neat little bow. Also Danny P is on a streak with the music."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/rnIOUhzwJDfgQakx8EjoNyItKgs.jpg"
+  },
+  {
+   "name": "Jigarthanda DoubleX",
+   "year": 2023,
+   "decade": "2020s",
+   "uri": "https://boxd.it/C4xI",
+   "logged_date": "2024-03-05",
+   "watched_date": "2026-08-06",
+   "watch_count": 2,
+   "rewatch": true,
+   "rating": 4.5,
+   "liked": true,
+   "review": "Very violent, but also very stylized and somehow fitting for the 2026 lol",
+   "review_date": "2026-08-07",
+   "watches": [
+    {
+     "date": "2026-08-06",
+     "rating": 4.5,
+     "rewatch": true,
+     "review": "Very violent, but also very stylized and somehow fitting for the 2026 lol"
+    },
+    {
+     "date": "2024-02-02",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": null
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/rlPTdgLfgsSv8WiQXRZ2AVIDwAi.jpg"
+  },
+  {
+   "name": "The Dink",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/Qqse",
+   "logged_date": "2026-08-02",
+   "watched_date": "2026-08-02",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 3.5,
+   "liked": true,
+   "review": "lol",
+   "review_date": "2026-08-02",
+   "watches": [
+    {
+     "date": "2026-08-02",
+     "rating": 3.5,
+     "rewatch": false,
+     "review": "lol"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/8dq7vaUkXPqwqKxBFW4qJNBWeop.jpg"
+  },
+  {
+   "name": "Spider-Man: Brand New Day",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/ACJE",
+   "logged_date": "2026-08-01",
+   "watched_date": "2026-07-31",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 5.0,
+   "liked": true,
+   "review": "Objectively, the best of the new Spiderman movies in terms of plot, villain, and action (subjectively, the subject matter was more about the finding family / friends part of coming of age which is up to you how much you relate to and enjoy it vs the earlier movies dealing with other aspects of Spider-Man’s character and growth). Truly a post-insomniac Spiderman movie, a lot of the swinging scenes and fight scenes were influenced by the games. \n\nMovie also felt like a love letter to NY, a lot more scenic shots and city shots (I want to move there more now it would seem).\n\nAlso knew the movie would be peak the moment Tame Impala played.",
+   "review_date": "2026-08-01",
+   "watches": [
+    {
+     "date": "2026-07-31",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "Objectively, the best of the new Spiderman movies in terms of plot, villain, and action (subjectively, the subject matter was more about the finding family / friends part of coming of age which is up to you how much you relate to and enjoy it vs the earlier movies dealing with other aspects of Spider-Man’s character and growth). Truly a post-insomniac Spiderman movie, a lot of the swinging scenes and fight scenes were influenced by the games. \n\nMovie also felt like a love letter to NY, a lot more scenic shots and city shots (I want to move there more now it would seem).\n\nAlso knew the movie would be peak the moment Tame Impala played."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/iPOn6DinuVyLY17YM9mKuPofV08.jpg"
+  },
+  {
+   "name": "Spider-Man: No Way Home",
+   "year": 2021,
+   "decade": "2020s",
+   "uri": "https://boxd.it/nwRw",
+   "logged_date": "2026-08-01",
+   "watched_date": "2026-07-31",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 5.0,
+   "liked": true,
+   "review": "😭\n\n2/3 of SpiderMen were British so hearing everyone’s NY accent was fun. Also Andrew might still be my favorite spiderman…",
+   "review_date": "2026-08-01",
+   "watches": [
+    {
+     "date": "2026-07-31",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "😭\n\n2/3 of SpiderMen were British so hearing everyone’s NY accent was fun. Also Andrew might still be my favorite spiderman…"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg"
+  },
+  {
+   "name": "Spider-Man: Far From Home",
+   "year": 2019,
+   "decade": "2010s",
+   "uri": "https://boxd.it/fegG",
+   "logged_date": "2026-08-01",
+   "watched_date": "2026-07-31",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 5.0,
+   "liked": true,
+   "review": "Peak\n\nMy favorite of the trilogy I think, playing on Peter’s optimism and his innate trust in people as a whole",
+   "review_date": "2026-08-01",
+   "watches": [
+    {
+     "date": "2026-07-31",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "Peak\n\nMy favorite of the trilogy I think, playing on Peter’s optimism and his innate trust in people as a whole"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/4q2NNj4S5dG2RLF9CpXsej7yXl.jpg"
+  },
+  {
+   "name": "Spider-Man: Homecoming",
+   "year": 2017,
+   "decade": "2010s",
+   "uri": "https://boxd.it/aboM",
+   "logged_date": "2026-07-31",
+   "watched_date": "2026-07-30",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": null,
+   "review_date": null,
+   "watches": [
+    {
+     "date": "2026-07-30",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": null
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/c24sv2weTHPsmDa7jEMN0m2P3RT.jpg"
+  },
+  {
+   "name": "Obsession",
+   "year": 2025,
+   "decade": "2020s",
+   "uri": "https://boxd.it/PNqo",
+   "logged_date": "2026-07-29",
+   "watched_date": "2026-07-28",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.0,
+   "liked": false,
+   "review": "🫣 almost stopped watching like 6 different times",
+   "review_date": "2026-07-29",
+   "watches": [
+    {
+     "date": "2026-07-28",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": "🫣 almost stopped watching like 6 different times"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/rHPbHdiqgv6r6IfOxd577kQ6E8B.jpg"
+  },
+  {
+   "name": "The Odyssey",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/QFQU",
+   "logged_date": "2026-07-18",
+   "watched_date": "2026-07-16",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 5.0,
+   "liked": true,
+   "review": "Music, peak. Cinematography? Peak. Acting? Believe it or not, also peak.",
+   "review_date": "2026-07-18",
+   "watches": [
+    {
+     "date": "2026-07-16",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "Music, peak. Cinematography? Peak. Acting? Believe it or not, also peak."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg"
+  },
+  {
+   "name": "Mile End Kicks",
+   "year": 2025,
+   "decade": "2020s",
+   "uri": "https://boxd.it/IFxC",
+   "logged_date": "2026-07-18",
+   "watched_date": "2026-07-15",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.0,
+   "liked": true,
+   "review": "Fun movie. Devon Bostick was kinda funny in this one, cool to see Rodrick going places",
+   "review_date": "2026-07-18",
+   "watches": [
+    {
+     "date": "2026-07-15",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": "Fun movie. Devon Bostick was kinda funny in this one, cool to see Rodrick going places"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/qq3Q1tsxAxMqP38YTZKl8m5zmA4.jpg"
+  },
+  {
+   "name": "A Beautiful Day in the Neighborhood",
+   "year": 2019,
+   "decade": "2010s",
+   "uri": "https://boxd.it/i7vA",
+   "logged_date": "2026-07-13",
+   "watched_date": "2026-07-12",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": "Need some more positivity in the world rn, Mr Rogers reruns when\n\nDon’t know if I’d love, be annoyed by, or be best friends w Mr Rogers, but we take every positive role model we can",
+   "review_date": "2026-07-13",
+   "watches": [
+    {
+     "date": "2026-07-12",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": "Need some more positivity in the world rn, Mr Rogers reruns when\n\nDon’t know if I’d love, be annoyed by, or be best friends w Mr Rogers, but we take every positive role model we can"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/pgxn1siPnWbSOKUeovfC86OwhWU.jpg"
+  },
+  {
+   "name": "In the Blink of an Eye",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://boxd.it/D3Wu",
+   "logged_date": "2026-07-10",
+   "watched_date": "2026-07-09",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": "I see why it went straight to streaming, but a fun movie with solid acting and characters. It shot for the stars and landed on the moon (but maybe it tried to climb a tall mountain and ended up in a hill) type movie.\n\nLeft me thinking that’s for sure",
+   "review_date": "2026-07-10",
+   "watches": [
+    {
+     "date": "2026-07-09",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": "I see why it went straight to streaming, but a fun movie with solid acting and characters. It shot for the stars and landed on the moon (but maybe it tried to climb a tall mountain and ended up in a hill) type movie.\n\nLeft me thinking that’s for sure"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/4vWqIdoBavo1htxmxlScDniOS9C.jpg"
+  },
   {
    "name": "High Fidelity",
    "year": 2000,
@@ -14,14 +494,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "Truly a movie about a man lost in life figuring out what it all means.\r\n\r\nFun movie, i think its about John Cusack's character realizing his life's stalled, to the point where life isn't getting bigger anymore, with Laura wishing it did. Figuring out what it all means is really just bro realizing he needs to commit to something. \r\n\r\nI enjoyed the story telling and the main character's style lol.",
+   "review": "Truly a movie about a man lost in life figuring out what it all means.\n\nFun movie, i think its about John Cusack's character realizing his life's stalled, to the point where life isn't getting bigger anymore, with Laura wishing it did. Figuring out what it all means is really just bro realizing he needs to commit to something. \n\nI enjoyed the story telling and the main character's style lol.",
    "review_date": "2026-07-08",
    "watches": [
     {
      "date": "2026-07-03",
      "rating": 4.5,
      "rewatch": false,
-     "review": "Truly a movie about a man lost in life figuring out what it all means.\r\n\r\nFun movie, i think its about John Cusack's character realizing his life's stalled, to the point where life isn't getting bigger anymore, with Laura wishing it did. Figuring out what it all means is really just bro realizing he needs to commit to something. \r\n\r\nI enjoyed the story telling and the main character's style lol."
+     "review": "Truly a movie about a man lost in life figuring out what it all means.\n\nFun movie, i think its about John Cusack's character realizing his life's stalled, to the point where life isn't getting bigger anymore, with Laura wishing it did. Figuring out what it all means is really just bro realizing he needs to commit to something. \n\nI enjoyed the story telling and the main character's style lol."
     }
    ],
    "status": "watched",
@@ -38,14 +518,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": true,
-   "review": "Cheesy and cliche, yes. They did the girl with glasses bit, they did the guy afraid of public speaking but, etc.\r\n\r\nBut past that, was a fun one",
+   "review": "Cheesy and cliche, yes. They did the girl with glasses bit, they did the guy afraid of public speaking but, etc.\n\nBut past that, was a fun one",
    "review_date": "2026-07-03",
    "watches": [
     {
      "date": "2026-07-02",
      "rating": 4.0,
      "rewatch": false,
-     "review": "Cheesy and cliche, yes. They did the girl with glasses bit, they did the guy afraid of public speaking but, etc.\r\n\r\nBut past that, was a fun one"
+     "review": "Cheesy and cliche, yes. They did the girl with glasses bit, they did the guy afraid of public speaking but, etc.\n\nBut past that, was a fun one"
     }
    ],
    "status": "watched",
@@ -62,14 +542,14 @@
    "rewatch": false,
    "rating": 5.0,
    "liked": true,
-   "review": "Director of Marmaduke\r\n\r\n“This white guy is taking Indian Standard Time to the next level”\r\n\r\nHope Tala on the soundtrack\r\n\r\nAlso awwww, cute movie lol",
+   "review": "Director of Marmaduke\n\n“This white guy is taking Indian Standard Time to the next level”\n\nHope Tala on the soundtrack\n\nAlso awwww, cute movie lol",
    "review_date": "2026-06-30",
    "watches": [
     {
      "date": "2026-06-29",
      "rating": 5.0,
      "rewatch": false,
-     "review": "Director of Marmaduke\r\n\r\n“This white guy is taking Indian Standard Time to the next level”\r\n\r\nHope Tala on the soundtrack\r\n\r\nAlso awwww, cute movie lol"
+     "review": "Director of Marmaduke\n\n“This white guy is taking Indian Standard Time to the next level”\n\nHope Tala on the soundtrack\n\nAlso awwww, cute movie lol"
     }
    ],
    "status": "watched",
@@ -110,14 +590,14 @@
    "rewatch": false,
    "rating": 3.0,
    "liked": true,
-   "review": "Awww\r\n\r\nBut also that’s insane that bro didn’t bring it up the whole time 😭, how did you think that was going to end… (ignore the ending)",
+   "review": "Awww\n\nBut also that’s insane that bro didn’t bring it up the whole time 😭, how did you think that was going to end… (ignore the ending)",
    "review_date": "2026-06-28",
    "watches": [
     {
      "date": "2026-06-27",
      "rating": 3.0,
      "rewatch": false,
-     "review": "Awww\r\n\r\nBut also that’s insane that bro didn’t bring it up the whole time 😭, how did you think that was going to end… (ignore the ending)"
+     "review": "Awww\n\nBut also that’s insane that bro didn’t bring it up the whole time 😭, how did you think that was going to end… (ignore the ending)"
     }
    ],
    "status": "watched",
@@ -134,14 +614,14 @@
    "rewatch": false,
    "rating": 3.0,
    "liked": true,
-   "review": "Fun movie, 10/10\r\n\r\nTom Blyth’s character felt off at a couple points. The balance between goof, mature, heartfelt, and stoic-ness was weird?\r\n\r\nEmily Bader’s character was extremely fun lol, though also felt uncharacteristic at points.",
+   "review": "Fun movie, 10/10\n\nTom Blyth’s character felt off at a couple points. The balance between goof, mature, heartfelt, and stoic-ness was weird?\n\nEmily Bader’s character was extremely fun lol, though also felt uncharacteristic at points.",
    "review_date": "2026-06-28",
    "watches": [
     {
      "date": "2026-06-26",
      "rating": 3.0,
      "rewatch": false,
-     "review": "Fun movie, 10/10\r\n\r\nTom Blyth’s character felt off at a couple points. The balance between goof, mature, heartfelt, and stoic-ness was weird?\r\n\r\nEmily Bader’s character was extremely fun lol, though also felt uncharacteristic at points."
+     "review": "Fun movie, 10/10\n\nTom Blyth’s character felt off at a couple points. The balance between goof, mature, heartfelt, and stoic-ness was weird?\n\nEmily Bader’s character was extremely fun lol, though also felt uncharacteristic at points."
     }
    ],
    "status": "watched",
@@ -158,14 +638,14 @@
    "rewatch": false,
    "rating": 5.0,
    "liked": true,
-   "review": "🥲\r\n\r\nKeeps the core of the book, and Alfred Molina kills it as per usual. Feels like a good time for this movie to be put out there, highlights some of what’s important in life and the world right now",
+   "review": "🥲\n\nKeeps the core of the book, and Alfred Molina kills it as per usual. Feels like a good time for this movie to be put out there, highlights some of what’s important in life and the world right now",
    "review_date": "2026-06-08",
    "watches": [
     {
      "date": "2026-06-06",
      "rating": 5.0,
      "rewatch": false,
-     "review": "🥲\r\n\r\nKeeps the core of the book, and Alfred Molina kills it as per usual. Feels like a good time for this movie to be put out there, highlights some of what’s important in life and the world right now"
+     "review": "🥲\n\nKeeps the core of the book, and Alfred Molina kills it as per usual. Feels like a good time for this movie to be put out there, highlights some of what’s important in life and the world right now"
     }
    ],
    "status": "watched",
@@ -362,14 +842,14 @@
    "rewatch": true,
    "rating": 5.0,
    "liked": true,
-   "review": "😊 \r\n\r\nI see why it’s my comfort movie now 🙈, something about the character arcs and the art style pulling it all together for a pick me up / delightful movie. \r\n\r\nTo readers: put in my notice at work this morning, moving back in w the fam at the gaff (Rye Lane reference). Had arguably (recency bias*) my most fun weekend of the decade, met someone really cool, and realized I need to hope my resume may not be too shabby. Open offer to cold call me whenever. I’ma see what happens (Rye Lane reference)",
+   "review": "😊 \n\nI see why it’s my comfort movie now 🙈, something about the character arcs and the art style pulling it all together for a pick me up / delightful movie. \n\nTo readers: put in my notice at work this morning, moving back in w the fam at the gaff (Rye Lane reference). Had arguably (recency bias*) my most fun weekend of the decade, met someone really cool, and realized I need to hope my resume may not be too shabby. Open offer to cold call me whenever. I’ma see what happens (Rye Lane reference)",
    "review_date": "2026-05-07",
    "watches": [
     {
      "date": "2026-05-05",
      "rating": 5.0,
      "rewatch": true,
-     "review": "😊 \r\n\r\nI see why it’s my comfort movie now 🙈, something about the character arcs and the art style pulling it all together for a pick me up / delightful movie. \r\n\r\nTo readers: put in my notice at work this morning, moving back in w the fam at the gaff (Rye Lane reference). Had arguably (recency bias*) my most fun weekend of the decade, met someone really cool, and realized I need to hope my resume may not be too shabby. Open offer to cold call me whenever. I’ma see what happens (Rye Lane reference)"
+     "review": "😊 \n\nI see why it’s my comfort movie now 🙈, something about the character arcs and the art style pulling it all together for a pick me up / delightful movie. \n\nTo readers: put in my notice at work this morning, moving back in w the fam at the gaff (Rye Lane reference). Had arguably (recency bias*) my most fun weekend of the decade, met someone really cool, and realized I need to hope my resume may not be too shabby. Open offer to cold call me whenever. I’ma see what happens (Rye Lane reference)"
     },
     {
      "date": "2025-12-20",
@@ -421,7 +901,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/qKkaG7HVFVe7C1JuxTGwNz0eSyL.jpg"
+   "poster_url": null
   },
   {
    "name": "Ride Your Wave",
@@ -458,18 +938,18 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "Awww\r\n\r\nHumanity is kinda cool sometimes.",
+   "review": "Awww\n\nHumanity is kinda cool sometimes.",
    "review_date": "2026-04-29",
    "watches": [
     {
      "date": "2026-04-28",
      "rating": 4.5,
      "rewatch": false,
-     "review": "Awww\r\n\r\nHumanity is kinda cool sometimes."
+     "review": "Awww\n\nHumanity is kinda cool sometimes."
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/nRrwqApUDFL8gLGyJFIdDkmoule.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/A5lswNlytTUrnMWsuD0NFfhZlf3.jpg"
   },
   {
    "name": "Ella McCay",
@@ -496,36 +976,6 @@
    "poster_url": "https://image.tmdb.org/t/p/w342/iQCtK477yqp6xnHHrQG2P0lXoow.jpg"
   },
   {
-   "name": "The Drama",
-   "year": 2026,
-   "decade": "2020s",
-   "uri": "https://boxd.it/OA2w",
-   "logged_date": "2026-04-03",
-   "watched_date": "2026-04-07",
-   "watch_count": 2,
-   "rewatch": true,
-   "rating": 5.0,
-   "liked": true,
-   "review": "Hi, I’m Emma\r\n\r\n😭",
-   "review_date": "2026-04-09",
-   "watches": [
-    {
-     "date": "2026-04-07",
-     "rating": 5.0,
-     "rewatch": true,
-     "review": "Hi, I’m Emma\r\n\r\n😭"
-    },
-    {
-     "date": "2026-04-02",
-     "rating": 5.0,
-     "rewatch": false,
-     "review": "😭\r\n\r\nThat ending wrapped up everything in such a beautiful neat little bow. Also Danny P is on a streak with the music."
-    }
-   ],
-   "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/qhGCY6DIemLoCi7x1GuEt98m4JF.jpg"
-  },
-  {
    "name": "Project Hail Mary",
    "year": 2026,
    "decade": "2020s",
@@ -536,14 +986,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "The influence of the SpiderVerse producers* and music director shines, this book is an intro to sci-fi, the movie takes that to 10.\r\n\r\nFun one",
+   "review": "The influence of the SpiderVerse producers* and music director shines, this book is an intro to sci-fi, the movie takes that to 10.\n\nFun one",
    "review_date": "2026-03-22",
    "watches": [
     {
      "date": "2026-03-19",
      "rating": 4.5,
      "rewatch": false,
-     "review": "The influence of the SpiderVerse producers* and music director shines, this book is an intro to sci-fi, the movie takes that to 10.\r\n\r\nFun one"
+     "review": "The influence of the SpiderVerse producers* and music director shines, this book is an intro to sci-fi, the movie takes that to 10.\n\nFun one"
     }
    ],
    "status": "watched",
@@ -738,30 +1188,6 @@
    "poster_url": "https://image.tmdb.org/t/p/w342/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg"
   },
   {
-   "name": "Eternal Sunshine of the Spotless Mind",
-   "year": 2004,
-   "decade": "2000s",
-   "uri": "https://boxd.it/6YK",
-   "logged_date": "2026-02-12",
-   "watched_date": "2026-02-11",
-   "watch_count": 1,
-   "rewatch": false,
-   "rating": 4.5,
-   "liked": true,
-   "review": "Movie has the creative chaos of the 2000s that we love to see. Still with a poignant story melded with humor, drama, and pacing that takes a second for the viewer to figure out.\r\n\r\nJim Carrey in a moderately serious role is also very good. There's somewhat of a depth to his character, he says many vile things but somehow it almost feels like the bitterness wasn't a true representation of him but more a symptom of not knowing how to communicate well.\r\n\r\nKate Winslet's character... no notes. Played to perfection and absolutely believable, motivations, actions, and darkness mixed with levity. Peak",
-   "review_date": "2026-02-12",
-   "watches": [
-    {
-     "date": "2026-02-11",
-     "rating": 4.5,
-     "rewatch": false,
-     "review": "Movie has the creative chaos of the 2000s that we love to see. Still with a poignant story melded with humor, drama, and pacing that takes a second for the viewer to figure out.\r\n\r\nJim Carrey in a moderately serious role is also very good. There's somewhat of a depth to his character, he says many vile things but somehow it almost feels like the bitterness wasn't a true representation of him but more a symptom of not knowing how to communicate well.\r\n\r\nKate Winslet's character... no notes. Played to perfection and absolutely believable, motivations, actions, and darkness mixed with levity. Peak"
-    }
-   ],
-   "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/5MwkWH9tYHv3mV9OdYTMR5qreIz.jpg"
-  },
-  {
    "name": "Your Name.",
    "year": 2016,
    "decade": "2010s",
@@ -783,7 +1209,31 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/q719jXXEzOoYaps6babgKnONONX.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/vfJFJPepRKapMd5G2ro7klIRysq.jpg"
+  },
+  {
+   "name": "Eternal Sunshine of the Spotless Mind",
+   "year": 2004,
+   "decade": "2000s",
+   "uri": "https://boxd.it/6YK",
+   "logged_date": "2026-02-12",
+   "watched_date": "2026-02-11",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": "Movie has the creative chaos of the 2000s that we love to see. Still with a poignant story melded with humor, drama, and pacing that takes a second for the viewer to figure out.\n\nJim Carrey in a moderately serious role is also very good. There's somewhat of a depth to his character, he says many vile things but somehow it almost feels like the bitterness wasn't a true representation of him but more a symptom of not knowing how to communicate well.\n\nKate Winslet's character... no notes. Played to perfection and absolutely believable, motivations, actions, and darkness mixed with levity. Peak",
+   "review_date": "2026-02-12",
+   "watches": [
+    {
+     "date": "2026-02-11",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": "Movie has the creative chaos of the 2000s that we love to see. Still with a poignant story melded with humor, drama, and pacing that takes a second for the viewer to figure out.\n\nJim Carrey in a moderately serious role is also very good. There's somewhat of a depth to his character, he says many vile things but somehow it almost feels like the bitterness wasn't a true representation of him but more a symptom of not knowing how to communicate well.\n\nKate Winslet's character... no notes. Played to perfection and absolutely believable, motivations, actions, and darkness mixed with levity. Peak"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/5MwkWH9tYHv3mV9OdYTMR5qreIz.jpg"
   },
   {
    "name": "Send Help",
@@ -854,14 +1304,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": true,
-   "review": "Couldn't wrap my head around the weather at any given point, but beautifully crafted movie. The emphasis of the movie felt more on the relationships and interactions between the characters than a specific character's arc. \r\n\r\nLoved the acting and the cinematography throughout as per usual (I say having seen one other Trier movie).",
+   "review": "Couldn't wrap my head around the weather at any given point, but beautifully crafted movie. The emphasis of the movie felt more on the relationships and interactions between the characters than a specific character's arc. \n\nLoved the acting and the cinematography throughout as per usual (I say having seen one other Trier movie).",
    "review_date": "2026-01-29",
    "watches": [
     {
      "date": "2026-01-28",
      "rating": 4.0,
      "rewatch": false,
-     "review": "Couldn't wrap my head around the weather at any given point, but beautifully crafted movie. The emphasis of the movie felt more on the relationships and interactions between the characters than a specific character's arc. \r\n\r\nLoved the acting and the cinematography throughout as per usual (I say having seen one other Trier movie)."
+     "review": "Couldn't wrap my head around the weather at any given point, but beautifully crafted movie. The emphasis of the movie felt more on the relationships and interactions between the characters than a specific character's arc. \n\nLoved the acting and the cinematography throughout as per usual (I say having seen one other Trier movie)."
     }
    ],
    "status": "watched",
@@ -878,14 +1328,14 @@
    "rewatch": false,
    "rating": 5.0,
    "liked": true,
-   "review": "Loved the structure of the movie with 12 chapters, felt like the movie didn’t really slow down but wasn’t blisteringly fast or anything either. \r\n\r\nCinematography was also amazing, very beautiful setting and grainy / filmic style. Acting was also impeccable, excited to see the next one",
+   "review": "Loved the structure of the movie with 12 chapters, felt like the movie didn’t really slow down but wasn’t blisteringly fast or anything either. \n\nCinematography was also amazing, very beautiful setting and grainy / filmic style. Acting was also impeccable, excited to see the next one",
    "review_date": "2026-01-28",
    "watches": [
     {
      "date": "2026-01-27",
      "rating": 5.0,
      "rewatch": false,
-     "review": "Loved the structure of the movie with 12 chapters, felt like the movie didn’t really slow down but wasn’t blisteringly fast or anything either. \r\n\r\nCinematography was also amazing, very beautiful setting and grainy / filmic style. Acting was also impeccable, excited to see the next one"
+     "review": "Loved the structure of the movie with 12 chapters, felt like the movie didn’t really slow down but wasn’t blisteringly fast or anything either. \n\nCinematography was also amazing, very beautiful setting and grainy / filmic style. Acting was also impeccable, excited to see the next one"
     }
    ],
    "status": "watched",
@@ -913,7 +1363,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/zhG3vKWyDRaZYoaww1UVAi29T9h.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/ppd84D2i9W8jXmsyInGyihiSyqz.jpg"
   },
   {
    "name": "Sometimes I Think About Dying",
@@ -950,14 +1400,14 @@
    "rewatch": false,
    "rating": 3.5,
    "liked": false,
-   "review": "good movie, but like M. Supreme, no heart. Not enough consequences to convince me this movie doesn't glorify this life style a bit more than it should.\r\n\r\n",
+   "review": "good movie, but like M. Supreme, no heart. Not enough consequences to convince me this movie doesn't glorify this life style a bit more than it should.\n\n",
    "review_date": "2026-01-26",
    "watches": [
     {
      "date": "2026-01-25",
      "rating": 4.0,
      "rewatch": false,
-     "review": "good movie, but like M. Supreme, no heart. Not enough consequences to convince me this movie doesn't glorify this life style a bit more than it should.\r\n\r\n"
+     "review": "good movie, but like M. Supreme, no heart. Not enough consequences to convince me this movie doesn't glorify this life style a bit more than it should.\n\n"
     }
    ],
    "status": "watched",
@@ -974,14 +1424,14 @@
    "rewatch": false,
    "rating": 3.5,
    "liked": true,
-   "review": "Like Rye Lane but darker. \r\n\r\nDidn’t like how much music they used, didn’t feel like it complemented the scenes but more as a replacement for something.\r\n\r\nAlso twist made me sad. Kareem deserved better",
+   "review": "Like Rye Lane but darker. \n\nDidn’t like how much music they used, didn’t feel like it complemented the scenes but more as a replacement for something.\n\nAlso twist made me sad. Kareem deserved better",
    "review_date": "2026-01-17",
    "watches": [
     {
      "date": "2026-01-16",
      "rating": 3.5,
      "rewatch": false,
-     "review": "Like Rye Lane but darker. \r\n\r\nDidn’t like how much music they used, didn’t feel like it complemented the scenes but more as a replacement for something.\r\n\r\nAlso twist made me sad. Kareem deserved better"
+     "review": "Like Rye Lane but darker. \n\nDidn’t like how much music they used, didn’t feel like it complemented the scenes but more as a replacement for something.\n\nAlso twist made me sad. Kareem deserved better"
     }
    ],
    "status": "watched",
@@ -1087,14 +1537,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "I need more\r\n\r\nHustle 2 when Adam. Get Timmy to play the shorter than usual 3 point shooter or smth",
+   "review": "I need more\n\nHustle 2 when Adam. Get Timmy to play the shorter than usual 3 point shooter or smth",
    "review_date": "2026-01-01",
    "watches": [
     {
      "date": "2025-12-31",
      "rating": 4.5,
      "rewatch": false,
-     "review": "I need more\r\n\r\nHustle 2 when Adam. Get Timmy to play the shorter than usual 3 point shooter or smth"
+     "review": "I need more\n\nHustle 2 when Adam. Get Timmy to play the shorter than usual 3 point shooter or smth"
     }
    ],
    "status": "watched",
@@ -1159,14 +1609,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": false,
-   "review": "Don’t do drugs kids.\r\n\r\n#2 for the year, just like Talk to Me. Is this just what peak horror movie plots are? Allegories and Metaphors for drugs?",
+   "review": "Don’t do drugs kids.\n\n#2 for the year, just like Talk to Me. Is this just what peak horror movie plots are? Allegories and Metaphors for drugs?",
    "review_date": "2025-12-29",
    "watches": [
     {
      "date": "2025-12-28",
      "rating": 4.0,
      "rewatch": false,
-     "review": "Don’t do drugs kids.\r\n\r\n#2 for the year, just like Talk to Me. Is this just what peak horror movie plots are? Allegories and Metaphors for drugs?"
+     "review": "Don’t do drugs kids.\n\n#2 for the year, just like Talk to Me. Is this just what peak horror movie plots are? Allegories and Metaphors for drugs?"
     }
    ],
    "status": "watched",
@@ -1207,7 +1657,7 @@
    "rewatch": true,
    "rating": 4.0,
    "liked": true,
-   "review": "“I am wonderful, I deserve to be wonderful, and I contain multitudes.”\r\n\r\nLife-affirming drama sums up this movie so perfectly well, Chuck, the accountant who dances, and yet lives 39 great years, is the subject of a beautiful film encouraging perseverance and the value of so many different perspectives.",
+   "review": "“I am wonderful, I deserve to be wonderful, and I contain multitudes.”\n\nLife-affirming drama sums up this movie so perfectly well, Chuck, the accountant who dances, and yet lives 39 great years, is the subject of a beautiful film encouraging perseverance and the value of so many different perspectives.",
    "review_date": "2025-06-16",
    "watches": [
     {
@@ -1220,7 +1670,7 @@
      "date": "2025-06-15",
      "rating": 5.0,
      "rewatch": false,
-     "review": "“I am wonderful, I deserve to be wonderful, and I contain multitudes.”\r\n\r\nLife-affirming drama sums up this movie so perfectly well, Chuck, the accountant who dances, and yet lives 39 great years, is the subject of a beautiful film encouraging perseverance and the value of so many different perspectives."
+     "review": "“I am wonderful, I deserve to be wonderful, and I contain multitudes.”\n\nLife-affirming drama sums up this movie so perfectly well, Chuck, the accountant who dances, and yet lives 39 great years, is the subject of a beautiful film encouraging perseverance and the value of so many different perspectives."
     }
    ],
    "status": "watched",
@@ -1337,7 +1787,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/kdPMUMJzyYAc4roD52qavX0nLIC.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/9t7gUKSxXjvQpgHdC7VUhJ1BTBK.jpg"
   },
   {
    "name": "Wake Up Dead Man",
@@ -1385,7 +1835,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/uX8Z3qWJ5OjV1uP7yT6yRlw9UL9.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/lYZSsuv3sr8LmiuJHDWWZOb6jG2.jpg"
   },
   {
    "name": "Perfect Blue",
@@ -1522,7 +1972,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/oxgsAQDAAxA92mFGYCZllgWkH9J.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/rSdOua3wKMEaFWDcKAYWRjXQWOt.jpg"
   },
   {
    "name": "Oh, Hi!",
@@ -1583,14 +2033,14 @@
    "rewatch": true,
    "rating": 5.0,
    "liked": true,
-   "review": "Something about shooting on film with its grain and this style of cinematography. 👌🏾 \r\n\r\nBro really said see you in the next life 😭",
+   "review": "Something about shooting on film with its grain and this style of cinematography. 👌🏾 \n\nBro really said see you in the next life 😭",
    "review_date": "2025-11-10",
    "watches": [
     {
      "date": "2025-11-09",
      "rating": 5.0,
      "rewatch": true,
-     "review": "Something about shooting on film with its grain and this style of cinematography. 👌🏾 \r\n\r\nBro really said see you in the next life 😭"
+     "review": "Something about shooting on film with its grain and this style of cinematography. 👌🏾 \n\nBro really said see you in the next life 😭"
     }
    ],
    "status": "watched",
@@ -1607,14 +2057,14 @@
    "rewatch": false,
    "rating": 3.5,
    "liked": true,
-   "review": "Weeks turn into years, \r\nhow quick they pass\r\nAnd all the stars that never were\r\n are parking cars and pumping gas\r\n\r\nMusic was a 10/10",
+   "review": "Weeks turn into years, \nhow quick they pass\nAnd all the stars that never were\n are parking cars and pumping gas\n\nMusic was a 10/10",
    "review_date": "2025-11-09",
    "watches": [
     {
      "date": "2025-11-08",
      "rating": 3.5,
      "rewatch": false,
-     "review": "Weeks turn into years, \r\nhow quick they pass\r\nAnd all the stars that never were\r\n are parking cars and pumping gas\r\n\r\nMusic was a 10/10"
+     "review": "Weeks turn into years, \nhow quick they pass\nAnd all the stars that never were\n are parking cars and pumping gas\n\nMusic was a 10/10"
     }
    ],
    "status": "watched",
@@ -1679,14 +2129,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "What a simp (lovingly)\r\n\r\nGotta be an all timer rom-com for me",
+   "review": "What a simp (lovingly)\n\nGotta be an all timer rom-com for me",
    "review_date": "2025-10-25",
    "watches": [
     {
      "date": "2025-10-24",
      "rating": 4.5,
      "rewatch": false,
-     "review": "What a simp (lovingly)\r\n\r\nGotta be an all timer rom-com for me"
+     "review": "What a simp (lovingly)\n\nGotta be an all timer rom-com for me"
     }
    ],
    "status": "watched",
@@ -1727,14 +2177,14 @@
    "rewatch": false,
    "rating": 3.0,
    "liked": true,
-   "review": "If you assume Greta Lee the main character of this film, and overlook the various chases for McGuffins, was a banger of a movie. Lasers, neon lights, insane vfx, banger techno soundtrack, what more can I ask for from my Tron movie.\r\n\r\nCoolest moment definitely the light trail fight scenes, specifically jumping off light trails to combo and do some moves",
+   "review": "If you assume Greta Lee the main character of this film, and overlook the various chases for McGuffins, was a banger of a movie. Lasers, neon lights, insane vfx, banger techno soundtrack, what more can I ask for from my Tron movie.\n\nCoolest moment definitely the light trail fight scenes, specifically jumping off light trails to combo and do some moves",
    "review_date": "2025-10-12",
    "watches": [
     {
      "date": "2025-10-11",
      "rating": 3.0,
      "rewatch": false,
-     "review": "If you assume Greta Lee the main character of this film, and overlook the various chases for McGuffins, was a banger of a movie. Lasers, neon lights, insane vfx, banger techno soundtrack, what more can I ask for from my Tron movie.\r\n\r\nCoolest moment definitely the light trail fight scenes, specifically jumping off light trails to combo and do some moves"
+     "review": "If you assume Greta Lee the main character of this film, and overlook the various chases for McGuffins, was a banger of a movie. Lasers, neon lights, insane vfx, banger techno soundtrack, what more can I ask for from my Tron movie.\n\nCoolest moment definitely the light trail fight scenes, specifically jumping off light trails to combo and do some moves"
     }
    ],
    "status": "watched",
@@ -1929,7 +2379,7 @@
    "review_date": null,
    "watches": [],
    "status": "watchlist",
-   "poster_url": "https://image.tmdb.org/t/p/w342/fxl2ARZO2vRfUGDfqSz2bostauE.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/fMghdAE1eRk8PdpDftsA574zs0S.jpg"
   },
   {
    "name": "Millennium Mambo",
@@ -1959,14 +2409,14 @@
    "rewatch": false,
    "rating": 5.0,
    "liked": true,
-   "review": "Fire movie. The ample slow-motion and aura farming along with the bright colors (such as big fan of this change over some of the nitty gritty DC movies of the Snyderverse) were 👌🏾.\r\n\r\n\r\n[Mr. Terrific’s fight was absolute favorite perfect best #1 scene]",
+   "review": "Fire movie. The ample slow-motion and aura farming along with the bright colors (such as big fan of this change over some of the nitty gritty DC movies of the Snyderverse) were 👌🏾.\n\n\n[Mr. Terrific’s fight was absolute favorite perfect best #1 scene]",
    "review_date": "2025-07-12",
    "watches": [
     {
      "date": "2025-07-11",
      "rating": 5.0,
      "rewatch": false,
-     "review": "Fire movie. The ample slow-motion and aura farming along with the bright colors (such as big fan of this change over some of the nitty gritty DC movies of the Snyderverse) were 👌🏾.\r\n\r\n\r\n[Mr. Terrific’s fight was absolute favorite perfect best #1 scene]"
+     "review": "Fire movie. The ample slow-motion and aura farming along with the bright colors (such as big fan of this change over some of the nitty gritty DC movies of the Snyderverse) were 👌🏾.\n\n\n[Mr. Terrific’s fight was absolute favorite perfect best #1 scene]"
     }
    ],
    "status": "watched",
@@ -1983,14 +2433,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "Cars 2 and Cars 3 did it first\r\n\r\nVery fun high spectacle movie. Hans Zimmer went ham on the score.",
+   "review": "Cars 2 and Cars 3 did it first\n\nVery fun high spectacle movie. Hans Zimmer went ham on the score.",
    "review_date": "2025-07-10",
    "watches": [
     {
      "date": "2025-07-09",
      "rating": 4.5,
      "rewatch": false,
-     "review": "Cars 2 and Cars 3 did it first\r\n\r\nVery fun high spectacle movie. Hans Zimmer went ham on the score."
+     "review": "Cars 2 and Cars 3 did it first\n\nVery fun high spectacle movie. Hans Zimmer went ham on the score."
     }
    ],
    "status": "watched",
@@ -2079,18 +2529,18 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "Pom Klementieff\r\n\r\nAlso the South African influenced theme music was wild",
+   "review": "Pom Klementieff\n\nAlso the South African influenced theme music was wild",
    "review_date": "2025-05-24",
    "watches": [
     {
      "date": "2025-05-23",
      "rating": 4.5,
      "rewatch": false,
-     "review": "Pom Klementieff\r\n\r\nAlso the South African influenced theme music was wild"
+     "review": "Pom Klementieff\n\nAlso the South African influenced theme music was wild"
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/z53D72EAOxGRqdr7KXXWp9dJiDe.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/iKPsC9EFUafRP9SrUznI61getVP.jpg"
   },
   {
    "name": "Mission: Impossible",
@@ -2226,14 +2676,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "Real, Bob. Real\r\n\r\n(Son Lux bangers as per usual; I also liked the battles in this one, not only the action but all the conversations with Bob too)",
+   "review": "Real, Bob. Real\n\n(Son Lux bangers as per usual; I also liked the battles in this one, not only the action but all the conversations with Bob too)",
    "review_date": "2025-05-05",
    "watches": [
     {
      "date": "2025-05-02",
      "rating": 4.5,
      "rewatch": false,
-     "review": "Real, Bob. Real\r\n\r\n(Son Lux bangers as per usual; I also liked the battles in this one, not only the action but all the conversations with Bob too)"
+     "review": "Real, Bob. Real\n\n(Son Lux bangers as per usual; I also liked the battles in this one, not only the action but all the conversations with Bob too)"
     }
    ],
    "status": "watched",
@@ -2370,14 +2820,14 @@
    "rewatch": false,
    "rating": 4.5,
    "liked": true,
-   "review": "In a time of White Lotus and whimsy, Death of a Unicorn goes down the (maybe not the most original) comedic eat the rich path. A lot of the little things in the movie were done great, Sheppy’s fits? Outrageous. Téa Leoni’s performance within a performance? Absurd. NoHo Hank? The foil to it all.\r\n\r\nThe movie’s fx were definitely a little cheesy but also were very pretty at times and felt very real. As an enjoyer of Bodies, Bodies, Bodies, this was less LMAO but more LOL.",
+   "review": "In a time of White Lotus and whimsy, Death of a Unicorn goes down the (maybe not the most original) comedic eat the rich path. A lot of the little things in the movie were done great, Sheppy’s fits? Outrageous. Téa Leoni’s performance within a performance? Absurd. NoHo Hank? The foil to it all.\n\nThe movie’s fx were definitely a little cheesy but also were very pretty at times and felt very real. As an enjoyer of Bodies, Bodies, Bodies, this was less LMAO but more LOL.",
    "review_date": "2025-04-06",
    "watches": [
     {
      "date": "2025-04-05",
      "rating": 4.5,
      "rewatch": false,
-     "review": "In a time of White Lotus and whimsy, Death of a Unicorn goes down the (maybe not the most original) comedic eat the rich path. A lot of the little things in the movie were done great, Sheppy’s fits? Outrageous. Téa Leoni’s performance within a performance? Absurd. NoHo Hank? The foil to it all.\r\n\r\nThe movie’s fx were definitely a little cheesy but also were very pretty at times and felt very real. As an enjoyer of Bodies, Bodies, Bodies, this was less LMAO but more LOL."
+     "review": "In a time of White Lotus and whimsy, Death of a Unicorn goes down the (maybe not the most original) comedic eat the rich path. A lot of the little things in the movie were done great, Sheppy’s fits? Outrageous. Téa Leoni’s performance within a performance? Absurd. NoHo Hank? The foil to it all.\n\nThe movie’s fx were definitely a little cheesy but also were very pretty at times and felt very real. As an enjoyer of Bodies, Bodies, Bodies, this was less LMAO but more LOL."
     }
    ],
    "status": "watched",
@@ -2422,7 +2872,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/ePWKQzOnwabMcJsWYWIiy5p1Ofr.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/nQSvHZDuMlrZdm7ooMo8gb4CXhW.jpg"
   },
   {
    "name": "The Incredible Jessica James",
@@ -2459,14 +2909,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": true,
-   "review": "Damn, the music was fire + kid cudi changes his hair every single movie and im here for it, we now have blonde haired, green haired, red haired, black haired and more Kid Cudis out there\r\n\r\nAlso Josh Hartnett’s acting was insane",
+   "review": "Damn, the music was fire + kid cudi changes his hair every single movie and im here for it, we now have blonde haired, green haired, red haired, black haired and more Kid Cudis out there\n\nAlso Josh Hartnett’s acting was insane",
    "review_date": "2025-03-23",
    "watches": [
     {
      "date": "2025-03-23",
      "rating": 4.0,
      "rewatch": false,
-     "review": "Damn, the music was fire + kid cudi changes his hair every single movie and im here for it, we now have blonde haired, green haired, red haired, black haired and more Kid Cudis out there\r\n\r\nAlso Josh Hartnett’s acting was insane"
+     "review": "Damn, the music was fire + kid cudi changes his hair every single movie and im here for it, we now have blonde haired, green haired, red haired, black haired and more Kid Cudis out there\n\nAlso Josh Hartnett’s acting was insane"
     }
    ],
    "status": "watched",
@@ -2507,14 +2957,14 @@
    "rewatch": false,
    "rating": 3.5,
    "liked": true,
-   "review": "Quirky lil rom com innit\r\n\r\nJk it’s Canadian, but honestly p good",
+   "review": "Quirky lil rom com innit\n\nJk it’s Canadian, but honestly p good",
    "review_date": "2025-03-23",
    "watches": [
     {
      "date": "2025-03-19",
      "rating": 3.5,
      "rewatch": false,
-     "review": "Quirky lil rom com innit\r\n\r\nJk it’s Canadian, but honestly p good"
+     "review": "Quirky lil rom com innit\n\nJk it’s Canadian, but honestly p good"
     }
    ],
    "status": "watched",
@@ -2579,14 +3029,14 @@
    "rewatch": false,
    "rating": 0.5,
    "liked": false,
-   "review": "What\r\nThe\r\nHell\r\nDid\r\nI\r\nWatch\r\n_____\r\nThe actress that played the witch also got extremely into her role and killed it. Massive respect, looks like she had insane amounts of fun with how goofy the whole premise is.\r\n\r\nUnlike the dad, who has “American dentist” mentioned before “and actor” on his Wikipedia…",
+   "review": "What\nThe\nHell\nDid\nI\nWatch\n_____\nThe actress that played the witch also got extremely into her role and killed it. Massive respect, looks like she had insane amounts of fun with how goofy the whole premise is.\n\nUnlike the dad, who has “American dentist” mentioned before “and actor” on his Wikipedia…",
    "review_date": "2025-02-21",
    "watches": [
     {
      "date": "2025-02-18",
      "rating": 0.5,
      "rewatch": false,
-     "review": "What\r\nThe\r\nHell\r\nDid\r\nI\r\nWatch\r\n_____\r\nThe actress that played the witch also got extremely into her role and killed it. Massive respect, looks like she had insane amounts of fun with how goofy the whole premise is.\r\n\r\nUnlike the dad, who has “American dentist” mentioned before “and actor” on his Wikipedia…"
+     "review": "What\nThe\nHell\nDid\nI\nWatch\n_____\nThe actress that played the witch also got extremely into her role and killed it. Massive respect, looks like she had insane amounts of fun with how goofy the whole premise is.\n\nUnlike the dad, who has “American dentist” mentioned before “and actor” on his Wikipedia…"
     }
    ],
    "status": "watched",
@@ -2627,14 +3077,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": true,
-   "review": "Enjoyable film, I like.\r\n\r\nMarvel cinematography and sets have gotten better and more experimental than ever before, I love the direction",
+   "review": "Enjoyable film, I like.\n\nMarvel cinematography and sets have gotten better and more experimental than ever before, I love the direction",
    "review_date": "2025-02-15",
    "watches": [
     {
      "date": "2025-02-13",
      "rating": 4.0,
      "rewatch": false,
-     "review": "Enjoyable film, I like.\r\n\r\nMarvel cinematography and sets have gotten better and more experimental than ever before, I love the direction"
+     "review": "Enjoyable film, I like.\n\nMarvel cinematography and sets have gotten better and more experimental than ever before, I love the direction"
     }
    ],
    "status": "watched",
@@ -2758,7 +3208,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/yCjADq9fwbdPnxMo0DKNeRGZ4YC.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/xei04lZUjKRZjVWcG9DFfuvAaHM.jpg"
   },
   {
    "name": "Meiyazhagan",
@@ -2939,14 +3389,14 @@
    "rewatch": false,
    "rating": 1.0,
    "liked": true,
-   "review": "Peak science fiction. One of the greatest mid-credits scenes known to mankind.\r\n\r\nOn a realer note, didn’t realize it was a stoner comedy… I loved it but dear god someone wrote this on paper, thought it was a good idea, and managed to get A24 to release and market this nationwide?\r\n\r\n10/10 would rewatch (prerequisite might include several beers or other things)",
+   "review": "Peak science fiction. One of the greatest mid-credits scenes known to mankind.\n\nOn a realer note, didn’t realize it was a stoner comedy… I loved it but dear god someone wrote this on paper, thought it was a good idea, and managed to get A24 to release and market this nationwide?\n\n10/10 would rewatch (prerequisite might include several beers or other things)",
    "review_date": "2024-12-11",
    "watches": [
     {
      "date": "2024-12-10",
      "rating": 1.0,
      "rewatch": false,
-     "review": "Peak science fiction. One of the greatest mid-credits scenes known to mankind.\r\n\r\nOn a realer note, didn’t realize it was a stoner comedy… I loved it but dear god someone wrote this on paper, thought it was a good idea, and managed to get A24 to release and market this nationwide?\r\n\r\n10/10 would rewatch (prerequisite might include several beers or other things)"
+     "review": "Peak science fiction. One of the greatest mid-credits scenes known to mankind.\n\nOn a realer note, didn’t realize it was a stoner comedy… I loved it but dear god someone wrote this on paper, thought it was a good idea, and managed to get A24 to release and market this nationwide?\n\n10/10 would rewatch (prerequisite might include several beers or other things)"
     }
    ],
    "status": "watched",
@@ -3076,14 +3526,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": true,
-   "review": "After a lot of further thought, I really like this movie. The cinematography is great, the overall story really resonates with the main theme of being a tourist in another's pain, and the actors kill their role. \r\n\r\nThe thing that left me the most confused when leaving the theater is why they never elaborated on Benji. The rooftop scene I feel like was left on a cliffhanger that would be closer to the real world but in a movie, I would've liked a little bit more clarity. But after a lot of thought, Benji's outbursts were rarely if ever wrong, they may have been very untimely or awkward, but never wrong. Thinking about this from Benji's perspective made the movie make a lot more sense.",
+   "review": "After a lot of further thought, I really like this movie. The cinematography is great, the overall story really resonates with the main theme of being a tourist in another's pain, and the actors kill their role. \n\nThe thing that left me the most confused when leaving the theater is why they never elaborated on Benji. The rooftop scene I feel like was left on a cliffhanger that would be closer to the real world but in a movie, I would've liked a little bit more clarity. But after a lot of thought, Benji's outbursts were rarely if ever wrong, they may have been very untimely or awkward, but never wrong. Thinking about this from Benji's perspective made the movie make a lot more sense.",
    "review_date": "2024-11-22",
    "watches": [
     {
      "date": "2024-11-19",
      "rating": 4.0,
      "rewatch": false,
-     "review": "After a lot of further thought, I really like this movie. The cinematography is great, the overall story really resonates with the main theme of being a tourist in another's pain, and the actors kill their role. \r\n\r\nThe thing that left me the most confused when leaving the theater is why they never elaborated on Benji. The rooftop scene I feel like was left on a cliffhanger that would be closer to the real world but in a movie, I would've liked a little bit more clarity. But after a lot of thought, Benji's outbursts were rarely if ever wrong, they may have been very untimely or awkward, but never wrong. Thinking about this from Benji's perspective made the movie make a lot more sense."
+     "review": "After a lot of further thought, I really like this movie. The cinematography is great, the overall story really resonates with the main theme of being a tourist in another's pain, and the actors kill their role. \n\nThe thing that left me the most confused when leaving the theater is why they never elaborated on Benji. The rooftop scene I feel like was left on a cliffhanger that would be closer to the real world but in a movie, I would've liked a little bit more clarity. But after a lot of thought, Benji's outbursts were rarely if ever wrong, they may have been very untimely or awkward, but never wrong. Thinking about this from Benji's perspective made the movie make a lot more sense."
     }
    ],
    "status": "watched",
@@ -3148,14 +3598,14 @@
    "rewatch": false,
    "rating": 4.0,
    "liked": true,
-   "review": "This movie was fun. Its what I expected from a Venom movie and its a pleasant change of pace from the Sony universe's Morbius (mediocre in all regards, just plain boring) and Madame Web (less than mediocre in all regards, fun in its comparisons of its action to South Indian movies).\r\n\r\nSpoiler (really, what to look forward to):\r\n\r\nVenom sings Bon Jovi, dances to Dancing Queen, learns about the fun of gambling, and some fun symbiotes. Don't say, \"this is stupid\" but reframe it as \"LMAO\" and revel in how unnecessarily (in a fun way, rather this than the movie proper) long these fun tangents go on.",
+   "review": "This movie was fun. Its what I expected from a Venom movie and its a pleasant change of pace from the Sony universe's Morbius (mediocre in all regards, just plain boring) and Madame Web (less than mediocre in all regards, fun in its comparisons of its action to South Indian movies).\n\nSpoiler (really, what to look forward to):\n\nVenom sings Bon Jovi, dances to Dancing Queen, learns about the fun of gambling, and some fun symbiotes. Don't say, \"this is stupid\" but reframe it as \"LMAO\" and revel in how unnecessarily (in a fun way, rather this than the movie proper) long these fun tangents go on.",
    "review_date": "2024-10-30",
    "watches": [
     {
      "date": "2024-10-25",
      "rating": 4.0,
      "rewatch": false,
-     "review": "This movie was fun. Its what I expected from a Venom movie and its a pleasant change of pace from the Sony universe's Morbius (mediocre in all regards, just plain boring) and Madame Web (less than mediocre in all regards, fun in its comparisons of its action to South Indian movies).\r\n\r\nSpoiler (really, what to look forward to):\r\n\r\nVenom sings Bon Jovi, dances to Dancing Queen, learns about the fun of gambling, and some fun symbiotes. Don't say, \"this is stupid\" but reframe it as \"LMAO\" and revel in how unnecessarily (in a fun way, rather this than the movie proper) long these fun tangents go on."
+     "review": "This movie was fun. Its what I expected from a Venom movie and its a pleasant change of pace from the Sony universe's Morbius (mediocre in all regards, just plain boring) and Madame Web (less than mediocre in all regards, fun in its comparisons of its action to South Indian movies).\n\nSpoiler (really, what to look forward to):\n\nVenom sings Bon Jovi, dances to Dancing Queen, learns about the fun of gambling, and some fun symbiotes. Don't say, \"this is stupid\" but reframe it as \"LMAO\" and revel in how unnecessarily (in a fun way, rather this than the movie proper) long these fun tangents go on."
     }
    ],
    "status": "watched",
@@ -3261,14 +3711,14 @@
    "rewatch": false,
    "rating": 3.5,
    "liked": true,
-   "review": "When the bongo drums were playing, the tension and the fire felt like we were watching a high pressure continuous 90 minutes that preceded history. But then… the drums stopped. The tension didn’t really break? It kinda just faded until the beats came back moving time along. \r\n\r\nVery fun movie, but I think the pacing has a couple issues that are hard to overlook given the timeline of the movie. Side characters were flushed out, so if you’re a Chevy Chase fan (why?) then maybe you’d like it but I think some of the side stories detracted from the big picture.",
+   "review": "When the bongo drums were playing, the tension and the fire felt like we were watching a high pressure continuous 90 minutes that preceded history. But then… the drums stopped. The tension didn’t really break? It kinda just faded until the beats came back moving time along. \n\nVery fun movie, but I think the pacing has a couple issues that are hard to overlook given the timeline of the movie. Side characters were flushed out, so if you’re a Chevy Chase fan (why?) then maybe you’d like it but I think some of the side stories detracted from the big picture.",
    "review_date": "2024-10-14",
    "watches": [
     {
      "date": "2024-10-10",
      "rating": 3.5,
      "rewatch": false,
-     "review": "When the bongo drums were playing, the tension and the fire felt like we were watching a high pressure continuous 90 minutes that preceded history. But then… the drums stopped. The tension didn’t really break? It kinda just faded until the beats came back moving time along. \r\n\r\nVery fun movie, but I think the pacing has a couple issues that are hard to overlook given the timeline of the movie. Side characters were flushed out, so if you’re a Chevy Chase fan (why?) then maybe you’d like it but I think some of the side stories detracted from the big picture."
+     "review": "When the bongo drums were playing, the tension and the fire felt like we were watching a high pressure continuous 90 minutes that preceded history. But then… the drums stopped. The tension didn’t really break? It kinda just faded until the beats came back moving time along. \n\nVery fun movie, but I think the pacing has a couple issues that are hard to overlook given the timeline of the movie. Side characters were flushed out, so if you’re a Chevy Chase fan (why?) then maybe you’d like it but I think some of the side stories detracted from the big picture."
     }
    ],
    "status": "watched",
@@ -3302,14 +3752,14 @@
    "rewatch": true,
    "rating": 4.0,
    "liked": true,
-   "review": "The music, the visuals, and the story all together left me in awe and in tears. The movie’s pacing is a little slow towards the end, but the movie hits all the emotional and whimsical beats it needed to, instilling this sort of inspirational good-hearted free-spirited story. \r\n\r\nI’ve been thinking about this movie a lot over the past month, struggling to find its name until I too searched for Maadhavan and uncovered this visually and aurally stunning piece of art.",
+   "review": "The music, the visuals, and the story all together left me in awe and in tears. The movie’s pacing is a little slow towards the end, but the movie hits all the emotional and whimsical beats it needed to, instilling this sort of inspirational good-hearted free-spirited story. \n\nI’ve been thinking about this movie a lot over the past month, struggling to find its name until I too searched for Maadhavan and uncovered this visually and aurally stunning piece of art.",
    "review_date": "2024-10-08",
    "watches": [
     {
      "date": "2024-10-07",
      "rating": 4.0,
      "rewatch": true,
-     "review": "The music, the visuals, and the story all together left me in awe and in tears. The movie’s pacing is a little slow towards the end, but the movie hits all the emotional and whimsical beats it needed to, instilling this sort of inspirational good-hearted free-spirited story. \r\n\r\nI’ve been thinking about this movie a lot over the past month, struggling to find its name until I too searched for Maadhavan and uncovered this visually and aurally stunning piece of art."
+     "review": "The music, the visuals, and the story all together left me in awe and in tears. The movie’s pacing is a little slow towards the end, but the movie hits all the emotional and whimsical beats it needed to, instilling this sort of inspirational good-hearted free-spirited story. \n\nI’ve been thinking about this movie a lot over the past month, struggling to find its name until I too searched for Maadhavan and uncovered this visually and aurally stunning piece of art."
     }
    ],
    "status": "watched",
@@ -3374,14 +3824,14 @@
    "rewatch": true,
    "rating": 5.0,
    "liked": true,
-   "review": "Watching this in concert was an amazing experience. The orchestra popped off and added their own beats and music at times augmenting the music's already great score and soundtrack. \r\n\r\nNothing like cheering with the entire crowd when my boy Pavitar Prabhakar showed up on screen.",
+   "review": "Watching this in concert was an amazing experience. The orchestra popped off and added their own beats and music at times augmenting the music's already great score and soundtrack. \n\nNothing like cheering with the entire crowd when my boy Pavitar Prabhakar showed up on screen.",
    "review_date": "2024-10-03",
    "watches": [
     {
      "date": "2024-10-02",
      "rating": 5.0,
      "rewatch": true,
-     "review": "Watching this in concert was an amazing experience. The orchestra popped off and added their own beats and music at times augmenting the music's already great score and soundtrack. \r\n\r\nNothing like cheering with the entire crowd when my boy Pavitar Prabhakar showed up on screen."
+     "review": "Watching this in concert was an amazing experience. The orchestra popped off and added their own beats and music at times augmenting the music's already great score and soundtrack. \n\nNothing like cheering with the entire crowd when my boy Pavitar Prabhakar showed up on screen."
     }
    ],
    "status": "watched",
@@ -3457,7 +3907,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/eG9lz41mJqsI4J6ubMtVqD26q2J.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/wTnV3PCVW5O92JMrFvvrRcV39RU.jpg"
   },
   {
    "name": "Whiplash",
@@ -3617,7 +4067,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/tl3WcNY41um1OOsjr3z6eqK31yN.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/4Pa7SriYtq4BdoS2BAPm6w66vLi.jpg"
   },
   {
    "name": "Enthiran",
@@ -3753,7 +4203,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/dup1prHufHMpD3Z3MkCkbxCuFlI.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/q2uYB5GtoBsgHTedmf2dGOR6vWk.jpg"
   },
   {
    "name": "Love Today",
@@ -3821,7 +4271,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/yBvsYnhrrTs1ZgHQNQTSdVA6uo8.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/rmonRcpCap4n7vS8OlTzbZCIlep.jpg"
   },
   {
    "name": "Beast",
@@ -3855,7 +4305,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/jOqxKIOC92BVyinYO1Fm73XY7Tc.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/wjAJWfuE5OQm5zerlOAbTxdHFMV.jpg"
   },
   {
    "name": "Kaala",
@@ -3957,7 +4407,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/oR3tbNzJMJmCKS5O5fanU9yxIOk.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/pZioBfNL0BHl8JZ6P9ddqBNnFuj.jpg"
   },
   {
    "name": "Mersal",
@@ -3991,7 +4441,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/aSvpcSWb9ZHTDa2pyTWOyxucUZu.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/fQ8JzXRf68xlzyquLn7TEe3S2Nh.jpg"
   },
   {
    "name": "Theri",
@@ -4008,7 +4458,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/gyw2ybu40F7xeoIDLtmz3ABa6fu.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/f6BhexotEqO3GejXa3FopBNGL6M.jpg"
   },
   {
    "name": "Kaththi",
@@ -4110,7 +4560,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/r7lLdyiJ1e2FmDP6rvxsUDk7Uju.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/k5VwUvsvY0ft1vccTWBbbSTCVkY.jpg"
   },
   {
    "name": "Madras",
@@ -4501,7 +4951,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/qH0ayDXNdTvzGrBFwzK79JMyKp1.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/b756U7HaJF0ooVsxv2YddXIFPuk.jpg"
   },
   {
    "name": "Velaiyilla Pattathari 2",
@@ -4620,7 +5070,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/wpvEmE3xsb1N3AmLotORbZwrdOR.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/g9skD62F7y6VJR5nPZOgpz1ckso.jpg"
   },
   {
    "name": "Vasool Raja MBBS",
@@ -4705,7 +5155,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/u1BYvZ5rPVzHxyZSUyvxBwxvWlz.jpg"
+   "poster_url": null
   },
   {
    "name": "Singam 2",
@@ -5164,7 +5614,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/5oMthJlSniWXmOhfLhEvH9PIFxv.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/fRbDHbGBXg6kwQYr3CRYeKPJW5q.jpg"
   },
   {
    "name": "Maan Karate",
@@ -5249,7 +5699,7 @@
    "review_date": null,
    "watches": [],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/vmF5Yb9ViIncinpj2wGCS8w6iti.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/7bqcgfkzdVPxxBbap8Cy7spXiDj.jpg"
   },
   {
    "name": "Kanchana 2",
@@ -5651,7 +6101,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/heM4XKC0jA8fTSNe8F7oUkcJV7Z.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/6izwz7rsy95ARzTR3poZ8H6c5pp.jpg"
   },
   {
    "name": "Dune",
@@ -5681,7 +6131,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/gDzOcq0pfeCeqMBwKIJlSmQpjkZ.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/v1tRXZ4JtD2Iv6fjkPvT4GiwslV.jpg"
   },
   {
    "name": "3 Idiots",
@@ -5873,31 +6323,7 @@
     }
    ],
    "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/tvADrBoLJgyrxMYl8QyQW2125xv.jpg"
-  },
-  {
-   "name": "Jigarthanda DoubleX",
-   "year": 2023,
-   "decade": "2020s",
-   "uri": "https://boxd.it/C4xI",
-   "logged_date": "2024-03-05",
-   "watched_date": "2024-02-02",
-   "watch_count": 1,
-   "rewatch": false,
-   "rating": 5.0,
-   "liked": true,
-   "review": null,
-   "review_date": null,
-   "watches": [
-    {
-     "date": "2024-02-02",
-     "rating": 5.0,
-     "rewatch": false,
-     "review": null
-    }
-   ],
-   "status": "watched",
-   "poster_url": "https://image.tmdb.org/t/p/w342/rlPTdgLfgsSv8WiQXRZ2AVIDwAi.jpg"
+   "poster_url": "https://image.tmdb.org/t/p/w342/4jZMZQ9oYqEAYODAeWUNJL79aIe.jpg"
   },
   {
    "name": "The Creator",
