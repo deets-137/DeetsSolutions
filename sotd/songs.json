@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-22T08:26:01Z",
+  "generated_at": "2026-08-23T02:00:15Z",
   "channel": "song-of-the-day",
-  "count": 375,
+  "count": 376,
   "songs": [
     {
       "post_id": 1,
@@ -8627,6 +8627,29 @@
       "apple_music_url": "https://music.apple.com/us/album/cigarette/1382754257?i=1382754509",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/a2/54/91/a25491e4-f45d-fe06-3f62-fde269db39d7/mzaf_14856228896044245250.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/51/ad/a1/51ada1de-d4e0-49b3-163e-0d2543f7c840/00602567715801.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 4817,
+      "posted_at": "2026-08-22T08:41:39.798000+00:00",
+      "date": "2026-08-21",
+      "day": "Fri",
+      "month": "08_2026",
+      "track_name": "SPEEDBOAT",
+      "artist_name": "Quinn XCII",
+      "album": "BULL IN A CHINA SHOP EP - Single",
+      "genre": "Pop",
+      "duration": "2:36",
+      "duration_sec": 156,
+      "release_date": "2026-08-14",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/speedboat/6797929327?i=6797929670",
+      "apple_music_url": "https://music.apple.com/us/album/speedboat/6797929327?i=6797929670",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/45/66/bb/4566bbc2-307d-9d7c-c658-b8c2b32ed907/mzaf_5187009797128196426.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/1b/75/fc/1b75fc59-2ce8-7485-a6f5-98f0dce66c49/885288200805.jpg/600x600bb.jpg"
     }
   ]
 }
