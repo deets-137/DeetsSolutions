@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-23T02:00:15Z",
+  "generated_at": "2026-08-25T03:05:16Z",
   "channel": "song-of-the-day",
-  "count": 376,
+  "count": 378,
   "songs": [
     {
       "post_id": 1,
@@ -8650,6 +8650,52 @@
       "apple_music_url": "https://music.apple.com/us/album/speedboat/6797929327?i=6797929670",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/45/66/bb/4566bbc2-307d-9d7c-c658-b8c2b32ed907/mzaf_5187009797128196426.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/1b/75/fc/1b75fc59-2ce8-7485-a6f5-98f0dce66c49/885288200805.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 5570,
+      "posted_at": "2026-08-24T06:59:18.590000+00:00",
+      "date": "2026-08-23",
+      "day": "Sun",
+      "month": "08_2026",
+      "track_name": "MANGO STICKY RICE",
+      "artist_name": "UMI",
+      "album": "people stories",
+      "genre": "R&B/Soul",
+      "duration": "3:29",
+      "duration_sec": 209,
+      "release_date": "2025-08-21",
+      "release_year": 2025,
+      "age_yrs": 1,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/mango-sticky-rice/1834447857?i=1834448469",
+      "apple_music_url": "https://music.apple.com/us/album/mango-sticky-rice/1834447857?i=1834448469",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e5/47/90/e54790c8-3349-40e9-6465-5bc0285e7830/mzaf_6747215874965425665.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/d0/38/2e/d0382eee-db25-80ad-9a6c-294d8b84d8e2/196873540214.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 5571,
+      "posted_at": "2026-08-24T19:54:05.232000+00:00",
+      "date": "2026-08-24",
+      "day": "Mon",
+      "month": "08_2026",
+      "track_name": "Sure",
+      "artist_name": "Monsune",
+      "album": "Sure - Single",
+      "genre": "Alternative",
+      "duration": "4:16",
+      "duration_sec": 256,
+      "release_date": "",
+      "release_year": null,
+      "age_yrs": null,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/sure/6797882335?i=6797882337",
+      "apple_music_url": "https://music.apple.com/us/album/sure/6797882335?i=6797882337",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a2/9b/00/a29b0086-2fe8-b670-5348-00199c71ef13/mzaf_8647692375911919198.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/de/63/4f/de634f27-5423-c80c-452e-68f79729fe48/193436482097_Monsunesingleartsure.jpg/600x600bb.jpg"
     }
   ]
 }
