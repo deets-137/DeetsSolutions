@@ -1,8 +1,56 @@
 {
- "generated_at": "2026-08-25T05:41:07Z",
+ "generated_at": "2026-08-31T01:31:04Z",
  "source": "letterboxd",
- "count": 315,
+ "count": 317,
  "movies": [
+  {
+   "name": "The Boy, the Mole, the Fox and the Horse",
+   "year": 2022,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/the-boy-the-mole-the-fox-and-the-horse/",
+   "logged_date": "2026-08-28",
+   "watched_date": "2026-08-28",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 5.0,
+   "liked": true,
+   "review": "Kids book made into a beautiful short movie in the best possible way, loved it",
+   "review_date": "2026-08-28",
+   "watches": [
+    {
+     "date": "2026-08-28",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "Kids book made into a beautiful short movie in the best possible way, loved it"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/wAKBWRhMmBtrCCuqmFwPm2RGTph.jpg"
+  },
+  {
+   "name": "The Rip",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/the-rip-2026/",
+   "logged_date": "2026-08-28",
+   "watched_date": "2026-08-27",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 3.5,
+   "liked": true,
+   "review": "Pretty solid tbh, Matt Affleck with an interesting will they won’t they as per usual",
+   "review_date": "2026-08-28",
+   "watches": [
+    {
+     "date": "2026-08-27",
+     "rating": 3.5,
+     "rewatch": false,
+     "review": "Pretty solid tbh, Matt Affleck with an interesting will they won’t they as per usual"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/4wsYWH73Hb1B6noGIFaRQSAkuXj.jpg"
+  },
   {
    "name": "Men in Black II",
    "year": 2002,
