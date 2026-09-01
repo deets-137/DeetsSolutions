@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-31T01:31:01Z",
+  "generated_at": "2026-09-01T02:00:14Z",
   "channel": "song-of-the-day",
-  "count": 385,
+  "count": 386,
   "songs": [
     {
       "post_id": 1,
@@ -8857,6 +8857,29 @@
       "apple_music_url": "https://music.apple.com/us/album/pigstep-stereo-mix/1517734578?i=1517734594",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/81/2c/2a/812c2ae5-2200-5fdf-27ea-097daa58cbd8/mzaf_4482387053155697418.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/e5/72/cc/e572cc72-ff09-4918-8599-7134ddf8e97e/192641512063_Cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 8240,
+      "posted_at": "2026-08-31T09:57:17.423000+00:00",
+      "date": "2026-08-30",
+      "day": "Sun",
+      "month": "08_2026",
+      "track_name": "Ted Lasso Theme",
+      "artist_name": "Marcus Mumford & Tom Howe",
+      "album": "Ted Lasso: Season 1 (Apple TV+ Original Series Soundtrack)",
+      "genre": "Soundtrack",
+      "duration": "2:16",
+      "duration_sec": 136,
+      "release_date": "2020-08-14",
+      "release_year": 2020,
+      "age_yrs": 6,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/ted-lasso-theme/1534329356?i=1534329463",
+      "apple_music_url": "https://music.apple.com/us/album/ted-lasso-theme/1534329356?i=1534329463",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/b3/ce/18/b3ce18a0-27c9-e4f6-478c-5df12c2bcbd8/mzaf_9967974831254821701.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/af/b1/d0/afb1d091-0a56-1c5f-c2ef-8d9464ea55ee/794043205613.jpg/600x600bb.jpg"
     }
   ]
 }
