@@ -50,7 +50,8 @@ python ../DeetsOTD/letterboxd_web.py web -o movies/movies.json
 ```
 
 - **RSS is the steady state** — `scripts/nightly-sotd.ps1` runs it right
-  after the song pull and commits `movies.json` only on a real change. Feed
+  after the song pull and commits *and pushes* `movies.json` only on a real
+  change. Feed
   entries are deduped on Letterboxd's stable per-entry guid, so re-reads are
   idempotent and a rating/review edit re-lands cleanly. Watch-only entries
   (no review) count as sittings; their boilerplate description is never
@@ -132,3 +133,24 @@ page and PDF together.
 The JSONs and the resume PDF are committed and served flat, so a refresh
 is just: regenerate → `git commit` → `git push`, and Cloudflare Pages
 redeploys.
+
+For the journals that whole loop is unattended: `scripts/nightly-sotd.ps1`
+pushes on a real change, so a nightly run reaches the live site by itself. A
+push that is not a fast-forward is logged and left alone — never forced,
+never auto-rebased.
+
+A push is not a deploy, though, and the two drift for different reasons. To
+see what prod is *actually* serving:
+
+```
+powershell -File scripts/prod-status.ps1
+```
+
+It three-way compares each journal JSON — live prod vs `origin/master` vs
+local HEAD — because prod-vs-origin means Cloudflare has not finished
+building, while origin-vs-local means the commit never got pushed, and a
+two-way check cannot tell those apart. The JSONs read straight off the wire
+with no cache lag: `_headers` pins them to `max-age=0, must-revalidate` and
+Pages serves them `DYNAMIC`. Compare on the JSON's own `generated_at` /
+`count` — Pages' `ETag` is opaque, not the file's md5, so it cannot stand
+in for a content check.

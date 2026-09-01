@@ -6,9 +6,14 @@
 # rewrites movies/movies.json from it (letterboxd_web.py rss --web).
 # The two are independent — a failure in one never blocks the other.
 #
-# If (and only if) a JSON changed, it stages JUST the changed files and
-# commits — it does NOT push, so a bad pull can never reach the live site
-# unattended. Push manually after a glance:  git -C <repo> push
+# If (and only if) a JSON changed, it stages JUST the changed files,
+# commits, and pushes — Cloudflare Pages then redeploys, so an unattended
+# run carries all the way through to the live site. Verify what prod is
+# actually serving with:  powershell -File scripts/prod-status.ps1
+#
+# A push that is not a fast-forward is left ALONE (logged, exit 1): he
+# pushes from parallel sessions, and this job must never rewrite or
+# clobber work it did not create. Resolve those by hand.
 #
 # Wire it to Task Scheduler to run each evening (see scripts/register-nightly-sotd.ps1),
 # or run by hand:
@@ -123,9 +128,25 @@ try {
     & git add -- $files
     $today = Get-Date -Format "yyyy-MM-dd"
     & git commit -m "${label}: nightly refresh $today ($($parts -join ', '))" | ForEach-Object { Log "git: $_" }
-    Log "Committed. Not pushed - run: git -C '$repo' push"
+
+    # Push so the refresh actually reaches the live site. Anything that is
+    # not a clean fast-forward (diverged remote, no network) is reported and
+    # left for a human - never force, never auto-rebase.
+    # git push writes its progress to stderr even on success, and under
+    # $ErrorActionPreference='Stop' a 2>&1 redirect turns that into a
+    # terminating NativeCommandError. Drop to Continue for the call itself.
+    $pushOut = & { $ErrorActionPreference = 'Continue'; & git push 2>&1 }
+    $pushCode = $LASTEXITCODE
+    foreach ($l in $pushOut) { Log "push: $l" }
+    if ($pushCode -eq 0) {
+        Log "Pushed. Cloudflare Pages will redeploy; verify with scripts/prod-status.ps1"
+    } else {
+        Log "ERROR: git push exited $pushCode - commit is local only, prod NOT updated"
+    }
 } finally {
     Pop-Location
 }
+
+if ($pushCode -ne 0) { Log "=== done (push failed) ==="; exit 1 }
 
 Log "=== done ==="
