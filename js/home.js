@@ -586,13 +586,17 @@
       items.sort(function (a, b) {
         return a.updated === b.updated ? a.order - b.order : (a.updated > b.updated ? -1 : 1);
       });
+      // Each card gets a one-line footer — last-commit date left, the
+      // card's own links right — so the strip's cards share one anatomy.
       showStrip("cool", items.slice(0, STRIP_MAX).map(function (it) {
         var card = document.importNode(it.node, true);
-        if (it.updated) {
-          var links = card.querySelector(".project__links");
-          var when = el("p", "project__updated", "Last commit " + prettyDate(it.updated));
-          if (links) card.insertBefore(when, links); else card.appendChild(when);
-        }
+        var foot = el("div", "project__foot");
+        var when = el("span", "project__updated", it.updated ? shortDate(it.updated) : "");
+        if (it.updated) when.title = "Last commit " + prettyDate(it.updated);
+        foot.appendChild(when);
+        var links = card.querySelector(".project__links");
+        if (links) foot.appendChild(links);
+        card.appendChild(foot);
         return card;
       }));
     })

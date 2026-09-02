@@ -668,20 +668,41 @@
   backdrop-filter: none;
 }
 
-/* Project cards: a fixed column, description clamped so every card in the
-   row lands at the same height (the full text is one click away). */
+/* Project cards: a fixed column cut to a fixed anatomy so every card in
+   the row is the same height — name, pitch, and description each clamp to
+   (and reserve) a set line count, the tags sit in one non-wrapping row,
+   and a single footer line pins to the bottom: last-commit date (from
+   cool-stuff/projects.json) left, the card's own links right. The full
+   text is one click away. */
 .home-strip .project { width: 16rem; padding: var(--space-3); }
-.home-strip .project__name { font-size: 1rem; }
+.home-strip .project__name,
+.home-strip .project__pitch,
 .home-strip .project__desc {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
   overflow: hidden;
 }
-/* Last-commit line (from cool-stuff/projects.json) — dressed like a film
-   card's footer, sitting above the links. */
+.home-strip .project__name  { font-size: 1rem; -webkit-line-clamp: 2; line-clamp: 2; min-height: 2.5em; }
+.home-strip .project__pitch { line-height: 1.4;  -webkit-line-clamp: 2; line-clamp: 2; min-height: 2.8em; }
+.home-strip .project__desc  { line-height: 1.45; -webkit-line-clamp: 3; line-clamp: 3; min-height: 4.35em; }
+.home-strip .project__top { align-items: flex-start; }
+.home-strip .project__tags {
+  flex-wrap: nowrap;
+  min-height: 1.6rem;         /* one chip tall, even for a card with none */
+  overflow: hidden;
+}
+.home-strip .project__chip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.project__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 1.4rem;         /* one line, even for a card with no links */
+  margin-top: var(--space-1);
+  white-space: nowrap;
+}
 .project__updated { color: var(--subtext); font-size: 0.8rem; }
+.project__foot .project__links { flex-wrap: nowrap; margin-top: 0; }
 
 /* Film cards: a poster-width column with the journal's 2:3 cover, cut to
    a fixed anatomy so every card is the same height: title clamped to two
