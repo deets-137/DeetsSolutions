@@ -4,7 +4,9 @@
 # DeetsOTD repo, enriches them, and rewrites sotd/songs.json.
 # Movies: ingests the Letterboxd RSS feed into DeetsOTD's storage.db and
 # rewrites movies/movies.json from it (letterboxd_web.py rss --web).
-# The two are independent — a failure in one never blocks the other.
+# Projects: asks GitHub (via the gh CLI) for each portfolio project's last
+# commit date and rewrites cool-stuff/projects.json (build-project-dates.py).
+# The three are independent — a failure in one never blocks the others.
 #
 # If (and only if) a JSON changed, it stages JUST the changed files,
 # commits, and pushes — Cloudflare Pages then redeploys, so an unattended
@@ -27,6 +29,7 @@ $repo    = Split-Path $PSScriptRoot -Parent                 # ...\DeetsSolutions
 $otd     = Join-Path (Split-Path $repo -Parent) "DeetsOTD"  # sibling ...\DeetsOTD
 $songs   = Join-Path $repo "sotd\songs.json"
 $movies  = Join-Path $repo "movies\movies.json"
+$projects = Join-Path $repo "cool-stuff\projects.json"
 $log     = Join-Path $PSScriptRoot "nightly-sotd.log"
 $channel = "1463626949430612267"
 
@@ -58,8 +61,9 @@ function ContentHash($path) {
 }
 
 # Fingerprints before, so we only commit on a real change.
-$songsBefore  = ContentHash $songs
-$moviesBefore = ContentHash $movies
+$songsBefore    = ContentHash $songs
+$moviesBefore   = ContentHash $movies
+$projectsBefore = ContentHash $projects
 
 # ── Songs: scan the Discord channel (config.py + .env live in DeetsOTD) ──
 Push-Location $otd
@@ -83,13 +87,20 @@ try {
 foreach ($l in $out) { Log "rss: $l" }
 if ($moviesCode -ne 0) { Log "ERROR: letterboxd_web.py exited $moviesCode - movies.json left untouched" }
 
-if ($songsCode -ne 0 -and $moviesCode -ne 0) { exit 1 }
+# ── Projects: GitHub last-commit dates -> cool-stuff/projects.json ──
+$out = & { $ErrorActionPreference = 'Continue'; & $python (Join-Path $PSScriptRoot "build-project-dates.py") 2>&1 }
+$projectsCode = $LASTEXITCODE
+foreach ($l in $out) { Log "projects: $l" }
+if ($projectsCode -ne 0) { Log "ERROR: build-project-dates.py exited $projectsCode - projects.json left untouched" }
 
-$songsChanged  = ($songsCode -eq 0)  -and ((ContentHash $songs)  -ne $songsBefore)
-$moviesChanged = ($moviesCode -eq 0) -and ((ContentHash $movies) -ne $moviesBefore)
+if ($songsCode -ne 0 -and $moviesCode -ne 0 -and $projectsCode -ne 0) { exit 1 }
 
-if (-not ($songsChanged -or $moviesChanged)) {
-    Log "No new songs or films - nothing to commit (generated_at bumped only)."
+$songsChanged    = ($songsCode -eq 0)    -and ((ContentHash $songs)    -ne $songsBefore)
+$moviesChanged   = ($moviesCode -eq 0)   -and ((ContentHash $movies)   -ne $moviesBefore)
+$projectsChanged = ($projectsCode -eq 0) -and ((ContentHash $projects) -ne $projectsBefore)
+
+if (-not ($songsChanged -or $moviesChanged -or $projectsChanged)) {
+    Log "No new songs, films, or commits - nothing to commit (generated_at bumped only)."
     Log "=== done ==="
     exit 0
 }
@@ -118,11 +129,17 @@ if ($moviesChanged) {
     $count = & $python -c "import json,io;print(json.load(io.open(r'$movies',encoding='utf-8'))['count'])"
     $parts += "$count films"
 }
+if ($projectsChanged) {
+    $files += "cool-stuff/projects.json"
+    $parts += "project dates"
+}
 
 # Commit ONLY the refreshed journal files. The working tree may hold other
 # unrelated edits, so never `git add -A` here.
-$label = if ($songsChanged -and $moviesChanged) { "Journals" }
-         elseif ($songsChanged) { "SOTD" } else { "Movies" }
+$journals = @($songsChanged, $moviesChanged, $projectsChanged) | Where-Object { $_ }
+$label = if ($journals.Count -gt 1) { "Journals" }
+         elseif ($songsChanged) { "SOTD" }
+         elseif ($moviesChanged) { "Movies" } else { "Projects" }
 Push-Location $repo
 try {
     & git add -- $files

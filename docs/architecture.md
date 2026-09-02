@@ -257,11 +257,13 @@ and is **desktop-only** below 56rem.
 
 ### Cool Stuff I Did (`cool-stuff/`)
 
-The project portfolio. **No data pipeline** — unlike the journal tabs, the
-cards are hand-written `<article class="project">` blocks directly in
-`cool-stuff/index.html`, grouped under `cool__section` headings. To add a
-project, copy an existing card block and edit it. Styles are the
-`.cool__*` / `.project__*` sections at the bottom of `main.css`.
+The project portfolio. The cards are hand-written `<article
+class="project">` blocks directly in `cool-stuff/index.html`, grouped
+under `cool__section` headings. To add a project, copy an existing card
+block and edit it — and if it has no GitHub link, add it to the
+`OVERRIDES` table in `scripts/build-project-dates.py` so the home strip
+can date it ([data.md](data.md), "Projects"). Styles are the `.cool__*` /
+`.project__*` sections at the bottom of `main.css`.
 
 ### Resume (`resume/`)
 

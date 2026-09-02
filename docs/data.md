@@ -154,3 +154,26 @@ with no cache lag: `_headers` pins them to `max-age=0, must-revalidate` and
 Pages serves them `DYNAMIC`. Compare on the JSON's own `generated_at` /
 `count` — Pages' `ETag` is opaque, not the file's md5, so it cannot stand
 in for a content check.
+
+## Projects → `cool-stuff/projects.json`
+
+The portfolio cards are hand-written and carry no dates, so the home
+page's project strip sorts on this small JSON instead: each project's
+**last commit date on GitHub**, keyed by the card's `.project__name` text.
+
+```
+python scripts/build-project-dates.py
+```
+
+It goes through the authenticated `gh` CLI (one GraphQL call for every
+repo's default-branch head, plus one REST call per path-scoped source),
+so private repos count. Where a project's repos come from: its card's
+GitHub links, plus the script's `OVERRIDES` table for projects with no
+public link or whose code lives in a folder of this site repo
+(`DeetsSolutions:tanks/` dates the newest commit touching `tanks/`). The
+newest date across a project's sources wins. **Add a project with no
+GitHub link → add it to `OVERRIDES`**, or the strip files it last.
+
+`scripts/nightly-sotd.ps1` runs it after the journal pulls and commits
+`projects.json` only on a real change (same content-hash gate as the
+JSONs). The home page reads it and, if it's missing, just keeps page order.

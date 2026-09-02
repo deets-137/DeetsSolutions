@@ -1,0 +1,163 @@
+{
+ "generated_at": "2026-09-02T19:05:58Z",
+ "projects": {
+  "DeetsMusic for Windows": {
+   "updated": "2026-08-11",
+   "repos": [
+    "DeetsMusicWindows"
+   ]
+  },
+  "DeetsFilm": {
+   "updated": "2026-08-18",
+   "repos": [
+    "DeetsFilm",
+    "DeetsFilmWorker"
+   ]
+  },
+  "DeetsBeats": {
+   "updated": "2026-08-04",
+   "repos": [
+    "DeetsBeats"
+   ]
+  },
+  "DeetsMusic": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsMusic"
+   ]
+  },
+  "DeetsLife": {
+   "updated": "2026-08-28",
+   "repos": [
+    "DeetsLife"
+   ]
+  },
+  "DeetsJack": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsJack"
+   ]
+  },
+  "DeetsBoard": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsBoard",
+    "Henhouse"
+   ]
+  },
+  "DeetsTrips": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsTrips"
+   ]
+  },
+  "Rogers": {
+   "updated": "2026-08-09",
+   "repos": [
+    "Rogers"
+   ]
+  },
+  "DeetsHealth": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsHealth"
+   ]
+  },
+  "DeetsPixels": {
+   "updated": "2026-07-20",
+   "repos": [
+    "DeetsPixels"
+   ]
+  },
+  "DeetsCities": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsCities",
+    "DeetsSolutions:cities/"
+   ]
+  },
+  "DeetsMahjong": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsMahjong",
+    "DeetsSolutions:mahjong/"
+   ]
+  },
+  "DeetsPoker": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsPoker",
+    "DeetsSolutions:poker/"
+   ]
+  },
+  "DeetsTanks": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsSolutions:tanks/"
+   ]
+  },
+  "DeetsShips": {
+   "updated": "2026-08-04",
+   "repos": [
+    "DeetsShips"
+   ]
+  },
+  "DeetsKit": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsKit"
+   ]
+  },
+  "Harness": {
+   "updated": "2026-08-16",
+   "repos": [
+    "DeetsCode"
+   ]
+  },
+  "DeetsEdu": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsEdu"
+   ]
+  },
+  "DeetsOTD": {
+   "updated": "2026-08-19",
+   "repos": [
+    "DeetsOTD"
+   ]
+  },
+  "DeetsRadio": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsRadio",
+    "DeetsSolutions:radio/"
+   ]
+  },
+  "DeetsLeague": {
+   "updated": "2026-08-28",
+   "repos": [
+    "DeetsLeague",
+    "DeetsSolutions:league/"
+   ]
+  },
+  "DeetsAccounts": {
+   "updated": "2026-08-09",
+   "repos": [
+    "DeetsAccounts",
+    "DeetsSolutions:profile/"
+   ]
+  },
+  "Oura sleep-lag viz": {
+   "updated": "2026-08-28",
+   "repos": [
+    "oura-sleep-lag-viz"
+   ]
+  },
+  "Deets.Solutions": {
+   "updated": "2026-09-02",
+   "repos": [
+    "DeetsSolutions"
+   ]
+  }
+ }
+}

@@ -679,15 +679,22 @@
   line-clamp: 3;
   overflow: hidden;
 }
+/* Last-commit line (from cool-stuff/projects.json) — dressed like a film
+   card's footer, sitting above the links. */
+.project__updated { color: var(--subtext); font-size: 0.8rem; }
 
-/* Film cards: a poster-width column with the journal's 2:3 cover; the
-   review clamps to three lines here (six in the journal). */
+/* Film cards: a poster-width column with the journal's 2:3 cover and no
+   review (home.js leaves it out); the footer stacks the date under
+   "Watched" since the column is too narrow for the journal's two-up row. */
 .home-strip .song { width: 10rem; }
 .home-strip .song__body { padding: var(--space-3); gap: var(--space-1); }
 .home-strip .song__mono { font-size: 1.8rem; }
-.home-strip .movie__review {
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+.home-strip .song__foot {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: auto;
+  padding-top: var(--space-1);
 }
 /* The live line — js/home.js swaps in counts + the latest entry. */
 .home-card__live {

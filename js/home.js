@@ -475,10 +475,10 @@
     strip.hidden = false;
   }
 
-  /* Film card — the same DOM movies/movies.js builds (.song.movie), minus
-     the line-view toggling the journal grid needs. Deliberately duplicated,
-     same convention as the audio preview above — fix a bug there, mirror
-     it here. */
+  /* Film card — the DOM movies/movies.js builds (.song.movie), minus the
+     review and the line-view toggling the journal grid needs. Deliberately
+     duplicated, same convention as the audio preview above — fix a bug
+     there, mirror it here. */
   function seenDate(m) { return m.watched_date || m.logged_date || null; }
   function buildMovieCard(movie) {
     var card = el("article", "song movie");
@@ -514,12 +514,6 @@
       tags.appendChild(el("span", "song__chip song__chip--soft",
         movie.watch_count > 1 ? "↻ ×" + movie.watch_count : "↻ Rewatch"));
     if (tags.childNodes.length) body.appendChild(tags);
-
-    if (movie.review) {
-      var rev = el("p", "movie__review", movie.review);
-      rev.title = movie.review;
-      body.appendChild(rev);
-    }
 
     var foot = el("div", "song__foot");
     foot.appendChild(el("span", "song__uploader", "Watched"));
@@ -561,18 +555,39 @@
 
   /* Project strip — the portfolio is static HTML, so the cards are lifted
      straight out of cool-stuff/index.html (one source of truth: edit a
-     project there and the strip follows). Page order is the order he
-     keeps them in, newest work first within each section. */
-  fetch("cool-stuff/index.html")
-    .then(function (r) { return r.text(); })
-    .then(function (text) {
-      var doc = new DOMParser().parseFromString(text, "text/html");
-      var cards = [];
-      doc.querySelectorAll(".project").forEach(function (p) {
-        if (cards.length >= STRIP_MAX) return;
-        cards.push(document.importNode(p, true));
+     project there and the strip follows). Order comes from
+     cool-stuff/projects.json — each project's last-commit date, pulled
+     from GitHub by scripts/build-project-dates.py on the nightly job —
+     newest first; a project with no date keeps page order at the end,
+     and if that JSON is missing the strip is simply in page order. */
+  Promise.all([
+    fetch("cool-stuff/index.html").then(function (r) { return r.text(); }),
+    fetch("cool-stuff/projects.json")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+  ])
+    .then(function (got) {
+      var doc = new DOMParser().parseFromString(got[0], "text/html");
+      var dates = (got[1] && got[1].projects) || {};
+      var items = [];
+      doc.querySelectorAll(".project").forEach(function (p, i) {
+        var nameEl = p.querySelector(".project__name");
+        var name = nameEl ? nameEl.textContent.trim().replace(/\s+/g, " ") : "";
+        var info = dates[name];
+        items.push({ node: p, order: i, updated: info ? info.updated : "" });
       });
-      showStrip("cool", cards);
+      items.sort(function (a, b) {
+        return a.updated === b.updated ? a.order - b.order : (a.updated > b.updated ? -1 : 1);
+      });
+      showStrip("cool", items.slice(0, STRIP_MAX).map(function (it) {
+        var card = document.importNode(it.node, true);
+        if (it.updated) {
+          var links = card.querySelector(".project__links");
+          var when = el("p", "project__updated", "Last commit " + prettyDate(it.updated));
+          if (links) card.insertBefore(when, links); else card.appendChild(when);
+        }
+        return card;
+      }));
     })
     .catch(function () {});
 })();
