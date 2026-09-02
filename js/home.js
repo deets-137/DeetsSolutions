@@ -1,6 +1,7 @@
-/* Home — the SOTD hub and live card teasers.
+/* Home — the SOTD hub, live card teasers, and the side strips.
    Reads the same generated JSONs the journal pages render
-   (sotd/songs.json, movies/movies.json). Purely additive: if a fetch fails, the
+   (sotd/songs.json, movies/movies.json) plus cool-stuff/index.html
+   for the project strip. Purely additive: if a fetch fails, the
    static fallback copy simply stays (and the SOTD hub never shows,
    leaving the plain fallback card in the side stack).
 
@@ -462,6 +463,80 @@
     .then(function (data) { initHub(data.songs || []); })
     .catch(function () {});
 
+  /* ── Side strips ───────────────────────────────────────────────
+     Each side card carries a sideways-scrolling strip of that tab's
+     real cards, newest on the left, so a visitor gets a taste before
+     clicking through. A strip stays hidden until it has cards. */
+  var STRIP_MAX = 12;
+  function showStrip(key, cards) {
+    var strip = document.querySelector('[data-strip="' + key + '"]');
+    if (!strip || !cards.length) return;
+    cards.forEach(function (c) { strip.appendChild(c); });
+    strip.hidden = false;
+  }
+
+  /* Film card — the same DOM movies/movies.js builds (.song.movie), minus
+     the line-view toggling the journal grid needs. Deliberately duplicated,
+     same convention as the audio preview above — fix a bug there, mirror
+     it here. */
+  function seenDate(m) { return m.watched_date || m.logged_date || null; }
+  function buildMovieCard(movie) {
+    var card = el("article", "song movie");
+    var cover = el("div", "song__cover");
+    var initial = (movie.name || "?").trim().charAt(0).toUpperCase() || "?";
+    cover.appendChild(el("span", "song__mono", initial));
+    if (movie.poster_url) {
+      card.classList.add("movie--poster");
+      var img = el("img", "song__art");
+      img.loading = "lazy";
+      img.alt = movie.name + " poster";
+      img.addEventListener("load", function () { cover.classList.add("has-art"); });
+      img.addEventListener("error", function () { img.remove(); card.classList.remove("movie--poster"); });
+      img.src = movie.poster_url;
+      cover.appendChild(img);
+    }
+    card.appendChild(cover);
+
+    var body = el("div", "song__body");
+    var head = el("div", "song__head");
+    var nameEl = el("h3", "song__track", movie.name);
+    nameEl.title = movie.name;
+    head.appendChild(nameEl);
+    if (movie.year) head.appendChild(el("p", "song__artist", String(movie.year)));
+    body.appendChild(head);
+
+    var tags = el("div", "song__tags");
+    if (movie.rating != null)
+      tags.appendChild(el("span", "song__genre song__chip movie__stars", stars(movie.rating)));
+    if (movie.liked)
+      tags.appendChild(el("span", "song__len song__chip movie__liked", "♥ Liked"));
+    if (movie.rewatch)
+      tags.appendChild(el("span", "song__chip song__chip--soft",
+        movie.watch_count > 1 ? "↻ ×" + movie.watch_count : "↻ Rewatch"));
+    if (tags.childNodes.length) body.appendChild(tags);
+
+    if (movie.review) {
+      var rev = el("p", "movie__review", movie.review);
+      rev.title = movie.review;
+      body.appendChild(rev);
+    }
+
+    var foot = el("div", "song__foot");
+    foot.appendChild(el("span", "song__uploader", "Watched"));
+    foot.appendChild(el("span", "song__date", prettyDate(seenDate(movie))));
+    body.appendChild(foot);
+
+    if (movie.uri) {
+      var links = el("div", "song__links");
+      var lb = el("a", "song__link", "Letterboxd");
+      lb.href = movie.uri; lb.target = "_blank"; lb.rel = "noopener";
+      links.appendChild(lb);
+      body.appendChild(links);
+    }
+    card.appendChild(body);
+    return card;
+  }
+
   fetch("movies/movies.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -476,6 +551,28 @@
         movies.length + " films · latest: " + last.name +
           " (" + last.year + ")" + (s ? " " + s : "") + " →"
       );
+      // Strip: most recently watched first (the journal's default sort).
+      var recent = movies.slice().sort(function (a, b) {
+        return (seenDate(b) || "") > (seenDate(a) || "") ? 1 : -1;
+      }).slice(0, STRIP_MAX);
+      showStrip("movies", recent.map(buildMovieCard));
+    })
+    .catch(function () {});
+
+  /* Project strip — the portfolio is static HTML, so the cards are lifted
+     straight out of cool-stuff/index.html (one source of truth: edit a
+     project there and the strip follows). Page order is the order he
+     keeps them in, newest work first within each section. */
+  fetch("cool-stuff/index.html")
+    .then(function (r) { return r.text(); })
+    .then(function (text) {
+      var doc = new DOMParser().parseFromString(text, "text/html");
+      var cards = [];
+      doc.querySelectorAll(".project").forEach(function (p) {
+        if (cards.length >= STRIP_MAX) return;
+        cards.push(document.importNode(p, true));
+      });
+      showStrip("cool", cards);
     })
     .catch(function () {});
 })();

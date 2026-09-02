@@ -122,8 +122,7 @@ entry in walkers.js plus a `.walker__sprite--<name>` block in chrome.css.
 
 Every page opens with the same header panel: `.page-bar` — title left,
 optional action pills (`.home__cta`) right — with the `.page-meta` dim
-line under it (journal counts, the resume's updated-on date, home's
-tagline). Home, Resume, Cool Stuff, Privacy and the auth landing use
+line under it (journal counts, the resume's updated-on date). Home, Resume, Cool Stuff, Privacy and the auth landing use
 `.page-bar` directly; the other seven pages — SOTD, Movies, League,
 Radio, Profile, Cities and Mahjong — open with `.sotd__bar` instead,
 because it pins (sticky) and carries the toolbar. Despite the name,
@@ -137,13 +136,19 @@ dress on every tab — a geometry change to one should visit the other.
 
 ### Home (`index.html`)
 
-The hub. A `.page-bar` (name + Resume / GitHub / LinkedIn pills), the
-tagline, then three `.home-card` links — Cool Stuff leads full-width,
-SOTD and Movies split the row (single column under 41rem). `js/home.js`
-fetches the two journal JSONs and fills each card's `[data-live]` line
-with a count and the latest entry (latest by `date` for songs; latest
-watched, `status: "watched"` only, for films); if JS or a fetch fails,
-the static fallback copy simply stays. The head carries the site's only
+The hub. A `.page-bar` (name + Resume / GitHub / LinkedIn pills), then
+the SOTD hub (hero, stat chips, cover calendar, liner notes) on the left
+and a side stack of two `.home-card` sections — Cool Stuff and Movies —
+on the right (single column under 60rem). Each side card holds a
+`.home-strip`: a sideways-scrolling shelf of that tab's real cards, newest
+on the left. The film strip rebuilds `movies.js`'s `.song.movie` DOM from
+`movies.json` (most recently watched first); the project strip fetches
+`cool-stuff/index.html` and lifts its `.project` articles in page order,
+so the portfolio stays the single source. `js/home.js` also fills each
+card's `[data-live]` line with a count and the latest entry (latest by
+`date` for songs; latest watched, `status: "watched"` only, for films);
+if JS or a fetch fails, the static fallback copy simply stays and the
+strips stay hidden. The head carries the site's only
 meta description + Open Graph tags — the home page is the recruiter
 landing page, so it's the one that must index well.
 

@@ -589,7 +589,7 @@
    each card's live line rides its bottom edge (margin-top: auto). */
 .home__grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);   /* 0, not auto: the strips must overflow, not widen */
   gap: var(--space-5);
 }
 .home__side {
@@ -603,6 +603,7 @@
 .home-card {
   display: flex;
   flex-direction: column;
+  min-width: 0;               /* a grid item; lets the strip inside scroll instead of widening it */
   gap: var(--space-2);
   padding: var(--space-5);
   background: var(--card);
@@ -625,6 +626,69 @@
   line-height: 1.2;
 }
 .home-card__pitch { color: var(--text); font-size: 0.95rem; }
+/* The side cards are sections now (a strip of real cards sits inside),
+   so the title carries the link; it reads as the plain title. */
+.home-card__link { color: inherit; text-decoration: none; }
+.home-card__link:hover { text-decoration: underline; text-decoration-color: var(--border); }
+
+/* ── Side strips ──────────────────────────────────────────────
+   A sideways-scrolling row of that tab's real cards (.project from
+   Cool Stuff, .song.movie from Movies), newest on the left. The cards
+   keep their own species + tokens; the strip only sizes them, snaps
+   the scroll, and dresses the scrollbar in the site's thin themed
+   recipe (the one the radio and league lists use). */
+.home-strip {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-2) calc(-1 * var(--space-2)) 0;
+  padding: var(--space-1) var(--space-2) var(--space-3);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--subtext) transparent;
+}
+.home-strip[hidden] { display: none; }
+.home-strip::-webkit-scrollbar { height: var(--space-2); }
+.home-strip::-webkit-scrollbar-track { background: transparent; }
+.home-strip::-webkit-scrollbar-thumb { background: var(--subtext); border-radius: 999px; }
+.home-strip::-webkit-scrollbar-thumb:hover { background: var(--title); }
+.home-strip > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-width: 0;
+}
+/* Cards ride on the section's own card plate: flatten to the surface so
+   the strip reads as a shelf, not cards-on-a-card. Their hover lift stays. */
+.home-strip .project,
+.home-strip .song {
+  background: var(--surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Project cards: a fixed column, description clamped so every card in the
+   row lands at the same height (the full text is one click away). */
+.home-strip .project { width: 16rem; padding: var(--space-3); }
+.home-strip .project__name { font-size: 1rem; }
+.home-strip .project__desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Film cards: a poster-width column with the journal's 2:3 cover; the
+   review clamps to three lines here (six in the journal). */
+.home-strip .song { width: 10rem; }
+.home-strip .song__body { padding: var(--space-3); gap: var(--space-1); }
+.home-strip .song__mono { font-size: 1.8rem; }
+.home-strip .movie__review {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
 /* The live line — js/home.js swaps in counts + the latest entry. */
 .home-card__live {
   margin-top: auto;

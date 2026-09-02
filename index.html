@@ -125,25 +125,33 @@
           <div class="sotd-facts" data-hub-facts hidden></div>
         </section>
 
+        <!-- Side stack: each card is a section (not a link) so the strip
+             inside can carry the real cards from that tab — the project
+             cards' GitHub links, the film cards' Letterboxd links — without
+             nesting anchors. Title and live line are the navigation.
+             home.js fills each strip (newest first, scrolls sideways);
+             a strip stays hidden until it has cards. -->
         <div class="home__side">
-          <a class="home-card home-card--lead" href="cool-stuff/">
-            <h2 class="home-card__title">Cool Stuff I Did</h2>
+          <section class="home-card home-card--lead" aria-labelledby="cool-card-title">
+            <h2 class="home-card__title" id="cool-card-title"><a class="home-card__link" href="cool-stuff/">Cool Stuff I Did</a></h2>
             <p class="home-card__pitch">
               The portfolio - native and web apps built on a shared design
               system: a full Apple Music player for Windows, a local LLM agent
               harness, a blackjack trainer, health-data viz, and more.
             </p>
-            <p class="home-card__live" data-live="cool">25 projects, from shipped to sketch →</p>
-          </a>
+            <div class="home-strip" data-strip="cool" hidden></div>
+            <a class="home-card__live" data-live="cool" href="cool-stuff/">25 projects, from shipped to sketch →</a>
+          </section>
 
-          <a class="home-card home-card--movies" href="movies/">
-            <h2 class="home-card__title">Movies</h2>
+          <section class="home-card home-card--movies" aria-labelledby="movies-card-title">
+            <h2 class="home-card__title" id="movies-card-title"><a class="home-card__link" href="movies/">Movies</a></h2>
             <p class="home-card__pitch">
               My Letterboxd film log: posters, star ratings, likes, rewatches,
               and the occasional essay.
             </p>
-            <p class="home-card__live" data-live="movies">The log so far →</p>
-          </a>
+            <div class="home-strip sotd__grid--movies" data-strip="movies" hidden></div>
+            <a class="home-card__live" data-live="movies" href="movies/">The log so far →</a>
+          </section>
 
         </div>
       </div>
