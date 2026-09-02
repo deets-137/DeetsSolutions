@@ -1,7 +1,6 @@
-/* Home — the SOTD hub, live card teasers, and the Vibe panel.
+/* Home — the SOTD hub and live card teasers.
    Reads the same generated JSONs the journal pages render
-   (sotd/songs.json, movies/movies.json) plus the League worker's
-   D1-only /players route. Purely additive: if a fetch fails, the
+   (sotd/songs.json, movies/movies.json). Purely additive: if a fetch fails, the
    static fallback copy simply stays (and the SOTD hub never shows,
    leaving the plain fallback card in the side stack).
 
@@ -57,99 +56,6 @@
     var d = new Date();
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
-
-  /* Vibe panel — the home appearance previewer. Reads the shared axes from
-     controls.js (window.DeetsAppearance), so the option lists live in one
-     place. The panel carries the PENDING theme×skin on itself, so its whole
-     interior re-tastes that combo — including its own scoped storm/ocean —
-     while the rest of the page stays on the confirmed look. Confirm promotes
-     pending site-wide; Reset reverts to the confirmed baseline. */
-  function initVibe() {
-    var A = window.DeetsAppearance;
-    var panel = document.querySelector("[data-vibe]");
-    if (!A || !panel) return;
-
-    var stage = panel.querySelector(".vibe__stage");
-    var resetBtn = panel.querySelector("[data-vibe-reset]");
-    var confirmBtn = panel.querySelector("[data-vibe-confirm]");
-    var confirmLabel = confirmBtn.textContent;
-
-    // Baseline = the site's confirmed combo; pending = what the panel previews.
-    var confirmed = { theme: A.get("theme"), skin: A.get("skin") };
-    var pending = { theme: confirmed.theme, skin: confirmed.skin };
-
-    // Scoped decorative layers, pinned to the panel by CSS (.vibe__stage > …).
-    // Ocean gets a unique id suffix so its <pattern> refs don't collide with
-    // the page-level ocean.
-    stage.insertBefore(A.buildOcean("vibe"), stage.firstChild);
-    stage.insertBefore(A.buildStorm(), stage.firstChild);
-
-    function paint() {
-      panel.setAttribute("data-theme", pending.theme);
-      panel.setAttribute("data-skin", pending.skin);
-    }
-    function dirty() {
-      return pending.theme !== confirmed.theme || pending.skin !== confirmed.skin;
-    }
-    function refresh() {
-      resetBtn.hidden = !dirty();
-      confirmBtn.disabled = !dirty();
-    }
-    function syncChecked(name) {
-      var axis = A.axes[name];
-      panel
-        .querySelectorAll('[data-vibe-list="' + name + '"] .flyout__item')
-        .forEach(function (e) {
-          e.setAttribute("aria-checked",
-            String(e.getAttribute(axis.attr) === pending[name]));
-        });
-    }
-
-    ["theme", "skin"].forEach(function (name) {
-      var axis = A.axes[name];
-      var list = panel.querySelector('[data-vibe-list="' + name + '"]');
-      axis.options.forEach(function (opt) {
-        var chip = document.createElement("button");
-        chip.type = "button";
-        chip.className = "flyout__item";
-        chip.setAttribute("role", "radio");
-        chip.setAttribute(axis.attr, opt.id); // self-taste this option
-        chip.setAttribute("aria-checked", String(opt.id === pending[name]));
-        chip.textContent = opt.label;
-        chip.addEventListener("click", function () {
-          pending[name] = opt.id;
-          paint();
-          syncChecked(name);
-          refresh();
-        });
-        list.appendChild(chip);
-      });
-    });
-
-    resetBtn.addEventListener("click", function () {
-      pending.theme = confirmed.theme;
-      pending.skin = confirmed.skin;
-      paint();
-      syncChecked("theme");
-      syncChecked("skin");
-      refresh();
-    });
-
-    confirmBtn.addEventListener("click", function () {
-      A.set("theme", pending.theme);
-      A.set("skin", pending.skin);
-      confirmed.theme = pending.theme;
-      confirmed.skin = pending.skin;
-      refresh();
-      confirmBtn.textContent = "Applied";
-      setTimeout(function () { confirmBtn.textContent = confirmLabel; }, 1200);
-    });
-
-    paint();
-    refresh();
-    panel.hidden = false;
-  }
-  initVibe();
 
   /* ── SOTD hub ──────────────────────────────────────────────────
      The showcase column: hero (latest pick), stat chips, and a cover
@@ -458,19 +364,19 @@
         fact("Most featured", topArtist, artistCounts[topArtist] + " picks");
       }
 
-      // On repeat — the most re-picked song, or bragging rights if none.
-      var songCounts = {}, songNames = {};
+      // On repeat — the album with the most picks, or bragging rights if none.
+      var albumCounts = {}, albumNames = {};
       picks.forEach(function (p) {
-        if (!p.track_name) return;
-        var key = p.track_name + "|" + (p.artist_name || "");
-        songCounts[key] = (songCounts[key] || 0) + 1;
-        songNames[key] = p.track_name;
+        if (!p.album) return;
+        var key = p.album + "|" + (p.artist_name || "");
+        albumCounts[key] = (albumCounts[key] || 0) + 1;
+        albumNames[key] = p.album;
       });
-      var topSong = topOf(songCounts);
-      if (topSong && songCounts[topSong] > 1) {
-        fact("On repeat", songNames[topSong],
-          songCounts[topSong] === 2 ? "picked twice" : "picked " + songCounts[topSong] + " times");
-      } else if (topSong) {
+      var topAlbum = topOf(albumCounts);
+      if (topAlbum && albumCounts[topAlbum] > 1) {
+        fact("On repeat", albumNames[topAlbum],
+          albumCounts[topAlbum] === 2 ? "picked twice" : "picked " + albumCounts[topAlbum] + " times");
+      } else if (topAlbum) {
         fact("On repeat", "Nothing yet", picks.length + " picks, zero repeats");
       }
 
@@ -570,51 +476,6 @@
         movies.length + " films · latest: " + last.name +
           " (" + last.year + ")" + (s ? " " + s : "") + " →"
       );
-    })
-    .catch(function () {});
-
-  /* League card — profile snapshot from the worker's /players route,
-     which serves straight from D1 (zero Riot key spend, per the
-     riotFetch rule), including the rank snapshot handlePlayer persists
-     on each League-tab visit. Profile icon art comes from Data Dragon
-     directly, same as the League tab. */
-  fetch("https://api.deets.solutions/players")
-    .then(function (r) { return r.json(); })
-    .then(function (list) {
-      var me = (list || []).filter(function (p) { return p.gameName === "D33TS"; })[0];
-      if (!me) return;
-      var sub = document.querySelector("[data-league-sub]");
-      if (sub) sub.textContent = "Level " + me.summonerLevel + " · " +
-        me.matchesCrawled + " games tracked";
-
-      // Rank line, mirroring league.js rankLine: "Solo Silver I · 5 LP (5W–3L)".
-      var rankEl = document.querySelector("[data-league-rank]");
-      if (rankEl && me.rank) {
-        var parts = [];
-        [["RANKED_SOLO_5x5", "Solo"], ["RANKED_FLEX_SR", "Flex"]].forEach(function (q) {
-          var e = me.rank.filter(function (x) { return x.queueType === q[0]; })[0];
-          if (e) parts.push(q[1] + " " + e.tier.charAt(0) + e.tier.slice(1).toLowerCase() +
-            " " + e.rank + " · " + e.leaguePoints + " LP (" + e.wins + "W–" + e.losses + "L)");
-        });
-        if (parts.length) {
-          rankEl.textContent = parts.join("  ·  ");
-          rankEl.hidden = false;
-        }
-      }
-      if (me.profileIconId == null) return;
-      return fetch("https://ddragon.leagueoflegends.com/api/versions.json")
-        .then(function (r) { return r.json(); })
-        .then(function (versions) {
-          var pfp = document.querySelector("[data-league-pfp]");
-          if (!pfp || !versions || !versions[0]) return;
-          var img = el("img");
-          img.alt = "";
-          img.loading = "lazy";
-          img.src = "https://ddragon.leagueoflegends.com/cdn/" + versions[0] +
-            "/img/profileicon/" + me.profileIconId + ".png";
-          img.addEventListener("error", function () { img.remove(); });
-          pfp.appendChild(img);
-        });
     })
     .catch(function () {});
 })();

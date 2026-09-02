@@ -96,11 +96,6 @@
           <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/">LinkedIn ↗</a>
         </div>
       </section>
-      <p class="page-meta home__tag">
-        Technical Support Engineer for enterprise SaaS. UCLA Computational
-        &amp; Systems Biology. I build native and web apps under the Deets
-        umbrella; this site is the hub for all of it.
-      </p>
 
       <div class="home__grid">
         <!-- SOTD hub: the showcase column. home.js fills the hero with the
@@ -150,54 +145,6 @@
             <p class="home-card__live" data-live="movies">The log so far →</p>
           </a>
 
-          <!-- League card: profile snapshot for D33TS#NA1. home.js fills the
-               level/games line, rank, and profile icon from the worker's
-               /players route (all D1 — zero Riot key spend; rank is the
-               snapshot each League-tab visit persists) + Data Dragon art;
-               the static copy below is the no-JS fallback. -->
-          <a class="home-card home-card--league" href="league/">
-            <h2 class="home-card__title">League</h2>
-            <div class="home-card__profile">
-              <span class="home-card__pfp" data-league-pfp><span class="home-card__pfp-mono">D</span></span>
-              <span class="home-card__who">
-                <span class="home-card__riotid">D33TS<span class="home-card__riotid-tag">#NA1</span></span>
-                <span class="home-card__sub" data-league-sub>Summoner's Rift &amp; Arena</span>
-              </span>
-            </div>
-            <p class="home-card__rank" data-league-rank hidden></p>
-            <p class="home-card__live" data-live="league">Champion stats, augment winrates, scoreboards →</p>
-          </a>
-
-          <!-- Vibe panel: the appearance previewer, closing out the side
-               stack. Its interior morphs to the PENDING theme×skin
-               (storm/waves/grid and all); the two lists reuse the dropdown
-               chips and each chip self-tastes its own option. Confirm
-               promotes the pending combo site-wide. Built by home.js; the
-               chip lists come from the shared window.DeetsAppearance axes
-               so the options live in one place. -->
-          <section class="vibe" aria-labelledby="vibe-title" data-vibe hidden>
-            <div class="vibe__stage">
-              <div class="vibe__inner">
-                <div class="vibe__head">
-                  <h2 class="vibe__title" id="vibe-title">Vibe</h2>
-                  <div class="vibe__actions">
-                    <button type="button" class="home__cta home__cta--soft vibe__reset" data-vibe-reset hidden>Reset</button>
-                    <button type="button" class="home__cta vibe__confirm" data-vibe-confirm>Confirm</button>
-                  </div>
-                </div>
-                <div class="vibe__cols">
-                  <div class="vibe__col">
-                    <span class="vibe__col-label">Theme</span>
-                    <div class="flyout vibe__list" role="radiogroup" aria-label="Theme" data-vibe-list="theme"></div>
-                  </div>
-                  <div class="vibe__col">
-                    <span class="vibe__col-label">Skin</span>
-                    <div class="flyout vibe__list" role="radiogroup" aria-label="Skin" data-vibe-list="skin"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
     </main>

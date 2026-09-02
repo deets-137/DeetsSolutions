@@ -554,14 +554,10 @@
 
 /* ============================================================
    Home — the hub canvas on /. A page bar (name + Resume/GitHub/
-   LinkedIn pills) and a tagline over three section cards that
+   LinkedIn pills) over section cards that
    route the two audiences: the portfolio + resume for recruiters,
    the journals for friends.
    ============================================================ */
-/* Tagline rides .page-meta for position; it's the intro sentence,
-   so it reads in full text ink rather than the dim meta ink. */
-.home__tag { color: var(--text); max-width: 44rem; }
-
 /* CTA pill — same species (and size) as the toolbar pills in the
    journal bars. The lead (Resume / Download PDF) fills with the
    surface; the soft ones stay open. */
@@ -588,11 +584,9 @@
 
 /* The grid — single column when narrow (SOTD hub first, then the side
    stack); at width, two columns: the hub showcases SOTD on the left
-   while Cool Stuff, Movies, League, and the Vibe panel stack down the
-   right. The columns stretch to one shared height: the Vibe panel's
-   row is the side stack's 1fr, so it absorbs the difference (its
-   stage was built to fill whatever box it's given — the chip lists
-   scroll when short, breathe when tall). */
+   while Cool Stuff and Movies stack down the right. The columns
+   stretch to one shared height: the side stack's rows split it, and
+   each card's live line rides its bottom edge (margin-top: auto). */
 .home__grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -605,7 +599,6 @@
 }
 @media (min-width: 60rem) {
   .home__grid { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
-  .home__side { grid-template-rows: auto auto auto minmax(0, 1fr); }
 }
 .home-card {
   display: flex;
@@ -640,53 +633,6 @@
   font-size: 0.85rem;
 }
 .home-card:hover .home-card__live { color: var(--title); }
-
-/* ── League card profile row ────────────────────────────────────
-   A little identity plate: profile icon (Data Dragon, with a monogram
-   fallback underneath — same contract as album art), Riot ID, and a
-   live level/games line filled by home.js. */
-.home-card__profile {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-.home-card__pfp {
-  position: relative;
-  width: 3rem;
-  height: 3rem;
-  flex: none;
-  display: grid;
-  place-items: center;
-  background: var(--surface-hover);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.home-card__pfp img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.home-card__pfp-mono {
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  color: var(--subtext);
-  user-select: none;
-}
-.home-card__who { display: grid; gap: 0.15rem; min-width: 0; }
-.home-card__riotid {
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: 0.95rem;
-  color: var(--title);
-}
-.home-card__riotid-tag { color: var(--subtext); }
-.home-card__sub { color: var(--subtext); font-size: 0.8rem; }
-/* Live rank snapshot (from the worker's D1 — filled by home.js). */
-.home-card__rank { color: var(--text); font-size: 0.9rem; }
-.home-card__rank[hidden] { display: none; }
 
 /* ── SOTD hub ────────────────────────────────────────────────────
    The showcase column: card material around a hero (reusing the
@@ -917,141 +863,6 @@ button.sotd-cal__day .sotd-cal__num {
 .sotd-fact__note { color: var(--subtext); font-size: 0.8rem; }
 span.sotd-cal__day.is-today { border-color: var(--border); border-style: dashed; }
 button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border); border-top: 0; border-left: 0; }
-
-/* ── Vibe panel ──────────────────────────────────────────────────
-   The home appearance previewer: a square bento tile whose interior
-   is a live "canvas window" into the PENDING theme×skin. home.js sets
-   data-theme/data-skin on .vibe, so its stage (canvas texture + scoped
-   storm/ocean) and chrome morph to that combo, while each chip inside
-   keeps its OWN data-* and self-tastes its own option. Confirm promotes
-   the pending combo to <html>. Frame is card material; the interior
-   deliberately shows the CANVAS treatment (not the card plate) so the
-   storm/waves/grid preview is visible. */
-.vibe {
-  background: var(--card);
-  border: var(--card-border-width) solid var(--card-border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  /* A natural-height tile in the side stack: the chip columns size it,
-     and the lists scroll if a pending skin's type ever needs more room. */
-  min-height: 0;
-}
-.vibe[hidden] { display: none; }
-
-.vibe__stage {
-  position: relative;
-  height: 100%;
-  background: var(--canvas);
-  overflow: hidden;
-}
-/* Scoped canvas texture (grid/aurora), mirroring body::before but pinned
-   to the panel box instead of the viewport. */
-.vibe__stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:  var(--canvas-bg);
-  background-size:   var(--canvas-bg-size);
-  background-repeat: var(--canvas-bg-repeat);
-  animation: var(--canvas-anim);
-}
-/* The injected storm/ocean SVGs default to position:fixed (viewport-wide);
-   here they fill the stage instead. Their skin-gated --storm/--ocean-display
-   and theme inks resolve from the panel's pending data-*. */
-.vibe__stage > .storm,
-.vibe__stage > .ocean { position: absolute; }
-
-.vibe__inner {
-  position: relative;
-  z-index: 1;                 /* content above the canvas window */
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  height: 100%;
-  padding: var(--space-5);
-}
-.vibe__title {
-  font-family: var(--font-title);
-  font-weight: var(--fw-title);
-  font-size: var(--fs-title);
-  color: var(--title);
-  line-height: 1;
-}
-.vibe__cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-  flex: 1;
-  min-height: 0;              /* let the lists scroll rather than overflow */
-}
-.vibe__col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-height: 0;
-  /* Let the 1fr tracks split evenly: without this, the auto minimum of a
-     grid track lets the wider-worded Skin column (title face) outgrow Theme. */
-  min-width: 0;
-}
-.vibe__col-label {
-  font-family: var(--font-body);
-  font-size: var(--fs-nav);
-  color: var(--subtext);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-/* Each list reuses the dropdown flyout's material + chip look, but sits
-   inline (not the absolute, hidden pop-out) and scrolls if it must. */
-.vibe__list {
-  position: static;
-  display: flex;
-  min-width: 0;
-  margin: 0;
-  overflow: auto;
-  /* Themed scrollbar (the Theme list overflows at six options). Inked in
-     theme roles so it morphs with the pending preview; a stable gutter keeps
-     both columns' chips aligned whether or not a bar shows. Firefox reads
-     these two; WebKit/Blink read the ::-webkit rules below. */
-  scrollbar-width: thin;
-  scrollbar-color: var(--subtext) transparent;
-  scrollbar-gutter: stable;
-}
-.vibe__list::-webkit-scrollbar { width: var(--space-2); }
-.vibe__list::-webkit-scrollbar-track { background: transparent; }
-.vibe__list::-webkit-scrollbar-thumb {
-  background: var(--subtext);
-  border-radius: 999px;
-}
-.vibe__list::-webkit-scrollbar-thumb:hover { background: var(--title); }
-
-/* Title + actions share the top row, so the columns get the footer's height
-   back and their chips fit without scrolling. */
-.vibe__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.vibe__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.vibe__actions .home__cta { cursor: pointer; }
-.vibe__confirm:disabled { opacity: 0.5; cursor: default; }
-.vibe__confirm:disabled:hover {
-  background: var(--surface);
-  border-color: var(--border);
-  transform: none;
-}
-
-/* Stack the two chip lists when too narrow to sit side by side. */
-@media (max-width: 30rem) {
-  .vibe__cols { grid-template-columns: 1fr; }
-}
 
 /* ============================================================
    Resume — /resume/, a document rather than a grid: the resume
