@@ -683,19 +683,35 @@
    card's footer, sitting above the links. */
 .project__updated { color: var(--subtext); font-size: 0.8rem; }
 
-/* Film cards: a poster-width column with the journal's 2:3 cover and no
-   review (home.js leaves it out); the footer stacks the date under
-   "Watched" since the column is too narrow for the journal's two-up row. */
-.home-strip .song { width: 10rem; }
-.home-strip .song__body { padding: var(--space-3); gap: var(--space-1); }
+/* Film cards: a poster-width column with the journal's 2:3 cover, cut to
+   a fixed anatomy so every card is the same height: title clamped to two
+   lines (and reserving two), year, one chip row (always present, one
+   chip tall even when empty), and a single footer line — watched date
+   left, Letterboxd right — pinned to the bottom. */
+.home-strip .song { width: 11rem; }
+.home-strip .song__body { flex: 1; padding: var(--space-3); gap: var(--space-1); }
 .home-strip .song__mono { font-size: 1.8rem; }
-.home-strip .song__foot {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  margin-top: auto;
-  padding-top: var(--space-1);
+.home-strip .song__track {
+  font-size: 1rem;
+  min-height: 2.5em;          /* two lines at line-height 1.25 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
+.home-strip .song__tags {
+  flex-wrap: nowrap;
+  min-height: 1.6rem;         /* one chip: 0.75rem text + padding + border */
+  overflow: hidden;
+}
+.home-strip .song__chip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.home-strip .song__foot {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  white-space: nowrap;
+}
+.home-strip .song__foot .song__link { flex: none; }
 /* The live line — js/home.js swaps in counts + the latest entry. */
 .home-card__live {
   margin-top: auto;

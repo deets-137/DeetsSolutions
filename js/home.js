@@ -475,11 +475,20 @@
     strip.hidden = false;
   }
 
-  /* Film card — the DOM movies/movies.js builds (.song.movie), minus the
-     review and the line-view toggling the journal grid needs. Deliberately
+  /* Film card — the DOM movies/movies.js builds (.song.movie), cut for a
+     poster-width column: no review, the chip row always present, and the
+     footer is one line — short watched date left, Letterboxd right — so
+     every card in the strip lands at the same height (the title clamps
+     to two lines; its title attr carries the whole name). Deliberately
      duplicated, same convention as the audio preview above — fix a bug
      there, mirror it here. */
   function seenDate(m) { return m.watched_date || m.logged_date || null; }
+  // "2026-08-28" -> "Aug 28, 2026"
+  function shortDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    if (!m) return iso || "";
+    return MONTHS[+m[2] - 1].slice(0, 3) + " " + (+m[3]) + ", " + m[1];
+  }
   function buildMovieCard(movie) {
     var card = el("article", "song movie");
     var cover = el("div", "song__cover");
@@ -513,20 +522,18 @@
     if (movie.rewatch)
       tags.appendChild(el("span", "song__chip song__chip--soft",
         movie.watch_count > 1 ? "↻ ×" + movie.watch_count : "↻ Rewatch"));
-    if (tags.childNodes.length) body.appendChild(tags);
+    body.appendChild(tags);
 
     var foot = el("div", "song__foot");
-    foot.appendChild(el("span", "song__uploader", "Watched"));
-    foot.appendChild(el("span", "song__date", prettyDate(seenDate(movie))));
-    body.appendChild(foot);
-
+    var when = el("span", "song__date", shortDate(seenDate(movie)));
+    when.title = "Watched " + prettyDate(seenDate(movie));
+    foot.appendChild(when);
     if (movie.uri) {
-      var links = el("div", "song__links");
       var lb = el("a", "song__link", "Letterboxd");
       lb.href = movie.uri; lb.target = "_blank"; lb.rel = "noopener";
-      links.appendChild(lb);
-      body.appendChild(links);
+      foot.appendChild(lb);
     }
+    body.appendChild(foot);
     card.appendChild(body);
     return card;
   }
