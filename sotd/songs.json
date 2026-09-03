@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-02T06:47:31Z",
+  "generated_at": "2026-09-03T02:00:13Z",
   "channel": "song-of-the-day",
-  "count": 391,
+  "count": 392,
   "songs": [
     {
       "post_id": 1,
@@ -8995,6 +8995,29 @@
       "apple_music_url": "https://music.apple.com/us/album/chinatown-feat-bruce-springsteen/1567285157?i=1567285160",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/19/2d/df/192ddf18-6382-27c3-8027-9722a3463899/mzaf_6888457475991021999.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/87/b4/90/87b49017-ae3f-888a-0d0c-bab4eaeb1077/886449225101.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 9023,
+      "posted_at": "2026-09-02T22:14:09.825000+00:00",
+      "date": "2026-09-02",
+      "day": "Wed",
+      "month": "09_2026",
+      "track_name": "Bando (Orchestral)",
+      "artist_name": "Angélique Kidjo, Pharrell Williams & Quavo",
+      "album": "Bando (Orchestral) - Single",
+      "genre": "Worldwide",
+      "duration": "3:19",
+      "duration_sec": 199,
+      "release_date": "2026-04-23",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/bando-orchestral/6791112027?i=6791112046",
+      "apple_music_url": "https://music.apple.com/us/album/bando-orchestral/6791112027?i=6791112046",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d9/8b/6e/d98b6e1b-fa05-7d53-87a6-605e3d2238c7/mzaf_3953384950406401837.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/cb/25/bd/cb25bd81-9b32-77c3-1d4d-50b5380fc2b1/5026854794860.jpg/600x600bb.jpg"
     }
   ]
 }
