@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-08T04:24:29Z",
+  "generated_at": "2026-09-10T02:00:12Z",
   "channel": "song-of-the-day",
-  "count": 401,
+  "count": 402,
   "songs": [
     {
       "post_id": 1,
@@ -9225,6 +9225,29 @@
       "apple_music_url": "https://music.apple.com/us/album/my-friends/1585444896?i=1585444921",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f4/29/ae/f429ae13-a326-acd2-b602-50d8b0a6557f/mzaf_17895895801091512697.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/d1/9e/95/d19e95b8-9d93-3b55-2a30-8e1c07cfd327/075679781567.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 10620,
+      "posted_at": "2026-09-09T08:57:40.701000+00:00",
+      "date": "2026-09-08",
+      "day": "Tue",
+      "month": "09_2026",
+      "track_name": "Outta My Mind",
+      "artist_name": "Monsune",
+      "album": "Tradition - EP",
+      "genre": "Alternative",
+      "duration": "3:45",
+      "duration_sec": 225,
+      "release_date": "2019-08-30",
+      "release_year": 2019,
+      "age_yrs": 7,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/outta-my-mind/1479246092?i=1479246095",
+      "apple_music_url": "https://music.apple.com/us/album/outta-my-mind/1479246092?i=1479246095",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6c/bc/e5/6cbce58a-8117-0566-85ca-f3bea8e5d372/mzaf_18169151331399166841.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/71/8e/a2/718ea246-3e14-c977-6d20-797bf44a456a/193436177924_01_img001.jpg/600x600bb.jpg"
     }
   ]
 }
