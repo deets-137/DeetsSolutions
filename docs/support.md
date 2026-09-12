@@ -5,8 +5,10 @@ is up, ask for a thing, or report a fault. `support.deets.solutions`,
 fed by a sibling worker, with a row of data per app rather than a copy
 of the system per app.
 
-**Scoped 2026-09-11. Not built.** This doc is the design and the build
-order. The page itself — layout, copy, and the exact fields a report
+**Scoped 2026-09-11. Worker built and deployed the same day** (build
+order steps 1–3; the cron and `/status` exist but only the mint and this
+site have a health URL). **The page is not built.** This doc is the design
+and the build order. The page itself — layout, copy, and the exact fields a report
 carries — is **Aditya's hand pass** and is deliberately not specified
 here ("The page" below).
 
@@ -169,7 +171,7 @@ What holds it together instead:
 
 | Control | Value |
 |---|---|
-| Rate limit (`ratelimit` binding, keyed by IP) | **5 per 60 s**, fail OPEN if the binding is absent |
+| Rate limit (`ratelimits` binding, keyed by IP) | **5 per 60 s**, fail OPEN if the binding is absent. Measured: trips only on a reused connection (per-isolate counters) — see DeetsMusic RELEASE.md §7 |
 | Body cap | a few KB, enforced before parse |
 | `public` default | `0` — nothing reaches a board unmoderated |
 | Stored as text, rendered as text | never as HTML |
