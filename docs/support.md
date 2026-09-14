@@ -9,8 +9,9 @@ data per app rather than a copy of the system per app.
 since: the hosted sign-in page (DeetsMusic 0.4.0) and the updater route
 (0.4.3) now ride the mint host too. Replies on a ticket, `/config`,
 `/status` and the cron are all live; only the mint and this site have a
-health URL. **The page is not built.** This doc is the design and the
-build order. The page itself — layout, copy, and the exact fields a
+health URL. **The page is drafted, not merged** (2026-09-14, branch
+`DeetsMusicSupport`; see "The draft" under "The page"). This doc is the
+design and the build order. The page itself — layout, copy, and the exact fields a
 report carries — is **Aditya's, and he leads its design** ("The page"
 below).
 
@@ -402,6 +403,42 @@ with, not choices about it:
 The second tenant (`deets.solutions` itself) gets its own page or a
 section when it has something to show; the worker already serves it by
 `?app=`.
+
+### The draft (2026-09-14)
+
+Claude's first pass, built with Aditya's go-ahead to propose a layout.
+Everything in it is his to redesign. The layout, the report fields and
+every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
+
+- **Files.** `deetsmusic/index.html` holds no copy: it is filled from
+  `strings.js` through `data-s` and `data-s-ph`. `deetsmusic.js` is the
+  page, `mock.js` is the in-page mock, and the styles are the DeetsMusic
+  section at the bottom of `main.css` (`dm-` prefix, the profile's bento
+  anatomy). The icon is `assets/deetsmusic/icon.png`, copied from
+  DeetsMusic's `src-tauri/icons/icon.png`. The nav link sits under
+  Utilities on all 15 pages. It has no `data-nav-core`, so it is not in
+  the mobile menu yet.
+- **Order.** The page bar carries a Download pill and a Report pill. Below
+  it: the notice, then Install beside Status, then Release notes (full
+  width), then Suggestions beside Known issues, then Your posts, then the
+  privacy and trademark footer. `#t=<code>` swaps all of that for one
+  ticket and its thread. `#report` and `#suggest` open the matching form.
+- **Status** shows the worker's six-hour window as a strip of 72 checks.
+  The worker exposes nothing older, so there is no 30-day history.
+- **Report fields** match what the worker already takes: title, details,
+  and, on a bug only, an optional app version sent as `meta.version`.
+- **Your posts** is this browser's list of codes, sent or opened, kept in
+  `localStorage` (`deets-dm-mine`). Interest de-duplication is
+  `deets-dm-interest`, because the worker counts every +1.
+- **`?mock`** answers with the worker's exact response shapes, so every
+  state can be judged while the boards are still empty and the status is
+  whatever it happens to be. It uses the real release-note text; every post and the withdrawn 0.2.2 row are
+  invented and marked `[mock]`. The modes are `?mock`, `?mock=up`,
+  `?mock=down` (with a notice) and `?mock=empty` (the releases route
+  returns 404). A seeded private ticket with replies lives at
+  `#t=mockticket000001`.
+- **Live mode** calls production from localhost. That works only on port
+  8787 or 8788, the two dev ports in the worker's `ALLOWED_ORIGINS`.
 
 ---
 

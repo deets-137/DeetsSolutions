@@ -2937,3 +2937,495 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   line-height: 1.6;
 }
 .profile-spans strong { color: var(--text); font-weight: 600; }
+
+/* ============================================================
+   DeetsMusic — /deetsmusic/, the Windows app's front door
+   (docs/support.md, "The page"). DRAFT 2026-09-14: Claude's
+   first-pass layout, awaiting Aditya's design lead.
+   Profile's anatomy — the page bar over a bento of boxes on the
+   card tokens — so the boxes are siblings of the journal cards
+   across all 30 theme×skin combos. Status and state chips wear
+   the traffic-light roles, the same call the toasts made.
+   ============================================================ */
+/* `hidden` must beat the display rules below (a class alone would win). */
+[data-dm] [hidden] { display: none; }
+
+.dm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.dm-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.dm-box--wide { grid-column: 1 / -1; }
+.dm-box__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-self: stretch;
+}
+.dm-box__title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.95);
+  color: var(--title);
+  margin: 0;
+}
+.dm-lead, .dm-hint, .dm-empty {
+  margin: 0;
+  color: var(--subtext);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.dm-empty { list-style: none; }
+.dm-link {
+  color: var(--title);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  transition: border-color var(--dur-fast) var(--ease-ui);
+}
+.dm-link:hover { border-bottom-color: var(--title); }
+.dm-textbtn {
+  padding: 0;
+  font: inherit;
+  color: var(--title);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.dm-textbtn:hover { border-bottom-color: var(--title); }
+.dm-code {
+  font-family: var(--font-body);
+  padding: 0 var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+/* home__cta is an <a> everywhere else; here some are <button>s. */
+[data-dm] button.home__cta { cursor: pointer; }
+[data-dm] button.home__cta[disabled] { color: var(--subtext); cursor: default; transform: none; }
+
+/* Chips — the profile tag's species. A tone or a post state tints only the
+   keyline, so the label stays readable on every theme. */
+.dm-chip {
+  padding: 0 var(--space-2);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.dm-chip[data-tone="latest"], .dm-chip[data-tone="fixed"] { color: var(--title); border-color: var(--go); }
+.dm-chip[data-tone="planned"], .dm-chip[data-tone="mock"] { color: var(--title); border-color: var(--pause); }
+.dm-chip[data-tone="withdrawn"], .dm-chip[data-tone="wontfix"] { color: var(--title); border-color: var(--stop); }
+.dm-chip[data-tone="open"] { color: var(--text); }
+
+/* ── The notice — the worker's hand-set `notice`, above everything ── */
+.dm-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  color: var(--text);
+  background: var(--card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--pause);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.dm-notice__label { color: var(--title); font-weight: 600; }
+
+/* ── Install ──────────────────────────────────────────────────────── */
+.dm-install {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: stretch;
+  gap: var(--space-3) var(--space-4);
+}
+.dm-install__icon {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: none;
+  border-radius: var(--radius-card);
+}
+.dm-install__id {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.dm-install__name {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  line-height: 1.15;
+  margin: 0;
+}
+.dm-install__ver {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.dm-install__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.dm-steps {
+  flex-basis: 100%;
+  margin: 0;
+  padding: var(--space-3) 0 0 var(--space-5);
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.dm-steps li + li { margin-top: var(--space-1); }
+
+/* ── Status ───────────────────────────────────────────────────────── */
+.dm-status { align-self: stretch; }
+.dm-status__now { display: flex; align-items: center; gap: var(--space-3); }
+.dm-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--border);
+}
+.dm-dot[data-state="up"] { background: var(--go); }
+.dm-dot[data-state="degraded"] { background: var(--pause); }
+.dm-dot[data-state="down"] { background: var(--stop); }
+.dm-status__word {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.9);
+  color: var(--title);
+  line-height: 1.1;
+}
+/* One cell per five-minute check, oldest left. */
+.dm-strip {
+  display: flex;
+  gap: 2px;
+  align-self: stretch;
+  height: 1.75rem;
+}
+.dm-strip__cell {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--border);
+  border-radius: calc(var(--radius-control) / 4);
+}
+.dm-strip__cell[data-ok="yes"] { background: var(--go); }
+.dm-strip__cell[data-ok="no"] { background: var(--stop); }
+.dm-strip__cell[data-ok="none"] { background: none; box-shadow: inset 0 0 0 1px var(--border); }
+.dm-strip__legend {
+  display: flex;
+  justify-content: space-between;
+  align-self: stretch;
+  margin-top: calc(var(--space-2) * -1);
+  color: var(--subtext);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ── Release notes — League/profile's row anatomy: a line to scan,
+   opening onto the notes ─────────────────────────────────────────── */
+.dm-rels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+}
+.dm-rel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.dm-rel.is-withdrawn { border-style: dashed; }
+.dm-rel__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.dm-rel__head:hover { background: var(--surface-hover); }
+.dm-rel__v {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.dm-rel.is-withdrawn .dm-rel__v { text-decoration: line-through; text-decoration-color: var(--stop); }
+.dm-rel__date { margin-left: auto; color: var(--subtext); font-size: 0.8rem; }
+.dm-rel__caret {
+  color: var(--subtext);
+  font-size: 0.7em;
+  transition: transform var(--dur-fast) var(--ease-ui);
+}
+.dm-rel.is-open .dm-rel__caret { transform: rotate(180deg); }
+.dm-rel__body {
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.dm-rel.is-open .dm-rel__body { display: flex; }
+.dm-rel__reason { margin: 0; color: var(--title); font-size: 0.85rem; }
+.dm-notes {
+  max-width: 46rem;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: var(--lh-text);
+}
+.dm-notes p { margin: 0 0 var(--space-2); }
+.dm-notes p:last-child { margin-bottom: 0; }
+.dm-notes strong { color: var(--title); }
+
+/* ── Boards ───────────────────────────────────────────────────────── */
+.dm-posts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+}
+.dm-post {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-post__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dm-post__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+.dm-post__title {
+  margin: 0;
+  color: var(--title);
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dm-post__body {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.dm-post.is-expanded .dm-post__body { display: block; -webkit-line-clamp: unset; }
+.dm-post__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--subtext);
+  font-size: 0.75rem;
+}
+/* Interest — a count with a raise, never styled as a ballot. */
+.dm-interest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  align-self: flex-start;
+  min-width: 2.75rem;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  color: var(--text);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.dm-interest:hover { color: var(--title); border-color: var(--title); transform: var(--hover-lift); }
+.dm-interest.is-done { color: var(--title); border-color: var(--go); cursor: default; transform: none; }
+.dm-interest__arrow { font-size: 0.65rem; line-height: 1; }
+.dm-interest.is-done .dm-interest__arrow { color: var(--go); }
+.dm-interest__n { font-size: 0.85rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+
+/* ── Forms (post, reply) ──────────────────────────────────────────── */
+.dm-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-self: stretch;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-field { display: flex; flex-direction: column; gap: var(--space-1); }
+.dm-field__label {
+  color: var(--subtext);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.dm-field__input {
+  min-width: 0;
+  padding: var(--space-2);
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-field__input:focus { border-color: var(--title); outline: none; }
+.dm-field__input--short { max-width: 10rem; }
+.dm-field__area { min-height: 6rem; line-height: 1.5; resize: vertical; }
+.dm-field__count {
+  align-self: flex-end;
+  color: var(--subtext);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.dm-form__err { margin: 0; color: var(--stop); font-size: 0.85rem; }
+.dm-form__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* ── Your posts ───────────────────────────────────────────────────── */
+.dm-mine__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dm-mine__item { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.dm-mine__item .dm-link { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+/* ── Fine print ───────────────────────────────────────────────────── */
+.dm-fine { gap: var(--space-2); }
+.dm-fine p { margin: 0; color: var(--subtext); font-size: 0.8rem; line-height: 1.55; }
+
+/* ── A ticket (#t=<code>) — one narrow column, the thread under it ── */
+.dm-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 48rem;
+  margin: 0 auto;
+}
+.dm-back { align-self: flex-start; }
+.dm-ticket__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.dm-ticket__title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.dm-ticket__meta { margin: 0; color: var(--subtext); font-size: 0.8rem; }
+.dm-ticket__body {
+  margin: 0;
+  color: var(--text);
+  line-height: var(--lh-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dm-keep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-self: stretch;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.dm-keep .dm-hint { flex: 1 1 16rem; }
+.dm-replies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dm-reply {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-reply.is-owner { border-left: 3px solid var(--go); }
+.dm-reply__who {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--subtext);
+  font-size: 0.75rem;
+}
+.dm-reply__name { color: var(--title); font-weight: 600; }
+.dm-reply__body {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

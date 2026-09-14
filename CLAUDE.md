@@ -22,7 +22,7 @@ served flat.
 - **Never edit a vendored file without re-vendoring.** See "Games" below.
 - **Never rename a theme or skin id without a `RETIRED` entry.** The id is a
   contract with every visitor's `localStorage`. Add old → new to `RETIRED` in
-  `controls.js` **and** to the mirrored `R` map in all 14 pre-paint head
+  `controls.js` **and** to the mirrored `R` map in all 15 pre-paint head
   scripts, or everyone who picked that option silently loses it. Full
   procedure: [architecture.md](docs/architecture.md), "Renaming a theme or
   skin id".
@@ -41,7 +41,7 @@ Start at [README.md](README.md). Then:
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
 | Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
-| DeetsMusic page (`deetsmusic/`, nav tab): status, installs, releases, boards, intake, remote config — worker live, page not built, Aditya leads its design | [support.md](docs/support.md) |
+| DeetsMusic page (`deetsmusic/`, nav tab): status, installs, releases, boards, intake, remote config — worker live, page DRAFTED 2026-09-14 (unmerged, `?mock` to evaluate), Aditya leads its design | [support.md](docs/support.md) |
 
 ## CSS
 
@@ -132,6 +132,7 @@ he dictated in chat.
 | Cities | Underway |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 | Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |
+| DeetsMusic | Not started — the 2026-09-14 draft is all `[ph]` |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
 hand-drawn sprite: keep the path, never redraw it.
@@ -148,7 +149,7 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 | DeetsMahjong | `mahjong-api.deets.solutions` | |
 | DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
 | DeetsPoker | `poker-api.deets.solutions` | private repo; secrets set 2026-08-03 (rotated across all five workers) |
-| DeetsSupport | `support.deets.solutions` + `music-api.deets.solutions` | **worker live 2026-09-11, page not built** — [support.md](docs/support.md). Two custom-domain routes on one worker: the boards' JSON API on `support.`, and DeetsMusic's host on `music-api.` (`/token`, `/signin`, `/update/` installers from R2). The page lives at `deets.solutions/deetsmusic/`, never on `support.` |
+| DeetsSupport | `support.deets.solutions` + `music-api.deets.solutions` | **worker live 2026-09-11, page drafted 2026-09-14 (unmerged)** — [support.md](docs/support.md). Two custom-domain routes on one worker: the boards' JSON API on `support.`, and DeetsMusic's host on `music-api.` (`/token`, `/signin`, `/update/` installers from R2). The page lives at `deets.solutions/deetsmusic/`, never on `support.` |
 
 - **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
   + guardrails). Never call Riot or spend key budget from the browser.

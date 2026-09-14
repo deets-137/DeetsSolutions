@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="retro-future">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsMusic — Deets</title>
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "retro-future" };
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "black-red" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "retro-future" : "press"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../styles/chrome.css" />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <script src="../js/controls.js" defer></script>
+    <script src="../js/account.js" defer></script>
+    <script src="../js/toast.js" defer></script>
+    <script src="./strings.js" defer></script>
+    <script src="./mock.js" defer></script>
+    <script src="./deetsmusic.js" defer></script>
+    <script src="../js/walkers.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
+            <a href="/poker/" role="menuitem">DeetsPoker</a>
+            <a href="/tanks/" role="menuitem">DeetsTanks</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/deetsmusic/" role="menuitem" aria-current="page">DeetsMusic</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <!-- DeetsMusic — the Windows app's front door (docs/support.md, "The
+         page"). DRAFT: Claude's first-pass layout, Aditya leads the design.
+         Every string is filled from strings.js via data-s / data-s-ph;
+         the markup holds no copy. ?mock runs it on deetsmusic/mock.js. -->
+    <main class="site-main" data-dm>
+      <header class="page-bar">
+        <h1 class="page-bar__title">DeetsMusic</h1>
+        <div class="page-bar__actions">
+          <span class="dm-chip" data-tone="mock" data-dm-mock data-s="mockBadge" hidden></span>
+          <a class="home__cta" data-dm-cta-download hidden></a>
+          <a class="home__cta home__cta--soft" href="#report" data-s="ctaReport"></a>
+        </div>
+      </header>
+      <p class="page-meta" data-s="tagline"></p>
+
+      <div data-dm-home>
+        <div class="dm-notice" data-dm-notice role="status" hidden>
+          <span class="dm-notice__label" data-s="noticeLabel"></span>
+          <span data-dm-notice-text></span>
+        </div>
+
+        <div class="dm-grid">
+          <!-- Install: the probably-only public download point. The file
+               comes straight from R2 through the worker's /update/ route. -->
+          <section class="dm-box dm-install" id="install" aria-labelledby="dm-install-name">
+            <img class="dm-install__icon" src="../assets/deetsmusic/icon.png" alt="" width="80" height="80" />
+            <div class="dm-install__id">
+              <h2 class="dm-install__name" id="dm-install-name" data-s="installName"></h2>
+              <p class="dm-install__ver" data-dm-install-ver></p>
+              <p class="dm-hint" data-s="installNeeds"></p>
+            </div>
+            <div class="dm-install__actions">
+              <a class="home__cta" data-dm-install-btn hidden></a>
+              <span class="dm-hint" data-dm-install-size></span>
+            </div>
+            <ol class="dm-steps">
+              <li data-s="installStep1"></li>
+              <li data-s="installStep2"></li>
+              <li data-s="installStep3"></li>
+            </ol>
+          </section>
+
+          <!-- Status: measured by the worker's cron, never typed. -->
+          <section class="dm-box dm-status" id="status" aria-labelledby="dm-status-title">
+            <h2 class="dm-box__title" id="dm-status-title" data-s="statusTitle"></h2>
+            <div class="dm-status__now">
+              <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
+              <span class="dm-status__word" data-dm-status-word></span>
+            </div>
+            <p class="dm-lead" data-dm-status-line></p>
+            <div class="dm-strip" data-dm-strip aria-hidden="true" hidden></div>
+            <div class="dm-strip__legend" data-dm-strip-legend aria-hidden="true" hidden>
+              <span data-s="stripOld"></span><span data-s="stripNow"></span>
+            </div>
+            <p class="dm-hint" data-s="statusScope"></p>
+          </section>
+
+          <!-- Release notes: the whole history, withdrawn rows included. -->
+          <section class="dm-box dm-box--wide" id="releases" aria-labelledby="dm-releases-title">
+            <div class="dm-box__head">
+              <h2 class="dm-box__title" id="dm-releases-title" data-s="releasesTitle"></h2>
+              <p class="dm-lead" data-s="releasesLead"></p>
+            </div>
+            <div class="dm-rels" data-dm-releases></div>
+          </section>
+
+          <section class="dm-box dm-board" id="suggestions" data-dm-board="suggestion" aria-labelledby="dm-suggest-title">
+            <div class="dm-box__head">
+              <h2 class="dm-box__title" id="dm-suggest-title" data-s="suggestTitle"></h2>
+              <button type="button" class="home__cta home__cta--soft" data-dm-open="suggestion" aria-expanded="false" data-s="suggestOpen"></button>
+            </div>
+            <p class="dm-lead" data-s="suggestLead"></p>
+            <form class="dm-form" data-dm-form="suggestion" novalidate hidden>
+              <label class="dm-field">
+                <span class="dm-field__label" data-s="formTitleLabel"></span>
+                <input class="dm-field__input" name="title" type="text" maxlength="120" autocomplete="off" data-s-ph="formTitleSuggestPh" />
+              </label>
+              <label class="dm-field">
+                <span class="dm-field__label" data-s="formBodyLabel"></span>
+                <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="5" data-s-ph="formBodySuggestPh"></textarea>
+                <span class="dm-field__count" data-dm-count></span>
+              </label>
+              <p class="dm-hint" data-s="formNote"></p>
+              <p class="dm-form__err" data-dm-err role="alert" hidden></p>
+              <div class="dm-form__actions">
+                <button type="submit" class="home__cta" data-dm-send data-s="formSend"></button>
+                <button type="button" class="home__cta home__cta--soft" data-dm-cancel data-s="formCancel"></button>
+              </div>
+            </form>
+            <div class="dm-posts" data-dm-list="suggestion"></div>
+            <p class="dm-hint" data-s="interestHint"></p>
+          </section>
+
+          <section class="dm-box dm-board" id="issues" data-dm-board="issue" aria-labelledby="dm-issues-title">
+            <div class="dm-box__head">
+              <h2 class="dm-box__title" id="dm-issues-title" data-s="issuesTitle"></h2>
+              <button type="button" class="home__cta home__cta--soft" data-dm-open="issue" aria-expanded="false" data-s="issuesOpen"></button>
+            </div>
+            <p class="dm-lead" data-s="issuesLead"></p>
+            <form class="dm-form" data-dm-form="issue" novalidate hidden>
+              <label class="dm-field">
+                <span class="dm-field__label" data-s="formTitleLabel"></span>
+                <input class="dm-field__input" name="title" type="text" maxlength="120" autocomplete="off" data-s-ph="formTitleIssuePh" />
+              </label>
+              <label class="dm-field">
+                <span class="dm-field__label" data-s="formBodyLabel"></span>
+                <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="6" data-s-ph="formBodyIssuePh"></textarea>
+                <span class="dm-field__count" data-dm-count></span>
+              </label>
+              <label class="dm-field">
+                <span class="dm-field__label" data-s="formVersionLabel"></span>
+                <input class="dm-field__input dm-field__input--short" name="version" type="text" maxlength="24" autocomplete="off" data-s-ph="formVersionPh" />
+              </label>
+              <p class="dm-hint" data-s="formNote"></p>
+              <p class="dm-hint" data-s="formLogNote"></p>
+              <p class="dm-form__err" data-dm-err role="alert" hidden></p>
+              <div class="dm-form__actions">
+                <button type="submit" class="home__cta" data-dm-send data-s="formSend"></button>
+                <button type="button" class="home__cta home__cta--soft" data-dm-cancel data-s="formCancel"></button>
+              </div>
+            </form>
+            <div class="dm-posts" data-dm-list="issue"></div>
+          </section>
+
+          <!-- Your posts: the codes this browser sent or opened. -->
+          <section class="dm-box dm-box--wide" data-dm-mine aria-labelledby="dm-mine-title" hidden>
+            <div class="dm-box__head">
+              <h2 class="dm-box__title" id="dm-mine-title" data-s="mineTitle"></h2>
+              <p class="dm-lead" data-s="mineLead"></p>
+            </div>
+            <ul class="dm-mine__list" data-dm-mine-list></ul>
+          </section>
+
+          <footer class="dm-box dm-box--wide dm-fine" aria-labelledby="dm-fine-title">
+            <h2 class="dm-box__title" id="dm-fine-title" data-s="fineTitle"></h2>
+            <p data-s="privacy1"></p>
+            <p data-s="privacy2"></p>
+            <p data-s="trademark"></p>
+          </footer>
+        </div>
+      </div>
+
+      <!-- One ticket, opened by its code in the fragment (#t=<code>). -->
+      <div class="dm-ticket" data-dm-ticket hidden>
+        <a class="dm-link dm-back" href="#" data-s="ticketBack"></a>
+        <section class="dm-box" data-dm-ticket-body aria-live="polite"></section>
+        <section class="dm-box" data-dm-thread aria-labelledby="dm-replies-title" hidden>
+          <h2 class="dm-box__title" id="dm-replies-title" data-s="repliesTitle"></h2>
+          <ol class="dm-replies" data-dm-replies></ol>
+          <form class="dm-form" data-dm-reply novalidate>
+            <label class="dm-field">
+              <span class="dm-field__label" data-s="replyLabel"></span>
+              <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="4"></textarea>
+            </label>
+            <p class="dm-form__err" data-dm-err role="alert" hidden></p>
+            <div class="dm-form__actions">
+              <button type="submit" class="home__cta" data-dm-send data-s="replySend"></button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

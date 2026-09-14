@@ -68,13 +68,13 @@ An id is a contract with every visitor's `localStorage`, so a rename is a
 migration, not a find-and-replace. Three things move together:
 
 1. The `[data-theme]` / `[data-skin]` block in `themes.css` / `skin.css`, the
-   `options` entry in `controls.js`, and the `<html>` attributes on all 14
+   `options` entry in `controls.js`, and the `<html>` attributes on all 15
    pages.
 2. A **`RETIRED` entry** in `controls.js` mapping old id → new. `current()`
    resolves through it and `apply()` writes the new id back, so a saved choice
    self-heals on first load instead of silently falling back to the default.
    One map serves both axes, which is safe only while no id appears on both.
-3. The **same map, mirrored into all 14 pre-paint head scripts** — an id
+3. The **same map, mirrored into all 15 pre-paint head scripts** — an id
    resolved only after `controls.js` runs is exactly the flash of the wrong
    look those blocks exist to prevent.
 
@@ -122,7 +122,7 @@ entry in walkers.js plus a `.walker__sprite--<name>` block in chrome.css.
 
 Every page opens with the same header panel: `.page-bar` — title left,
 optional action pills (`.home__cta`) right — with the `.page-meta` dim
-line under it (journal counts, the resume's updated-on date). Home, Resume, Cool Stuff, Privacy and the auth landing use
+line under it (journal counts, the resume's updated-on date). Home, Resume, Cool Stuff, Privacy, DeetsMusic and the auth landing use
 `.page-bar` directly; the other seven pages — SOTD, Movies, League,
 Radio, Profile, Cities and Mahjong — open with `.sotd__bar` instead,
 because it pins (sticky) and carries the toolbar. Despite the name,
