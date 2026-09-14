@@ -371,14 +371,22 @@ with, not choices about it:
   A browser download carries the web mark, so SmartScreen warns (More
   info › Run anyway) — the release notes already say so. Updates after
   that install silently.
-- **There is no route that lists releases yet.** `/update/<channel>`
-  answers "is there something newer than `?v=`", and `/versions` lists
-  only *older* versions in the same group. The page needs a public
-  `GET /update/deetsmusic/releases` (every non-withdrawn release:
-  version, notes, date, size, file). It must stay D1-free and before
-  `KILL`, like the rest of `update.js`. `notes` there is whatever
-  `release:publish` wrote into the index, so the release notes on the
-  page and in the app's update toast are one text.
+- **Releases come from `GET music-api.…/update/deetsmusic/releases`**
+  (decided 2026-09-14, not built; shape in DeetsMusic RELEASE.md §6.2).
+  `/update/<channel>` only answers "is there something newer than `?v=`"
+  and `/versions` only lists *older* versions in one group, so neither
+  serves a page. The new route returns `latest` plus every row newest
+  first, D1-free, before `KILL`, cached five minutes. `notes` is what
+  `release:publish` wrote into the index, so the page and the app's
+  update offer show one text.
+  - **Full history, not launch-day history.** 0.1.3–0.4.1 predate the
+    updater and have no signature; they enter the index as notes-only
+    rows (`--history`) with no download.
+  - **Withdrawn releases stay on the page** as notes, marked withdrawn,
+    with no download and an optional `withdrawn_reason`. The lessons
+    are part of the record.
+  - **`notes` is markdown** (paragraphs and bold). Render that subset as
+    text, never as HTML.
 - **A ticket's link is a page URL, not the worker's.** `/t/<code>` is
   JSON. The code is a credential — whoever holds it reads the thread and
   replies as the reporter — so it belongs in the fragment
@@ -426,8 +434,10 @@ section when it has something to show; the worker already serves it by
    Done in the worker. The client flag reader in the app: see DeetsMusic.
 4. **Health routes** on the existing workers. The cron and `/status` are
    done; only the mint and this site have a `health_url` so far.
-5. **The worker's releases route** (`/update/deetsmusic/releases`), then
-   **the page**, Aditya leading.
+5. **The worker's releases route** (`/update/deetsmusic/releases`) with
+   DeetsMusic's `publish-update.mjs` additions (`--history`, `--reason`,
+   `--notes-only`), backfill 0.1.3–0.4.1, then **the page**, Aditya
+   leading.
 6. **DeetsMusic**: the redactor, the report form, and **My reports** in
    Settings (the rolling log file is done, LOGGING.md). The README's
    privacy section changes with this step.
