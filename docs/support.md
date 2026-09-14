@@ -1,16 +1,18 @@
-# Support — status, suggestions and issues for every Deets app
+# Support — status, installs, releases and boards for every Deets app
 
-One place where a person who uses something of yours can see whether it
-is up, ask for a thing, or report a fault. `support.deets.solutions`,
-fed by a sibling worker, with a row of data per app rather than a copy
-of the system per app.
+One public home per Deets app where a person can download it, see whether
+it is up, read what changed, ask for a thing, or report a fault. The page
+lives on this site; the data comes from a sibling worker, with a row of
+data per app rather than a copy of the system per app.
 
-**Scoped 2026-09-11. Worker built and deployed the same day** (build
-order steps 1–3; the cron and `/status` exist but only the mint and this
-site have a health URL). **The page is not built.** This doc is the design
-and the build order. The page itself — layout, copy, and the exact fields a report
-carries — is **Aditya's hand pass** and is deliberately not specified
-here ("The page" below).
+**Scoped 2026-09-11. Worker built and deployed the same day**, and grown
+since: the hosted sign-in page (DeetsMusic 0.4.0) and the updater route
+(0.4.3) now ride the mint host too. Replies on a ticket, `/config`,
+`/status` and the cron are all live; only the mint and this site have a
+health URL. **The page is not built.** This doc is the design and the
+build order. The page itself — layout, copy, and the exact fields a
+report carries — is **Aditya's, and he leads its design** ("The page"
+below).
 
 First two tenants: **deetsmusic** (a Windows desktop app, the reason
 this exists) and **deets.solutions** (this site). Build it music-first;
@@ -21,26 +23,41 @@ generalise by adding a row, never by rewriting.
 ## The shape
 
 ```
-support.deets.solutions          the site tab — DeetsSolutions/support/
-  status        per app: up / degraded / down, plus recent history
+deets.solutions/deetsmusic/      the site tab — DeetsSolutions/deetsmusic/ (nav entry)
+  status        up / degraded / down, plus recent history
+  install       the current installer, straight from the update route
+  releases      release notes, newest first
   suggestions   anonymous post, interest count
-  issues        moderated list, per app, with a state
+  issues        moderated list, with a state
 
-DeetsSupport (worker)            sibling repo, one D1, no Durable Objects
-  GET  /status?app=              board data
-  GET  /posts?app=&kind=         public posts only
-  POST /posts                    intake — web page or app, both anonymous
-  GET  /t/<code>                 one ticket, by its unguessable code
-  POST /interest                 +1 on a suggestion
-  GET  /config?app=&v=           remote config + notice   (see "Remote config")
-  GET  /token                    the DeetsMusic developer-token mint
-  cron */5                       ping each backend, write status_checks
+DeetsSupport (worker)            sibling repo, one D1, one R2 bucket, no Durable Objects
+
+  music-api.deets.solutions      the app's host — compiled into every install
+    GET  /token                  the shared developer token + remote config
+    GET  /health                 signs a throwaway token; proves the key
+    GET  /signin, /signin/*      the hosted sign-in page
+    GET  /update/<channel>[/…]   signed installers from R2; answers BEFORE KILL
+
+  support.deets.solutions        the boards' API (JSON only, no page)
+    GET  /status?app=            board data
+    GET  /posts?app=&kind=       public posts only
+    POST /posts                  intake — web page or app, both anonymous
+    GET  /t/<code>               one ticket + its replies, by its unguessable code
+    POST /t/<code>/replies       the reporter's reply on their own thread
+    POST /interest               +1 on a suggestion
+    GET  /config?app=&v=         remote config + notice   (see "Remote config")
+    cron */5                     ping each health_url, write status_checks
 ```
 
 The page is Pages, the data is the worker, the same split as
-[radio](radio.md) and [league](league.md). No build step, no
-dependency, plain `src/index.js` — the house rules for a worker repo
-hold here too.
+[radio](radio.md) and [league](league.md): the page at
+`deets.solutions/<app>/`, the API on its own subdomain. **The page cannot
+live on `support.deets.solutions`** — that hostname is a custom-domain
+route of the worker. `ALLOWED_ORIGINS` in `wrangler.jsonc` already lists
+`deets.solutions`, `www.` and the dev ports 8787/8788.
+
+No build step, no dependency, plain `src/index.js` — the house rules for
+a worker repo hold here too.
 
 ---
 
@@ -49,25 +66,34 @@ hold here too.
 **One worker, two custom-domain routes** (2026-09-11). `DeetsSupport`
 answers on `support.deets.solutions` *and* on
 `music-api.deets.solutions`, where DeetsMusic fetches its developer
-token.
+token, its sign-in page and its updates.
 
 The earlier plan split the mint into its own worker on availability
-grounds. That argument turned out to be weak: DeetsMusic caches a
-60-day token and refreshes inside a 15-day margin, so a mint outage is
-invisible to any install launched in the last 45 days. Only a first run
-or a 60-day-dormant install ever feels it. A shared blast radius costs
-little, and one repo is easier to hold.
+grounds. It was merged because, with a 60-day token and a 15-day
+refresh margin, a mint outage was invisible to any recent install.
+**That reasoning no longer holds** (revised 2026-09-14). Since the D.7
+hardening (DeetsMusic RELEASE.md §7, 2026-09-13) the token lives 14 days
+with a 3-day margin, so a mint outage longer than about three days
+reaches every install. And the mint host now also carries `/signin` and
+`/update/`, so one bad deploy can take token, sign-in and updates down
+together. The merge stands — one repo is still easier to hold, and the
+guardrails below keep a later split a route move — but the blast radius
+is real now, and the deploy check is what contains it:
 
-Two guardrails keep the merge safe, and both are cheap:
-
-- **The app compiles in `music-api.deets.solutions/token`, not the
-  support host.** The URL inside a shipped binary is the one thing that
-  cannot be changed without a release, so splitting the mint out later
-  must stay a route move. Never point the app at `support.…`.
-- **`/token` returns before any D1 call**, and a `curl` smoke check on
-  it is part of the deploy step. A board deploy that breaks the script
-  is then caught in seconds, and a D1 fault cannot reach the mint at
-  all.
+- **The app compiles in `music-api.deets.solutions`, not the support
+  host.** The URL inside a shipped binary is the one thing that cannot
+  be changed without a release, so splitting the mint out later must
+  stay a route move. Never point the app at `support.…`.
+- **The mint-host routes never wait on D1.** `/token`, `/health` and
+  `/signin` return before any D1 call (the mint counter writes after the
+  response, with `waitUntil`); `/update/` reads R2, never D1. A D1 fault
+  cannot reach app startup.
+- **`/update/` answers before `KILL`**, behind its own `KILL_UPDATE`. A
+  bad release must stay fixable by an update.
+- **Smoke every mint-host route after every deploy**, not just `/token`:
+  `/token` (with `User-Agent: DeetsMusic/<v>`) → 200, `/health` → 200,
+  `/signin` → 200, `/update/deetsmusic?v=0.0.1` → 200 or 204. A board
+  deploy that breaks the script is then caught in seconds.
 
 **No sign-in** (2026-09-11). [DeetsAccounts](accounts.md) exists and its
 cookie would reach this host, but a DeetsMusic listener is not a site
@@ -83,9 +109,16 @@ Two consequences fall straight out of that, and neither is optional:
   until Aditya marks it public.
 - **A vote cannot be honest.** See "Interest, not votes".
 
+This is about *reporters*. An owner-only moderation view behind
+Aditya's own DeetsAccounts cookie would not contradict it — see "Open".
+
 **Ticket code only, no contact details** (2026-09-11). A report gets an
 unguessable code, and the code is the URL. Threads, replies and states
 are all managed from that page.
+
+**A nav tab, one per app** (2026-09-14). `deets.solutions/deetsmusic/`
+takes a nav entry: DeetsMusic launches publicly (the Apple Music
+subreddit), and the page is its front door, not a footer link.
 
 ---
 
@@ -100,7 +133,7 @@ CREATE TABLE apps (
 );
 
 CREATE TABLE posts (
-  code         TEXT PRIMARY KEY,      -- random, 12+ chars — this IS the URL
+  code         TEXT PRIMARY KEY,      -- random, 16 chars — this IS the URL
   app          TEXT NOT NULL REFERENCES apps(id),
   kind         TEXT NOT NULL,         -- 'issue' | 'suggestion'
   state        TEXT NOT NULL,         -- 'new' | 'open' | 'planned' | 'fixed' | 'wontfix'
@@ -137,6 +170,9 @@ CREATE TABLE config (
   value        TEXT NOT NULL,         -- JSON
   PRIMARY KEY (app, key)
 );
+
+-- mint_counts (day, served, limited) — the mint's daily counter, no IP,
+-- token or UA. Owned by DeetsMusic RELEASE.md §7.
 ```
 
 Four choices worth keeping:
@@ -156,8 +192,9 @@ Four choices worth keeping:
   reports is not what a web page reports, and the shape will move. It is
   read by a human, not queried.
 
-D1 only. **No R2** until someone genuinely needs to attach a file — a
-log tail belongs inside `meta`, capped.
+D1 for the boards. **R2 holds signed installers only** (the update
+route, DeetsMusic RELEASE.md §6) — never report attachments. A log tail
+belongs inside `meta`, capped at 8 KB.
 
 ---
 
@@ -171,11 +208,16 @@ What holds it together instead:
 
 | Control | Value |
 |---|---|
-| Rate limit (`ratelimits` binding, keyed by IP) | **5 per 60 s**, fail OPEN if the binding is absent. Measured: trips only on a reused connection (per-isolate counters) — see DeetsMusic RELEASE.md §7 |
-| Body cap | a few KB, enforced before parse |
+| Rate limit (`ratelimits` binding, keyed by IP) | **5 per 60 s**, shared by posts, replies and interest; fail OPEN if the binding is absent. Measured: trips only on a reused connection (per-isolate counters) — see DeetsMusic RELEASE.md §7 |
+| Body cap | 16 KB request, enforced before parse; title 120, body 4000, meta 8 KB |
 | `public` default | `0` — nothing reaches a board unmoderated |
 | Stored as text, rendered as text | never as HTML |
-| `KILL` var | intake off without touching the boards or the mint |
+| `KILL` var | intake off, and the boards and the mint with it — everything except `/update/` |
+
+`KILL` is coarser than this table once implied: it stops every route
+but the updater. A launch-day intake flood that needs only the boards
+shut is today a code change, not a var. Worth a `KILL_BOARDS` before
+launch (see "Open").
 
 **The redactor runs in the app, not here.** The user sees the exact
 payload before it sends. The worker adds a second net: **reject any body
@@ -188,6 +230,12 @@ codes it submitted**, in app data, and surfaces them in Settings as
 links. Without that, a lost code is a lost thread with no recovery path.
 This is the piece that makes "no contact details" workable rather than
 merely private, and it belongs in the app, not here.
+
+**Until the in-app report form exists, the web form is the only intake,
+and it carries no log.** DeetsMusic's log is already scrubbed at the
+write boundary and records catalog ids, not titles (DeetsMusic
+LOGGING.md), so pointing a web reporter at Settings › Bugs › App log to
+paste a tail is safe — but it runs into the body cap fast.
 
 ---
 
@@ -210,7 +258,8 @@ one thing a suggestion board is for.
 
 **Measured, not typed.** A Cron Trigger every five minutes fetches each
 app's `health_url`, writes a `status_checks` row, and the board derives
-up / degraded / down from the recent window. A hand-flipped status board
+up / degraded / down: three failures in a row is down, a mixed six-hour
+window is degraded. Rows are kept 30 days. A hand-flipped status board
 is stale within a week — it is only ever correct when the person who
 flips it is already busy with an outage.
 
@@ -220,17 +269,24 @@ has one, its `health_url` is `NULL` and the board shows it as
 unmonitored rather than guessing.
 
 A desktop app cannot be probed. `deetsmusic` therefore shows the status
-of **what it depends on** — the mint route — plus whatever notice is set
-by hand. Say that on the board so the distinction is not implied away.
+of **what it depends on** — today the mint's `/health` — plus whatever
+notice is set by hand. Say that on the board so the distinction is not
+implied away.
+
+**The mint is not the whole dependency.** The fault a DeetsMusic user
+most often sees is on Apple's side (0.3.1: "your account is fine"), and
+a board that probes only the mint stays green through it. See "Open".
 
 ---
 
 ## Remote config — and the hotfix question
 
 `GET /config?app=&v=` returns feature flags, tunable numbers, a notice
-string, and a minimum supported version. For DeetsMusic it **rides the
-startup token fetch as extra fields on the same response**, so it costs
-zero extra requests.
+string, and a minimum supported version — the `CONFIG` var, with any D1
+`config` rows layered over it. For DeetsMusic it **rides the startup
+token fetch as extra fields on the same response**, so it costs zero
+extra requests and no D1 read. `/status` returns the same `notice`, so
+the page and the app say the same thing.
 
 This answers "can we do client-side hotfixes" in two halves:
 
@@ -243,6 +299,11 @@ This answers "can we do client-side hotfixes" in two halves:
   credentials — anyone taking the worker, or the DNS record, would run
   code on every install. It would also void the open-source promise,
   because what runs would no longer be what was audited.
+
+The updater (DeetsMusic 0.4.3) does not change that answer. It is a
+**file channel for signed installers**: each install verifies the
+signature against a public key compiled into it, and the private key
+never touches Cloudflare. Taking the worker is not enough to push code.
 
 What config buys is most of what "hotfix" usually means:
 
@@ -265,8 +326,16 @@ is what stops it growing into one.
 lifetime and refresh rules, its rate limit and its privacy posture live
 in **DeetsMusic `docs/RELEASE.md` §7**, which stays the source of truth
 for that route. Summary only, so this doc reads on its own: ES256 via
-WebCrypto from a `.p8` held as a worker secret, a 60-day token, open by
-design, 30 requests per 60 s per IP, `KILL` var.
+WebCrypto from a `.p8` held as a worker secret; **one shared 14-day
+token per 7-day window**, so every token in a window expires at the same
+instant; the app refreshes inside a 3-day margin (about weekly); open by
+design, `User-Agent: DeetsMusic/<v>` or 403, 30 requests per 60 s per
+IP; a daily `mint_counts` row with no IP, token or UA; `KILL` var. The
+Apple `origin` claim is built and switched off (`TOKEN_ORIGINS`).
+
+The same host serves the **hosted sign-in page** (`/signin`, DeetsMusic
+DATA-ARCHITECTURE.md §2a) and the **update route** (`/update/`,
+RELEASE.md §6). Both are DeetsMusic's to document.
 
 Privacy, restated for the public page: sign-in to Apple Music stays on
 the machine and **the music-user token never leaves it**. The worker
@@ -277,37 +346,96 @@ it sees only what the app showed them first.
 
 ## The page
 
-`DeetsSolutions/support/`, a normal site tab: `chrome.css` →
-`main.css`, tokens for every colour and every measurement, strings in
-`support/strings.js`, and all 30 theme×skin combos must survive.
+`DeetsSolutions/deetsmusic/`, served at `deets.solutions/deetsmusic/`,
+with a nav entry. A normal site tab: `chrome.css` → `main.css`, tokens
+for every colour and every measurement, strings in
+`deetsmusic/strings.js`, and all 30 theme×skin combos must survive. A
+new page carries the pre-paint head script, so the `R` map count in
+CLAUDE.md ("all 14 pre-paint head scripts") goes up by one.
 
-**Layout, structure and every user-facing string are Aditya's hand
-pass**, as is the exact list of fields a report carries. Claude adds
-`[ph]`-prefixed placeholders only, per the repo copy rule, and must not
-write the report form's wording. Open and undecided: whether `support/`
-takes a nav entry or stays a footer link.
+**Aditya leads the design.** Layout, structure, every user-facing string
+and the exact fields a report carries are his. Claude adds
+`[ph]`-prefixed placeholders only, per the repo copy rule, and does not
+propose layout until asked.
+
+What it holds (2026-09-14): **server uptime, installs, release notes,
+update patches, suggestions, and bugs.** Facts the design has to work
+with, not choices about it:
+
+- **It is probably the only public download point.** The GitHub repo is
+  private, and DeetsMusic RELEASE.md §6.6's lost-key runbook sends people
+  to "the GitHub Release, the support page" for a hand install. The
+  remote `notice` links here.
+- **The installer comes straight from R2 through the worker:**
+  `music-api.deets.solutions/update/deetsmusic/file/DeetsMusic_<v>_x64-setup.exe`.
+  A browser download carries the web mark, so SmartScreen warns (More
+  info › Run anyway) — the release notes already say so. Updates after
+  that install silently.
+- **There is no route that lists releases yet.** `/update/<channel>`
+  answers "is there something newer than `?v=`", and `/versions` lists
+  only *older* versions in the same group. The page needs a public
+  `GET /update/deetsmusic/releases` (every non-withdrawn release:
+  version, notes, date, size, file). It must stay D1-free and before
+  `KILL`, like the rest of `update.js`. `notes` there is whatever
+  `release:publish` wrote into the index, so the release notes on the
+  page and in the app's update toast are one text.
+- **A ticket's link is a page URL, not the worker's.** `/t/<code>` is
+  JSON. The code is a credential — whoever holds it reads the thread and
+  replies as the reporter — so it belongs in the fragment
+  (`deets.solutions/deetsmusic/#t=<code>`), which never reaches a server
+  log or a `Referer`. A `?code=` would reach both.
+- **Trademark notice.** "Apple Music is a trademark of Apple Inc. …
+  not affiliated with, sponsored by, or endorsed by Apple" appears in
+  the app and the README; a public page named for it should carry it.
+- **The privacy promise** in "The mint tenant" above is what the page
+  can say today. The DeetsMusic README's "never sent anywhere" line
+  changes when the in-app report form ships, not before.
+
+The second tenant (`deets.solutions` itself) gets its own page or a
+section when it has something to show; the worker already serves it by
+`?app=`.
+
+---
+
+## Open
+
+- **Apple in status.** The cron could mint its own token and send one
+  cheap catalog request to `api.music.apple.com`. That is a use of the
+  developer token beyond serving installs — Aditya's read under the D.7
+  terms first.
+- **Owner moderation view.** Moderation, owner replies and state changes
+  are `wrangler d1 execute` today. An owner-only view gated on his
+  DeetsAccounts session is what makes the boards sustainable after a
+  public launch.
+- **`KILL_BOARDS`.** Shut intake and boards without shutting the mint.
+- **Help before "report".** No user guide exists. DeetsMusic
+  AGENT-SETUP.md §5 and the release notes' Installing sections already
+  answer the commonest faults. Whether their wording is reused is his
+  call under the copy rule.
 
 ---
 
 ## Build order
 
-1. **Worker repo `DeetsSupport`**, schema applied, both custom-domain
-   routes bound. Move `/token` over first and prove it with `curl`
-   before anything else exists — it is the only route with a shipped
-   client.
-2. **Intake and tickets**: `POST /posts`, `GET /t/<code>`, replies,
-   moderation by hand in D1 until a board exists.
-3. **`GET /config`**, folded into the token response for deetsmusic.
-   Add the client flag reader in the app.
-4. **Health routes** on the existing workers, then the cron and
-   `/status`.
-5. **The page**, Aditya's pass.
-6. **DeetsMusic**: the rolling log file, the redactor, the report form,
-   and **My reports** in Settings.
+1. ~~**Worker repo `DeetsSupport`**, schema applied, both custom-domain
+   routes bound, `/token` moved over and proven with `curl`.~~ Done
+   2026-09-11.
+2. ~~**Intake and tickets**: `POST /posts`, `GET /t/<code>`, replies.~~
+   Done; moderation is by hand in D1.
+3. ~~**`GET /config`**, folded into the token response for deetsmusic.~~
+   Done in the worker. The client flag reader in the app: see DeetsMusic.
+4. **Health routes** on the existing workers. The cron and `/status` are
+   done; only the mint and this site have a `health_url` so far.
+5. **The worker's releases route** (`/update/deetsmusic/releases`), then
+   **the page**, Aditya leading.
+6. **DeetsMusic**: the redactor, the report form, and **My reports** in
+   Settings (the rolling log file is done, LOGGING.md). The README's
+   privacy section changes with this step.
 
 ## Cost
 
 D1 free tier, one worker, a five-minute cron. Reads are small and writes
-are human-paced. Nothing here approaches a paid tier at this traffic.
+are human-paced. R2 storage is free to 10 GB and egress is free, so every
+installer is kept. Nothing here approaches a paid tier at this traffic.
 The one thing that could is an intake flood, which is what the rate
 limit, the body cap and `KILL` are for.

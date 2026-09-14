@@ -41,7 +41,7 @@ Start at [README.md](README.md). Then:
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
 | Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
-| Support boards, intake, remote config (scoped 2026-09-11, not built) | [support.md](docs/support.md) |
+| DeetsMusic page (`deetsmusic/`, nav tab): status, installs, releases, boards, intake, remote config — worker live, page not built, Aditya leads its design | [support.md](docs/support.md) |
 
 ## CSS
 
@@ -148,7 +148,7 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 | DeetsMahjong | `mahjong-api.deets.solutions` | |
 | DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
 | DeetsPoker | `poker-api.deets.solutions` | private repo; secrets set 2026-08-03 (rotated across all five workers) |
-| DeetsSupport | `support.deets.solutions` + `music-api.deets.solutions` | **worker live 2026-09-11, page not built** — [support.md](docs/support.md). Two custom-domain routes on one worker: the support boards, and DeetsMusic's developer-token mint at `/token` |
+| DeetsSupport | `support.deets.solutions` + `music-api.deets.solutions` | **worker live 2026-09-11, page not built** — [support.md](docs/support.md). Two custom-domain routes on one worker: the boards' JSON API on `support.`, and DeetsMusic's host on `music-api.` (`/token`, `/signin`, `/update/` installers from R2). The page lives at `deets.solutions/deetsmusic/`, never on `support.` |
 
 - **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
   + guardrails). Never call Riot or spend key budget from the browser.
