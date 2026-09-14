@@ -372,7 +372,7 @@ with, not choices about it:
   info › Run anyway) — the release notes already say so. Updates after
   that install silently.
 - **Releases come from `GET music-api.…/update/deetsmusic/releases`**
-  (decided 2026-09-14, not built; shape in DeetsMusic RELEASE.md §6.2).
+  (built and deployed 2026-09-14; shape in DeetsMusic RELEASE.md §6.2).
   `/update/<channel>` only answers "is there something newer than `?v=`"
   and `/versions` only lists *older* versions in one group, so neither
   serves a page. The new route returns `latest` plus every row newest
@@ -434,10 +434,10 @@ section when it has something to show; the worker already serves it by
    Done in the worker. The client flag reader in the app: see DeetsMusic.
 4. **Health routes** on the existing workers. The cron and `/status` are
    done; only the mint and this site have a `health_url` so far.
-5. **The worker's releases route** (`/update/deetsmusic/releases`) with
+5. ~~**The worker's releases route** (`/update/deetsmusic/releases`) with
    DeetsMusic's `publish-update.mjs` additions (`--history`, `--reason`,
-   `--notes-only`), backfill 0.1.3–0.4.1, then **the page**, Aditya
-   leading.
+   `--notes-only`), backfill 0.1.3–0.4.1.~~ Done 2026-09-14. Then **the
+   page**, Aditya leading.
 6. **DeetsMusic**: the redactor, the report form, and **My reports** in
    Settings (the rolling log file is done, LOGGING.md). The README's
    privacy section changes with this step.
