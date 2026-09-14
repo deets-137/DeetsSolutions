@@ -1,8 +1,32 @@
 {
- "generated_at": "2026-09-01T02:00:15Z",
+ "generated_at": "2026-09-14T02:00:22Z",
  "source": "letterboxd",
- "count": 317,
+ "count": 318,
  "movies": [
+  {
+   "name": "Vishwanath & Sons",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/vishwanath-sons/",
+   "logged_date": "2026-09-13",
+   "watched_date": "2026-09-12",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.5,
+   "liked": true,
+   "review": "The characters in this one are so so fun. Also weirdly well done for an age gap romance movie?",
+   "review_date": "2026-09-13",
+   "watches": [
+    {
+     "date": "2026-09-12",
+     "rating": 4.5,
+     "rewatch": false,
+     "review": "The characters in this one are so so fun. Also weirdly well done for an age gap romance movie?"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/adDZVEQZnMJ380zPOmVj6vBWHgk.jpg"
+  },
   {
    "name": "The Boy, the Mole, the Fox and the Horse",
    "year": 2022,
