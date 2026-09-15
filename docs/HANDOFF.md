@@ -4,9 +4,11 @@
 > step, no dependencies) plus a ring of sibling Cloudflare Worker repos: journals, Radio,
 > League, four live games, accounts, and the DeetsMusic support page.
 >
-> **Where things stand (2026-09-15):** master is clean and pushed through `07ee0f4`. The
-> DeetsMusic UI port (steps 1–4, 6, 8) and the DeetsMusic page are live. **Next build:
-> DeetsMusic board threads, step 1 first — it closes a live leak.** See [Next up](#next-up).
+> **Where things stand (2026-09-15):** the DeetsMusic UI port (steps 1–4, 6, 8) and the
+> DeetsMusic page are live. **Board threads, all four steps, are BUILT and committed in
+> both repos but NOT pushed and NOT deployed** — and step 1 closes a leak that is live
+> until the worker is. **Next: his copy pass on the new `[ph]` strings, then the deploy,
+> in the order under [Next up](#next-up).**
 
 **What a "what's next?" should answer from:** the [Next up](#next-up) list below, top
 down. When a session plans, finishes, or parks something, it updates this file in the same
@@ -56,21 +58,39 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-09-15 — DeetsMusic board threads: PLANNED, build set for the evening of 2026-09-15.**
-Design: **[support.md "Threads"](support.md)**. Click a Suggestions or Known issues card →
-`#p=<pid>`, a forum-style thread. Comments need a DeetsAccounts sign-in and carry the profile
-name + color, snapshotted when posted. Owner right-click gets Hide / Show / Delete / Block
-account. Build order:
-1. **The id split — do this first, it ships alone.** ⚠ **Live leak:** public `GET /posts`
-   returns each post's secret `code` (`PUBLIC_COLS` in `../DeetsSupport/src/index.js`), so
-   anyone can close a public post, reply as its reporter, or read its `meta`. Add `pid`,
-   send it instead of `code`, key ▲ by `pid`, mirror `mock.js`.
-2. Thread page, read-only (`GET /p/<pid>`).
-3. Signed-in comments.
-4. Comment moderation in the right-click menu.
-Open at build: how the worker gets the commenter's name (session claims vs the page sending
-`/me`), and a `comments` table vs widening `replies`. Thread-page layout and every string
-are his; Claude adds `[ph]` only.
+**2026-09-15 — DeetsMusic board threads: BUILT (all four steps), unpushed, undeployed.**
+Design: **[support.md "Threads"](support.md)**. Clicking a Suggestions or Known issues card
+opens `#p=<pid>`, a read-only thread; signed-in accounts comment on it under their profile
+name and colour; the owner's right-click menu moderates a row. Commits: this repo `a9252cd`,
+`3b3f6d5`, `a6cfe59`, `f9773fd`; `../DeetsSupport` `c30c52a`, `dd1128c`, `5a32a35`,
+`1df8c86`. Both trees are clean; neither is pushed.
+
+Both questions the plan left open were settled by what the code already said, and both are
+written up in support.md: the commenter's **name rides the request** (DeetsAccounts' session
+payload is `{u, e, iat}` — no name — and it proves nothing either way), and a comment is a
+**widened `replies` row**, not a new table (one thread, one chronology, one hidden flag, and
+the intake breaker already counts `replies`).
+
+**What is left, in order:**
+1. **His copy pass.** 21 new `[ph]` strings in `deetsmusic/strings.js` — the thread page, the
+   comment box and sign-in prompt, and the moderation menu. Nothing with `[ph]` ships.
+2. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed in
+   AND the owner; **signing out in the page** is the one local way to see what a stranger is
+   sent (no hidden rows, no comment box). Three seeded member comments sit on "[mock] A
+   lyrics card", one of them hidden.
+3. **The deploy — order matters** ([support.md "Shipping step 1"](support.md)): both D1
+   migrations first (`2026-09-15-pid.sql`, then `2026-09-15-comments.sql`), then
+   `npx wrangler deploy` + the mint-host smoke, then push the site **a minute later** —
+   `GET /posts` sits in a 60 s edge cache and the old shape has no `pid`.
+
+⚠ **The leak step 1 closes is live until that deploy lands.** Public `GET /posts` still
+returns each post's secret `code`, which closes the post, replies as its reporter and reads
+its `meta`. Every code that has sat on a public board since 2026-09-11 should be treated as
+known.
+
+Not testable locally, so first on the list once it is live: the `ds_sess` cookie never
+reaches localhost, so a REAL sign-in, a real comment and the owner's real moderation have
+only ever run against the mock.
 
 **2026-09-15 — site UI port: steps 5 and 7 open.** Design: **[ui-direction.md](ui-direction.md)**.
 - Step 5, the look schedule: he chose **one shared synchronous `js/prepaint.js`** over the
