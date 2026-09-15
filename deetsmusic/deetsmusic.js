@@ -273,7 +273,7 @@
       top.appendChild(caret);
       head.appendChild(top);
       var lines = headliners(r.notes || "");
-      if (lines.length) {
+      if (lines.length || r.url) {   // a download square needs the headliner row to sit in
         var heads = el("span", "dm-rel__heads");
         lines.forEach(function (line) { heads.appendChild(el("span", "dm-rel__headline", line)); });
         head.appendChild(heads);
@@ -290,9 +290,9 @@
       }
       if (r.notes) content.appendChild(renderNotes(r.notes));
       else content.appendChild(el("p", "dm-empty", s("relNoNotes")));
-      // A downloadable version gets a square ↓ on the card's top-right corner.
-      // It can't live inside the head <button> (no links inside buttons), so
-      // it rides the card and the head's top line leaves room for it.
+      // A downloadable version gets a square ↓ under the date, beside the
+      // headliners. It can't live inside the head <button> (no links inside
+      // buttons), so it rides the card and the headliner row leaves room.
       var dl = null;
       if (r.url) {
         var label = s("relDownload", { v: r.version, mb: r.size ? mb(r.size) : "?" });
@@ -321,12 +321,6 @@
       list.appendChild(item);
     });
 
-    capReleases(list);
-    if (!list._observed && window.ResizeObserver) {
-      // width changes rewrap the headliners; re-measure while nothing is open
-      new ResizeObserver(function () { capReleases(list); }).observe(list);
-      list._observed = true;
-    }
   }
 
   // A down arrow drawn in currentColor, so it wears the theme's --title.
@@ -344,19 +338,6 @@
     path.setAttribute("stroke-linejoin", "round");
     svg.appendChild(path);
     return svg;
-  }
-
-  // The four newest cards show; the rest scroll inside the list. Cards
-  // differ in height (two to four headliners), so the cap is measured: the
-  // bottom edge of the 4th card, taken while all four are shut so opening
-  // one scrolls the list instead of moving the cap.
-  var RELEASES_SHOWN = 4;
-  function capReleases(list) {
-    var cards = list.querySelectorAll(".dm-rel");
-    if (cards.length <= RELEASES_SHOWN) { list.style.maxHeight = ""; return; }
-    for (var i = 0; i < RELEASES_SHOWN; i++) if (cards[i].classList.contains("is-open")) return;
-    var last = cards[RELEASES_SHOWN - 1];
-    list.style.maxHeight = last.offsetTop + last.offsetHeight + "px";
   }
 
   // A release's headliners: the bold lead-in of each paragraph ("**Favorites.**

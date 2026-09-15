@@ -3173,10 +3173,12 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 
 /* ── Release notes — League/profile's row anatomy: a line to scan,
    opening onto the notes ─────────────────────────────────────────── */
-/* The four newest cards show; deetsmusic.js measures that height into
-   max-height, and the older releases scroll inside the list. */
+/* A fixed cap, not a measured one: about four cards show and the rest
+   scroll, and the box keeps one height whether the newest release has one
+   headliner or four (Aditya, 2026-09-14). A partly-shown card at the edge
+   is the scroll cue. */
 .dm-rels {
-  position: relative;          /* the offsetParent the cap is measured against */
+  max-height: 33rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -3224,13 +3226,18 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   gap: var(--space-2) var(--space-3);
   min-height: 1.75rem;        /* the download square's height, so the two centre on one line */
 }
-/* The download square: the board's + species, pinned to the card's corner
-   over the head's top line (which leaves room for it). */
+/* The download square: the board's + species, pinned under the date on the
+   headliner row (which leaves room for it), so every card's date lines up
+   at the right edge whether or not it has a download. Its top = the head's
+   padding + the top line + the head's gap. */
 .dm-rel { position: relative; }
-.dm-rel.has-dl .dm-rel__top { padding-right: calc(1.75rem + var(--space-2)); }
+.dm-rel.has-dl .dm-rel__heads {
+  padding-right: calc(1.75rem + var(--space-3));
+  min-height: 1.75rem;
+}
 .dm-rel .dm-rel__dl {        /* beats .dm-add's 2rem, which is declared later */
   position: absolute;
-  top: var(--space-2);
+  top: calc(var(--space-2) * 2 + 1.75rem);
   right: var(--space-3);
   width: 1.75rem;
   height: 1.75rem;
@@ -3243,22 +3250,14 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   gap: 2px;
   min-width: 0;
 }
-/* One headliner per line, ellipsised; the dot is a list marker, not copy. */
+/* One headliner per line, ellipsised. */
 .dm-rel__headline {
-  position: relative;
-  padding-left: var(--space-3);
   color: var(--text);
   font-size: 0.85rem;
   line-height: 1.45;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.dm-rel__headline::before {
-  content: "·";
-  position: absolute;
-  left: var(--space-1);
-  color: var(--subtext);
 }
 .dm-rel__date { margin-left: auto; color: var(--subtext); font-size: 0.8rem; }
 .dm-rel__caret {
