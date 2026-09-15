@@ -208,16 +208,15 @@
      adding to all of them and keeping in sync forever. controls.js
      already establishes runtime nav injection. */
   function mount() {
-    var groups = document.querySelectorAll(".nav-group");
-    for (var i = 0; i < groups.length; i++) {
-      var lbl = groups[i].querySelector(".nav-group__label");
-      var menu = groups[i].querySelector(".nav-group__menu");
-      if (!lbl || !menu) continue;
-      if (!/^\s*Games/i.test(lbl.textContent || "")) continue;
-      var item = makeButton("nav-group__item account-btn");
-      item.setAttribute("role", "menuitem");
-      menu.appendChild(item);
-      break;
+    /* Desktop: its own slot in the header's second row, left of Vibe
+       (2026-09-14 — it used to live in the Games dropdown). chrome.css
+       places the slot and hides it below 56rem, where the mobile menu's
+       copy below takes over. */
+    var header = document.querySelector(".site-header");
+    if (header) {
+      var slot = el("div", "header-account");
+      slot.appendChild(makeButton("account-btn"));
+      header.insertBefore(slot, header.querySelector(".settings"));
     }
 
     /* The mobile menu needs its own append: buildNavMenu() clones

@@ -36,9 +36,10 @@
   var MOCK = window.DM_MOCK || null;
 
   var LS_MINE = "deets-dm-mine";          // [{ code, kind, title, at }] — this browser's posts
-  var LS_INTEREST = "deets-dm-interest";  // [code] — suggestions this browser showed interest in
+  var LS_INTEREST = "deets-dm-interest";  // [code] — posts (suggestions or issues) this browser +1'd
   var JWT_SHAPE = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/;   // mirrors the worker's second net
   var TITLE_MAX = 120, BODY_MAX = 4000;
+  var TITLE_WORDS = 10;   // "Bug / Request in 10 words" — the worker enforces it too
   var STRIP_CELLS = 72;   // the worker's status window: 6 h of 5-minute checks
   var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -70,9 +71,10 @@
 
   // Every call resolves (never rejects) to { ok, status, data }; the worker's
   // errors are { error: "<code>" }, and a network failure is status 0.
-  function api(host, method, path, body) {
+  function api(host, method, path, body, opts) {
     if (MOCK) return MOCK.request(host, method, path, body);
     var init = { method: method };
+    if (opts && opts.owner) init.credentials = "include";   // the owner routes read ds_sess
     if (body !== undefined) {
       init.headers = { "Content-Type": "application/json" };
       init.body = JSON.stringify(body);
@@ -104,6 +106,9 @@
   }
   function fmtUnix(t) {
     return new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+  function fmtUnixNumeric(t) {   // 9/14/2026 — the ticket's Submitted / Updated line
+    return new Date(t * 1000).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric" });
   }
   function fmtClock(t) {
     return new Date(t * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -224,6 +229,11 @@
       }
       renderInstall(d.latest);
       renderReleases(d.releases, d.latest);
+      if (versionPick) {
+        versionPick.setVersions(d.releases
+          .filter(function (r) { return r.url && !r.withdrawn; })
+          .map(function (r) { return r.version; }));
+      }
     });
   }
 
@@ -396,6 +406,114 @@
     return c;
   }
 
+  // ── Owner mode ─────────────────────────────────────────────────
+  // Signed in to deets.solutions as Aditya (the worker's OWNER_UID), the
+  // boards list hidden posts too and every post takes a right-click menu:
+  // status, hide/show, reply, delete. The worker decides who the owner is;
+  // this page only asks (GET /admin/me) and never trusts itself.
+  var OWNER = false;
+  var POSTS = {};   // code → the post as last rendered, for the menu
+  var STATE_LIST = ["new", "open", "planned", "fixed", "wontfix", "closed"];
+
+  function ownerApi(method, path, body) { return api("support", method, path, body, { owner: true }); }
+
+  function detectOwner() {
+    if (!window.DeetsAccount) return;
+    var asked = false;
+    window.DeetsAccount.onChange(function (u) {
+      if (u === null) return;                       // not known yet
+      if (!u) { asked = false; setOwner(false); return; }
+      if (asked) return;
+      asked = true;
+      ownerApi("GET", "/admin/me").then(function (res) {
+        setOwner(!!(res.ok && res.data && res.data.owner));
+      });
+    });
+  }
+  function setOwner(yes) {
+    if (yes === OWNER) return;
+    OWNER = yes;
+    ROOT.classList.toggle("is-owner", yes);
+    closeMenu();
+    loadBoard("suggestion");
+    loadBoard("issue");
+  }
+
+  var menuEl = null;
+  function closeMenu() {
+    if (!menuEl) return;
+    menuEl.remove();
+    menuEl = null;
+  }
+  function menuOpt(label, onPick) {
+    var b = el("button", "tb-pop__opt", label);
+    b.type = "button";
+    b.setAttribute("role", "menuitem");
+    if (onPick) b.addEventListener("click", onPick);
+    return b;
+  }
+  function openMenu(p, x, y) {
+    closeMenu();
+    var menu = el("div", "tb-pop dm-menu");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", s("menuAria", { title: p.title }));
+
+    menu.appendChild(el("div", "tb-pop__head", s("menuStatus")));
+    STATE_LIST.forEach(function (st) {
+      var b = menuOpt(s("state_" + st), function () { ownerAct(p, "PATCH", { state: st }); });
+      if (st === p.state) b.classList.add("is-active");
+      menu.appendChild(b);
+    });
+    menu.appendChild(el("div", "dm-menu__sep"));
+    menu.appendChild(menuOpt(s(p.public === false ? "menuShow" : "menuHide"), function () {
+      ownerAct(p, "PATCH", { public: p.public === false });
+    }));
+    menu.appendChild(menuOpt(s("menuReply"), function () { closeMenu(); location.hash = "t=" + p.code; }));
+    // Delete is two clicks: the first arms it and says so.
+    var del = menuOpt(s("menuDelete"));
+    del.classList.add("dm-menu__danger");
+    del.addEventListener("click", function () {
+      if (!del.hasAttribute("data-armed")) {
+        del.setAttribute("data-armed", "");
+        del.textContent = s("menuDeleteConfirm");
+        return;
+      }
+      ownerAct(p, "DELETE");
+    });
+    menu.appendChild(del);
+
+    document.body.appendChild(menu);
+    var r = menu.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + "px";
+    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) + "px";
+    menuEl = menu;
+    var first = $(".tb-pop__opt", menu);
+    if (first) first.focus({ preventScroll: true });
+  }
+  function ownerAct(p, method, body) {
+    closeMenu();
+    ownerApi(method, "/admin/posts/" + p.code, body).then(function (res) {
+      if (!res.ok) { toast("error", errText(res)); return; }
+      loadBoard(p.kind);
+    });
+  }
+  function wireOwnerMenu() {
+    $all("[data-dm-list]").forEach(function (list) {
+      list.addEventListener("contextmenu", function (e) {
+        if (!OWNER) return;
+        var item = e.target.closest(".dm-post");
+        var p = item && POSTS[item.getAttribute("data-code")];
+        if (!p) return;
+        e.preventDefault();
+        openMenu(p, e.clientX, e.clientY);
+      });
+    });
+    document.addEventListener("pointerdown", function (e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+    window.addEventListener("scroll", closeMenu, true);   // capture: a board list scrolling counts
+    window.addEventListener("resize", closeMenu);
+  }
+
   // ── Boards ─────────────────────────────────────────────────────
   var EMPTY = { suggestion: "suggestEmpty", issue: "issuesEmpty" };
 
@@ -403,29 +521,266 @@
     var list = $('[data-dm-list="' + kind + '"]');
     list.textContent = "";
     list.appendChild(el("p", "dm-empty", s("boardLoading")));
-    api("support", "GET", "/posts?app=" + APP + "&kind=" + kind).then(function (res) {
-      list.textContent = "";
+    var req = OWNER
+      ? ownerApi("GET", "/admin/posts?app=" + APP + "&kind=" + kind)
+      : api("support", "GET", "/posts?app=" + APP + "&kind=" + kind);
+    req.then(function (res) {
       var posts = res.ok && res.data && res.data.posts;
       if (!Array.isArray(posts)) {
+        BOARD_DATA[kind] = null;
+        list.textContent = "";
         list.appendChild(el("p", "dm-empty", s("boardFailed")));
         return;
       }
-      if (!posts.length) {
-        list.appendChild(el("p", "dm-empty", s(EMPTY[kind])));
-        return;
-      }
-      posts.forEach(function (p) { list.appendChild(renderPost(p)); });
+      BOARD_DATA[kind] = posts;
+      renderBoard(kind);
     });
+  }
+
+  // ── Board toolbars: Filter + Sort, for everyone ────────────────
+  // The journals' pill + popover kit (sotd.js / league.js; docs/architecture.md,
+  // "Toolbar / popover kit"), copied here the way they copy it — a fix to the
+  // open/close machinery must be mirrored there. One difference: a pill's
+  // popover is rebuilt each time it opens, since a board's options follow
+  // its data. Filtering and sorting run on the list already loaded; each
+  // board's choices persist in localStorage.
+  var LS_BOARDS = "deets-dm-boards";   // { suggestion|issue: { states, versions, sort, dir } }
+  var BOARD_DATA = { suggestion: null, issue: null };
+  var TOOL_PILLS = { suggestion: null, issue: null };
+  var boardState = (function () {
+    var saved = readJSON(LS_BOARDS, {}) || {};
+    function one(kind) {
+      var v = saved[kind] || {};
+      return {
+        states: Array.isArray(v.states) ? v.states.filter(function (x) { return STATE_LIST.indexOf(x) >= 0; }) : [],
+        versions: Array.isArray(v.versions) ? v.versions.filter(function (x) { return typeof x === "string"; }) : [],
+        sort: v.sort === "date" ? "date" : "votes",
+        dir: v.dir === "asc" ? "asc" : "desc"
+      };
+    }
+    return { suggestion: one("suggestion"), issue: one("issue") };
+  })();
+  function saveBoards() { writeJSON(LS_BOARDS, boardState); }
+
+  var openEntry = null;
+  function closePop() {
+    if (!openEntry) return;
+    openEntry.pop.hidden = true;
+    openEntry.pill.setAttribute("aria-expanded", "false");
+    openEntry = null;
+    document.removeEventListener("click", onDocClick, true);
+    document.removeEventListener("keydown", onDocKey);
+  }
+  function onDocClick(e) { if (openEntry && !openEntry.ctrl.contains(e.target)) closePop(); }
+  function onDocKey(e) { if (e.key === "Escape") { var p = openEntry; closePop(); if (p) p.pill.focus(); } }
+  function togglePop(entry) {
+    if (openEntry === entry) { closePop(); return; }
+    closePop();
+    entry.fill(entry.pop);
+    entry.pop.hidden = false;
+    entry.pill.setAttribute("aria-expanded", "true");
+    openEntry = entry;
+    document.addEventListener("click", onDocClick, true);
+    document.addEventListener("keydown", onDocKey);
+  }
+  function makePill(host, label, fill) {
+    var ctrl = el("div", "tb-ctrl");
+    var pill = el("button", "tb-pill");
+    pill.type = "button";
+    pill.setAttribute("aria-haspopup", "true");
+    pill.setAttribute("aria-expanded", "false");
+    pill.appendChild(el("span", "tb-pill__label", label));
+    pill.appendChild(el("span", "tb-pill__caret", "▾"));
+    var pop = el("div", "tb-pop");
+    pop.hidden = true;
+    pop.setAttribute("role", "menu");
+    var entry = { ctrl: ctrl, pill: pill, pop: pop, fill: fill };
+    pill.addEventListener("click", function () { togglePop(entry); });
+    ctrl.appendChild(pill);
+    ctrl.appendChild(pop);
+    host.appendChild(ctrl);
+    return entry;
+  }
+  function optButton(label, key, isActive, onPick) {
+    var b = el("button", "tb-pop__opt", label);
+    b.type = "button";
+    b.setAttribute("role", "menuitemradio");
+    b.dataset.key = key;
+    b.setAttribute("aria-checked", String(isActive));
+    if (isActive) b.classList.add("is-active");
+    b.addEventListener("click", onPick);
+    return b;
+  }
+
+  // A post's version: the bug form's pick ("all" or a release), "" when none.
+  function versionKey(p) { return p.version == null ? "" : String(p.version); }
+  function versionName(v) {
+    if (v === "all") return s("ticketVersionAll");
+    if (v === "") return s("versionUnknown");
+    return s("ticketVersion", { v: v });
+  }
+  function cmpVersionDesc(a, b) {   // All first, newest release next, none last
+    if (a === "all" || b === "") return -1;
+    if (b === "all" || a === "") return 1;
+    var pa = a.split("."), pb = b.split(".");
+    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+      var d = (parseInt(pb[i], 10) || 0) - (parseInt(pa[i], 10) || 0);
+      if (d) return d;
+    }
+    return a < b ? 1 : a > b ? -1 : 0;
+  }
+  function filterCount(kind) {
+    var st = boardState[kind];
+    return st.states.length + (kind === "issue" ? st.versions.length : 0);
+  }
+
+  function facetGroup(kind, title, key, options, labelFn) {
+    var st = boardState[kind];
+    var group = el("div", "filter-group");
+    group.appendChild(el("div", "filter-group__title", title));
+    var list = el("div", "filter-group__list");
+    options.forEach(function (opt) {
+      var label = el("label", "filter-check");
+      var input = el("input");
+      input.type = "checkbox";
+      input.checked = st[key].indexOf(opt) >= 0;
+      input.addEventListener("change", function () {
+        var i = st[key].indexOf(opt);
+        if (input.checked && i < 0) st[key].push(opt);
+        else if (!input.checked && i >= 0) st[key].splice(i, 1);
+        saveBoards();
+        renderBoard(kind);
+      });
+      label.appendChild(input);
+      label.appendChild(el("span", "filter-check__name", labelFn(opt)));
+      list.appendChild(label);
+    });
+    group.appendChild(list);
+    return group;
+  }
+
+  function fillFilterPop(kind, pop) {
+    var st = boardState[kind];
+    pop.classList.add("tb-pop--filter");
+    pop.textContent = "";
+    pop.appendChild(facetGroup(kind, s("filterStatus"), "states", STATE_LIST, function (x) { return s("state_" + x); }));
+    if (kind === "issue") {
+      // The versions the loaded bugs carry, plus any still ticked from before.
+      var seen = {};
+      (BOARD_DATA.issue || []).forEach(function (p) { seen[versionKey(p)] = true; });
+      st.versions.forEach(function (v) { seen[v] = true; });
+      var versions = Object.keys(seen).sort(cmpVersionDesc);
+      if (versions.length) pop.appendChild(facetGroup(kind, s("filterVersion"), "versions", versions, versionName));
+    }
+    var foot = el("div", "filter-foot");
+    var clear = el("button", "filter-clear", s("filterClear"));
+    clear.type = "button";
+    clear.addEventListener("click", function () {
+      st.states = [];
+      st.versions = [];
+      saveBoards();
+      fillFilterPop(kind, pop);
+      renderBoard(kind);
+    });
+    foot.appendChild(clear);
+    pop.appendChild(foot);
+  }
+
+  function fillSortPop(kind, pop) {
+    var st = boardState[kind];
+    pop.textContent = "";
+    // Options stack | vertical hairline | direction rail (↑ / ↓), as SOTD's.
+    pop.classList.add("tb-pop--cols");
+    var main = el("div", "tb-pop__main");
+    [["votes", "sortVotes"], ["date", "sortDate"]].forEach(function (o) {
+      main.appendChild(optButton(s(o[1]), o[0], st.sort === o[0], function () {
+        if (st.sort !== o[0]) { st.sort = o[0]; st.dir = "desc"; }
+        saveBoards();
+        fillSortPop(kind, pop);
+        renderBoard(kind);
+      }));
+    });
+    pop.appendChild(main);
+    var rail = el("div", "tb-pop__rail");
+    [["asc", "↑", "sortAsc"], ["desc", "↓", "sortDesc"]].forEach(function (d) {
+      var b = el("button", "tb-pop__icon" + (st.dir === d[0] ? " is-active" : ""), d[1]);
+      b.type = "button";
+      b.title = s(d[2]);
+      b.setAttribute("aria-label", s(d[2]));
+      b.addEventListener("click", function () {
+        st.dir = d[0];
+        saveBoards();
+        fillSortPop(kind, pop);
+        renderBoard(kind);
+      });
+      rail.appendChild(b);
+    });
+    pop.appendChild(rail);
+  }
+
+  function wireBoardTools(kind) {
+    var host = $('[data-dm-tools="' + kind + '"]');
+    if (!host) return;
+    var filter = makePill(host, s("filterPill"), function (pop) { fillFilterPop(kind, pop); });
+    var sort = makePill(host, s("sortPill"), function (pop) { fillSortPop(kind, pop); });
+    // Both pills wear their pick: "Filter | Open, V0.4.3", "Sort | Votes ↓".
+    function wear(entry) {
+      var v = el("span", "tb-pill__value");
+      entry.pill.insertBefore(v, entry.pill.querySelector(".tb-pill__caret"));
+      return v;
+    }
+    TOOL_PILLS[kind] = { filter: filter, filterValue: wear(filter), sortValue: wear(sort) };
+    paintTools(kind);
+  }
+  function paintTools(kind) {
+    var t = TOOL_PILLS[kind], st = boardState[kind];
+    if (!t) return;
+    var picks = st.states.map(function (x) { return s("state_" + x); });
+    if (kind === "issue") picks = picks.concat(st.versions.slice().sort(cmpVersionDesc).map(versionName));
+    t.filter.pill.classList.toggle("is-active", picks.length > 0);
+    t.filterValue.textContent = picks.length ? picks.join(", ") : s("filterNone");
+    t.filter.pill.title = picks.length ? picks.join(", ") : "";   // the full list when it ellipsizes
+    t.sortValue.textContent = s(st.sort === "date" ? "sortDate" : "sortVotes") + " " + (st.dir === "asc" ? "↑" : "↓");
+  }
+
+  function renderBoard(kind) {
+    var list = $('[data-dm-list="' + kind + '"]');
+    var posts = BOARD_DATA[kind];
+    paintTools(kind);
+    if (!posts) return;
+    var st = boardState[kind];
+    var shown = posts.filter(function (p) {
+      if (st.states.length && st.states.indexOf(p.state) < 0) return false;
+      if (kind === "issue" && st.versions.length && st.versions.indexOf(versionKey(p)) < 0) return false;
+      return true;
+    });
+    var sign = st.dir === "asc" ? 1 : -1;
+    shown.sort(function (a, b) {
+      var d = st.sort === "date"
+        ? a.created_at - b.created_at
+        : (a.interest - b.interest) || (a.created_at - b.created_at);
+      return d * sign;
+    });
+    list.textContent = "";
+    if (!posts.length) list.appendChild(el("p", "dm-empty", s(EMPTY[kind])));
+    else if (!shown.length) list.appendChild(el("p", "dm-empty", s("boardNoMatch")));
+    else shown.forEach(function (p) { list.appendChild(renderPost(p)); });
   }
 
   function renderPost(p) {
     var item = el("article", "dm-post");
-    if (p.kind === "suggestion") item.appendChild(interestButton(p));
+    item.setAttribute("data-code", p.code);
+    POSTS[p.code] = p;
+    item.appendChild(interestButton(p));
 
     var main = el("div", "dm-post__main");
     var head = el("div", "dm-post__head");
     head.appendChild(el("h3", "dm-post__title", p.title));
     head.appendChild(chip(s("state_" + p.state), p.state));
+    if (p.public === false) {                     // only the owner's list carries hidden posts
+      item.classList.add("is-hidden-post");
+      head.appendChild(chip(s("tagHidden"), "hidden"));
+    }
     main.appendChild(head);
     var text = el("p", "dm-post__body", p.body);
     main.appendChild(text);
@@ -485,8 +840,11 @@
   }
 
   // Interest is a signal, not a vote (support.md): the worker counts every
-  // +1, so this browser's list of codes is what stops a double-click.
+  // +1, so this browser's list of codes is what stops a double-click. On a
+  // suggestion it reads as "I want this"; on an issue, "this affects me too".
+  // Clicking it again takes the +1 back (undo: true).
   function interestButton(p) {
+    var sfx = p.kind === "issue" ? "_issue" : "";
     var b = el("button", "dm-interest");
     b.type = "button";
     var arrow = el("span", "dm-interest__arrow", "▲");
@@ -499,22 +857,26 @@
     function paint() {
       b.classList.toggle("is-done", done);
       b.setAttribute("aria-pressed", done ? "true" : "false");
-      b.title = s(done ? "interestDone" : "interestLabel");
-      b.setAttribute("aria-label", s("interestAria", { n: n.textContent }));
+      b.title = s((done ? "interestDone" : "interestLabel") + sfx);
+      b.setAttribute("aria-label", s("interestAria" + sfx, { n: n.textContent }));
     }
     paint();
 
     b.addEventListener("click", function () {
-      if (done || b.disabled) return;
+      if (b.disabled) return;
       b.disabled = true;
-      api("support", "POST", "/interest", { code: p.code }).then(function (res) {
+      var undo = done;
+      api("support", "POST", "/interest", undo ? { code: p.code, undo: true } : { code: p.code }).then(function (res) {
         b.disabled = false;
         if (!res.ok) { toast("error", errText(res)); return; }
-        done = true;
-        var list = readJSON(LS_INTEREST, []);
-        if (list.indexOf(p.code) < 0) list.push(p.code);
+        done = !undo;
+        var list = readJSON(LS_INTEREST, []).filter(function (c) { return c !== p.code; });
+        if (done) list.push(p.code);
         writeJSON(LS_INTEREST, list.slice(-500));
-        if (res.data && res.data.interest != null) n.textContent = String(res.data.interest);
+        if (res.data && res.data.interest != null) {
+          n.textContent = String(res.data.interest);
+          p.interest = res.data.interest;   // so the next Sort by votes uses the new count
+        }
         paint();
       });
     });
@@ -523,6 +885,16 @@
 
   // ── Post forms ─────────────────────────────────────────────────
   function field(form, name) { return form.elements.namedItem(name); }
+  function wordCount(v) { return (v.match(/\S+/g) || []).length; }
+  // Cut v just before its (n+1)th word, so typing or pasting past the cap
+  // stops at the cap instead of erroring on Send.
+  function capWords(v, n) {
+    var re = /\S+/g, m, k = 0;
+    while ((m = re.exec(v))) {
+      if (++k > n) return v.slice(0, m.index).replace(/\s+$/, "");
+    }
+    return v;
+  }
 
   function formIsOpen(kind) {
     return $('[data-dm-collapse="' + kind + '"]').classList.contains("is-open");
@@ -532,9 +904,61 @@
     var form = $('[data-dm-form="' + kind + '"]');
     var toggle = $('[data-dm-open="' + kind + '"]');
     wrap.classList.toggle("is-open", open);
+    wrap.classList.remove("is-settled");
     wrap.inert = !open;
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    if (open) field(form, "title").focus({ preventScroll: true });
+    if (kind === "issue" && versionPick) versionPick.close();
+    // The collapse clips while it animates; once fully open it stops
+    // clipping, so the version popover can hang past the form's edge.
+    if (open) {
+      afterTransition(wrap, function () { if (wrap.classList.contains("is-open")) wrap.classList.add("is-settled"); });
+      field(form, "title").focus({ preventScroll: true });
+    }
+  }
+
+  // ── Version picker (bug form) ──────────────────────────────────
+  // A tb- pill + popover. The choices are "All" plus every version the
+  // updater still serves (has a download, not withdrawn), newest first;
+  // it defaults to the newest, since the updater keeps most people there.
+  var versionPick = null;
+  function wireVersionPick() {
+    var ctrl = $("[data-dm-version]");
+    if (!ctrl) return;
+    var pill = $(".tb-pill", ctrl), value = $(".tb-pill__value", ctrl), pop = $(".tb-pop", ctrl);
+    var versions = [], current = "all";
+
+    function label(v) { return v === "all" ? s("versionAll") : v; }
+    function close() { pop.hidden = true; pill.setAttribute("aria-expanded", "false"); }
+    function paint() {
+      value.textContent = label(current);
+      pop.textContent = "";
+      ["all"].concat(versions).forEach(function (v) {
+        var b = el("button", "tb-pop__opt" + (v === current ? " is-active" : ""), label(v));
+        b.type = "button";
+        b.setAttribute("role", "menuitemradio");
+        b.setAttribute("aria-checked", v === current ? "true" : "false");
+        b.addEventListener("click", function () { current = v; paint(); close(); pill.focus(); });
+        pop.appendChild(b);
+      });
+    }
+
+    pill.addEventListener("click", function () {
+      var opening = pop.hidden;
+      pop.hidden = !opening;
+      pill.setAttribute("aria-expanded", opening ? "true" : "false");
+    });
+    document.addEventListener("click", function (e) { if (!ctrl.contains(e.target)) close(); });
+    ctrl.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !pop.hidden) { e.stopPropagation(); close(); pill.focus(); }
+    });
+    paint();
+
+    versionPick = {
+      value: function () { return current; },
+      close: close,
+      reset: function () { current = versions[0] || "all"; paint(); },
+      setVersions: function (list) { versions = list; current = list[0] || "all"; paint(); }
+    };
   }
 
   function wireForm(form) {
@@ -542,7 +966,6 @@
     var toggle = $('[data-dm-open="' + kind + '"]');
     var title = field(form, "title");
     var body = field(form, "body");
-    var version = field(form, "version");
     var count = $("[data-dm-count]", form);
     var err = $("[data-dm-err]", form);
     var send = $("[data-dm-send]", form);
@@ -554,11 +977,16 @@
     toggle.addEventListener("click", function () { openForm(kind, !formIsOpen(kind)); });
     $("[data-dm-cancel]", form).addEventListener("click", function () { showErr(""); openForm(kind, false); });
     body.addEventListener("input", updateCount);
+    title.addEventListener("input", function () {
+      var capped = capWords(title.value, TITLE_WORDS);
+      if (capped !== title.value) title.value = capped;
+    });
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var t = title.value.trim(), b = body.value.trim(), v = version ? version.value.trim() : "";
+      var t = title.value.trim(), b = body.value.trim(), v = kind === "issue" && versionPick ? versionPick.value() : "";
       if (!t || t.length > TITLE_MAX) return showErr(s("err_title"));
+      if (wordCount(t) > TITLE_WORDS) return showErr(s("err_title_words"));
       if (!b || b.length > BODY_MAX) return showErr(s("err_body"));
       if (JWT_SHAPE.test(t + " " + b + " " + v)) return showErr(s("err_credential_shaped"));
       showErr("");
@@ -573,6 +1001,7 @@
         if (res.status !== 201 || !res.data || !res.data.code) return showErr(errText(res));
         remember({ code: res.data.code, kind: kind, title: t });
         form.reset();
+        if (kind === "issue" && versionPick) versionPick.reset();
         updateCount();
         openForm(kind, false);
         toast("success", s("sentToast"));
@@ -605,14 +1034,30 @@
       var a = el("a", "dm-link", m.title);
       a.href = "#t=" + m.code;
       li.appendChild(a);
-      var forget = el("button", "dm-textbtn", s("mineForget"));
-      forget.type = "button";
-      forget.setAttribute("aria-label", s("mineForgetAria", { title: m.title }));
-      forget.addEventListener("click", function () {
-        writeJSON(LS_MINE, readMine().filter(function (x) { return x.code !== m.code; }));
-        renderMine();
+      // Close is two clicks: the first arms it and says so. Closing sets the
+      // post's state to closed on the worker (the code is the credential),
+      // then drops it from this list. A post already deleted just drops.
+      var close = el("button", "dm-textbtn", s("mineClose"));
+      close.type = "button";
+      close.setAttribute("aria-label", s("mineCloseAria", { title: m.title }));
+      close.addEventListener("click", function () {
+        if (close.disabled) return;
+        if (!close.hasAttribute("data-armed")) {
+          close.setAttribute("data-armed", "");
+          close.textContent = s("mineCloseConfirm");
+          return;
+        }
+        close.disabled = true;
+        api("support", "POST", "/t/" + m.code + "/close").then(function (res) {
+          close.disabled = false;
+          if (!res.ok && res.status !== 404) { toast("error", errText(res)); return; }
+          writeJSON(LS_MINE, readMine().filter(function (x) { return x.code !== m.code; }));
+          renderMine();
+          toast("success", s("closedToast"));
+          loadBoard(m.kind);
+        });
       });
-      li.appendChild(forget);
+      li.appendChild(close);
       list.appendChild(li);
     });
   }
@@ -651,7 +1096,7 @@
 
   function renderTicket(post, replies) {
     var body = $("[data-dm-ticket-body]");
-    remember({ code: post.code, kind: post.kind, title: post.title });
+    if (!OWNER) remember({ code: post.code, kind: post.kind, title: post.title });   // the owner's visits aren't "your posts"
 
     var chips = el("div", "dm-ticket__chips");
     chips.appendChild(chip(s("ticketKind_" + post.kind)));
@@ -660,10 +1105,10 @@
     body.appendChild(chips);
 
     body.appendChild(el("h2", "dm-ticket__title", post.title));
-    var meta = [s("ticketSent", { date: fmtUnix(post.created_at) })];
-    if (post.updated_at && post.updated_at !== post.created_at) meta.push(s("ticketUpdated", { date: fmtUnix(post.updated_at) }));
+    var meta = [s("ticketSent", { date: fmtUnixNumeric(post.created_at) })];
+    if (post.updated_at && post.updated_at !== post.created_at) meta.push(s("ticketUpdated", { date: fmtUnixNumeric(post.updated_at) }));
     var version = parseVersion(post.meta);
-    if (version) meta.push(s("ticketVersion", { v: version }));
+    if (version) meta.push(version === "all" ? s("ticketVersionAll") : s("ticketVersion", { v: version }));
     body.appendChild(el("p", "dm-ticket__meta", meta.join(" · ")));
     body.appendChild(el("p", "dm-ticket__body", post.body));
 
@@ -715,7 +1160,10 @@
       if (JWT_SHAPE.test(b)) { err.textContent = s("err_credential_shaped"); err.hidden = false; return; }
       err.hidden = true;
       send.disabled = true;
-      api("support", "POST", "/t/" + code + "/replies", { body: b }).then(function (res) {
+      var sent = OWNER
+        ? ownerApi("POST", "/admin/posts/" + code + "/replies", { body: b })   // replies as Aditya
+        : api("support", "POST", "/t/" + code + "/replies", { body: b });
+      sent.then(function (res) {
         send.disabled = false;
         if (res.status !== 201) { err.textContent = errText(res); err.hidden = false; return; }
         form.reset();
@@ -754,13 +1202,18 @@
 
   // ── Boot ───────────────────────────────────────────────────────
   fillStatic();
+  wireVersionPick();
+  wireOwnerMenu();
   $all("[data-dm-form]").forEach(wireForm);
   wireReply();
   renderMine();
   loadStatus();
   loadReleases();
+  wireBoardTools("suggestion");
+  wireBoardTools("issue");
   loadBoard("suggestion");
   loadBoard("issue");
+  detectOwner();
   wireBoardLinks();
   window.addEventListener("hashchange", route);
   route();

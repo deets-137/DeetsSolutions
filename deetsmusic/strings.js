@@ -8,10 +8,9 @@
    edits an un-prefixed (handwritten) value, and nothing still carrying
    "[ph]" may ship.
 
-   State of his pass: NOT STARTED. The whole file is Claude's first draft
-   (2026-09-14). A few lines lean on his existing DeetsMusic wording (the
-   README's trademark notice and privacy section, the release notes'
-   Installing steps) — still [ph] here, because reusing them is his call.
+   State of his pass: DONE 2026-09-14 — every string, the boards' Filter
+   and Sort included, was approved in chat (section comments below name the
+   lines he dictated). Zero [ph] left; anything added from here carries one.
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -21,19 +20,19 @@ window.DM_STRINGS = {
   ctaDownload: "Download: V {v}",
   ctaSuggest:  "Suggestions",
   ctaReport:   "Bug!",
-  mockBadge:   "[ph] Mock data",
-  noticeLabel: "[ph] Notice",
+  mockBadge:   "Mock data",
+  noticeLabel: "Notice",
 
   /* install */
   /* install box: approved by Aditya in chat, 2026-09-14 (all un-[ph] lines
      here; name and version format are his edits) */
   installName:    "DeetsMusic",
-  installLoading: "[ph] Looking for the latest version…",
+  installLoading: "Looking for the latest version…",
   installVersion: "V{v} · {date}",
   installSize:    "{mb} MB installer",
   installButton:  "Download for Windows",
-  installNone:    "[ph] No installer is up right now. Check back soon.",
-  installFailed:  "[ph] Couldn't reach the download server.",
+  installNone:    "No installer is up right now. Check back soon.",
+  installFailed:  "Couldn't reach the download server.",
   installNeeds:   "Windows 11 and an Apple Music subscription.",
   installSmartScreen: "Windows SmartScreen warns you, because the installer is not code-signed yet. Click More info, then Run anyway.",
 
@@ -42,119 +41,158 @@ window.DM_STRINGS = {
   statusTitle:        "Status",
   /* dictated by Aditya in chat, 2026-09-14 — what the status reading is about */
   statusSubject:      "DeetsMusic installer:",
-  status_up:          "[ph] Up",
+  status_up:          "Up",
   status_degraded:    "Degraded",
-  status_down:        "[ph] Down",
-  status_unknown:     "[ph] Checking",
-  status_unmonitored: "[ph] Not monitored",
-  statusEmpty:        "[ph] No checks have run yet.",
-  statusUnmonitored:  "[ph] Nothing is checking this yet.",
-  statusFailed:       "[ph] Couldn't load the status.",
-  statusCellOk:       "[ph] {time} · OK · {ms} ms",
-  statusCellBad:      "[ph] {time} · Failed · {note}",
+  status_down:        "Down",
+  status_unknown:     "Checking",
+  status_unmonitored: "Not monitored",
+  statusEmpty:        "No checks have run yet.",
+  statusUnmonitored:  "Nothing is checking this yet.",
+  statusFailed:       "Couldn't load the status.",
+  statusCellOk:       "{time} · OK · {ms} ms",
+  statusCellBad:      "{time} · Failed · {note}",
   stripOld:           "6 hours ago",
   stripNow:           "Now",
 
   /* release notes */
-  /* release notes: title, hint and the Latest / Notes only tags approved or
-     dictated by Aditya in chat, 2026-09-14 */
+  /* release notes: title, hint, the Latest / Notes only tags and the three
+     withdrawn lines approved or dictated by Aditya in chat, 2026-09-14 */
   releasesTitle:      "Release notes",
   releasesHint:       "Click the card for update notes",
-  releasesLoading:    "[ph] Loading release notes…",
-  releasesFailed:     "[ph] Release notes aren't available right now.",
-  releasesEmpty:      "[ph] No releases yet.",
+  releasesLoading:    "Loading release notes…",
+  releasesFailed:     "Release notes aren't available right now.",
+  releasesEmpty:      "No releases yet.",
   tagLatest:          "Latest",
-  tagWithdrawn:       "[ph] Withdrawn",
+  tagWithdrawn:       "Withdrawn",
   tagNotesOnly:       "Notes only",
-  relDownload:        "[ph] Download {v} ({mb} MB)",
-  relWithdrawnReason: "[ph] Withdrawn: {reason}",
-  relWithdrawn:       "[ph] This version was withdrawn, so it has no download.",
-  relHistory:         "[ph] This version came out before the updater, so it has no download here.",
-  relNoNotes:         "[ph] No notes for this version.",
+  relDownload:        "Download {v} ({mb} MB)",
+  relWithdrawnReason: "Withdrawn: {reason}",
+  relWithdrawn:       "This version was withdrawn, so it has no download.",
+  relHistory:         "This version came out before the updater, so it has no download here.",
+  relNoNotes:         "No notes for this version.",
 
   /* boards */
-  suggestTitle: "[ph] Suggestions",
-  suggestOpen:  "[ph] Suggest something",   /* the + button's label and hover tip */
-  suggestEmpty: "[ph] No suggestions yet.",
-  interestHint: "[ph] Interest is a signal, not a vote.",
-  issuesTitle:  "[ph] Known issues",
-  issuesOpen:   "[ph] Report a bug",       /* the + button's label and hover tip */
-  issuesEmpty:  "[ph] No known issues.",
-  boardLoading: "[ph] Loading…",
-  boardFailed:  "[ph] Couldn't load this list.",
-  postMore:     "[ph] More",
-  postLess:     "[ph] Less",
-  interestLabel: "[ph] Show interest",
-  interestDone:  "[ph] You showed interest",
-  interestAria:  "[ph] Show interest in this suggestion, {n} so far",
+  /* Suggestions + Known issues boards, top to bottom — every string from
+     here through the errors approved by Aditya in chat, 2026-09-14 */
+  suggestTitle: "Suggestions",
+  suggestOpen:  "Suggest something",   /* the + button's label and hover tip */
+  suggestEmpty: "No suggestions yet.",
+  issuesTitle:  "Known issues",
+  issuesOpen:   "Report a bug",       /* the + button's label and hover tip */
+  issuesEmpty:  "No known issues.",
+  boardLoading: "Loading…",
+  boardFailed:  "Couldn't load this list.",
+  postMore:     "More",
+  postLess:     "Less",
+  interestLabel: "Show interest",
+  interestDone:  "You showed interest",
+  interestAria:  "Show interest in this suggestion, {n} so far",
+  /* the same ▲ button on a known issue */
+  interestLabel_issue: "This affects me too",
+  interestDone_issue:  "You said this affects you",
+  interestAria_issue:  "Say this affects you too, {n} so far",
 
-  state_new:     "[ph] New",
-  state_open:    "[ph] Open",
-  state_planned: "[ph] Planned",
-  state_fixed:   "[ph] Fixed",
-  state_wontfix: "[ph] Won't fix",
+  state_new:     "New",
+  state_open:    "Open",
+  state_planned: "Planned",
+  state_fixed:   "Fixed",
+  state_wontfix: "Won't fix",
+  state_closed:  "Closed",
+
+  /* board toolbars — Filter + Sort: approved by Aditya in chat, 2026-09-14 */
+  filterPill:     "Filter",
+  filterStatus:   "Status",
+  filterVersion:  "Version",
+  filterClear:    "Clear filters",
+  filterNone:     "None",   /* the Filter pill's value when nothing is ticked — dictated by Aditya in chat, 2026-09-14 */
+  versionUnknown: "Not given",   /* a bug sent without a version */
+  sortPill:       "Sort",
+  sortVotes:      "Votes",
+  sortDate:       "Date",
+  sortAsc:        "Ascending",
+  sortDesc:       "Descending",
+  boardNoMatch:   "Nothing matches these filters.",
 
   /* the post form (both boards) */
-  formTitleLabel:     "[ph] Title",
-  formTitleIssuePh:   "[ph] What went wrong, in a few words",
-  formTitleSuggestPh: "[ph] What you want, in a few words",
-  formBodyLabel:      "[ph] Details",
-  formBodyIssuePh:    "[ph] What you did, what you expected, and what happened instead.",
-  formBodySuggestPh:  "[ph] What it would do, and when you would use it.",
-  formVersionLabel:   "[ph] DeetsMusic version (Settings › About)",
-  formVersionPh:      "[ph] 0.4.3",
-  formCount:          "[ph] {n} / {max}",
-  formNote:           "[ph] Posts are anonymous. Nothing shows on this page until I have read it. You get a private link to your post; keep it, because there is no other way back to it.",
-  formLogNote:        "[ph] If you paste part of the app log (Settings › Bugs › App log), keep it short. Never paste a sign-in token.",
-  formSend:           "[ph] Send",
-  formSending:        "[ph] Sending…",
-  formCancel:         "[ph] Cancel",
-  sentToast:          "[ph] Sent. This page is your private link to it.",
+  formTitleLabel:     "Title",
+  /* both title placeholders dictated by Aditya in chat, 2026-09-14 (the page caps titles at 10 words) */
+  formTitleIssuePh:   "Bug in 10 words",
+  formTitleSuggestPh: "Request in 10 words",
+  formBodyLabel:      "Details",
+  /* the closing "Be as descriptive as possible!" in both body placeholders was dictated by Aditya in chat, 2026-09-14 */
+  formBodyIssuePh:    "What you did, what you expected, and what happened instead. Be as descriptive as possible!",
+  formBodySuggestPh:  "What it would do, and when you would use it. Be as descriptive as possible!",
+  formVersionLabel:   "DeetsMusic version (Settings › About)",
+  versionAll:         "All",   /* the version picker's catch-all choice */
+  formCount:          "{n} / {max}",
+  formSend:           "Send",
+  formSending:        "Sending…",
+  formCancel:         "Cancel",
+  sentToast:          "Sent. This page is your private link to it.",
 
   /* errors (keys are the worker's error codes) */
-  err_rate:              "[ph] Too many posts at once. Wait a minute and try again.",
-  err_slow_down:         "[ph] Too many requests at once. Wait a minute and try again.",
-  err_too_large:         "[ph] That is too long to send.",
-  err_credential_shaped: "[ph] That looks like it contains a sign-in token. Remove it and try again.",
-  err_title:             "[ph] Add a title (up to 120 characters).",
-  err_body:              "[ph] Add some details (up to 4000 characters).",
-  err_ticket:            "[ph] That post isn't available.",
-  err_off:               "[ph] This is switched off for now.",
-  err_network:           "[ph] Couldn't reach the server. Try again soon.",
-  err_generic:           "[ph] Something went wrong. Try again soon.",
+  err_rate:              "Too many posts at once. Wait a minute and try again.",
+  err_slow_down:         "Too many requests at once. Wait a minute and try again.",
+  err_too_large:         "That is too long to send.",
+  err_credential_shaped: "That looks like it contains a sign-in token. Remove it and try again.",
+  err_title:             "Add a title (up to 120 characters).",
+  err_title_words:       "Keep the title to 10 words.",
+  err_body:              "Add some details (up to 4000 characters).",
+  err_ticket:            "That post isn't available.",
+  err_off:               "This is switched off for now.",
+  err_network:           "Couldn't reach the server. Try again soon.",
+  err_generic:           "Something went wrong. Try again soon.",
+  err_owner:             "Only the owner can do that. Sign in again and reload.",
+
+  /* owner menu — right-click a post, signed in as Aditya. Approved by Aditya in chat, 2026-09-14 */
+  menuAria:          "Actions for {title}",
+  menuStatus:        "Status",
+  menuHide:          "Hide",
+  menuShow:          "Show",
+  menuReply:         "Reply",
+  menuDelete:        "Delete",
+  menuDeleteConfirm: "Click again to delete",
+  tagHidden:         "Hidden",
 
   /* a ticket (#t=<code>) */
-  ticketBack:            "[ph] ← Back to DeetsMusic",
-  ticketLoading:         "[ph] Loading your post…",
-  ticketMissing:         "[ph] No post matches this link.",
-  ticketFailed:          "[ph] Couldn't load this post.",
-  ticketKind_issue:      "[ph] Bug",
-  ticketKind_suggestion: "[ph] Suggestion",
-  ticketPrivate:         "[ph] Private",
-  ticketPublic:          "[ph] On the board",
-  ticketSent:            "[ph] Sent {date}",
-  ticketUpdated:         "[ph] Updated {date}",
-  ticketVersion:         "[ph] Version {v}",
-  ticketKeep:            "[ph] This link is the only way back to this post. Bookmark it, or copy it somewhere safe.",
-  ticketCopy:            "[ph] Copy link",
-  ticketCopied:          "[ph] Link copied.",
-  repliesTitle:          "[ph] Replies",
-  repliesEmpty:          "[ph] No replies yet.",
-  authorOwner:           "[ph] Aditya",
-  authorReporter:        "[ph] You",
-  replyLabel:            "[ph] Add a reply",
-  replySend:             "[ph] Reply",
-  replySent:             "[ph] Reply sent.",
+  /* ticket page lines without [ph]: approved by Aditya in chat, 2026-09-14.
+     ticketSent is his wording; ticketVersion is his install-box "V{v}" format. */
+  ticketBack:            "← Back to DeetsMusic",
+  ticketLoading:         "Loading your post…",
+  ticketMissing:         "No post matches this link.",
+  ticketFailed:          "Couldn't load this post.",
+  /* the two kind tags (also on "Your posts"): approved by Aditya in chat, 2026-09-14 */
+  ticketKind_issue:      "Bug",
+  ticketKind_suggestion: "Suggestion",
+  ticketPrivate:         "Private",
+  ticketPublic:          "On the board",
+  ticketSent:            "Submitted {date}",
+  ticketUpdated:         "Updated {date}",
+  ticketVersion:         "V{v}",
+  ticketVersionAll:      "All versions",
+  ticketKeep:            "This link is the only way back to this post.",
+  ticketCopy:            "Copy link",
+  ticketCopied:          "Link copied.",
+  repliesTitle:          "Replies",
+  repliesEmpty:          "No replies yet.",
+  authorOwner:           "Aditya",
+  authorReporter:        "You",
+  replyLabel:            "Add a reply",
+  replySend:             "Reply",
+  replySent:             "Reply sent.",
 
-  /* your posts (this browser's list of codes) */
-  mineTitle:  "[ph] Your posts",
-  mineLead:   "[ph] Saved in this browser only.",
-  mineForget: "[ph] Forget",
-  mineForgetAria: "[ph] Remove {title} from this list",
+  /* your posts (this browser's list of codes) — the whole box approved by
+     Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */
+  mineTitle:  "Your posts",
+  mineLead:   "Links saved locally in this browser only",
+  mineClose:  "Close",
+  mineCloseConfirm: "Click again to close",
+  mineCloseAria:    "Close {title}",
+  closedToast:      "Closed.",
 
-  /* fine print */
-  fineTitle:  "[ph] Privacy",
-  privacy1:   "[ph] Sign-in to Apple Music stays on your PC, and your Apple Music sign-in token never leaves it.",
-  privacy2:   "[ph] The DeetsMusic server sees nothing about you unless you send a post on this page, and then it sees only what you typed.",
-  trademark:  "[ph] Apple Music is a trademark of Apple Inc., registered in the U.S. and other countries. DeetsMusic is an independent project. It is not affiliated with, sponsored by, or endorsed by Apple."
+  /* fine print — the Privacy box, approved by Aditya in chat, 2026-09-14 */
+  fineTitle:  "Privacy",
+  privacy1:   "Sign-in to Apple Music stays on your PC, and your Apple Music sign-in token never leaves it.",
+  privacy2:   "The DeetsMusic server sees nothing about you unless you send a post on this page, and then it sees only what you typed.",
+  trademark:  "Apple Music is a trademark of Apple Inc., registered in the U.S. and other countries. DeetsMusic is an independent project. It is not affiliated with, sponsored by, or endorsed by Apple."
 };

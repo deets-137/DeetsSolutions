@@ -316,7 +316,8 @@ body::before {
 .site-nav a {
   font-family: var(--font-body);
   font-size: var(--fs-nav);
-  color: var(--text);
+  font-weight: var(--fw-nav);
+  color: var(--title);
   text-decoration: none;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-control);
@@ -343,7 +344,8 @@ body::before {
   gap: var(--space-1);
   font-family: var(--font-body);
   font-size: var(--fs-nav);
-  color: var(--text);
+  font-weight: var(--fw-nav);
+  color: var(--title);   /* full-strength labels, not body text (his call, 2026-09-14) */
   background: none;
   border: 0;
   cursor: pointer;
@@ -447,12 +449,38 @@ body::before {
    anything narrower (controls.js `mobile()` mirrors this value). */
 @media (min-width: 56rem) {
   .nav-menu { display: none; }
+
+  /* Desktop header, two rows (his layout, 2026-09-14). Row 1: wordmark +
+     nav. Row 2: Sign in + Vibe, right-aligned under the nav. Row 2 is a
+     ZERO-height track whose items hang into the gap above the page content,
+     so the header stays --header-h and nothing below it moves. The nav spans
+     columns 2–3 so Vibe's column never pushes it left. */
+  .site-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: var(--header-h) 0;
+    gap: 0 var(--space-2);   /* row-gap 0: the base flex `gap` would push row 2 down a full space-4 */
+    align-items: center;
+  }
+  .site-brand { grid-column: 1; grid-row: 1; }
+  .site-nav { grid-column: 2 / 4; grid-row: 1; justify-self: end; margin-left: 0; }
+  .site-header > .settings,
+  .header-account {
+    grid-row: 2;
+    align-self: start;
+    margin-top: calc(-1 * var(--space-2));
+  }
+  .site-header > .settings { grid-column: 3; }
+  .header-account { grid-column: 2; justify-self: end; }
+  /* Toasts drop below row 2 instead of landing on Vibe. */
+  .toast-host { top: calc(var(--header-h) + var(--space-6)); }
 }
 /* Narrow: hide the inline links, keep the Vibe button pinned right on its
    own, and flag the wordmark as a menu with a caret. */
 @media (max-width: 56rem) {
   .site-nav { display: none; }
   .settings { margin-left: auto; }
+  .header-account { display: none; }   /* the wordmark menu's copy takes over */
   .wordmark[aria-haspopup]::after {
     content: "▾";
     margin-left: var(--space-1);
@@ -998,6 +1026,41 @@ button:focus-visible {
   animation: account-btn-spin var(--dur-spin) linear infinite;
 }
 @keyframes account-btn-spin { to { transform: rotate(360deg); } }
+
+/* Header Sign in — desktop row 2, left of Vibe (placed in the 56rem media
+   block). A FIXED-width slot with the button pinned to its left edge, so a
+   signed-in name, shorter or longer than "Sign in with Google", never moves
+   the button's start or Vibe (his call, 2026-09-14); a long name ellipsizes.
+   Dressed like the Vibe trigger so the pair reads as one row. */
+.header-account { display: flex; width: 14rem; min-width: 0; }
+.header-account .account-btn {
+  width: auto;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  line-height: 1;
+  color: var(--title);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.header-account .account-btn:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
+/* The label clips (for the long-name ellipsis), and at line-height 1 that
+   clip shaved the descenders off "Sign in with Google". Give the glyphs
+   room above and below, handed back by an equal negative margin so the
+   button stays the Vibe trigger's height. */
+.header-account .account-btn__label {
+  padding-block: 0.2em;
+  margin-block: -0.2em;
+}
+/* Icon at text height, so the button matches the Vibe trigger's height. */
+.header-account .account-btn__icon,
+.header-account .account-btn__icon svg { width: 1em; height: 1em; }
 
 /* ── Prose pages (privacy) ────────────────────────────────────────
    Long-form body copy: the site's only page type that is just words. */

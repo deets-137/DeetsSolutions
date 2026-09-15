@@ -141,6 +141,7 @@
               <h2 class="dm-box__title" id="dm-suggest-title" data-s="suggestTitle"></h2>
               <button type="button" class="dm-add" data-dm-open="suggestion" aria-expanded="false" data-s-label="suggestOpen"><span class="dm-add__glyph" aria-hidden="true">+</span></button>
             </div>
+            <div class="dm-board__tools" data-dm-tools="suggestion"></div>
             <div class="dm-collapse dm-collapse--ring" data-dm-collapse="suggestion" inert>
             <div class="dm-collapse__inner">
             <form class="dm-form" data-dm-form="suggestion" novalidate>
@@ -153,7 +154,6 @@
                 <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="5" data-s-ph="formBodySuggestPh"></textarea>
                 <span class="dm-field__count" data-dm-count></span>
               </label>
-              <p class="dm-hint" data-s="formNote"></p>
               <p class="dm-form__err" data-dm-err role="alert" hidden></p>
               <div class="dm-form__actions">
                 <button type="submit" class="home__cta" data-dm-send data-s="formSend"></button>
@@ -163,7 +163,6 @@
             </div>
             </div>
             <div class="dm-posts" data-dm-list="suggestion"></div>
-            <p class="dm-hint" data-s="interestHint"></p>
           </section>
 
           <section class="dm-box dm-board" id="issues" data-dm-board="issue" aria-labelledby="dm-issues-title">
@@ -171,6 +170,7 @@
               <h2 class="dm-box__title" id="dm-issues-title" data-s="issuesTitle"></h2>
               <button type="button" class="dm-add" data-dm-open="issue" aria-expanded="false" data-s-label="issuesOpen"><span class="dm-add__glyph" aria-hidden="true">+</span></button>
             </div>
+            <div class="dm-board__tools" data-dm-tools="issue"></div>
             <div class="dm-collapse dm-collapse--ring" data-dm-collapse="issue" inert>
             <div class="dm-collapse__inner">
             <form class="dm-form" data-dm-form="issue" novalidate>
@@ -183,12 +183,16 @@
                 <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="6" data-s-ph="formBodyIssuePh"></textarea>
                 <span class="dm-field__count" data-dm-count></span>
               </label>
-              <label class="dm-field">
-                <span class="dm-field__label" data-s="formVersionLabel"></span>
-                <input class="dm-field__input dm-field__input--short" name="version" type="text" maxlength="24" autocomplete="off" data-s-ph="formVersionPh" />
-              </label>
-              <p class="dm-hint" data-s="formNote"></p>
-              <p class="dm-hint" data-s="formLogNote"></p>
+              <!-- Version: a tb- pill + popover, "All" plus every version the updater serves. -->
+              <div class="dm-field">
+                <span class="dm-field__label" id="dm-version-label" data-s="formVersionLabel"></span>
+                <div class="tb-ctrl dm-version" data-dm-version>
+                  <button type="button" class="tb-pill" aria-haspopup="true" aria-expanded="false" aria-labelledby="dm-version-label dm-version-value">
+                    <span class="tb-pill__value" id="dm-version-value"></span><span class="tb-pill__caret" aria-hidden="true">▾</span>
+                  </button>
+                  <div class="tb-pop dm-version__pop" role="menu" hidden></div>
+                </div>
+              </div>
               <p class="dm-form__err" data-dm-err role="alert" hidden></p>
               <div class="dm-form__actions">
                 <button type="submit" class="home__cta" data-dm-send data-s="formSend"></button>
@@ -204,9 +208,9 @@
           <section class="dm-box dm-box--wide" data-dm-mine aria-labelledby="dm-mine-title" hidden>
             <div class="dm-box__head">
               <h2 class="dm-box__title" id="dm-mine-title" data-s="mineTitle"></h2>
-              <p class="dm-lead" data-s="mineLead"></p>
             </div>
             <ul class="dm-mine__list" data-dm-mine-list></ul>
+            <p class="dm-hint" data-s="mineLead"></p>
           </section>
 
           <footer class="dm-box dm-box--wide dm-fine" aria-labelledby="dm-fine-title">

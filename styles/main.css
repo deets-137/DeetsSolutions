@@ -3282,6 +3282,36 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 /* ── Boards ───────────────────────────────────────────────────────── */
 /* The + in a board's top-right corner opens its form; open, it turns to ×. */
 .dm-board > .dm-box__head { align-items: center; }
+/* Filter + Sort under each board's title — the journals' tb- pills and
+   filter popover, opening down-and-right from the pill. The popover has no
+   gate above its first group, so that group drops the divider. */
+/* Two equal columns spanning the box (his call, 2026-09-14): the pills fill
+   their half, so the pair reads as one bar rather than two chips. */
+.dm-board__tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  align-self: stretch;
+}
+.dm-board__tools .tb-ctrl { display: flex; min-width: 0; }
+/* Inside each pill (his layout, 2026-09-14): the word (Filter / Sort) at the
+   left, the kit's hairline divider, then the current pick centered in the
+   rest of the pill. No caret. */
+.dm-board__tools .tb-pill { flex: 1 1 auto; justify-content: flex-start; gap: 0; min-width: 0; }
+.dm-board__tools .tb-pill__caret { display: none; }
+.dm-board__tools .tb-pill__label { flex: none; }
+/* The word gets the pill's own left padding on BOTH sides: space-3 from the
+   pill edge, space-3 to the divider. */
+.dm-board__tools .tb-pill__value {
+  margin-left: var(--space-3);
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dm-board__tools .tb-pop { left: 0; right: auto; }
+.dm-board__tools .tb-pop--filter > .filter-group:first-child { border-top: 0; }
 .dm-add {
   display: grid;
   place-items: center;
@@ -3320,6 +3350,14 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   max-height: 32rem;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+/* While one board's form is open, the other board's list gives up its own
+   height (basis 0, no cap) and fills the taller row, so both boards end on
+   one line instead of the idle one stopping short. */
+.dm-grid:has(.dm-collapse.is-open) .dm-board:not(:has(.dm-collapse.is-open)) > .dm-posts {
+  flex-basis: 0;
+  height: 0;
+  max-height: none;
 }
 /* An empty list is a quiet well, not a stray line of text. */
 .dm-posts > .dm-empty, .dm-rels > .dm-empty {
@@ -3402,10 +3440,20 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
               transform var(--dur-fast) var(--ease-ui);
 }
 .dm-interest:hover { color: var(--title); border-color: var(--title); transform: var(--hover-lift); }
-.dm-interest.is-done { color: var(--title); border-color: var(--go); cursor: default; transform: none; }
+.dm-interest.is-done { color: var(--title); border-color: var(--go); }   /* still a button: a second click takes it back */
 .dm-interest__arrow { font-size: 0.65rem; line-height: 1; }
 .dm-interest.is-done .dm-interest__arrow { color: var(--go); }
 .dm-interest__n { font-size: 0.85rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+
+/* Owner mode (deetsmusic.js): the right-click menu is the tb- kit's
+   popover, fixed at the pointer (radio-menu's placement). A post hidden
+   from the public board shows to the owner on a dashed keyline. */
+.dm-menu { position: fixed; top: 0; left: 0; right: auto; z-index: 40; }
+.dm-menu__sep { height: 1px; margin-block: var(--space-1); background: var(--border); }
+.dm-menu__danger { color: var(--stop); }
+.dm-post.is-hidden-post { border-style: dashed; background: var(--canvas); }
+.dm-post.is-hidden-post .dm-post__title { color: var(--subtext); }
+.dm-chip[data-tone="hidden"] { border-style: dashed; }
 
 /* ── Forms (post, reply) ──────────────────────────────────────────── */
 .dm-form {
@@ -3437,6 +3485,18 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .dm-field__input:focus { border-color: var(--title); outline: none; }
 .dm-field__input--short { max-width: 10rem; }
+/* The bug form's version picker: the tb- kit's pill + popover, opening
+   down-and-right from the pill. The pill has no label of its own, so the
+   value drops the kit's divider hairline. */
+.dm-version { align-self: flex-start; }
+.dm-version .tb-pill__value { padding-left: 0; border-left: none; }
+.dm-version__pop {
+  left: 0;
+  right: auto;
+  max-height: 16rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 .dm-field__area { min-height: 6rem; line-height: 1.5; resize: vertical; }
 .dm-field__count {
   align-self: flex-end;
@@ -3462,6 +3522,9 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .dm-collapse.is-open { grid-template-rows: 1fr; opacity: 1; }
 .dm-collapse__inner { min-height: 0; overflow: hidden; }
+/* Fully open (deetsmusic.js adds is-settled after the transition): stop
+   clipping, so the bug form's version popover can overhang the form. */
+.dm-collapse.is-settled > .dm-collapse__inner { overflow: visible; }
 .dm-box > .dm-collapse:not(.is-open) { margin-block-start: calc(var(--space-3) * -1); }
 /* The inner clip would shave the focus ring off the form's edges: widen
    the collapse by one ring and inset its content by the same. */
@@ -3490,7 +3553,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 
 /* ── Fine print ───────────────────────────────────────────────────── */
 .dm-fine { gap: var(--space-2); }
-.dm-fine p { margin: 0; color: var(--subtext); font-size: 0.8rem; line-height: 1.55; }
+.dm-fine p { margin: 0; color: var(--text); font-size: 0.9rem; line-height: 1.55; }   /* body text, not fine print (his call, 2026-09-14) */
 
 /* ── A ticket (#t=<code>) — one narrow column, the thread under it ── */
 .dm-ticket {

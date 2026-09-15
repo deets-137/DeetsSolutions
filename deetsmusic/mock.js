@@ -11,11 +11,15 @@
      ?mock=up       every check passed
      ?mock=down     the last checks failed
      ?mock=empty    unmonitored, no posts, releases route 404 (not deployed)
+   In every mode the visitor is the OWNER (2026-09-14, for testing): hidden
+   posts list and the right-click menu works. The real owner check only
+   runs in the worker, so this grants nothing on the live site.
 
    Posts you send are kept in sessionStorage per mode, so a reload keeps
-   them. Like the worker, a new post is private (public: 0) — it will not
-   appear on a board, only at its #t= link and under "Your posts". A
-   private ticket with an owner reply is seeded at #t=mockticket000001.
+   them. Unlike the worker (where a new issue stays private until Aditya
+   approves it), EVERY post you send here goes straight onto its board, so
+   the mock doubles as a preview of how a new post reads. A private ticket
+   with an owner reply is seeded at #t=mockticket000001.
 
    Release notes are the real text from DeetsMusic docs/RELEASE-NOTES.md
    (each entry up to its first ###). The withdrawn 0.2.2 row and every
@@ -117,11 +121,25 @@
         "I finish signing in on the browser page, but DeetsMusic still says Not signed in.\n\nWindows 11 23H2, Edge as default browser.", 0, 1)
     ];
     if (posts.length) posts[posts.length - 1].meta = JSON.stringify({ version: "0.4.1" });
+    // Aditya's own test bug from the live board, under its REAL code, so the
+    // "Your posts" link his browser saved opens here as a full ticket page.
+    // Its version is one the bug form's dropdown offers (the live row still
+    // holds "0.0402", typed into the old free-text box).
+    if (posts.length) {
+      var lobster = post("4x0NsiAsa16J9EZ6", "issue", "open", false, "Lobster too buttery", "Ate", 0, 0.2);
+      lobster.meta = JSON.stringify({ version: "0.4.3" });
+      posts.push(lobster);
+    }
     var replies = MODE === "empty" ? [] : [
       { id: 1, code: "mockticket000001", author: "owner", created_at: NOW - 20 * HOUR,
         body: "[mock] Thanks. Does it still happen on 0.4.3? The sign-in page changed in 0.4.0." },
       { id: 2, code: "mockticket000001", author: "reporter", created_at: NOW - 18 * HOUR,
-        body: "[mock] Updated to 0.4.3 and it works now." }
+        body: "[mock] Updated to 0.4.3 and it works now." },
+      // the lobster thread: his real reporter reply, then an invented owner answer
+      { id: 3, code: "4x0NsiAsa16J9EZ6", author: "reporter", created_at: NOW - 4 * HOUR,
+        body: "Yo no way!" },
+      { id: 4, code: "4x0NsiAsa16J9EZ6", author: "owner", created_at: NOW - 2 * HOUR,
+        body: "[mock] Confirmed on 0.4.3. Halving the butter in the next update." }
     ];
     return { mode: MODE, posts: posts, replies: replies };
   }
@@ -163,8 +181,10 @@
     return v && v.length <= max ? v : null;
   }
   function pub(p) {
+    var version = null;   // the worker's json_extract(meta, '$.version'), invalid JSON → null
+    try { var mv = p.meta && JSON.parse(p.meta); if (mv && mv.version != null) version = mv.version; } catch (e) {}
     return { code: p.code, app: p.app, kind: p.kind, state: p.state, title: p.title, body: p.body,
-             interest: p.interest, created_at: p.created_at, updated_at: p.updated_at };
+             interest: p.interest, created_at: p.created_at, updated_at: p.updated_at, version: version };
   }
   function res(status, data) { return { ok: status >= 200 && status < 300, status: status, data: data }; }
 
@@ -199,14 +219,64 @@
 
     if (method === "POST" && JWT_SHAPE.test(JSON.stringify(body || {}))) return res(400, { error: "credential_shaped" });
 
+    // Owner routes — the worker's handleAdmin. Everyone on the mock is the
+    // owner, standing in for a verified ds_sess cookie.
+    var OWNER_MOCK = true;
+    if (p === "/admin/me" && method === "GET") return res(200, { owner: OWNER_MOCK });
+    if (p.indexOf("/admin/") === 0) {
+      if (!OWNER_MOCK) return res(403, { error: "owner" });
+      if (p === "/admin/posts" && method === "GET") {
+        var akind = u.searchParams.get("kind");
+        return res(200, { posts: db.posts.filter(function (x) { return !akind || x.kind === akind; })
+          .sort(function (a, b) { return b.interest - a.interest || b.created_at - a.created_at; })
+          .map(function (x) { var o = pub(x); o.public = !!x.public; return o; }) });
+      }
+      var am = /^\/admin\/posts\/([A-Za-z0-9_-]{8,32})(\/replies)?$/.exec(p);
+      var ap = am && db.posts.filter(function (x) { return x.code === am[1]; })[0];
+      if (am && !ap) return res(404, { error: "ticket" });
+      if (ap) {
+        var at = Math.floor(Date.now() / 1000);
+        if (!am[2] && method === "PATCH") {
+          if (body.state !== undefined) ap.state = body.state;
+          if (body.public !== undefined) ap.public = body.public ? 1 : 0;
+          ap.updated_at = at; save();
+          return res(200, { ok: true });
+        }
+        if (!am[2] && method === "DELETE") {
+          db.posts = db.posts.filter(function (x) { return x.code !== ap.code; });
+          db.replies = db.replies.filter(function (r) { return r.code !== ap.code; });
+          save();
+          return res(200, { ok: true });
+        }
+        if (am[2] && method === "POST") {
+          var ob = str(body.body, 4000); if (!ob) return res(400, { error: "body" });
+          db.replies.push({ id: db.replies.length + 1, code: ap.code, author: "owner", body: ob, created_at: at });
+          ap.updated_at = at; save();
+          return res(201, { ok: true });
+        }
+      }
+      return res(404, { error: "route" });
+    }
+
     if (p === "/posts" && method === "POST") {
       if (body.kind !== "issue" && body.kind !== "suggestion") return res(400, { error: "kind" });
       var title = str(body.title, 120); if (!title) return res(400, { error: "title" });
+      if (title.split(/\s+/).length > 10) return res(400, { error: "title_words" });
       var text = str(body.body, 4000); if (!text) return res(400, { error: "body" });
-      var np = post(code16(), body.kind, "new", false, title, text, 0, 0);
+      // A preview, not the worker: every post you send here goes straight
+      // onto its board, so how a new post reads can be judged at once.
+      var np = post(code16(), body.kind, "new", true, title, text, 0, 0);
       np.meta = body.meta == null ? null : (typeof body.meta === "string" ? body.meta : JSON.stringify(body.meta));
       db.posts.push(np); save();
       return res(201, { code: np.code });
+    }
+
+    var mc = /^\/t\/([A-Za-z0-9_-]{8,32})\/close$/.exec(p);
+    if (mc && method === "POST") {
+      var cp = db.posts.filter(function (x) { return x.code === mc[1]; })[0];
+      if (!cp) return res(404, { error: "ticket" });
+      cp.state = "closed"; cp.updated_at = Math.floor(Date.now() / 1000); save();
+      return res(200, { ok: true });
     }
 
     var m = /^\/t\/([A-Za-z0-9_-]{8,32})(\/replies)?$/.exec(p);
@@ -228,9 +298,10 @@
     }
 
     if (p === "/interest" && method === "POST") {
-      var s = db.posts.filter(function (x) { return x.code === body.code && x.public && x.kind === "suggestion"; })[0];
+      var s = db.posts.filter(function (x) { return x.code === body.code && x.public; })[0];
       if (!s) return res(404, { error: "ticket" });
-      s.interest++; save();
+      if (body.undo === true) s.interest = Math.max(0, s.interest - 1); else s.interest++;
+      save();
       return res(200, { interest: s.interest });
     }
 

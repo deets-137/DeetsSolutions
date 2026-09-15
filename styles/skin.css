@@ -25,6 +25,7 @@
   --fs-title: 1.6rem;   /* the "Deets" wordmark + page headings */
   --fs-nav:   1rem;
   --fw-title: 700;
+  --fw-nav:   600;   /* the header nav labels — bolder than body text (his call, 2026-09-14) */
   --lh-text:  1.6;
 
   /* Editorial title rule — an underline under the wordmark / headings.

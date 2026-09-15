@@ -105,9 +105,11 @@ path, two sources, tagged.
 
 Two consequences fall straight out of that, and neither is optional:
 
-- **The moderation queue is mandatory.** An open, anonymous write
-  endpoint feeding a public board becomes a spam wall. Nothing is public
-  until Aditya marks it public.
+- **Moderation is mandatory.** An open, anonymous write endpoint feeding
+  a public board becomes a spam wall. Issues are private until Aditya
+  marks them public. Suggestions (2026-09-14, his call) go up on send and
+  stay up unless he strikes them (`public = 0`). Every title (bug or
+  suggestion) is capped at 10 words, on the page and in the worker.
 - **A vote cannot be honest.** See "Interest, not votes".
 
 This is about *reporters*. An owner-only moderation view behind
@@ -137,7 +139,7 @@ CREATE TABLE posts (
   code         TEXT PRIMARY KEY,      -- random, 16 chars — this IS the URL
   app          TEXT NOT NULL REFERENCES apps(id),
   kind         TEXT NOT NULL,         -- 'issue' | 'suggestion'
-  state        TEXT NOT NULL,         -- 'new' | 'open' | 'planned' | 'fixed' | 'wontfix'
+  state        TEXT NOT NULL,         -- 'new' | 'open' | 'planned' | 'fixed' | 'wontfix' | 'closed'
   public       INTEGER NOT NULL DEFAULT 0,
   source       TEXT NOT NULL,         -- 'web' | 'app'
   title        TEXT NOT NULL,
@@ -252,6 +254,51 @@ The two alternatives were weighed and dropped: an IP hash lumps a
 household or an office into one vote and stores a derived identifier;
 dropping the count entirely leaves recency plus pinning, which loses the
 one thing a suggestion board is for.
+
+Known issues carry the same ▲ (2026-09-14, Aditya's call): there it
+means "this affects me too", a signal of how many people a bug reaches.
+Same column, same route, same caveats. A second click takes the +1 back
+(`{code, undo: true}`, floored at 0).
+
+## Filter and sort
+
+Added 2026-09-14, for everyone. Each board carries the journals' **Filter**
+and **Sort** pills ([architecture.md](architecture.md), "Toolbar / popover
+kit", copied into `deetsmusic.js` the way the journals copy it). Filter:
+a Status group on both boards, plus a Version group on Known issues (All,
+each release a bug names, "Not given"). Sort: Votes or Date, ↑/↓. It all
+runs on the list already loaded, and each board's picks persist in
+`localStorage` (`deets-dm-boards`).
+
+The version comes from `GET /posts` as a `version` field, extracted from
+`meta` in SQL (`json_valid` guarded). Only that key leaves `meta` — the
+rest can hold a log tail and stays on the ticket.
+
+## Owner moderation
+
+Built 2026-09-14. Signed in to deets.solutions as Aditya, the DeetsMusic
+page's boards list hidden posts too (dashed, tagged Hidden), and
+right-clicking a post opens a menu: **Status** (new / open / planned /
+fixed / won't fix), **Hide / Show**, **Reply** (opens the post page; the
+reply goes in as "Aditya") and **Delete** (two clicks; takes the replies
+with it).
+
+- **Who is the owner is the worker's call.** The page asks
+  `GET /admin/me` with credentials; the worker verifies the `ds_sess`
+  cookie exactly as `games/table-do.js` does (shared `SESSION_SECRET`,
+  30-day expiry) and compares the account id to `OWNER_UID`. Either secret
+  missing and the `/admin/` routes are closed.
+- **Writes need an allowlisted Origin** on top of the cookie. `ds_sess` is
+  `SameSite=Lax`, so another site's fetch never carries it anyway.
+- **Closing** (2026-09-14): "Your posts" has a two-click **Close** per
+  post instead of Forget. It calls `POST /t/<code>/close` — the code is the
+  credential, as with replies — which sets `state = 'closed'`, then drops
+  the post from the browser's list. The post stays on its board with a
+  Closed tag; the owner can reopen or hide it. There is no history table:
+  a closed post is just its state plus `updated_at`.
+- **Local dev:** the cookie never reaches localhost, so on `?mock`
+  every visitor plays the owner. The real check only runs on
+  deets.solutions, in the worker.
 
 ---
 
@@ -448,10 +495,8 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
   cheap catalog request to `api.music.apple.com`. That is a use of the
   developer token beyond serving installs — Aditya's read under the D.7
   terms first.
-- **Owner moderation view.** Moderation, owner replies and state changes
-  are `wrangler d1 execute` today. An owner-only view gated on his
-  DeetsAccounts session is what makes the boards sustainable after a
-  public launch.
+- ~~**Owner moderation view.**~~ Built 2026-09-14 — see "Owner
+  moderation" below.
 - **`KILL_BOARDS`.** Shut intake and boards without shutting the mint.
 - **Help before "report".** No user guide exists. DeetsMusic
   AGENT-SETUP.md §5 and the release notes' Installing sections already

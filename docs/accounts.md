@@ -170,10 +170,16 @@ between pages doesn't flash a signed-out state on every load.
 
 ### The button
 
-Injected at runtime into the **Games** `.nav-group__menu`. It is *not*
-hardcoded into markup, because the nav is duplicated in every page's
-HTML and a static button would need adding to all of them and keeping in
-sync forever. `controls.js` already establishes runtime nav injection.
+Injected at runtime into the header's **second row**, left of Vibe
+(2026-09-14; it lived in the Games dropdown before). On desktop the header
+is a grid whose row 2 has zero height, so Sign in + Vibe hang into the gap
+above the page content without moving it. The button sits at the left
+edge of a fixed-width slot (`.header-account`), so a signed-in name never
+shifts it or Vibe; a long name ellipsizes. Below 56rem the slot is hidden
+and the mobile menu's copy is the control. It is *not* hardcoded into
+markup, because the header is duplicated in every page's HTML and a static
+button would need adding to all of them and keeping in sync forever.
+`controls.js` already establishes runtime nav injection.
 
 Anatomy is [DeetsRadio's account button](radio.md) — a label plus a
 status icon where **the icon is the status**: ✓ in, ✕ out, spinner
