@@ -170,6 +170,32 @@
       strip.appendChild(cell);
     }
     strip.hidden = legend.hidden = false;
+    layoutStrip(strip);
+    if (!strip._observed && window.ResizeObserver) {
+      new ResizeObserver(function () { layoutStrip(strip); }).observe(strip);
+      strip._observed = true;
+    }
+  }
+
+  // Equal cells AND equal gaps, at whole DEVICE pixels. 72 cells rarely
+  // divide the width exactly, and any leftover pixel put into a cell or a
+  // gap reads as unevenness. So the leftover is split into an even inset at
+  // both ends, and the legend takes the same inset so its labels still sit
+  // over the first and last cell.
+  function layoutStrip(strip) {
+    var cells = strip.children, n = cells.length;
+    if (!n || !strip.clientWidth) return;
+    var dpr = window.devicePixelRatio || 1;
+    var total = Math.floor(strip.clientWidth * dpr);
+    var gap = Math.max(1, Math.round((parseFloat(getComputedStyle(strip).columnGap) || 0) * dpr));
+    var w = Math.max(1, Math.floor((total - gap * (n - 1)) / n));
+    var pad = Math.max(0, Math.floor((total - (w * n + gap * (n - 1))) / 2));
+    for (var i = 0; i < n; i++) {
+      cells[i].style.left = (pad + i * (w + gap)) / dpr + "px";
+      cells[i].style.width = w / dpr + "px";
+    }
+    var legend = $("[data-dm-strip-legend]");
+    if (legend) legend.style.paddingInline = pad / dpr + "px";
   }
   function showNotice(text) {
     var box = $("[data-dm-notice]");

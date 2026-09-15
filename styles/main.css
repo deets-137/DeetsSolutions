@@ -3127,16 +3127,19 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   color: var(--title);
   line-height: 1.1;
 }
-/* One cell per five-minute check, oldest left. */
+/* One cell per five-minute check, oldest left. deetsmusic.js places the
+   cells at whole device pixels (a flex row of 72 lands on fractions and
+   rounds some cells a pixel wider); column-gap is the gap it reads. */
 .dm-strip {
-  display: flex;
-  gap: 2px;
+  position: relative;
+  column-gap: 2px;
   align-self: stretch;
   height: 1.75rem;
 }
 .dm-strip__cell {
-  flex: 1 1 0;
-  min-width: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
   background: var(--border);
   border-radius: calc(var(--radius-control) / 4);
 }
