@@ -3722,7 +3722,28 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   color: var(--subtext);
   font-size: 0.75rem;
 }
-.dm-reply__name { color: var(--title); font-weight: 600; }
+/* A commenter's own profile colour arrives as an inline --dm-who on the
+   name (deetsmusic.js) — data, never a rule. No colour, or a reply with no
+   account behind it, falls back to the title colour. */
+.dm-reply__name { color: var(--dm-who, var(--title)); font-weight: 600; }
+/* Hidden by the owner: he still sees it, on the same dashed keyline a
+   hidden post takes. Nobody else is sent it at all. */
+.dm-reply.is-hidden-reply { border-style: dashed; background: var(--canvas); }
+.dm-reply.is-hidden-reply .dm-reply__body { color: var(--subtext); }
+
+/* Signed out on a public thread: the door stands where the box would. */
+.dm-signin {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-self: stretch;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-signin .dm-hint { flex: 1 1 14rem; margin: 0; }
 .dm-reply__body {
   margin: 0;
   color: var(--text);

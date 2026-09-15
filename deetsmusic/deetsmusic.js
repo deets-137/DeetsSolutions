@@ -6,7 +6,8 @@
    Data sources (all anonymous, no sign-in):
      music-api.deets.solutions  GET /update/deetsmusic/releases  install box + release notes
      support.deets.solutions    GET /status, GET/POST /posts, GET /p/<pid>,
-                                GET /t/<code>, POST /t/<code>/replies, POST /interest
+                                POST /p/<pid>/comments, GET /t/<code>,
+                                POST /t/<code>/replies, POST /interest
 
    ?mock swaps both for deetsmusic/mock.js (same response shapes), because
    the releases route is not deployed yet and the boards are empty.
@@ -80,7 +81,8 @@
   function api(host, method, path, body, opts) {
     if (MOCK) return MOCK.request(host, method, path, body);
     var init = { method: method };
-    if (opts && opts.owner) init.credentials = "include";   // the owner routes read ds_sess
+    // The routes that read ds_sess: the owner's, and a comment's account.
+    if (opts && opts.creds) init.credentials = "include";
     if (body !== undefined) {
       init.headers = { "Content-Type": "application/json" };
       init.body = JSON.stringify(body);
@@ -479,16 +481,30 @@
   // status, hide/show, reply, delete. The worker decides who the owner is;
   // this page only asks (GET /admin/me) and never trusts itself.
   var OWNER = false;
+  /* The signed-in account, or null. Comments need one; nothing else on this
+     page does, and a guest sees the page a guest has always seen. The name
+     and colour ride each comment (support.md, "Threads"): this worker has no
+     reach into the accounts D1, so the page sends what /me gave it. */
+  var ME = null;
   var POSTS = {};   // pid → the post as last rendered, for the menu
   var STATE_LIST = ["new", "open", "planned", "fixed", "wontfix", "closed"];
 
-  function ownerApi(method, path, body) { return api("support", method, path, body, { owner: true }); }
+  function ownerApi(method, path, body) { return api("support", method, path, body, { creds: true }); }
 
   function detectOwner() {
     if (!window.DeetsAccount) return;
     var asked = false;
+    var seen;                                       // the account an open post was rendered for
     window.DeetsAccount.onChange(function (u) {
+      ME = u || null;
+      paintCommentBox();
       if (u === null) return;                       // not known yet
+      /* Signing in or out changes what a thread is SENT — the owner is the
+         only one given hidden rows — so an open post must be re-read, not
+         just repainted. First answer of the load renders nothing new. */
+      var id = ME ? ME.id : null;
+      if (seen !== undefined && seen !== id) reloadOpenPost();
+      seen = id;
       if (!u) { asked = false; setOwner(false); return; }
       if (asked) return;
       asked = true;
@@ -1191,9 +1207,15 @@
     threadPid = pid; ticketCode = null;
     showPost(function () { loadThread(pid); });
   }
+  function reloadOpenPost() {
+    if (threadPid) loadThread(threadPid);
+    else if (ticketCode) loadTicket(ticketCode);
+  }
+
   function hideTicket() {
     ticketCode = null;
     threadPid = null;
+    paintCommentBox();
     $("[data-dm-ticket]").hidden = true;
     $("[data-dm-home]").hidden = false;
   }
@@ -1270,10 +1292,21 @@
     replies.forEach(function (r) {
       var li = el("li", "dm-reply" + (r.author === "owner" ? " is-owner" : ""));
       var who = el("div", "dm-reply__who");
-      // On a public thread the reporter is a stranger, not "You".
-      var name = r.author === "owner" ? "authorOwner" : (pub ? "authorReporterPublic" : "authorReporter");
-      who.appendChild(el("span", "dm-reply__name", s(name)));
+      /* Aditya is marked by `author`, which only the worker's OWNER_UID check
+         can set — NEVER by the name, which anyone may change to his. A
+         member's own name is their profile's, snapshotted when they posted;
+         on a public thread the reporter is a stranger, not "You". */
+      var label = r.author === "member"
+        ? (r.name || s(pub ? "authorReporterPublic" : "authorReporter"))
+        : s(r.author === "owner" ? "authorOwner" : (pub ? "authorReporterPublic" : "authorReporter"));
+      var nameEl = el("span", "dm-reply__name", label);
+      // A profile colour is data, not a rule: it rides an inline custom
+      // property the stylesheet reads, so no hex is written into the CSS.
+      if (r.author === "member" && r.color) nameEl.style.setProperty("--dm-who", r.color);
+      who.appendChild(nameEl);
       who.appendChild(el("span", null, fmtUnix(r.created_at)));
+      // Only the owner is sent hidden rows at all (the worker filters them).
+      if (r.hidden) { li.classList.add("is-hidden-reply"); who.appendChild(chip(s("commentHidden"), "hidden")); }
       li.appendChild(who);
       li.appendChild(el("p", "dm-reply__body", r.body));
       list.appendChild(li);
@@ -1282,7 +1315,7 @@
        and so does the owner's (/admin/posts/<code>/replies) — his way in is
        the menu's Reply, which sends him to #t=. Signed-in comments are
        step 3 of "Threads". */
-    $("[data-dm-reply]").hidden = !!pub;
+    paintCommentBox();
     $("[data-dm-thread]").hidden = false;
   }
 
@@ -1294,6 +1327,28 @@
     } catch (e) { return ""; }
   }
 
+  /* One form serves both views. On #t= it is the reporter's reply, which
+     needs no account. On #p= it is a comment, which needs one — signed out,
+     the door to signing in stands where the box would be. */
+  function paintCommentBox() {
+    var form = $("[data-dm-reply]");
+    var signin = $("[data-dm-signin]");
+    if (!form || !signin) return;
+    var onThread = !!threadPid;
+    var open = !onThread || !!ME;                   // #t= never asks for an account
+    form.hidden = !(ticketCode || threadPid) || !open;
+    signin.hidden = !onThread || !!ME;
+    $("[data-dm-reply-label]", form).textContent = s(onThread ? "commentLabel" : "replyLabel");
+    $("[data-dm-send]", form).textContent = s(onThread ? "commentSend" : "replySend");
+  }
+
+  function wireSignin() {
+    var go = $("[data-dm-signin-go]");
+    if (go) go.addEventListener("click", function () {
+      if (window.DeetsAccount) window.DeetsAccount.signIn();
+    });
+  }
+
   function wireReply() {
     var form = $("[data-dm-reply]");
     var body = field(form, "body");
@@ -1301,22 +1356,30 @@
     var send = $("[data-dm-send]", form);
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var code = ticketCode;
+      var code = ticketCode, pid = threadPid;
       var b = body.value.trim();
-      if (!code) return;
+      if (!code && !pid) return;
       if (!b || b.length > BODY_MAX) { err.textContent = s("err_body"); err.hidden = false; return; }
       if (JWT_SHAPE.test(b)) { err.textContent = s("err_credential_shaped"); err.hidden = false; return; }
+      if (pid && !(ME && ME.name)) { err.textContent = s(ME ? "err_name" : "err_signin"); err.hidden = false; return; }
       err.hidden = true;
       send.disabled = true;
-      var sent = OWNER
-        ? ownerApi("POST", "/admin/posts/" + code + "/replies", { body: b })   // replies as Aditya
-        : api("support", "POST", "/t/" + code + "/replies", { body: b });
+      /* A comment carries the account cookie, so it goes out credentialed —
+         the same fetch the owner routes use. The name and colour are a
+         snapshot: renaming later does not rewrite what is already posted. */
+      var sent = pid
+        ? api("support", "POST", "/p/" + pid + "/comments",
+              { body: b, name: ME.name, color: ME.color || null }, { creds: true })
+        : OWNER
+          ? ownerApi("POST", "/admin/posts/" + code + "/replies", { body: b })   // replies as Aditya
+          : api("support", "POST", "/t/" + code + "/replies", { body: b });
       sent.then(function (res) {
         send.disabled = false;
         if (res.status !== 201) { err.textContent = errText(res); err.hidden = false; return; }
         form.reset();
-        toast("success", s("replySent"));
-        if (ticketCode === code) loadTicket(code);
+        toast("success", s(pid ? "commentSent" : "replySent"));
+        if (pid && threadPid === pid) loadThread(pid);
+        else if (ticketCode === code) loadTicket(code);
       });
     });
   }
@@ -1356,6 +1419,7 @@
   wireOwnerMenu();
   $all("[data-dm-form]").forEach(wireForm);
   wireReply();
+  wireSignin();
   renderMine();
   loadStatus();
   loadReleases();

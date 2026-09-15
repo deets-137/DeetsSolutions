@@ -205,6 +205,18 @@ window.DM_STRINGS = {
   threadShare:           "[ph]Anyone with this link can read this post.",
   authorReporterPublic:  "[ph]Who posted it",
 
+  /* signed-in comments on a public thread (support.md, "Threads" step 3),
+     added 2026-09-15; all [ph], awaiting his pass */
+  commentLabel:          "[ph]Add a comment",
+  commentSend:           "[ph]Comment",
+  commentSent:           "[ph]Comment posted.",
+  commentSignin:         "[ph]Sign in to leave a comment.",
+  commentSigninGo:       "[ph]Sign in",
+  commentHidden:         "[ph]Hidden",
+  err_signin:            "[ph]Sign in to leave a comment.",
+  err_blocked:           "[ph]You can't comment on the boards.",
+  err_name:              "[ph]Your profile needs a name before you can comment.",
+
   /* your posts (this browser's list of codes) — the whole box approved by
      Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */
   mineTitle:  "Your posts",

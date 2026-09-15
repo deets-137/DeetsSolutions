@@ -332,7 +332,7 @@ with it).
 
 ---
 
-## Threads — planned 2026-09-15; steps 1–2 built, 3–4 not
+## Threads — planned 2026-09-15; steps 1–3 built, 4 not
 
 Aditya's call, 2026-09-15: clicking a card on Suggestions or Known issues
 opens that post's own page, and it works like a forum — signed-in people
@@ -399,19 +399,25 @@ No new name field. The profile already has one: DeetsAccounts'
 `display_name` (editable on /profile/) and `color`.
 
 - DeetsSupport has its own D1 and cannot read DeetsAccounts'. **Store the
-  name and colour on the comment at post time.** How the worker gets them
-  is decided at build — the session token's claims if they carry the name,
-  otherwise the page sends `GET id.deets.solutions/me`'s `{name, color}`
-  along with the comment.
-  Either way, renaming later does not rewrite old comments.
+  name and colour on the comment at post time.** **Settled 2026-09-15: the
+  page sends them.** DeetsAccounts' session payload is `{u, e, iat}` — no
+  name — so the claims were never an option. The page sends what
+  `DeetsAccount` (its own `/me`) gave it, capped at DeetsAccounts' own 24
+  characters and checked against the `#rrggbb` shape. Renaming later does
+  not rewrite old comments.
+- **That the name is client-supplied costs nothing real**, for the reason
+  below: it proves nothing either way.
 - **The name proves nothing.** Anyone can rename themselves "Aditya".
   Aditya's comments carry `author = 'owner'`, set only by the `OWNER_UID`
   check, and the page marks them from that, never from the name.
 
 ### Storage
 
-Decided at build: either widen `replies` or add a `comments` table. The
-fields a comment needs either way:
+**Settled 2026-09-15: widen `replies`.** A comment is a reply with an account
+behind it, so one table gives one thread in one chronology, one `hidden` flag
+the whole thread obeys, and one thing for the intake breaker to count — it
+already counts `replies`. `author` takes a third value, `'member'`, and
+`migrations/2026-09-15-comments.sql` adds the columns:
 
 ```sql
 -- author: 'owner' | 'reporter' | 'member'   (member = signed-in account)
@@ -454,7 +460,12 @@ matching handlers in `mock.js` so `?mock` speaks the same shapes.
    post is HIDDEN links to `#t=<code>` instead — it has no public page, and
    only the owner ever sees one on a board.
 3. **Signed-in comments** — the route, the storage, name + colour snapshot,
-   owner mark.
+   owner mark. **BUILT 2026-09-15**, not yet deployed. `POST /p/<pid>/comments`
+   takes any valid `ds_sess` plus an allowlisted Origin; a hidden post takes no
+   comments, since it has no public page. The `blocked` check ships with it, so
+   a block bites the moment step 4 writes one rather than a deploy later. One
+   form serves both views — the reporter's reply on `#t=`, a comment on `#p=`,
+   and signed out the door to signing in stands where the box would.
 4. **Moderation** — Hide / Show / Delete / Block in the right-click menu.
 
 Each worker step: deploy, then the mint-host smoke from "Decisions already

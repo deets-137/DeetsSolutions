@@ -268,14 +268,20 @@
         <section class="dm-box" data-dm-thread aria-labelledby="dm-replies-title" hidden>
           <h2 class="dm-box__title" id="dm-replies-title" data-s="repliesTitle"></h2>
           <ol class="dm-replies" data-dm-replies></ol>
+          <!-- Signed out on a public thread (#p=): the box is replaced by the
+               door to it. Never shown on #t=, which needs no account. -->
+          <div class="dm-signin" data-dm-signin hidden>
+            <p class="dm-hint" data-s="commentSignin"></p>
+            <button type="button" class="home__cta home__cta--soft" data-dm-signin-go data-s="commentSigninGo"></button>
+          </div>
           <form class="dm-form" data-dm-reply novalidate>
             <label class="dm-field">
-              <span class="dm-field__label" data-s="replyLabel"></span>
+              <span class="dm-field__label" data-dm-reply-label></span>
               <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="4"></textarea>
             </label>
             <p class="dm-form__err" data-dm-err role="alert" hidden></p>
             <div class="dm-form__actions">
-              <button type="submit" class="home__cta" data-dm-send data-s="replySend"></button>
+              <button type="submit" class="home__cta" data-dm-send></button>
             </div>
           </form>
         </section>

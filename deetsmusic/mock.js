@@ -11,9 +11,12 @@
      ?mock=up       every check passed
      ?mock=down     the last checks failed
      ?mock=empty    unmonitored, no posts, releases route 404 (not deployed)
-   In every mode the visitor is the OWNER (2026-09-14, for testing): hidden
-   posts list and the right-click menu works. The real owner check only
-   runs in the worker, so this grants nothing on the live site.
+   In every mode the visitor is signed in (js/account.js MOCK_USER) and that
+   account is the OWNER (2026-09-14, for testing): hidden posts list, the
+   right-click menu works, and comments post. Signing OUT in the page makes
+   you a guest here too — the only local way to see what a stranger is sent.
+   The real owner check only runs in the worker, so this grants nothing on
+   the live site.
 
    Posts you send are kept in sessionStorage per mode, so a reload keeps
    them. Unlike the worker (where a new issue stays private until Aditya
@@ -142,9 +145,22 @@
       { id: 3, code: "4x0NsiAsa16J9EZ6", author: "reporter", created_at: NOW - 4 * HOUR,
         body: "Yo no way!" },
       { id: 4, code: "4x0NsiAsa16J9EZ6", author: "owner", created_at: NOW - 2 * HOUR,
-        body: "[mock] Confirmed on 0.4.3. Halving the butter in the next update." }
+        body: "[mock] Confirmed on 0.4.3. Halving the butter in the next update." },
+      /* Signed-in comments on a public thread. New ones you post here come out
+         as 'owner', because everyone on the mock is the owner — these two are
+         seeded so the member row (a name, a colour, no owner mark) is visible
+         without a second account. One is hidden, for the moderation view. */
+      { id: 5, code: "mocksuggest00001", author: "member", uid: "mock-member-1",
+        name: "Margot", color: "#3f8fd0", hidden: 0, created_at: NOW - 30 * HOUR,
+        body: "[mock] Would love this. Even just the current line, big, would do it." },
+      { id: 6, code: "mocksuggest00001", author: "member", uid: "mock-member-2",
+        name: "kev", color: "#6ec06e", hidden: 0, created_at: NOW - 26 * HOUR,
+        body: "[mock] Seconded, and it should follow the album colours like Now Playing." },
+      { id: 7, code: "mocksuggest00001", author: "member", uid: "mock-member-3",
+        name: "throwaway", color: null, hidden: 1, created_at: NOW - 25 * HOUR,
+        body: "[mock] (a hidden comment — only the owner sees this one, dashed)" }
     ];
-    return { mode: MODE, posts: posts, replies: replies };
+    return { mode: MODE, posts: posts, replies: replies, blocked: [] };
   }
 
   var db = (function () {
@@ -152,6 +168,7 @@
       var d = JSON.parse(sessionStorage.getItem(KEY));
       if (d && d.mode === MODE && Array.isArray(d.posts)) {
         d.posts.forEach(function (x) { if (!x.pid) x.pid = code16(); });   // a db saved before the id split
+        if (!Array.isArray(d.blocked)) d.blocked = [];                    // …or before comments
         return d;
       }
     } catch (e) {}
@@ -186,6 +203,31 @@
     v = v.trim();
     return v && v.length <= max ? v : null;
   }
+  /* js/account.js signs you in as MOCK_USER on every ?mock load, and here
+     that account is also the owner — the stand-in for a verified ds_sess.
+     It follows the sign-in rather than being a constant, so signing out in
+     the page turns you into a guest: the one way to see, locally, what a
+     stranger is sent (no hidden rows, no owner menu, no comment box). */
+  function signedIn() {
+    var a = window.DeetsAccount;
+    return (a && a.get()) || null;
+  }
+  function isOwnerMock() { return !!signedIn(); }
+  var MOCK_UID = "mock-user";
+
+  /* The worker's threadReplies: uid never goes out, and a hidden row shows to
+     the owner only. Comments and replies are one table, in one order. */
+  function thread(code) {
+    return db.replies
+      .filter(function (r) { return r.code === code && (isOwnerMock() || !r.hidden); })
+      .sort(function (a, b) { return a.created_at - b.created_at || a.id - b.id; })
+      .map(function (r) {
+        return { id: r.id, author: r.author, name: r.name == null ? null : r.name,
+                 color: r.color == null ? null : r.color, body: r.body,
+                 created_at: r.created_at, hidden: !!r.hidden };
+      });
+  }
+
   function pub(p) {
     var version = null;   // the worker's json_extract(meta, '$.version'), invalid JSON → null
     try { var mv = p.meta && JSON.parse(p.meta); if (mv && mv.version != null) version = mv.version; } catch (e) {}
@@ -238,12 +280,11 @@
 
     if (method === "POST" && JWT_SHAPE.test(JSON.stringify(body || {}))) return res(400, { error: "credential_shaped" });
 
-    // Owner routes — the worker's handleAdmin. Everyone on the mock is the
-    // owner, standing in for a verified ds_sess cookie.
-    var OWNER_MOCK = true;
-    if (p === "/admin/me" && method === "GET") return res(200, { owner: OWNER_MOCK });
+    // Owner routes — the worker's handleAdmin. The signed-in mock account is
+    // the owner (isOwnerMock above), standing in for a verified ds_sess.
+    if (p === "/admin/me" && method === "GET") return res(200, { owner: isOwnerMock() });
     if (p.indexOf("/admin/") === 0) {
-      if (!OWNER_MOCK) return res(403, { error: "owner" });
+      if (!isOwnerMock()) return res(403, { error: "owner" });
       if (p === "/admin/posts" && method === "GET") {
         var akind = u.searchParams.get("kind");
         return res(200, { posts: db.posts.filter(function (x) { return !akind || x.kind === akind; })
@@ -307,7 +348,7 @@
         var full = pub(found);
         full.code = found.code;   // you already hold it — /t/<code> is how you got here
         full.public = !!found.public; full.source = found.source; full.meta = found.meta;
-        return res(200, { post: full, replies: db.replies.filter(function (r) { return r.code === found.code; }) });
+        return res(200, { post: full, replies: thread(found.code) });
       }
       if (m[2] && method === "POST") {
         var rb = str(body.body, 4000); if (!rb) return res(400, { error: "body" });
@@ -324,8 +365,29 @@
     if (tm && method === "GET") {
       var tp = db.posts.filter(function (x) { return x.pid === tm[1] && x.public; })[0];
       if (!tp) return res(404, { error: "ticket" });
-      return res(200, { post: pub(tp),
-        replies: db.replies.filter(function (r) { return r.code === tp.code; }) });
+      return res(200, { post: pub(tp), replies: thread(tp.code) });
+    }
+
+    // POST /p/<pid>/comments — a signed-in account's comment. Everyone on the
+    // mock is signed in (js/account.js MOCK_USER) as well as the owner, so
+    // this stands in for a verified ds_sess exactly as /admin/ does.
+    var cm = /^\/p\/([A-Za-z0-9_-]{8,32})\/comments$/.exec(p);
+    if (cm && method === "POST") {
+      var cp = db.posts.filter(function (x) { return x.pid === cm[1] && x.public; })[0];
+      if (!cp) return res(404, { error: "ticket" });
+      var me = signedIn();
+      if (!me) return res(401, { error: "signin" });
+      var cb = str(body.body, 4000); if (!cb) return res(400, { error: "body" });
+      var cn = str(body.name, 24); if (!cn) return res(400, { error: "name" });
+      var cc = /^#[0-9a-fA-F]{6}$/.test(body.color || "") ? String(body.color).toLowerCase() : null;
+      if (db.blocked.indexOf(MOCK_UID) >= 0) return res(403, { error: "blocked" });
+      db.replies.push({ id: db.replies.length + 1, code: cp.code,
+        author: isOwnerMock() ? "owner" : "member", uid: MOCK_UID,
+        name: cn, color: cc, body: cb, hidden: 0,
+        created_at: Math.floor(Date.now() / 1000) });
+      cp.updated_at = Math.floor(Date.now() / 1000);
+      save();
+      return res(201, { ok: true });
     }
 
     if (p === "/interest" && method === "POST") {
