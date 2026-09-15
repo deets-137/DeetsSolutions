@@ -215,16 +215,23 @@
   function isOwnerMock() { return !!signedIn(); }
   var MOCK_UID = "mock-user";
 
-  /* The worker's threadReplies: uid never goes out, and a hidden row shows to
-     the owner only. Comments and replies are one table, in one order. */
+  /* The worker's threadReplies. Comments and replies are one table in one
+     order. A hidden row shows to the owner only, and `uid`/`blocked` go to
+     the owner only — his menu is the only thing that acts on them. */
   function thread(code) {
+    var owner = isOwnerMock();
     return db.replies
-      .filter(function (r) { return r.code === code && (isOwnerMock() || !r.hidden); })
+      .filter(function (r) { return r.code === code && (owner || !r.hidden); })
       .sort(function (a, b) { return a.created_at - b.created_at || a.id - b.id; })
       .map(function (r) {
-        return { id: r.id, author: r.author, name: r.name == null ? null : r.name,
-                 color: r.color == null ? null : r.color, body: r.body,
-                 created_at: r.created_at, hidden: !!r.hidden };
+        var o = { id: r.id, author: r.author, name: r.name == null ? null : r.name,
+                  color: r.color == null ? null : r.color, body: r.body,
+                  created_at: r.created_at, hidden: !!r.hidden };
+        if (owner) {
+          o.uid = r.uid == null ? null : r.uid;
+          o.blocked = !!(r.uid && db.blocked.indexOf(r.uid) >= 0);
+        }
+        return o;
       });
   }
 
@@ -291,6 +298,37 @@
           .sort(function (a, b) { return b.interest - a.interest || b.created_at - a.created_at; })
           .map(function (x) { var o = pub(x); o.public = !!x.public; o.code = x.code; return o; }) });
       }
+      // Comment moderation — the worker's /admin/replies/<id> and /admin/block.
+      var rm = /^\/admin\/replies\/([0-9]{1,15})$/.exec(p);
+      if (rm) {
+        var rr = db.replies.filter(function (x) { return x.id === Number(rm[1]); })[0];
+        if (!rr) return res(404, { error: "reply" });
+        if (method === "PATCH") {
+          if (typeof body.hidden !== "boolean") return res(400, { error: "hidden" });
+          rr.hidden = body.hidden ? 1 : 0; save();
+          return res(200, { ok: true });
+        }
+        if (method === "DELETE") {
+          db.replies = db.replies.filter(function (x) { return x.id !== rr.id; });
+          save();
+          return res(200, { ok: true });
+        }
+        return res(405, { error: "method" });
+      }
+      if (p === "/admin/block" && method === "POST") {
+        var bu = str(body.uid, 64); if (!bu) return res(400, { error: "uid" });
+        if (body.undo === true) {
+          // Lifting a block does NOT unhide what it hid — Show is per-comment.
+          db.blocked = db.blocked.filter(function (x) { return x !== bu; });
+          save();
+          return res(200, { blocked: false });
+        }
+        if (db.blocked.indexOf(bu) < 0) db.blocked.push(bu);
+        db.replies.forEach(function (x) { if (x.uid === bu) x.hidden = 1; });
+        save();
+        return res(200, { blocked: true });
+      }
+
       var am = /^\/admin\/posts\/([A-Za-z0-9_-]{8,32})(\/replies)?$/.exec(p);
       var ap = am && db.posts.filter(function (x) { return x.code === am[1]; })[0];
       if (am && !ap) return res(404, { error: "ticket" });

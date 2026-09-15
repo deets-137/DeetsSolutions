@@ -487,6 +487,7 @@
      reach into the accounts D1, so the page sends what /me gave it. */
   var ME = null;
   var POSTS = {};   // pid → the post as last rendered, for the menu
+  var THREAD = {};  // reply id → the row as last rendered, for the comment menu
   var STATE_LIST = ["new", "open", "planned", "fixed", "wontfix", "closed"];
 
   function ownerApi(method, path, body) { return api("support", method, path, body, { creds: true }); }
@@ -565,6 +566,9 @@
     });
     menu.appendChild(del);
 
+    placeMenu(menu, x, y);
+  }
+  function placeMenu(menu, x, y) {
     document.body.appendChild(menu);
     // offset*, not getBoundingClientRect: the pop-in scale would under-measure
     menu.style.left = Math.max(8, Math.min(x, window.innerWidth - menu.offsetWidth - 8)) + "px";
@@ -573,6 +577,71 @@
     var first = $(".tb-pop__opt", menu);
     if (first) first.focus({ preventScroll: true });
   }
+  /* The same right-click menu, one level down: a thread row instead of a
+     card (support.md, "Threads" step 4). Hide/Show and Delete work on any
+     row — the reporter's reply, Aditya's, a member's comment — because
+     they are one table. Block needs an identity, so it appears only on a
+     row that carries a uid, which is a member's comment and nothing else. */
+  function openReplyMenu(r, x, y) {
+    closeMenu();
+    var menu = el("div", "tb-pop dm-menu");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", s("replyMenuAria", { who: r.name || s("authorReporterPublic") }));
+
+    menu.appendChild(menuOpt(s(r.hidden ? "menuShow" : "menuHide"), function () {
+      replyAct(r, "PATCH", "/admin/replies/" + r.id, { hidden: !r.hidden });
+    }));
+    var del = menuOpt(s("menuDelete"));
+    del.classList.add("dm-menu__danger");
+    del.addEventListener("click", function () {
+      if (!del.hasAttribute("data-armed")) {
+        del.setAttribute("data-armed", "");
+        del.textContent = s("menuDeleteConfirm");
+        return;
+      }
+      replyAct(r, "DELETE", "/admin/replies/" + r.id);
+    });
+    menu.appendChild(del);
+
+    if (r.uid) {
+      menu.appendChild(el("div", "dm-menu__sep"));
+      // Lifting a block does NOT unhide what it hid; Show is per-comment.
+      var blk = menuOpt(s(r.blocked ? "menuUnblock" : "menuBlock"));
+      if (!r.blocked) blk.classList.add("dm-menu__danger");
+      blk.addEventListener("click", function () {
+        if (!r.blocked && !blk.hasAttribute("data-armed")) {
+          blk.setAttribute("data-armed", "");
+          blk.textContent = s("menuBlockConfirm");
+          return;
+        }
+        replyAct(r, "POST", "/admin/block", r.blocked ? { uid: r.uid, undo: true } : { uid: r.uid });
+      });
+      menu.appendChild(blk);
+    }
+
+    placeMenu(menu, x, y);
+  }
+  function replyAct(r, method, path, body) {
+    closeMenu();
+    ownerApi(method, path, body).then(function (res) {
+      if (!res.ok) { toast("error", errText(res)); return; }
+      reloadOpenPost();
+    });
+  }
+
+  function wireReplyMenu() {
+    var list = $("[data-dm-replies]");
+    if (!list) return;
+    list.addEventListener("contextmenu", function (e) {
+      if (!OWNER) return;
+      var li = e.target.closest(".dm-reply");
+      var r = li && THREAD[li.getAttribute("data-reply")];
+      if (!r) return;
+      e.preventDefault();
+      openReplyMenu(r, e.clientX, e.clientY);
+    });
+  }
+
   function ownerAct(p, method, body) {
     closeMenu();
     ownerApi(method, "/admin/posts/" + p.code, body).then(function (res) {
@@ -1288,9 +1357,12 @@
 
     var list = $("[data-dm-replies]");
     list.textContent = "";
+    THREAD = {};
     if (!replies.length) list.appendChild(el("li", "dm-empty", s("repliesEmpty")));
     replies.forEach(function (r) {
       var li = el("li", "dm-reply" + (r.author === "owner" ? " is-owner" : ""));
+      li.setAttribute("data-reply", r.id);
+      THREAD[r.id] = r;
       var who = el("div", "dm-reply__who");
       /* Aditya is marked by `author`, which only the worker's OWNER_UID check
          can set — NEVER by the name, which anyone may change to his. A
@@ -1306,7 +1378,9 @@
       who.appendChild(nameEl);
       who.appendChild(el("span", null, fmtUnix(r.created_at)));
       // Only the owner is sent hidden rows at all (the worker filters them).
+      // Only the owner is sent hidden rows, or `blocked` at all.
       if (r.hidden) { li.classList.add("is-hidden-reply"); who.appendChild(chip(s("commentHidden"), "hidden")); }
+      if (r.blocked) who.appendChild(chip(s("commentBlocked"), "hidden"));
       li.appendChild(who);
       li.appendChild(el("p", "dm-reply__body", r.body));
       list.appendChild(li);
@@ -1420,6 +1494,7 @@
   $all("[data-dm-form]").forEach(wireForm);
   wireReply();
   wireSignin();
+  wireReplyMenu();
   renderMine();
   loadStatus();
   loadReleases();

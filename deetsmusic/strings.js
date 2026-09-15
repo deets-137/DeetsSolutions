@@ -217,6 +217,16 @@ window.DM_STRINGS = {
   err_blocked:           "[ph]You can't comment on the boards.",
   err_name:              "[ph]Your profile needs a name before you can comment.",
 
+  /* owner moderation of a thread row (support.md, "Threads" step 4),
+     added 2026-09-15; all [ph], awaiting his pass. menuHide / menuShow /
+     menuDelete / menuDeleteConfirm are reused from the post menu. */
+  replyMenuAria:         "[ph]Moderate {who}'s comment",
+  menuBlock:             "[ph]Block this account",
+  menuBlockConfirm:      "[ph]Click again to block",
+  menuUnblock:           "[ph]Unblock this account",
+  commentBlocked:        "[ph]Blocked",
+  err_reply:             "[ph]That comment is already gone.",
+
   /* your posts (this browser's list of codes) — the whole box approved by
      Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */
   mineTitle:  "Your posts",

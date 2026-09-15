@@ -332,7 +332,7 @@ with it).
 
 ---
 
-## Threads — planned 2026-09-15; steps 1–3 built, 4 not
+## Threads — planned 2026-09-15; steps 1–4 BUILT, none deployed
 
 Aditya's call, 2026-09-15: clicking a card on Suggestions or Known issues
 opens that post's own page, and it works like a forum — signed-in people
@@ -443,10 +443,15 @@ Extends the existing right-click menu to each comment on a thread page:
 - **Delete** — two clicks, a real delete.
 - **Block account** — inserts into `blocked`; that uid's comments are hidden
   and its new ones refused (403). Only possible because comments carry an
-  identity; posts never can.
+  identity; posts never can. **Lifting a block does NOT unhide what it hid**
+  — he hides comments by hand too, and a sweep would undo that. Show is
+  per-comment. Block appears only on a row that carries a `uid`, which is a
+  member's comment and nothing else.
 
 New routes under `/admin/` (cookie + `OWNER_UID` + allowlisted Origin), and
-matching handlers in `mock.js` so `?mock` speaks the same shapes.
+matching handlers in `mock.js` so `?mock` speaks the same shapes. `?mock`'s
+owner flag now follows the SIGN-IN rather than being a constant, so signing
+out in the page is the one local way to see what a stranger is sent.
 
 ### Build order
 
@@ -467,6 +472,10 @@ matching handlers in `mock.js` so `?mock` speaks the same shapes.
    form serves both views — the reporter's reply on `#t=`, a comment on `#p=`,
    and signed out the door to signing in stands where the box would.
 4. **Moderation** — Hide / Show / Delete / Block in the right-click menu.
+   **BUILT 2026-09-15**, not yet deployed. `PATCH`/`DELETE /admin/replies/<id>`
+   and `POST /admin/block`. The owner's thread read is the only one that
+   carries `uid` and `blocked`, because his menu is the only thing that acts
+   on them. Delete and Block each take two clicks, like the post menu's.
 
 Each worker step: deploy, then the mint-host smoke from "Decisions already
 made".
