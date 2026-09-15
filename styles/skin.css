@@ -55,13 +55,38 @@
   --card-backdrop:     none;            /* frosted-glass blur; a skin opts in */
   --shadow-card:       none;            /* skins add a real card shadow */
 
-  /* -- canvas pattern (Press halftone / Ocean waves / Glass aurora / grid) -- */
-  /* A background-image painted on <body>, BEHIND the content. Its color
-     comes from theme roles; the pattern + motion are skin. Vanilla = none. */
+  /* -- canvas pattern (Press halftone / Retro-Future grid) ---- */
+  /* A STILL background-image painted on <body>, BEHIND the content. Its
+     color comes from theme roles; the pattern is skin. Vanilla = none. A
+     canvas that MOVES draws on an ambient layer instead (Glass → aurora),
+     because a moving background repaints every frame. */
   --canvas-bg:        none;
   --canvas-bg-size:   auto;
   --canvas-bg-repeat: repeat;
-  --canvas-anim:      none;
+
+  /* -- aurora layer (drifting blobs behind content) ----------- */
+  /* Three <div>s injected by controls.js that a skin opts into; each
+     carries one gradient and drifts by its own vector (transform only).
+     Base is inert. */
+  --aurora-display: none;             /* glass opts in */
+  --aurora-1:       none;
+  --aurora-2:       none;
+  --aurora-3:       none;
+  --aurora-drift-1-x: 0px;            /* offset at the loop's midpoint */
+  --aurora-drift-1-y: 0px;
+  --aurora-drift-2-x: 0px;
+  --aurora-drift-2-y: 0px;
+  --aurora-drift-3-x: 0px;
+  --aurora-drift-3-y: 0px;
+  --aurora-slack:   0px;              /* oversize per side; ≥ the largest drift */
+  --aurora-dur:     60s;
+
+  /* -- ambient motion rate ------------------------------------ */
+  /* The endless decorative loops (ocean / aurora / storm) step at this
+     rate instead of the display's, so the compositor draws a new frame
+     only when a layer moves (DeetsMusic measured Ocean at 36% → 15% of a
+     core, 60 → 30 fps). A unitless integer. */
+  --ambient-fps: 30;
 
   /* -- ocean layer (rolling swell behind content) ------------- */
   /* An inline-SVG layer (three seamless wave-train patterns) injected
@@ -86,11 +111,33 @@
   --storm-cycle-2: 12s;
 
   /* -- motion ------------------------------------------------ */
-  --dur-fast: 0.14s;
-  --dur-med:  0.22s;
+  /* Base durations match DeetsMusic's so both products feel the same
+     (his call, 2026-09-15; the site ran .14/.22 before). */
+  --dur-fast: 0.12s;
+  --dur-med:  0.18s;
   --dur-spin: 0.9s;   /* busy spinners (radio account button) */
   --ease-ui:  cubic-bezier(0.2, 0, 0.2, 1);
   --hover-lift: none;                 /* nav links / chips rise on hover; a skin opts in */
+
+  /* -- pop: floating panels arrive and leave (DeetsMusic's .pop) -- */
+  --pop-in:      var(--dur-med);      /* a panel and new rows arriving */
+  --pop-out:     var(--dur-fast);     /* a panel leaving */
+  --pop-grow:    var(--dur-med);      /* a panel's height following a new row */
+  --pop-stagger: 0.03s;               /* one arriving row after the next */
+  --pop-shift:   var(--space-1);      /* how far a panel and a new row travel in */
+  --pop-scale:   0.97;                /* a panel's size as it starts to arrive */
+  --pop-ease:    cubic-bezier(0.2, 0.8, 0.2, 1); /* fast start, soft stop */
+
+  /* -- settings panel (docs/ui-direction.md; not built yet) --- */
+  --set-section-gap: var(--space-3);
+  --set-row-h:       1.5rem;          /* one consistent row height */
+  --set-range-w:     7.5rem;          /* a range row's slider */
+  --set-range-val-w: 3.5em;           /* its value, "100%" fits */
+  --set-pill-pad:    var(--space-1) var(--space-2);
+  --set-pill-radius: 999px;           /* the split pill's outer radius */
+  --set-menu-min-w:  7.5rem;          /* the small menu behind a menu half */
+  --set-menu-max-h:  17.5rem;         /* longer lists scroll */
+  --set-flash-dur:   1600ms;          /* a row opened from a toast: its highlight fades over this */
 
   /* -- focus ring (one place to restyle every focus state) --- */
   --focus-ring-w:   2px;
@@ -150,7 +197,6 @@
   --canvas-bg:        radial-gradient(circle, var(--panel-border) 1.1px, transparent 1.4px);
   --canvas-bg-size:   7px 7px;
   --canvas-bg-repeat: repeat;
-  --canvas-anim:      none;
 
   /* motion — a press stroke, not a settle. The lift moves on BOTH axes
      (every other skin only rises): the sheet slides up-left off its ink,
@@ -191,16 +237,22 @@
   --hover-lift: translateY(-1px);
 }
 /* Ocean's swell — motion for the injected layer. Roll owns the horizontal
-   drift (linear, on the rects), bob the rise-and-fall (ease-in-out
-   alternate ≈ a sine, on the wrapping <g>s) — separate elements, so the
-   two transforms compose. Per-layer distances come from --roll-dist /
-   --bob-amp, set on the elements in main.css and resolved inside these
-   keyframes per element. */
+   drift (linear, on .ocean__roll), bob the rise-and-fall (on the wrapping
+   .ocean__bob) — separate elements, so the two transforms compose. The
+   bob's ease is sampled into the keyframes, because the stepped timing
+   (--ambient-fps) replaces any easing. Per-layer distances come from
+   --roll-dist / --bob-amp, set on the elements in chrome.css. */
 @keyframes ocean-roll {
   to { transform: translateX(var(--roll-dist, 0px)); }
 }
+/* (1 − cos πt) / 2 sampled at fifths ≈ ease-in-out */
 @keyframes ocean-bob {
-  to { transform: translateY(var(--bob-amp, 0px)); }
+  0%   { transform: translateY(0); }
+  20%  { transform: translateY(calc(var(--bob-amp, 0px) * 0.0955)); }
+  40%  { transform: translateY(calc(var(--bob-amp, 0px) * 0.3455)); }
+  60%  { transform: translateY(calc(var(--bob-amp, 0px) * 0.6545)); }
+  80%  { transform: translateY(calc(var(--bob-amp, 0px) * 0.9045)); }
+  100% { transform: translateY(var(--bob-amp, 0px)); }
 }
 
 /* ============================================================
@@ -232,33 +284,47 @@
     0 8px 32px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent);
 
-  /* aurora — soft accent blobs the frost refracts. Hues are the theme's
-     OWN accent roles (go / stop / pause) at low alpha, so Glass recolors
-     per theme while naming no color. Layers are OVERSIZED by 128px so the
-     drift never drags a gradient's cut edge into view. */
-  --canvas-bg:
+  /* aurora — soft accent blobs the frost refracts, drawn on the injected
+     .aurora layer (chrome.css). Hues are the theme's OWN accent roles
+     (go / stop / pause) at low alpha, so Glass recolors per theme while
+     naming no color. Each blob is OVERSIZED by --aurora-slack per side so
+     its drift never drags a gradient's cut edge into view. */
+  --aurora-display: block;
+  --aurora-1:
     radial-gradient(42% 52% at 16% 10%,
       color-mix(in srgb, var(--go) 50%, transparent),
-      color-mix(in srgb, var(--go) 20%, transparent) 45%, transparent 80%),
+      color-mix(in srgb, var(--go) 20%, transparent) 45%, transparent 80%);
+  --aurora-2:
     radial-gradient(46% 56% at 86% 22%,
       color-mix(in srgb, var(--stop) 44%, transparent),
-      color-mix(in srgb, var(--stop) 18%, transparent) 45%, transparent 80%),
+      color-mix(in srgb, var(--stop) 18%, transparent) 45%, transparent 80%);
+  --aurora-3:
     radial-gradient(52% 52% at 60% 96%,
       color-mix(in srgb, var(--pause) 38%, transparent),
       color-mix(in srgb, var(--pause) 15%, transparent) 45%, transparent 82%);
-  --canvas-bg-size:   calc(100% + 128px) calc(100% + 128px);
-  --canvas-bg-repeat: no-repeat;
-  --canvas-anim:      aurora-drift 60s ease-in-out infinite;
+  --aurora-slack: 64px;               /* every drift below stays within ±64 */
+  /* each blob wanders a different way and returns */
+  --aurora-drift-1-x:  48px;  --aurora-drift-1-y:  32px;
+  --aurora-drift-2-x: -56px;  --aurora-drift-2-y:  24px;
+  --aurora-drift-3-x:  36px;  --aurora-drift-3-y: -44px;
+  --aurora-dur:   60s;
 
   --dur-fast:   0.2s;
   --hover-lift: translateY(-1px);
 }
-/* Glass's aurora blobs wander and return: each layer drifts a different
-   direction, out of phase, symmetric keyframes so the loop is seamless.
-   Every offset stays within −128..0 so the image's cut edge never enters. */
+/* Glass's aurora blobs wander and return: each blob drifts by its own
+   --drift-x / --drift-y (--aurora-drift-N-*) at the midpoint and comes
+   back, so the loop is seamless. Every vector stays within --aurora-slack,
+   so a blob's cut edge never enters the viewport. The ease is sampled into
+   the keyframes — (1 − cos 2πt) / 2 at tenths — because the stepped timing
+   (--ambient-fps) replaces any easing. */
 @keyframes aurora-drift {
-  0%, 100% { background-position: -64px -64px, -64px -64px, -64px -64px; }
-  50%      { background-position: -16px -32px, -120px -40px, -28px -108px; }
+  0%, 100% { transform: translate(0, 0); }
+  10%, 90% { transform: translate(calc(var(--drift-x) * 0.0955), calc(var(--drift-y) * 0.0955)); }
+  20%, 80% { transform: translate(calc(var(--drift-x) * 0.3455), calc(var(--drift-y) * 0.3455)); }
+  30%, 70% { transform: translate(calc(var(--drift-x) * 0.6545), calc(var(--drift-y) * 0.6545)); }
+  40%, 60% { transform: translate(calc(var(--drift-x) * 0.9045), calc(var(--drift-y) * 0.9045)); }
+  50%      { transform: translate(var(--drift-x), var(--drift-y)); }
 }
 
 /* ============================================================
@@ -301,15 +367,32 @@
   --dur-fast:   0.08s;
   --hover-lift: translateY(-1px);
 }
-/* Retro-Future's strike cycle: the bolt draws top→bottom over ~60% of its
-   period (dashoffset 1→0 against pathLength=1), flickers once at full reach,
-   cuts to dark, and rests until the next strike. Both bolts run THESE
-   keyframes at different --storm-cycle-* durations. */
+/* Retro-Future's strike cycle: the bolt is wiped in top→bottom over ~60% of
+   its period (the strike box slides 0→full reach while storm-hold
+   counter-slides, so the bolt itself never moves), flickers once at full
+   reach, cuts to dark, and rests until the next strike. Every bolt runs
+   THESE keyframes at its own --storm-cycle-* duration. transform + opacity
+   only, so the compositor runs them. */
 @keyframes storm-strike {
-  0%        { stroke-dashoffset: 1; opacity: 0; }
+  0%        { transform: translateY(-100%); opacity: 0; }
   2%        { opacity: 1; }
-  60%       { stroke-dashoffset: 0; opacity: 1; }
+  60%       { transform: translateY(0); opacity: 1; }
   64%       { opacity: 0.4; }   /* flicker at full reach */
   68%       { opacity: 1; }
-  74%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  74%, 100% { transform: translateY(0); opacity: 0; }
+}
+@keyframes storm-hold {
+  0%        { transform: translateY(100%); }
+  60%, 100% { transform: translateY(0); }
+}
+
+/* Reduced motion (OS setting). Last in the file so it outranks every
+   skin's own value: no hover rise, and busy spinners slow down rather than
+   stop (a stopped spinner reads as a hang). The ambient layers and the pop
+   panels handle their own reduced-motion rules in chrome.css. */
+@media (prefers-reduced-motion: reduce) {
+  [data-skin] {
+    --hover-lift: none;
+    --dur-spin:   2.4s;
+  }
 }

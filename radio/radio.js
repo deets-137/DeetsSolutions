@@ -222,9 +222,9 @@
       menuEl.appendChild(optButton(it.label, function () { closeMenu(); it.run(); }));
     });
     document.body.appendChild(menuEl);
-    var r = menuEl.getBoundingClientRect();
-    menuEl.style.left = Math.min(x, window.innerWidth - r.width - 8) + "px";
-    menuEl.style.top = Math.min(y, window.innerHeight - r.height - 8) + "px";
+    // offset*, not getBoundingClientRect: the pop-in scale would under-measure
+    menuEl.style.left = Math.min(x, window.innerWidth - menuEl.offsetWidth - 8) + "px";
+    menuEl.style.top = Math.min(y, window.innerHeight - menuEl.offsetHeight - 8) + "px";
     document.addEventListener("click", closeMenu, true);
     document.addEventListener("keydown", onMenuKey);
     window.addEventListener("scroll", closeMenu, true);

@@ -289,11 +289,27 @@ Per step:
 - Keep ui.md current. Its "Known constraints" section shrinks as items land.
 - Visual pass is Aditya's.
 
-## Open decisions (Aditya's)
+## Progress
 
-1. Settings as a pop panel (recommended) or a `/settings/` page.
-2. Keep 15 inline head scripts or move to one synchronous `js/prepaint.js`.
-3. Adopt DeetsMusic's base `--dur-fast/-med` (.12/.18) or keep the site's (.14/.22).
-4. Whether the site gets Glass and Ocean's skin sliders at all, or stays at the simpler
-   skins.
-5. "Open menus on hover" on the site: worth building the JS dropdown primitive?
+- **Steps 1–3 landed 2026-09-15** (tokens, pop motion, ambient layers). Described in
+  [ui.md](ui.md), "Motion". Two deviations from the brief:
+  - Pop motion keys on the panels' existing classes (`.menu`, `.nav-menu`, `.tb-pop`,
+    plus `.flyout` / `.nav-group__menu` twins) in `chrome.css`, not a new `.pop` class. So
+    the four journal kits needed no markup change.
+  - Boot/cover and Glass/Ocean slider tokens were not added yet; they land with steps 6
+    and 8.
+
+## Decisions (Aditya's, 2026-09-15)
+
+1. **Settings lives inside the Vibe dropdown**, not a `/settings/` page: a last
+   "Settings" row that **expands in place, animated** (confirmed 2026-09-15). It is not a
+   flyout beside the menu. The menu grows downward (and wider, to fit split pills) using
+   `--pop-grow`, and the rows stagger in with `.pop-enter`. The fold sections, row kinds and
+   `max-height`-bounded scroll from section 1 all apply inside that expanded area.
+2. **Shared head script:** move the pre-paint script to one synchronous
+   `js/prepaint.js`. Note there are **16** pages carrying it, not 15
+   (`privacy/deetsfilm/` and `auth/done.html` were added).
+3. **Faster base durations:** adopted DeetsMusic's `.12/.18`.
+4. **Glass and Ocean skin sliders: yes**, as part of the settings work.
+5. **No "Open menus on hover" setting.** Desktop nav groups stay hover CSS; skip the JS
+   dropdown primitive (and with it, Escape-closes-nav-groups from section 6).

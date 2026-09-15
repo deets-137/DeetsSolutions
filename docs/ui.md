@@ -158,6 +158,38 @@ Dismissal mirrors the Vibe menu: Escape (refocusing the wordmark) and
 outside-click, both scoped to `.site-brand`. CSS hides `.nav-menu` outright
 at ≥ 56rem so it can never show on desktop.
 
+## Motion
+
+Ported from DeetsMusic 2026-09-15 ([ui-direction.md](ui-direction.md), steps 1–3).
+
+- **Base durations** are DeetsMusic's: `--dur-fast .12s`, `--dur-med .18s`. Skins still
+  override (Press `.1/.16`, Glass `.2`, Retro-Future `.08`).
+- **Pop.** Every floating panel (`.menu`, `.nav-menu`, `.tb-pop`) fades and scales in from
+  the corner it hangs from, driven by its `hidden` attribute: `@starting-style` plus
+  `transition: display … allow-discrete`, no JS. Tokens are `--pop-in/-out/-shift/-scale/-ease`
+  in `skin.css`. A left-anchored panel sets `--pop-origin: top left` in its own rule.
+  `.flyout` (keyed on `.menu__group.is-open`) and `.nav-group__menu` (keyed on `:hover` /
+  `:focus-within`) carry twin rules. `.pop-enter` with `--pop-i` staggers rows in, for the
+  settings panel to come.
+  - **Measuring a pop:** use `offsetWidth`/`offsetHeight`, never
+    `getBoundingClientRect()`, right after showing it. The rect reads the 0.97 starting
+    scale (radio.js / deetsmusic.js context menus).
+- **Ambient layers** (ocean, aurora, storm) are injected by `controls.js` and animate only
+  `transform` and `opacity`:
+  - Ocean: masked tile boxes (masks built from the geometry table in `controls.js`).
+  - Glass's aurora: its own `.aurora` layer of three drifting blobs (`--aurora-*` tokens),
+    no longer a `background-position` drift on `body::before`. `--canvas-bg` is for still
+    patterns only.
+  - Storm: a clip wipe (strike box slides, hold box counter-slides) instead of a
+    `stroke-dashoffset` draw under a drop-shadow.
+  - Loops step at `--ambient-fps` (30) where `round()` and unit division are supported,
+    and pause while the tab is hidden (`data-ambient="paused"`).
+- **Reduced motion:** aurora freezes, ocean holds still but stays visible, storm hides,
+  pops appear instantly, `--hover-lift` is `none`, and spinners slow to `--dur-spin: 2.4s`
+  rather than stopping.
+- **Focus ring** covers `a`, `button`, `summary`, `select`, `[role=switch]`,
+  `[role=slider]`. Text inputs show focus with their own border.
+
 ## The page bar and shared chrome
 
 The header panel that opens Home, Resume, and Cool Stuff (`.page-bar`), and

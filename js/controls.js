@@ -5,7 +5,7 @@
 
    The attributes are also set inline in each page's <head> (before CSS) to
    avoid a flash of the defaults on load; this script wires the picker,
-   keeps localStorage in sync, and injects the ocean + storm layers. */
+   keeps localStorage in sync, and injects the ocean + aurora + storm layers. */
 (function () {
   "use strict";
 
@@ -297,28 +297,35 @@
     syncMode();
   }
 
-  /* Inject the ocean SVG once. Inert (CSS display:none) unless the active
-     skin opts in via --ocean-display (Ocean). Three seamless wave-train
-     patterns replace the old radial-gradient scallops, whose arcs crossed
-     at tile corners and littered the canvas with chevron artifacts. Each
-     tile is one full sine period (Q + T reflection), so the curve's value
-     AND tangent match at the tile edge — no seam, no crossings. Each train
-     is an opaque fill below a hairline crest, so a nearer swell occludes
-     the ones behind it. Geometry lives here; ink/fill are theme roles and
-     motion is skin tokens (see .ocean in chrome.css). */
-  function buildOcean(suffix) {
-    // The pattern ids must be unique per SVG instance: the home Vibe panel
-    // renders its own scoped ocean alongside this page-level one, and two
-    // <pattern id="ocean-swell-1"> would make every url(#…) ref resolve to
-    // the first, painting the panel with the page's theme. A suffix keeps
-    // each instance's refs pointing at its own patterns.
-    var idsuf = suffix ? "-" + suffix : "";
-    var NS = "http://www.w3.org/2000/svg";
-    var svg = document.createElementNS(NS, "svg");
-    svg.setAttribute("class", "ocean");
-    svg.setAttribute("aria-hidden", "true");
-    var defs = document.createElementNS(NS, "defs");
-    svg.appendChild(defs);
+  /* The ambient layers (ocean / aurora / storm). Each is injected once and
+     inert (CSS display:none) until the active skin opts in via its
+     --*-display token. Motion is CSS (chrome.css + skin.css keyframes) and
+     animates transform + opacity only, so the compositor moves already-
+     rasterized boxes instead of repainting the page every frame. */
+  function layer(cls) {
+    var el = document.createElement("div");
+    el.className = cls;
+    el.setAttribute("aria-hidden", "true");
+    return el;
+  }
+  function inject(el) {
+    if (document.body.querySelector(":scope > ." + el.className)) return;
+    document.body.insertBefore(el, document.body.firstChild);
+  }
+
+  /* Ocean: three wave trains, each an opaque fill under a hairline crest,
+     so a nearer swell occludes the ones behind it. Each tile is one full
+     sine period (Q + T reflection), so the curve's value AND tangent match
+     at the tile edge: no seam, no crossings. The tiles are CSS masks built
+     here from the geometry table; ink/fill are theme roles (.ocean in
+     chrome.css). */
+  function svgMask(w, h, body) {
+    return 'url("data:image/svg+xml,' + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h + "'>" +
+      body + "</svg>") + '")';
+  }
+  function buildOcean() {
+    var sea = layer("ocean");
     // [tile width, tile height, crest baseline, amplitude], farthest first
     // so the nearest train paints last (on top).
     var SWELLS = { 3: [80, 46, 26, 4], 2: [64, 38, 22, 5], 1: [48, 30, 17, 6] };
@@ -326,73 +333,77 @@
       var s = SWELLS[n], W = s[0], H = s[1], c = s[2], a = s[3];
       var crest = "M0 " + c + " Q" + W / 4 + " " + (c - a) + " " + W / 2 + " " + c +
                   " T" + W + " " + c;
-      var pat = document.createElementNS(NS, "pattern");
-      pat.setAttribute("id", "ocean-swell-" + n + idsuf);
-      pat.setAttribute("width", W);
-      pat.setAttribute("height", H);
-      pat.setAttribute("patternUnits", "userSpaceOnUse");
-      var fill = document.createElementNS(NS, "path");
-      fill.setAttribute("class", "ocean__fill");
-      fill.setAttribute("d", crest + " L" + W + " " + H + " L0 " + H + " Z");
-      pat.appendChild(fill);
-      var line = document.createElementNS(NS, "path");
-      line.setAttribute("class", "ocean__crest ocean__crest--" + n);
-      line.setAttribute("d", crest);
-      pat.appendChild(line);
-      defs.appendChild(pat);
-      // bob (g) and roll (rect) are separate elements so their transform
-      // animations compose instead of overwriting each other.
-      var g = document.createElementNS(NS, "g");
-      g.setAttribute("class", "ocean__bob ocean__bob--" + n);
-      var rect = document.createElementNS(NS, "rect");
-      rect.setAttribute("class", "ocean__roll ocean__roll--" + n);
-      rect.setAttribute("fill", "url(#ocean-swell-" + n + idsuf + ")");
-      g.appendChild(rect);
-      svg.appendChild(g);
+      // bob and roll are separate boxes so their transform animations
+      // compose instead of overwriting each other.
+      var bob = document.createElement("div");
+      bob.className = "ocean__bob ocean__bob--" + n;
+      var roll = document.createElement("div");
+      roll.className = "ocean__roll ocean__roll--" + n;
+      roll.style.setProperty("--swell-tile", W + "px " + H + "px");
+      roll.style.setProperty("--swell-fill",
+        svgMask(W, H, "<path d='" + crest + " L" + W + " " + H + " L0 " + H + " Z'/>"));
+      roll.style.setProperty("--swell-crest",
+        svgMask(W, H, "<path d='" + crest + "' fill='none' stroke='#000' stroke-width='1'/>"));
+      bob.appendChild(roll);
+      sea.appendChild(bob);
     });
-    return svg;
-  }
-  function injectOcean() {
-    if (document.body.querySelector(":scope > .ocean")) return;
-    document.body.insertBefore(buildOcean(""), document.body.firstChild);
+    return sea;
   }
 
-  /* Inject the storm SVG once. It's inert (CSS display:none) unless the
-     active skin opts in via --storm-display (CyberStorm). Two bolts whose
-     geometry + motion are skin tokens; ink is the theme's --title. */
+  /* Aurora: three blobs, one gradient each (Glass's --aurora-* tokens). */
+  function buildAurora() {
+    var sky = layer("aurora");
+    [1, 2, 3].forEach(function (n) {
+      sky.appendChild(document.createElement("div")).className = "aurora__blob aurora__blob--" + n;
+    });
+    return sky;
+  }
+
+  /* Storm: four bolts, two down each edge. A bolt is painted once (glow
+     included) and revealed by a WIPE: the strike box slides down and clips
+     it while the hold box counter-slides, so the bolt itself stays still.
+     Geometry is skin tokens; ink is the theme's --title. */
   function buildStorm() {
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "storm");
-    svg.setAttribute("viewBox", "0 0 100 100");
-    svg.setAttribute("preserveAspectRatio", "none");
-    svg.setAttribute("aria-hidden", "true");
-    ["storm__bolt storm__bolt--1", "storm__bolt storm__bolt--2",
-     "storm__bolt storm__bolt--3", "storm__bolt storm__bolt--4"].forEach(function (cls) {
-      var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("class", cls);
-      p.setAttribute("pathLength", "1");
-      svg.appendChild(p);
+    var NS = "http://www.w3.org/2000/svg";
+    var storm = layer("storm");
+    [1, 2, 3, 4].forEach(function (n) {
+      var strike = storm.appendChild(document.createElement("div"));
+      strike.className = "storm__strike storm__strike--" + n;
+      var hold = strike.appendChild(document.createElement("div"));
+      hold.className = "storm__hold";
+      var svg = hold.appendChild(document.createElementNS(NS, "svg"));
+      svg.setAttribute("class", "storm__svg");
+      svg.setAttribute("viewBox", "0 0 100 100");
+      svg.setAttribute("preserveAspectRatio", "none");
+      svg.appendChild(document.createElementNS(NS, "path")).setAttribute("class", "storm__bolt");
     });
-    return svg;
-  }
-  function injectStorm() {
-    if (document.body.querySelector(":scope > .storm")) return;
-    document.body.insertBefore(buildStorm(), document.body.firstChild);
+    return storm;
   }
 
-  // One source of truth for the appearance axes, shared with home.js's Vibe
-  // panel: the option lists + default logic live only here, and the storm /
-  // ocean SVG builders are reused so the panel's scoped preview draws the
-  // exact same geometry as the page background.
+  /* The loops hold still while the tab is hidden (play-state keeps their
+     place, so they resume without a jump). */
+  function watchVisibility() {
+    var root = document.documentElement;
+    function sync() {
+      if (document.hidden) root.setAttribute("data-ambient", "paused");
+      else root.removeAttribute("data-ambient");
+    }
+    document.addEventListener("visibilitychange", sync);
+    sync();
+  }
+
+  // One source of truth for the appearance axes: the option lists + default
+  // logic live only here.
   window.DeetsAppearance = {
     axes: AXES,
     get: function (name) { return current(AXES[name]); },
     set: function (name, id) { apply(AXES[name], id); },
-    buildStorm: buildStorm,
-    buildOcean: buildOcean,
   };
 
-  function init() { injectOcean(); injectStorm(); buildMenu(); buildNavMenu(); }
+  function init() {
+    inject(buildOcean()); inject(buildAurora()); inject(buildStorm());
+    watchVisibility(); buildMenu(); buildNavMenu();
+  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

@@ -482,9 +482,9 @@
     menu.appendChild(del);
 
     document.body.appendChild(menu);
-    var r = menu.getBoundingClientRect();
-    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + "px";
-    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) + "px";
+    // offset*, not getBoundingClientRect: the pop-in scale would under-measure
+    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - menu.offsetWidth - 8)) + "px";
+    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - menu.offsetHeight - 8)) + "px";
     menuEl = menu;
     var first = $(".tb-pop__opt", menu);
     if (first) first.focus({ preventScroll: true });

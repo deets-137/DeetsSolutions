@@ -1407,7 +1407,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .radio-who__input:hover,
 .radio-who__input:focus { border-bottom-color: var(--title); outline: none; }
 .radio-who__input::placeholder { color: var(--subtext); opacity: 0.7; }
-.radio-who__pop { max-height: 20rem; overflow-y: auto; right: auto; left: 0; }
+.radio-who__pop { max-height: 20rem; overflow-y: auto; right: auto; left: 0; --pop-origin: top left; }
 .radio-who__group {
   color: var(--subtext);
   font-size: 0.7rem;
@@ -2001,7 +2001,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .radio-tile--artist .radio-tile__name { text-align: center; max-width: 100%; }
 
 /* Context menu — the popover kit, unanchored (fixed at the pointer). */
-.radio-menu { position: fixed; top: 0; left: 0; right: auto; z-index: 40; }
+.radio-menu { position: fixed; top: 0; left: 0; right: auto; z-index: 40; --pop-origin: top left; }
 
 /* Toolbar popover bits */
 .radio-connect__blurb {
@@ -3310,7 +3310,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dm-board__tools .tb-pop { left: 0; right: auto; }
+.dm-board__tools .tb-pop { left: 0; right: auto; --pop-origin: top left; }
 .dm-board__tools .tb-pop--filter > .filter-group:first-child { border-top: 0; }
 .dm-add {
   display: grid;
@@ -3448,7 +3448,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 /* Owner mode (deetsmusic.js): the right-click menu is the tb- kit's
    popover, fixed at the pointer (radio-menu's placement). A post hidden
    from the public board shows to the owner on a dashed keyline. */
-.dm-menu { position: fixed; top: 0; left: 0; right: auto; z-index: 40; }
+.dm-menu { position: fixed; top: 0; left: 0; right: auto; z-index: 40; --pop-origin: top left; }
 .dm-menu__sep { height: 1px; margin-block: var(--space-1); background: var(--border); }
 .dm-menu__danger { color: var(--stop); }
 .dm-post.is-hidden-post { border-style: dashed; background: var(--canvas); }
@@ -3493,6 +3493,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-version__pop {
   left: 0;
   right: auto;
+  --pop-origin: top left;
   max-height: 16rem;
   overflow-y: auto;
   scrollbar-width: thin;

@@ -78,15 +78,13 @@ body {
 }
 
 /* ── Canvas texture layer ───────────────────────────────────────
-   The skin's wallpaper (Press halftone / Ocean waves / Glass aurora /
-   CyberStorm grid) painted on a VIEWPORT-fixed layer behind the
-   content — same idea as the storm layer below. It lives here, not
-   as a body background, so its size resolves against one screen: on
-   a body background, 100% is the whole scroll height, so Glass's
-   no-repeat aurora would sit only at the very top and bottom of a
-   long page with a flat-dark middle. Fixed also dodges the per-scroll
+   The skin's STILL wallpaper (Press halftone / Retro-Future grid)
+   painted on a VIEWPORT-fixed layer behind the content. It lives here,
+   not as a body background, so its size resolves against one screen
+   rather than the whole scroll height. Fixed also dodges the per-scroll
    repaint cost of background-attachment: fixed. Color is still a theme
-   role via --canvas-bg; geometry + motion are skin tokens. */
+   role via --canvas-bg; geometry is a skin token. Moving canvases draw
+   on the ambient layers below instead. */
 body::before {
   content: "";
   position: fixed;
@@ -96,68 +94,112 @@ body::before {
   background-image:  var(--canvas-bg);
   background-size:   var(--canvas-bg-size);
   background-repeat: var(--canvas-bg-repeat);
-  animation: var(--canvas-anim);
 }
 
-/* ── Ocean layer (injected by controls.js) ──────────────────────
-   Three seamless SVG wave trains behind the content; inert unless a
-   skin opts in via --ocean-display (Ocean). Tile geometry lives in
-   controls.js; ink/fill are theme roles via skin tokens; the roll and
-   bob motion (keyframes in skin.css) reads per-layer distances from
-   the --roll-dist / --bob-amp custom properties set here. */
-.ocean {
-  display: var(--ocean-display, none);
+/* ── Ambient layers (injected by controls.js) ───────────────────
+   Ocean swell / Glass aurora / Retro-Future storm, each inert unless a
+   skin opts in via its --*-display token. Only transform + opacity
+   animate, so the compositor moves rasterized boxes and an idle layer
+   costs no main-thread paint. Loops are stepped at --ambient-fps (see
+   the @supports block below), pause while the tab is hidden, and yield
+   to prefers-reduced-motion. Ported from DeetsMusic e931c8c. */
+.ocean,
+.aurora,
+.storm {
   position: fixed;
   inset: 0;
-  /* explicit: an <svg> is a replaced element, so inset alone leaves it
-     at its 300×150 intrinsic default instead of stretching it */
-  width: 100%;
-  height: 100%;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
 }
-/* Oversized and left-shifted so a full roll cycle (≤144px) never drags
-   the rect's edge into view; the pattern just tiles across the slack. */
+
+/* Ocean — the roll and bob keyframes (skin.css) read per-layer distances
+   from --roll-dist / --bob-amp, set here. */
+.ocean { display: var(--ocean-display, none); }
+.ocean__bob {
+  position: absolute;
+  inset: 0;
+  animation: ocean-bob 9s linear infinite alternate;   /* the ease is sampled into the keyframes */
+  will-change: transform;
+}
+/* Oversized and left-shifted so a full roll cycle (≤144px) never drags the
+   box's own edge into view; the tiles just repeat across the slack. */
 .ocean__roll {
-  x: -160px;
-  y: -8px;
+  position: absolute;
+  left: -160px;
+  top: -8px;
   width: calc(100% + 320px);
   height: calc(100% + 16px);
   animation: ocean-roll 16s linear infinite;
+  will-change: transform;
 }
-.ocean__bob  { animation: ocean-bob 9s ease-in-out infinite alternate; }
-.ocean__fill { fill: var(--canvas); }
-.ocean__crest {
-  fill: none;
-  stroke-width: 1px;
+/* Fill and crest are two masked pseudo-boxes (a mask on the roll itself
+   would also clip the crest to the fill shape). The tile masks come from
+   controls.js; the mask origin offsets the roll's own shift, so the tile
+   grid starts at the viewport corner. */
+.ocean__roll::before,
+.ocean__roll::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  mask-size: var(--swell-tile);
+  mask-repeat: repeat;
+  mask-position: 160px 8px;
 }
-.ocean__crest--1 { stroke: var(--ocean-ink-1); }
-.ocean__crest--2 { stroke: var(--ocean-ink-2); }
-.ocean__crest--3 { stroke: var(--ocean-ink-3); }
+.ocean__roll::before { background: var(--canvas);    mask-image: var(--swell-fill); }
+.ocean__roll::after  { background: var(--swell-ink); mask-image: var(--swell-crest); }
 /* Roll: each train drifts an INTEGER number of its own tile width per
    16s loop (144=3×48, 128=2×64, 80=1×80) so the wrap is invisible, the
    nearest moving fastest. Bob: amplitudes shrink with distance; the
    middle train is counter-phase (negative) so the sea breathes rather
    than pumps. 9s·2 vs 16s never sync (LCM 144s). */
-.ocean__roll--1 { --roll-dist: 144px; }
-.ocean__roll--2 { --roll-dist: 128px; }
-.ocean__roll--3 { --roll-dist:  80px; }
+.ocean__roll--1 { --roll-dist: 144px; --swell-ink: var(--ocean-ink-1); }
+.ocean__roll--2 { --roll-dist: 128px; --swell-ink: var(--ocean-ink-2); }
+.ocean__roll--3 { --roll-dist:  80px; --swell-ink: var(--ocean-ink-3); }
 .ocean__bob--1  { --bob-amp:  3px; }
 .ocean__bob--2  { --bob-amp: -2px; }
 .ocean__bob--3  { --bob-amp:  1px; }
 
-/* ── Storm layer (injected by controls.js) ──────────────────────
-   Decorative strokes drawn BEHIND the content; inert unless a skin
-   opts in via --storm-display (CyberStorm). Ink is a theme role. */
-.storm {
-  display: var(--storm-display);
-  position: fixed;
+/* Aurora — each blob is oversized by --aurora-slack on every side so the
+   drift never drags a gradient's cut edge into view. */
+.aurora { display: var(--aurora-display, none); }
+.aurora__blob {
+  position: absolute;
+  inset: calc(-1 * var(--aurora-slack));
+  background-repeat: no-repeat;
+  animation: aurora-drift var(--aurora-dur) linear infinite;   /* ease sampled into the keyframes */
+  will-change: transform;
+}
+.aurora__blob--1 { background-image: var(--aurora-1); --drift-x: var(--aurora-drift-1-x); --drift-y: var(--aurora-drift-1-y); }
+.aurora__blob--2 { background-image: var(--aurora-2); --drift-x: var(--aurora-drift-2-x); --drift-y: var(--aurora-drift-2-y); }
+.aurora__blob--3 { background-image: var(--aurora-3); --drift-x: var(--aurora-drift-3-x); --drift-y: var(--aurora-drift-3-y); }
+
+/* Storm — a WIPE, not a stroke draw: the bolt (glow included) is painted
+   once; the strike box slides down and clips it while the hold box
+   counter-slides by the same amount, so the bolt stays still. Both run
+   one cycle and delay, so they stay locked. (A dashoffset draw under a
+   drop-shadow re-rendered the glow every frame.) */
+.storm { display: var(--storm-display); }
+.storm__strike,
+.storm__hold {
+  position: absolute;
   inset: 0;
-  z-index: 0;
-  pointer-events: none;
+  will-change: transform;
+}
+.storm__strike {
+  overflow: hidden;
+  opacity: 0;               /* dark unless the animation says otherwise */
+  animation: storm-strike var(--strike-cycle) linear infinite var(--strike-delay);
+}
+.storm__hold { animation: storm-hold var(--strike-cycle) linear infinite var(--strike-delay); }
+.storm__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 .storm__bolt {
+  d: var(--strike-path);
   fill: none;
   stroke: var(--storm-ink);
   stroke-width: var(--storm-w);
@@ -165,21 +207,42 @@ body::before {
   stroke-linejoin: round;
   filter: var(--storm-glow);
   vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  opacity: 0;
   /* Position transforms resolve in viewBox user units (0–100 across the
      screen), origin top-left — so translateX(N) lands at N% of the width
      regardless of viewport size. Right-edge bolts scaleX(-1) to mirror. */
+  transform: var(--strike-at);
   transform-box: view-box;
   transform-origin: 0 0;
 }
 /* Two bolts down the LEFT edge, two mirrored down the RIGHT edge. Unequal
    cycles + staggered delays keep the four strikes from ever syncing. */
-.storm__bolt--1 { d: var(--storm-path-1); transform: translateX(10px);              animation: storm-strike var(--storm-cycle-1) linear infinite; }
-.storm__bolt--2 { d: var(--storm-path-2); transform: translateX(2px);               animation: storm-strike var(--storm-cycle-2) linear infinite 1.4s; }
-.storm__bolt--3 { d: var(--storm-path-1); transform: translateX(90px) scaleX(-1);   animation: storm-strike var(--storm-cycle-2) linear infinite 4s; }
-.storm__bolt--4 { d: var(--storm-path-2); transform: translateX(98px) scaleX(-1);   animation: storm-strike var(--storm-cycle-1) linear infinite 6.5s; }
+.storm__strike--1 { --strike-cycle: var(--storm-cycle-1); --strike-path: var(--storm-path-1); --strike-at: translateX(10px);            --strike-delay: 0s; }
+.storm__strike--2 { --strike-cycle: var(--storm-cycle-2); --strike-path: var(--storm-path-2); --strike-at: translateX(2px);             --strike-delay: 1.4s; }
+.storm__strike--3 { --strike-cycle: var(--storm-cycle-2); --strike-path: var(--storm-path-1); --strike-at: translateX(90px) scaleX(-1); --strike-delay: 4s; }
+.storm__strike--4 { --strike-cycle: var(--storm-cycle-1); --strike-path: var(--storm-path-2); --strike-at: translateX(98px) scaleX(-1); --strike-delay: 6.5s; }
+
+/* Stepped at --ambient-fps: one step per frame at that rate, per keyframe
+   segment (ocean-bob has 5, aurora-drift 10; the storm wipe is its 0→60%
+   segment). A browser without round() / unit division runs them smooth. */
+@supports (animation-timing-function: steps(round(1s * 30 / 1s))) {
+  .ocean__bob    { animation-timing-function: steps(round(9 * var(--ambient-fps) / 5)); }
+  .ocean__roll   { animation-timing-function: steps(round(16 * var(--ambient-fps))); }
+  .aurora__blob  { animation-timing-function: steps(round(var(--aurora-dur) * var(--ambient-fps) / 10 / 1s)); }
+  .storm__strike,
+  .storm__hold   { animation-timing-function: steps(round(var(--strike-cycle) * 0.6 * var(--ambient-fps) / 1s)); }
+}
+
+/* Hidden tab (controls.js): hold still, keep position. */
+:root[data-ambient="paused"] :is(.ocean__bob, .ocean__roll, .aurora__blob, .storm__strike, .storm__hold) {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora__blob { animation: none; }           /* freeze the Glass aurora */
+  /* Ocean stays VISIBLE, just still: a motionless sea is still a sea. */
+  .ocean__roll, .ocean__bob { animation: none; }
+  .storm { display: none; }                    /* a frozen half-drawn bolt reads as a bug */
+}
 
 /* ── Sprite walkers (spawned by walkers.js) ─────────────────────
    Deets and Happy from the DeetsLife game, occasionally strolling across
@@ -384,17 +447,21 @@ body::before {
   flex-direction: column;
   /* Hidden but kept in-flow + focusable so :focus-within can reveal it;
      pointer-events:none keeps the invisible panel from grabbing hover. */
+  /* Pops like every other floating panel (see "Pop" below), but on
+     :hover / :focus-within rather than [hidden]. */
   opacity: 0;
   pointer-events: none;
-  transform: translateY(calc(-1 * var(--space-1)));
-  transition: opacity var(--dur-fast) var(--ease-ui),
-              transform var(--dur-fast) var(--ease-ui);
+  transform-origin: top left;
+  transform: translateY(calc(-1 * var(--pop-shift))) scale(var(--pop-scale));
+  transition: opacity var(--pop-out) var(--pop-ease),
+              transform var(--pop-out) var(--pop-ease);
 }
 .nav-group:hover .nav-group__menu,
 .nav-group:focus-within .nav-group__menu {
   opacity: 1;
   pointer-events: auto;
   transform: none;
+  transition-duration: var(--pop-in);
 }
 .nav-group__menu a {
   padding: var(--space-2) var(--space-3);
@@ -576,8 +643,29 @@ body::before {
   flex-direction: column;
   gap: var(--space-1);
   z-index: 30;
+  /* Pop twin, keyed on the group's .is-open class instead of [hidden]
+     (see "Pop" below). Grows from its top right, the corner nearest the menu. */
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: top right;
+  transform: translateY(calc(-1 * var(--pop-shift))) scale(var(--pop-scale));
+  transition: opacity var(--pop-out) var(--pop-ease),
+              transform var(--pop-out) var(--pop-ease),
+              display var(--pop-out) allow-discrete;
 }
-.menu__group.is-open .flyout { display: flex; }
+.menu__group.is-open .flyout {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition-duration: var(--pop-in);
+}
+@starting-style {
+  .menu__group.is-open .flyout {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--pop-shift))) scale(var(--pop-scale));
+  }
+}
 
 /* Each chip carries its own data-theme / data-skin, so the tokens resolve
    to THAT choice — a theme chip tastes the color, a skin chip tastes the
@@ -815,6 +903,43 @@ body::before {
   letter-spacing: 0.04em;
 }
 
+/* ── Pop: floating panels arrive and leave ──────────────────────
+   DeetsMusic's pop motion, keyed on the classes the panels already carry
+   (so the journal kits and games need no markup change). The `hidden`
+   attribute drives it: @starting-style animates the arrival, and display
+   allow-discrete keeps the panel painted through the fade out. A panel
+   grows from the corner it hangs from, --pop-origin (default top right;
+   left-anchored panels set top left). A browser without @starting-style
+   just toggles instantly. .flyout and .nav-group__menu are twins keyed on
+   a class / :hover instead of [hidden] (above). Lives after every panel's
+   own rule so nothing later resets the transition. */
+:is(.menu, .nav-menu, .tb-pop) {
+  --pop-from: translateY(calc(-1 * var(--pop-shift))) scale(var(--pop-scale));
+  transform-origin: var(--pop-origin, top right);
+  transition: opacity var(--pop-in) var(--pop-ease),
+              transform var(--pop-in) var(--pop-ease),
+              display var(--pop-in) allow-discrete;
+}
+.nav-menu { --pop-origin: top left; }
+:is(.menu, .nav-menu, .tb-pop)[hidden] {
+  display: none;
+  opacity: 0;
+  transform: var(--pop-from);
+  pointer-events: none;
+  transition-duration: var(--pop-out);
+}
+@starting-style {
+  :is(.menu, .nav-menu, .tb-pop):not([hidden]) { opacity: 0; transform: var(--pop-from); }
+}
+/* A row sliding in: set --pop-i on each (capped at 12 by the caller). */
+.pop-enter { animation: pop-row-in var(--pop-in) var(--pop-ease) calc(var(--pop-i, 0) * var(--pop-stagger)) both; }
+@keyframes pop-row-in { from { opacity: 0; transform: translateY(calc(-1 * var(--pop-shift))); } }
+@media (prefers-reduced-motion: reduce) {
+  :is(.menu, .nav-menu, .tb-pop, .flyout, .nav-group__menu) { transition: none; }
+  .nav-group__menu { transform: none; }        /* no slide, just appear */
+  .pop-enter { animation: none; }
+}
+
 /* ── Toasts — shared chrome (js/toast.js; docs/ui.md) ───────────
    A fixed top-right host under the header; toasts fly in from the
    right, newest on top. Severity wears the theme's traffic-light
@@ -976,9 +1101,14 @@ body::before {
 }
 
 
-/* Focus ring — keyboard users */
+/* Focus ring — keyboard users. Text inputs get none: their own border
+   shows focus (DeetsMusic's "the hairline is the box"). */
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+[role="switch"]:focus-visible,
+[role="slider"]:focus-visible {
   outline: var(--focus-ring-w) solid var(--title);
   outline-offset: var(--focus-ring-off);
 }
