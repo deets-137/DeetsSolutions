@@ -443,9 +443,14 @@ with, not choices about it:
   remote `notice` links here.
 - **The installer comes straight from R2 through the worker:**
   `music-api.deets.solutions/update/deetsmusic/file/DeetsMusic_<v>_x64-setup.exe`.
-  A browser download carries the web mark, so SmartScreen warns (More
-  info › Run anyway) — the release notes already say so. Updates after
-  that install silently.
+  A browser download carries the web mark, so SmartScreen checks it.
+  Installers up to 0.4.3 are unsigned and it warns (More info › Run
+  anyway). From the first release after 0.4.3 they are Authenticode-signed
+  by Aditya Sundaram (DeetsMusic RELEASE.md §6.9), so the prompt names the
+  publisher; it may still warn until download reputation builds. The
+  `installSmartScreen` string in `deetsmusic/strings.js` still says "not
+  code-signed yet" and needs Aditya's new wording when that release ships.
+  Updates install silently either way.
 - **Releases come from `GET music-api.…/update/deetsmusic/releases`**
   (built and deployed 2026-09-14; shape in DeetsMusic RELEASE.md §6.2).
   `/update/<channel>` only answers "is there something newer than `?v=`"
