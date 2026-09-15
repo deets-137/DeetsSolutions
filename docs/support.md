@@ -332,7 +332,7 @@ with it).
 
 ---
 
-## Threads — planned 2026-09-15, not built
+## Threads — planned 2026-09-15; step 1 built, steps 2–4 not
 
 Aditya's call, 2026-09-15: clicking a card on Suggestions or Known issues
 opens that post's own page, and it works like a forum — signed-in people
@@ -340,9 +340,12 @@ leave thoughts under it. **Build is set for the evening of 2026-09-15.**
 Layout and every string on the thread page are his; Claude adds `[ph]`
 placeholders only.
 
-### The leak this has to fix first (live today)
+### The leak this had to fix first
 
-A post's `code` is its credential, but the public lists hand it out:
+**Closed in code 2026-09-15 (step 1). Still live until the migration runs and
+the worker is deployed** — see "Shipping step 1" below.
+
+A post's `code` is its credential, but the public lists handed it out:
 `PUBLIC_COLS` (DeetsSupport `src/index.js`) starts with `code`, and both
 `GET /posts` and the mock's `pub()` return it. So anyone with devtools can,
 for any **public** post:
@@ -443,6 +446,7 @@ matching handlers in `mock.js` so `?mock` speaks the same shapes.
 
 1. **The id split** — `pid` column + backfill, public lists send `pid` not
    `code`, ▲ by `pid`, mock mirrored. Ships alone: it closes the leak.
+   **BUILT 2026-09-15**, not yet deployed.
 2. **Thread page, read-only** — card click → `#p=<pid>`, `GET /p/<pid>`.
 3. **Signed-in comments** — the route, the storage, name + colour snapshot,
    owner mark.
@@ -450,6 +454,33 @@ matching handlers in `mock.js` so `?mock` speaks the same shapes.
 
 Each worker step: deploy, then the mint-host smoke from "Decisions already
 made".
+
+### Shipping step 1
+
+Order matters, and it is the reverse of what you would guess:
+
+1. **The migration first.** `npx wrangler d1 execute deets-support --remote
+   --file=migrations/2026-09-15-pid.sql`. The deployed code inserts into `pid`
+   and selects it; without the column every post and every ▲ answers 500.
+2. **Then the worker** (`npx wrangler deploy`), then the mint-host smoke.
+3. **Then the site**, a minute later. `GET /posts` sits in a 60 s edge cache,
+   so for up to a minute after the deploy a colo can still serve the old shape
+   — posts with a `code` and no `pid`. The new page would render those with
+   `data-pid="undefined"` and its ▲ would 404 until the cache turned over.
+   Waiting a minute costs nothing; the old page in the meantime is the page
+   that is already live.
+
+The transition is one-way on purpose. `POST /interest` still honours a body
+carrying `code`, so a tab opened before the deploy keeps voting until it
+reloads; nothing else does. `deets-dm-interest` in `localStorage` held codes
+and now holds pids, so everyone's first ▲ after the split is free. That is the
+"accept one reset" branch of the plan: the migration cannot be written, because
+the page no longer learns the code of a post it did not send.
+
+Every code that has sat on a public board since 2026-09-11 should be treated as
+known. What that bought was always bounded — close the post, reply on it as its
+reporter, read the `meta` its reporter sent — and whether any of it happened is
+not recorded either way; the boards keep no access log.
 
 ---
 
@@ -674,8 +705,9 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
 
 ## Open
 
-- **Public lists leak each post's `code`** (found 2026-09-15). Fix is step 1
-  of "Threads".
+- **Public lists leak each post's `code`** (found 2026-09-15). Fixed in code
+  the same day (step 1 of "Threads"); **live until the migration runs and the
+  worker is deployed** — "Shipping step 1".
 - **Apple in status.** The cron could mint its own token and send one
   cheap catalog request to `api.music.apple.com`. That is a use of the
   developer token beyond serving installs — Aditya's read under the D.7

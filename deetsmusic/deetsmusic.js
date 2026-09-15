@@ -13,7 +13,10 @@
 
    Two rules from support.md this file keeps:
    - A ticket code is a credential. It rides the URL FRAGMENT (#t=<code>),
-     never the query, so it never reaches a server log or a Referer.
+     never the query, so it never reaches a server log or a Referer. A board
+     never carries one: a public post arrives with its `pid` instead, which
+     reads and votes and nothing more (support.md, "Threads"). Only "Your
+     posts", a #t= page and the owner's list hold codes.
    - Everything a person typed is rendered as text, never as HTML. Release
      notes are a markdown subset (paragraphs, **bold**, absolute links),
      built node by node. */
@@ -36,7 +39,10 @@
   var MOCK = window.DM_MOCK || null;
 
   var LS_MINE = "deets-dm-mine";          // [{ code, kind, title, at }] — this browser's posts
-  var LS_INTEREST = "deets-dm-interest";  // [code] — posts (suggestions or issues) this browser +1'd
+  // [pid] — posts (suggestions or issues) this browser +1'd. Held codes before
+  // the id split (2026-09-15); those entries just go stale, so the first ▲ after
+  // it is free. A signal, not a ballot — see interestButton.
+  var LS_INTEREST = "deets-dm-interest";
   var JWT_SHAPE = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/;   // mirrors the worker's second net
   var TITLE_MAX = 120, BODY_MAX = 4000;
   var TITLE_WORDS = 10;   // "Bug / Request in 10 words" — the worker enforces it too
@@ -473,7 +479,7 @@
   // status, hide/show, reply, delete. The worker decides who the owner is;
   // this page only asks (GET /admin/me) and never trusts itself.
   var OWNER = false;
-  var POSTS = {};   // code → the post as last rendered, for the menu
+  var POSTS = {};   // pid → the post as last rendered, for the menu
   var STATE_LIST = ["new", "open", "planned", "fixed", "wontfix", "closed"];
 
   function ownerApi(method, path, body) { return api("support", method, path, body, { owner: true }); }
@@ -528,6 +534,7 @@
     menu.appendChild(menuOpt(s(p.public === false ? "menuShow" : "menuHide"), function () {
       ownerAct(p, "PATCH", { public: p.public === false });
     }));
+    // The owner's list is the one board response that still carries codes.
     menu.appendChild(menuOpt(s("menuReply"), function () { closeMenu(); location.hash = "t=" + p.code; }));
     // Delete is two clicks: the first arms it and says so.
     var del = menuOpt(s("menuDelete"));
@@ -562,7 +569,7 @@
       list.addEventListener("contextmenu", function (e) {
         if (!OWNER) return;
         var item = e.target.closest(".dm-post");
-        var p = item && POSTS[item.getAttribute("data-code")];
+        var p = item && POSTS[item.getAttribute("data-pid")];
         if (!p) return;
         e.preventDefault();
         openMenu(p, e.clientX, e.clientY);
@@ -842,8 +849,8 @@
 
   function renderPost(p) {
     var item = el("article", "dm-post");
-    item.setAttribute("data-code", p.code);
-    POSTS[p.code] = p;
+    item.setAttribute("data-pid", p.pid);
+    POSTS[p.pid] = p;
     item.appendChild(interestButton(p));
 
     var main = el("div", "dm-post__main");
@@ -913,7 +920,7 @@
   }
 
   // Interest is a signal, not a vote (support.md): the worker counts every
-  // +1, so this browser's list of codes is what stops a double-click. On a
+  // +1, so this browser's list of pids is what stops a double-click. On a
   // suggestion it reads as "I want this"; on an issue, "this affects me too".
   // Clicking it again takes the +1 back (undo: true).
   function interestButton(p) {
@@ -925,7 +932,7 @@
     var n = el("span", "dm-interest__n", String(p.interest));
     b.appendChild(arrow);
     b.appendChild(n);
-    var done = readJSON(LS_INTEREST, []).indexOf(p.code) >= 0;
+    var done = readJSON(LS_INTEREST, []).indexOf(p.pid) >= 0;
 
     function paint() {
       b.classList.toggle("is-done", done);
@@ -939,12 +946,12 @@
       if (b.disabled) return;
       b.disabled = true;
       var undo = done;
-      api("support", "POST", "/interest", undo ? { code: p.code, undo: true } : { code: p.code }).then(function (res) {
+      api("support", "POST", "/interest", undo ? { pid: p.pid, undo: true } : { pid: p.pid }).then(function (res) {
         b.disabled = false;
         if (!res.ok) { toast("error", errText(res)); return; }
         done = !undo;
-        var list = readJSON(LS_INTEREST, []).filter(function (c) { return c !== p.code; });
-        if (done) list.push(p.code);
+        var list = readJSON(LS_INTEREST, []).filter(function (c) { return c !== p.pid; });
+        if (done) list.push(p.pid);
         writeJSON(LS_INTEREST, list.slice(-500));
         if (res.data && res.data.interest != null) {
           n.textContent = String(res.data.interest);

@@ -98,7 +98,7 @@
 
   function post(code, kind, state, pub, title, body, interest, ageDays) {
     var t = NOW - Math.round(ageDays * DAY);
-    return { code: code, app: "deetsmusic", kind: kind, state: state, public: pub ? 1 : 0,
+    return { code: code, pid: null, app: "deetsmusic", kind: kind, state: state, public: pub ? 1 : 0,
              source: "web", title: title, body: body, meta: null, interest: interest,
              created_at: t, updated_at: t };
   }
@@ -130,6 +130,9 @@
       lobster.meta = JSON.stringify({ version: "0.4.3" });
       posts.push(lobster);
     }
+    // The public id (support.md, "Threads"). Fixed here, random on the worker,
+    // so a #p= link into the mock survives a reload.
+    posts.forEach(function (x, i) { x.pid = "mockpid" + String(100000001 + i); });
     var replies = MODE === "empty" ? [] : [
       { id: 1, code: "mockticket000001", author: "owner", created_at: NOW - 20 * HOUR,
         body: "[mock] Thanks. Does it still happen on 0.4.3? The sign-in page changed in 0.4.0." },
@@ -147,7 +150,10 @@
   var db = (function () {
     try {
       var d = JSON.parse(sessionStorage.getItem(KEY));
-      if (d && d.mode === MODE && Array.isArray(d.posts)) return d;
+      if (d && d.mode === MODE && Array.isArray(d.posts)) {
+        d.posts.forEach(function (x) { if (!x.pid) x.pid = code16(); });   // a db saved before the id split
+        return d;
+      }
     } catch (e) {}
     return seed();
   })();
@@ -183,7 +189,8 @@
   function pub(p) {
     var version = null;   // the worker's json_extract(meta, '$.version'), invalid JSON → null
     try { var mv = p.meta && JSON.parse(p.meta); if (mv && mv.version != null) version = mv.version; } catch (e) {}
-    return { code: p.code, app: p.app, kind: p.kind, state: p.state, title: p.title, body: p.body,
+    // pid, never code — the worker's PUBLIC_COLS, verbatim in what it omits.
+    return { pid: p.pid, app: p.app, kind: p.kind, state: p.state, title: p.title, body: p.body,
              interest: p.interest, created_at: p.created_at, updated_at: p.updated_at, version: version };
   }
   function res(status, data) { return { ok: status >= 200 && status < 300, status: status, data: data }; }
@@ -241,7 +248,7 @@
         var akind = u.searchParams.get("kind");
         return res(200, { posts: db.posts.filter(function (x) { return !akind || x.kind === akind; })
           .sort(function (a, b) { return b.interest - a.interest || b.created_at - a.created_at; })
-          .map(function (x) { var o = pub(x); o.public = !!x.public; return o; }) });
+          .map(function (x) { var o = pub(x); o.public = !!x.public; o.code = x.code; return o; }) });
       }
       var am = /^\/admin\/posts\/([A-Za-z0-9_-]{8,32})(\/replies)?$/.exec(p);
       var ap = am && db.posts.filter(function (x) { return x.code === am[1]; })[0];
@@ -278,6 +285,7 @@
       // A preview, not the worker: every post you send here goes straight
       // onto its board, so how a new post reads can be judged at once.
       var np = post(code16(), body.kind, "new", true, title, text, 0, 0);
+      np.pid = code16();
       np.meta = body.meta == null ? null : (typeof body.meta === "string" ? body.meta : JSON.stringify(body.meta));
       db.posts.push(np); save();
       return res(201, { code: np.code });
@@ -297,6 +305,7 @@
       if (!found) return res(404, { error: "ticket" });
       if (!m[2] && method === "GET") {
         var full = pub(found);
+        full.code = found.code;   // you already hold it — /t/<code> is how you got here
         full.public = !!found.public; full.source = found.source; full.meta = found.meta;
         return res(200, { post: full, replies: db.replies.filter(function (r) { return r.code === found.code; }) });
       }
@@ -310,7 +319,8 @@
     }
 
     if (p === "/interest" && method === "POST") {
-      var s = db.posts.filter(function (x) { return x.code === body.code && x.public; })[0];
+      var id = body.pid || body.code;   // the worker honours a pre-split body too
+      var s = db.posts.filter(function (x) { return (x.pid === id || x.code === id) && x.public; })[0];
       if (!s) return res(404, { error: "ticket" });
       if (body.undo === true) s.interest = Math.max(0, s.interest - 1); else s.interest++;
       save();
