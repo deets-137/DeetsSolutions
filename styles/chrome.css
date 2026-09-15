@@ -624,6 +624,47 @@ body::before {
 .menu__group.is-open > .menu__row { background: var(--surface-hover); }
 .menu__chev { color: var(--subtext); }
 
+/* Top row: sun | moon, one click to each default look (controls.js
+   buildLooks). Two equal halves split by a hairline; the half whose look is
+   showing takes the title ink. */
+.menu__looks {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: var(--space-1);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.menu__looks-rule {
+  flex: none;
+  width: 1px;
+  margin-block: var(--space-1);
+  background: var(--border);
+}
+.menu__look {
+  flex: 1 1 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui);
+}
+.menu__look:hover { background: var(--surface-hover); color: var(--title); }
+.menu__look[aria-pressed="true"] { color: var(--title); }
+.menu__look-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Flyout opens to the LEFT of the menu (which hugs the right edge, under the
    right-aligned Vibe button), toggled by CLASS on click — no hover targets. */
 .flyout {
@@ -1093,6 +1134,17 @@ body::before {
 .set__half[aria-pressed="true"] { background: var(--surface-hover); color: var(--title); }
 /* Inset ring: the pill's overflow clip would cut an outside one. */
 .set__half:focus-visible { outline-offset: calc(-1 * var(--focus-ring-w)); }
+
+/* Reset — the panel's last row, under a hairline. A first press arms it
+   ("Sure?"); a second within 3 s resets. */
+.set__row--action {
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+}
+.set__row--action:hover { background: var(--surface-hover); }
+.set__row--action.is-armed { color: var(--stop); }
 
 /* Range: a track + fill + a --title box masked by the skin's
    --scrubber-handle, then the value. --slider-fill is set by controls.js. */

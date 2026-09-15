@@ -59,7 +59,7 @@ Any theme pairs with any skin — 30 combinations, driven entirely by CSS
 tokens. Nothing in the site's styles hardcodes a color or a geometry value.
 
 First visits (no saved choice) follow the OS light/dark preference on both
-axes, landing on Press × Lilac in light or Retro-Future × Black & Red in dark.
+axes, landing on Glass × Lilac in light or Ocean × Moonlight in dark.
 
 ## Structure
 

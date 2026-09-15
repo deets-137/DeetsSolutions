@@ -75,9 +75,11 @@ right gutter (`.flyout__item::after`).
 `apply(axis, id)` sets `data-theme` / `data-skin` on `<html>` and persists to
 `localStorage` under `deets-theme` / `deets-skin`. A saved choice wins;
 otherwise **both** axes follow the OS light/dark preference, landing on one
-of two curated pairs: **Press × Lilac** in light, **Retro-Future × Black &
-Red** in dark. (Screen width no longer enters into it — the old
-Retro-Future-desktop / Ocean-mobile split is gone.)
+of two curated pairs: **Glass × Lilac** in light, **Ocean × Moonlight** in
+dark (his call, 2026-09-15; it was Press × Lilac / Retro-Future × Black &
+Red). Each pair ships tuned: the settings defaults carry his Glass slider
+values and Ocean's sand edges. Settings › Reset to default clears the saved
+theme, skin and settings, so the visitor lands back on these.
 
 A saved choice is resolved through `RETIRED`, a map of retired ids to their
 successor, before it is applied — and `apply()` then writes the successor
@@ -221,6 +223,23 @@ steps 4, 6 and 8). Built by `controls.js`'s `buildSettings()`; styles in `chrome
   (On / Reduced / Off → `data-bg-motion`) · Draw card edges + Sand width (Ocean only) ·
   Canvas glow, Dim canvas, Backlight, Tint cards (Glass only, back to front) · Show notices
   (Everything / Failures, gated in `toast.js`; a sticky toast with actions always shows).
+  Last, under a hairline: **Reset to default** (confirm by re-arming: "Sure?" for 3 s).
+  It writes every `DEFAULTS` value back and clears `deets-theme` / `deets-skin`, so the OS
+  pair applies again under the cover.
+- **Defaults are tuned per first-visit pair** (his call, 2026-09-15): Glass › Canvas glow
+  74, Dim canvas 21, Backlight 65, Tint 26; Ocean › sand edges at 20. `skin.css`'s `var()`
+  fallbacks and the sand selector (`:not([data-ocean-edges="soft"])`) mirror them, so the
+  first frame matches before `controls.js` runs.
+- **Sun / moon row** (his call, 2026-09-15): the Vibe menu's top row, above Theme and
+  Skin, is a sun and a moon split by a hairline. Each is one click to its default look
+  from `LOOK_PAIRS` in `controls.js`: the theme and the skin, plus that skin's own settings
+  back to `DEFAULTS` (Glass's four sliders / Ocean's edges and sand). It is saved like a
+  chip pick and plays the cover. The half whose pair is showing is `aria-pressed`.
+  `LOOK_PAIRS` is also where the OS default (`AXES` `def`) reads the pairs from; the head
+  scripts still carry their own copy. Its two labels are `[ph]`.
+- **An unpicked look is never saved.** Before 2026-09-15 the Vibe menu wrote the OS
+  default into `deets-theme` / `deets-skin` on every load. Visitors from before then are
+  pinned to the old pairs until they pick or reset.
 - **Copy** lives in the `S` table at the top of `controls.js` (shared chrome has no
   `strings.js`). Labels and hints are DeetsMusic's own; the one site-only hint carries
   `[ph]`.

@@ -86,7 +86,7 @@ another `role=menu` ([ui.md](ui.md), "Known constraints").
 | Section | Row | Site notes |
 | --- | --- | --- |
 | Look | **Change look at**: Sunrise and sunset / Set times / System / Off | "Windows mode" becomes `prefers-color-scheme` (live via `matchMedia` change). Sun times come from the time zone (`Intl`), never geolocation, same as DeetsMusic. Port `look-schedule.ts`'s math to plain JS. |
-| Look | **Day look · Night look**: split [theme ▾ \| skin ▾] | Defaults are the current OS pairs: Lilac × Press and Black & Red × Retro-Future. |
+| Look | **Day look · Night look**: split [theme ▾ \| skin ▾] | Defaults are the current OS pairs: Lilac × Glass and Moonlight × Ocean. |
 | Look | **Day runs** (set times only), **Shift sun times** (sun only) | Conditional rows. |
 | Look | **Menu pick lasts**: Until next change / For good | What a Vibe-menu click does while a schedule is on. |
 | Look | **Animate look changes** | The veil → wait → lift cover (section 2). |

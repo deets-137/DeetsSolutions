@@ -299,7 +299,7 @@
    §Ocean sand edges). No glow ring or drop shadow: an outer shadow would
    trace the hard box edge the grains remove. The grain tiles are SVG noise
    thresholded to hard 0/1 alpha, so each grain is a crisp ~1px dot. */
-:root[data-skin="ocean"][data-ocean-edges="sand"] {
+:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) {
   --card:         transparent;
   --shadow-card:  none;
   --sand-fill:    var(--ocean-card);
@@ -307,7 +307,7 @@
      is the default. It maps onto the min…max reach. */
   --sand-reach-min: 4px;
   --sand-reach-max: 40px;
-  --sand-reach:   calc(var(--sand-reach-min) + (var(--sand-reach-max) - var(--sand-reach-min)) * var(--ocean-sand, 15) / 100);
+  --sand-reach:   calc(var(--sand-reach-min) + (var(--sand-reach-max) - var(--sand-reach-min)) * var(--ocean-sand, 20) / 100);
   --sand-ink:     color-mix(in srgb, var(--border) 70%, transparent);
   --sand-tile:    128px 128px;
   --sand-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 1 1 1 1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E");
@@ -366,13 +366,13 @@
 
   /* 1. canvas glow — scales every aurora stop: 50 = the values as written,
      0 = no glow, 100 = double, each stop capped at 100%. */
-  --glass-glow: calc(var(--glass-canvas, 50) / 50);
+  --glass-glow: calc(var(--glass-canvas, 74) / 50);
 
   /* 2. dim canvas — 0–100 maps to a 0–0.9 dim (body::after). The frost sees
      that dim too, so its brightness() multiplies it back out (1 / (1 − dim)):
      only the gaps get darker. The 0.9 cap keeps the ×10 restore inside 8-bit
      precision. */
-  --glass-dim:         calc(var(--glass-canvas-dim, 0) / 100 * 0.9);
+  --glass-dim:         calc(var(--glass-canvas-dim, 21) / 100 * 0.9);
   --canvas-dim:        var(--glass-dim);
   --card-backdrop:     blur(14px) saturate(1.5) brightness(calc(1 / (1 - var(--glass-dim))));
   --card-border-width: 1px;
@@ -381,8 +381,8 @@
      alpha of --surface) over the backlight (a soft glow of the theme's accent
      roles). At tint 0 the backlight shows fully. A faint halo of the same
      light leaks past the edge (the first --shadow-card entry). */
-  --glass-light: calc(var(--glass-backlight, 50) / 100);
-  --glass-tint-ink: color-mix(in srgb, var(--surface) var(--glass-tint, 55%), transparent);
+  --glass-light: calc(var(--glass-backlight, 65) / 100);
+  --glass-tint-ink: color-mix(in srgb, var(--surface) var(--glass-tint, 26%), transparent);
   --card:
     linear-gradient(var(--glass-tint-ink), var(--glass-tint-ink)),
     radial-gradient(140% 100% at 50% 0%,

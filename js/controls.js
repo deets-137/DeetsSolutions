@@ -14,11 +14,11 @@
       attr: "data-theme",
       key: "deets-theme",
       // No saved choice: follow the OS light/dark preference, landing on
-      // Lilac (light) or Black & Red (dark). Both axes read the SAME
+      // Lilac (light) or Moonlight (dark). Both axes read the SAME
       // preference, so a first visit lands on one of two curated pairs —
-      // Press × Lilac or Retro-Future × Black & Red. Kept in sync with the
-      // inline pre-paint script in each page's <head>.
-      def: function () { return prefersDark() ? "black-red" : "lilac"; },
+      // Glass × Lilac or Ocean × Moonlight (his call, 2026-09-15). Kept in
+      // sync with the inline pre-paint script in each page's <head>.
+      def: function () { return osPair().theme; },
       options: [
         { id: "lilac",        label: "Lilac" },
         { id: "green",        label: "Green" },
@@ -32,11 +32,10 @@
       attr: "data-skin",
       key: "deets-skin",
       // No saved choice: the skin follows the OS light/dark preference too —
-      // Press on light (ink on stock wants a light stock), Retro-Future on
-      // dark. Pairs with the theme default above; no longer a screen-width
-      // call. Kept in sync with the inline pre-paint script in each page's
-      // <head>.
-      def: function () { return prefersDark() ? "retro-future" : "press"; },
+      // Glass on light, Ocean on dark (his call, 2026-09-15). Pairs with the
+      // theme default above. Kept in sync with the inline pre-paint script in
+      // each page's <head>.
+      def: function () { return osPair().skin; },
       options: [
         { id: "vanilla",      label: "Vanilla" },
         { id: "press",        label: "Press" },
@@ -83,9 +82,14 @@
     return fallback(axis);
   }
 
-  function apply(axis, id) {
+  // `forget` clears the saved choice instead of writing it, so the axis goes
+  // back to following the OS default (Settings › Reset to default).
+  function apply(axis, id, forget) {
     document.documentElement.setAttribute(axis.attr, id);
-    try { localStorage.setItem(axis.key, id); } catch (e) {}
+    try {
+      if (forget) localStorage.removeItem(axis.key);
+      else localStorage.setItem(axis.key, id);
+    } catch (e) {}
     // Announce the change so any other picker on the page (the Vibe menu, the
     // home Vibe panel) can re-sync its checked state to the new truth.
     document.dispatchEvent(new CustomEvent("deets:appearance", {
@@ -129,7 +133,24 @@
     toastsHint: "Everything: confirmations too. Failures: only when an action couldn't do what it said",
     everything: "Everything",
     failures: "Failures",
+    reset: "Reset to default",   // his words in chat, 2026-09-15
+    sure: "Sure?",               // DeetsMusic's confirm-by-rearming label
+    lightLook: "[ph] Light default look",
+    darkLook: "[ph] Dark default look",
   };
+
+  /* The two first-visit looks (his call, 2026-09-15). The OS light/dark
+     default (AXES) and the Vibe menu's sun / moon row both read this table;
+     the inline pre-paint script in each page's <head> mirrors it. `keys` are
+     the settings that belong to the pair's skin: a sun / moon click puts
+     them back to DEFAULTS, so one click lands exactly on the default look. */
+  var LOOK_PAIRS = [
+    { theme: "lilac", skin: "glass", label: S.lightLook, icon: "sun",
+      keys: ["glassCanvasGlow", "glassCanvasDim", "glassBacklight", "glassTint"] },
+    { theme: "moonlight", skin: "ocean", label: S.darkLook, icon: "moon",
+      keys: ["oceanEdges", "oceanSand"] },
+  ];
+  function osPair() { return LOOK_PAIRS[prefersDark() ? 1 : 0]; }
 
   /* ── Settings store ────────────────────────────────────────────────
      One JSON object under `deets-settings` (DeetsMusic's `deets.settings`
@@ -139,15 +160,19 @@
      from storage. */
   var SETTINGS_KEY = "deets-settings";
   var FOLDS_KEY = "deets-settings-folds";
+  // The site's first-visit look is tuned (his call, 2026-09-15): Glass × Lilac
+  // on light ships with his slider values, Ocean × Moonlight on dark with
+  // sand edges. skin.css's var() fallbacks mirror these, so the first frame
+  // (before this deferred script runs) already matches.
   var DEFAULTS = {
     appearanceMotion: true,    // theme/skin changes play the cover; OS reduced motion still wins
     backgroundMotion: "on",    // ambient layers: on = 30 fps, reduced = 15, off = still (storm hides)
-    oceanEdges: "soft",        // Ocean: "sand" breaks the card edges into grains
-    oceanSand: 15,             // Ocean sand: 0–100 across --sand-reach-min…max
-    glassCanvasGlow: 50,       // Glass, 0–100: aurora strength (50 = as the skin writes it)
-    glassCanvasDim: 0,         // Glass, 0–100: darkens the canvas; the cards undo it
-    glassBacklight: 50,        // Glass, 0–100: the light behind each card
-    glassTint: 55,             // Glass, 0–100: the card color over the backlight
+    oceanEdges: "sand",        // Ocean: "sand" breaks the card edges into grains; "soft" is the glow
+    oceanSand: 20,             // Ocean sand: 0–100 across --sand-reach-min…max
+    glassCanvasGlow: 74,       // Glass, 0–100: aurora strength (50 = as the skin writes it)
+    glassCanvasDim: 21,        // Glass, 0–100: darkens the canvas; the cards undo it
+    glassBacklight: 65,        // Glass, 0–100: the light behind each card
+    glassTint: 26,             // Glass, 0–100: the card color over the backlight
     toasts: "all",             // "failures" = warn + error (+ questions) only
   };
   function readJSON(key) {
@@ -278,7 +303,12 @@
      tastes typeface). Clicking the header toggles the panel. */
   function buildRow(name, axis, groups) {
     var active = current(axis);
-    apply(axis, active);
+    // Only a real pick is (re)written — that keeps RETIRED migrations sticky.
+    // With nothing saved, the OS default applies WITHOUT being saved, so a
+    // visitor who never chose keeps following the default if it changes.
+    var picked = false;
+    try { picked = !!localStorage.getItem(axis.key); } catch (e) {}
+    apply(axis, active, !picked);
 
     var group = document.createElement("div");
     group.className = "menu__group";
@@ -554,6 +584,39 @@
       return node;
     }
 
+    // Reset to default — the last row. A first press arms it ("Sure?"), a
+    // second within 3 s resets: every setting back to DEFAULTS, and the saved
+    // theme and skin cleared so the OS pair (Glass × Lilac / Ocean ×
+    // Moonlight) applies again, under the look-change cover.
+    var armed = false, armTimer = 0;
+    function resetAll() {
+      Object.keys(DEFAULTS).forEach(function (k) { setSetting(k, DEFAULTS[k]); });
+      var skin = fallback(AXES.skin);
+      lookChange(function () {
+        apply(AXES.theme, fallback(AXES.theme), true);
+        apply(AXES.skin, skin, true);
+      }, skin);
+    }
+    function resetEl() {
+      var b = make("button", "set__row set__row--action" + (armed ? " is-armed" : ""));
+      b.type = "button";
+      b.setAttribute("data-focus", "reset");
+      b.appendChild(make("span", "set__label", armed ? S.sure : S.reset));
+      b.addEventListener("click", function () {
+        clearTimeout(armTimer);
+        if (!armed) {
+          armed = true;
+          armTimer = setTimeout(function () { armed = false; if (opened()) render(); }, 3000);
+          render();
+          return;
+        }
+        armed = false;
+        render();
+        resetAll();
+      });
+      return b;
+    }
+
     // Rebuilt on every change (a dozen rows). Focus and scroll stay put.
     function render() {
       var active = document.activeElement;
@@ -567,6 +630,7 @@
         sec.appendChild(headEl(s, rows.length, open, i));
         if (open) rows.forEach(function (r) { sec.appendChild(rowEl(r)); });
       });
+      body.appendChild(resetEl());
       body.scrollTop = top;
       if (focusKey) {
         Array.prototype.some.call(body.querySelectorAll("[data-focus]"), function (n) {
@@ -612,6 +676,54 @@
     return { group: group, request: request };
   }
 
+  /* The Vibe menu's top row: a sun and a moon split by a hairline. Each is
+     one click to its default look (LOOK_PAIRS) — theme, skin, and that skin's
+     tuned settings — saved like a chip pick, under the look-change cover.
+     The half whose pair is showing reads as pressed. */
+  var LOOK_ICONS = {
+    sun: [["circle", { cx: 12, cy: 12, r: 4 }],
+          ["path", { d: "M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" }]],
+    moon: [["path", { d: "M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a6.5 6.5 0 0 0 11 11z" }]],
+  };
+  function buildLooks() {
+    var NS = "http://www.w3.org/2000/svg";
+    var row = make("div", "menu__looks");
+    var buttons = LOOK_PAIRS.map(function (pair, i) {
+      if (i) row.appendChild(make("span", "menu__looks-rule")).setAttribute("aria-hidden", "true");
+      var b = row.appendChild(make("button", "menu__look"));
+      b.type = "button";
+      b.setAttribute("aria-label", pair.label);
+      b.title = pair.label;
+      var svg = b.appendChild(document.createElementNS(NS, "svg"));
+      svg.setAttribute("class", "menu__look-icon");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("aria-hidden", "true");
+      LOOK_ICONS[pair.icon].forEach(function (part) {
+        var node = svg.appendChild(document.createElementNS(NS, part[0]));
+        Object.keys(part[1]).forEach(function (a) { node.setAttribute(a, part[1][a]); });
+      });
+      b.addEventListener("click", function () {
+        lookChange(function () {
+          pair.keys.forEach(function (k) { setSetting(k, DEFAULTS[k]); });
+          apply(AXES.theme, pair.theme);
+          apply(AXES.skin, pair.skin);
+        }, pair.skin);
+      });
+      return b;
+    });
+    function sync() {
+      var root = document.documentElement;
+      buttons.forEach(function (b, i) {
+        var p = LOOK_PAIRS[i];
+        b.setAttribute("aria-pressed", String(
+          root.getAttribute("data-theme") === p.theme && root.getAttribute("data-skin") === p.skin));
+      });
+    }
+    sync();
+    document.addEventListener("deets:appearance", sync);
+    return row;
+  }
+
   function buildMenu() {
     var mount = document.querySelector("[data-settings]");
     if (!mount) return;
@@ -633,6 +745,7 @@
     var skinGroup = buildRow("skin", AXES.skin, groups);
     var settingsPanel = buildSettings(groups);
     groups.push(themeGroup, skinGroup, settingsPanel.group);
+    menu.appendChild(buildLooks());
     menu.appendChild(themeGroup);
     menu.appendChild(skinGroup);
     menu.appendChild(settingsPanel.group);

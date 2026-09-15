@@ -3058,8 +3058,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-notice__label { color: var(--title); font-weight: 600; }
 
 /* ── Ocean sand edges (Settings › Draw card edges: Sand) ─────────
-   Ported from DeetsMusic (styles.css §Sand edges). Under Ocean with
-   data-ocean-edges="sand", every card material box paints nothing
+   Ported from DeetsMusic (styles.css §Sand edges). Under Ocean with sand edges (the default; anything but
+   data-ocean-edges="soft"), every card material box paints nothing
    (skin.css sets --card: transparent) and two static layers under its
    content draw the card instead:
    ::before — the card fill (--sand-fill). Mask layers bottom up: the x and
@@ -3069,11 +3069,11 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
    ::after — light sand specks (--sand-ink) in the rim band only.
    The grain tiles and reach are skin tokens. z-index −1 puts the layers
    under the card's content; nothing here animates. */
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice) {
+:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice) {
   position: relative;
 }
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before,
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
+:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before,
+:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -3082,7 +3082,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   pointer-events: none;
   --sand-core: calc(100% - 2 * var(--sand-reach)) calc(100% - 2 * var(--sand-reach));
 }
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before {
+:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before {
   background: var(--sand-fill);
   mask-image:
     linear-gradient(#000 0 0),
@@ -3094,7 +3094,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   mask-repeat: no-repeat, repeat, no-repeat, no-repeat;
   mask-composite: add, intersect, intersect, add;
 }
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
+:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
   background: var(--sand-ink);
   mask-image: var(--sand-speck), linear-gradient(#000 0 0), linear-gradient(#000 0 0);
   mask-size: var(--sand-tile), 100% 100%, var(--sand-core);

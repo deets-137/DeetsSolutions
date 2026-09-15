@@ -19,7 +19,7 @@
     <!-- Resolve theme + skin before CSS paints, to avoid a flash of the
          wrong look. Saved choice wins, with retired ids remapped to their
          successor; otherwise BOTH axes follow the OS light/dark preference,
-         landing on Press × Lilac or Retro-Future × Black & Red. This is the
+         landing on Glass × Lilac or Ocean × Moonlight. This is the
          only page that spells it out; mirrors controls.js. -->
     <script>
       (function () {
@@ -30,10 +30,10 @@
                     hornet: "black-yellow", viper: "black-red",
                     cyberstorm: "retro-future" };
           var t = localStorage.getItem("deets-theme");
-          if (!t) { t = dark ? "black-red" : "lilac"; }
+          if (!t) { t = dark ? "moonlight" : "lilac"; }
           document.documentElement.setAttribute("data-theme", R[t] || t);
           var s = localStorage.getItem("deets-skin");
-          if (!s) { s = dark ? "retro-future" : "press"; }
+          if (!s) { s = dark ? "ocean" : "glass"; }
           document.documentElement.setAttribute("data-skin", R[s] || s);
         } catch (e) {}
       })();
