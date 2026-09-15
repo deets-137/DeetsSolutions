@@ -98,6 +98,10 @@
     var d = new Date(iso);
     return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
   }
+  function fmtNumericDay(iso) {   // 9/14/2026 — the install box's version line
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric", timeZone: "UTC" });
+  }
   function fmtUnix(t) {
     return new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
@@ -234,7 +238,7 @@
       size.textContent = "";
       return;
     }
-    ver.textContent = s("installVersion", { v: latest.version, date: fmtDay(latest.pub_date) });
+    ver.textContent = s("installVersion", { v: latest.version, date: fmtNumericDay(latest.pub_date) });
     btn.href = cta.href = latest.url;
     btn.textContent = s("installButton");
     cta.textContent = s("ctaDownload", { v: latest.version });

@@ -24,22 +24,25 @@ window.DM_STRINGS = {
   noticeLabel: "[ph] Notice",
 
   /* install */
-  installName:    "[ph] DeetsMusic for Windows",
+  /* install box: approved by Aditya in chat, 2026-09-14 (all un-[ph] lines
+     here; name and version format are his edits) */
+  installName:    "DeetsMusic",
   installLoading: "[ph] Looking for the latest version…",
-  installVersion: "[ph] Version {v} · {date}",
-  installSize:    "[ph] {mb} MB installer",
-  installButton:  "[ph] Download for Windows",
+  installVersion: "V{v} · {date}",
+  installSize:    "{mb} MB installer",
+  installButton:  "Download for Windows",
   installNone:    "[ph] No installer is up right now. Check back soon.",
   installFailed:  "[ph] Couldn't reach the download server.",
-  installNeeds:   "[ph] Windows 11 and an Apple Music subscription.",
-  installSmartScreen: "[ph] Windows SmartScreen warns you, because the installer is not code-signed yet. Click More info, then Run anyway.",
+  installNeeds:   "Windows 11 and an Apple Music subscription.",
+  installSmartScreen: "Windows SmartScreen warns you, because the installer is not code-signed yet. Click More info, then Run anyway.",
 
   /* status */
-  statusTitle:        "[ph] Status",
+  /* status box: the lines without [ph] were approved by Aditya in chat, 2026-09-14 */
+  statusTitle:        "Status",
   /* dictated by Aditya in chat, 2026-09-14 — what the status reading is about */
   statusSubject:      "DeetsMusic installer:",
   status_up:          "[ph] Up",
-  status_degraded:    "[ph] Degraded",
+  status_degraded:    "Degraded",
   status_down:        "[ph] Down",
   status_unknown:     "[ph] Checking",
   status_unmonitored: "[ph] Not monitored",
@@ -48,8 +51,8 @@ window.DM_STRINGS = {
   statusFailed:       "[ph] Couldn't load the status.",
   statusCellOk:       "[ph] {time} · OK · {ms} ms",
   statusCellBad:      "[ph] {time} · Failed · {note}",
-  stripOld:           "[ph] 6 hours ago",
-  stripNow:           "[ph] Now",
+  stripOld:           "6 hours ago",
+  stripNow:           "Now",
 
   /* release notes */
   releasesTitle:      "[ph] Release notes",

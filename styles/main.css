@@ -3108,16 +3108,14 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 
 /* ── Status ───────────────────────────────────────────────────────── */
-/* Stretched to Install's height, the reading (subject line + strip) sits
-   centred under the title — the auto margins split the slack. */
+/* The reading sits straight under the title (top-aligned, Aditya's call);
+   when Install is taller, the slack falls below the strip. */
 .dm-status__now {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-3);
-  margin-top: auto;
 }
-.dm-status > :last-child { margin-bottom: auto; }
 .dm-status__subject {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
