@@ -1028,11 +1028,13 @@ button:focus-visible {
 @keyframes account-btn-spin { to { transform: rotate(360deg); } }
 
 /* Header Sign in — desktop row 2, left of Vibe (placed in the 56rem media
-   block). A FIXED-width slot with the button pinned to its left edge, so a
+   block). A FIXED-width slot with the button pinned to its RIGHT edge, so a
    signed-in name, shorter or longer than "Sign in with Google", never moves
-   the button's start or Vibe (his call, 2026-09-14); a long name ellipsizes.
+   Vibe and keeps the button-to-Vibe gap constant — a short name's slack
+   falls outside the pair, not between it (his call, 2026-09-15; was
+   left-pinned 2026-09-14). A long name ellipsizes.
    Dressed like the Vibe trigger so the pair reads as one row. */
-.header-account { display: flex; width: 14rem; min-width: 0; }
+.header-account { display: flex; justify-content: flex-end; width: 14rem; min-width: 0; }
 .header-account .account-btn {
   width: auto;
   max-width: 100%;
