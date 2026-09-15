@@ -435,8 +435,7 @@
     OWNER = yes;
     ROOT.classList.toggle("is-owner", yes);
     closeMenu();
-    loadBoard("suggestion");
-    loadBoard("issue");
+    loadBoards();
   }
 
   var menuEl = null;
@@ -494,7 +493,7 @@
     closeMenu();
     ownerApi(method, "/admin/posts/" + p.code, body).then(function (res) {
       if (!res.ok) { toast("error", errText(res)); return; }
-      loadBoard(p.kind);
+      loadBoards();
     });
   }
   function wireOwnerMenu() {
@@ -516,24 +515,37 @@
 
   // ── Boards ─────────────────────────────────────────────────────
   var EMPTY = { suggestion: "suggestEmpty", issue: "issuesEmpty" };
+  var KINDS = ["suggestion", "issue"];
 
-  function loadBoard(kind) {
-    var list = $('[data-dm-list="' + kind + '"]');
-    list.textContent = "";
-    list.appendChild(el("p", "dm-empty", s("boardLoading")));
+  // One request fills both boards (2026-09-14 — it was one per board). A
+  // board shows "Loading…" only before its first answer; a reload after an
+  // edit swaps the list in place. A newer load supersedes an older one.
+  var boardSeq = 0;
+  function loadBoards() {
+    var seq = ++boardSeq;
+    KINDS.forEach(function (kind) {
+      if (BOARD_DATA[kind]) return;
+      var list = $('[data-dm-list="' + kind + '"]');
+      list.textContent = "";
+      list.appendChild(el("p", "dm-empty", s("boardLoading")));
+    });
     var req = OWNER
-      ? ownerApi("GET", "/admin/posts?app=" + APP + "&kind=" + kind)
-      : api("support", "GET", "/posts?app=" + APP + "&kind=" + kind);
+      ? ownerApi("GET", "/admin/posts?app=" + APP)
+      : api("support", "GET", "/posts?app=" + APP);
     req.then(function (res) {
+      if (seq !== boardSeq) return;
       var posts = res.ok && res.data && res.data.posts;
-      if (!Array.isArray(posts)) {
-        BOARD_DATA[kind] = null;
-        list.textContent = "";
-        list.appendChild(el("p", "dm-empty", s("boardFailed")));
-        return;
-      }
-      BOARD_DATA[kind] = posts;
-      renderBoard(kind);
+      KINDS.forEach(function (kind) {
+        if (!Array.isArray(posts)) {
+          BOARD_DATA[kind] = null;
+          var list = $('[data-dm-list="' + kind + '"]');
+          list.textContent = "";
+          list.appendChild(el("p", "dm-empty", s("boardFailed")));
+          return;
+        }
+        BOARD_DATA[kind] = posts.filter(function (p) { return p.kind === kind; });
+        renderBoard(kind);
+      });
     });
   }
 
@@ -1054,7 +1066,7 @@
           writeJSON(LS_MINE, readMine().filter(function (x) { return x.code !== m.code; }));
           renderMine();
           toast("success", s("closedToast"));
-          loadBoard(m.kind);
+          loadBoards();
         });
       });
       li.appendChild(close);
@@ -1211,8 +1223,7 @@
   loadReleases();
   wireBoardTools("suggestion");
   wireBoardTools("issue");
-  loadBoard("suggestion");
-  loadBoard("issue");
+  loadBoards();
   detectOwner();
   wireBoardLinks();
   window.addEventListener("hashchange", route);

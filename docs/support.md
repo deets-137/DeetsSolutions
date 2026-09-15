@@ -274,6 +274,30 @@ The version comes from `GET /posts` as a `version` field, extracted from
 `meta` in SQL (`json_valid` guarded). Only that key leaves `meta` — the
 rest can hold a log tail and stays on the ticket.
 
+## Spend guards
+
+Added 2026-09-14, to keep a free-plan worker free with nobody watching.
+
+- **One board request.** The page loads both boards with a single
+  `GET /posts?app=` (the owner's view with one `GET /admin/posts?app=`) and
+  splits by kind in the browser.
+- **60 s edge cache** on `GET /status` and `GET /posts`. Every request still
+  runs the worker; a hit just skips D1. Board writes (post, vote, close, owner
+  edit) drop the cached lists in the colo that took the write; other colos
+  can serve theirs for up to a minute. The owner routes are never cached.
+- **`KILL_BOARDS`** (var, deploy to flip): every public board write — posts,
+  replies, votes, closes — answers 503 `off`, which the page shows as
+  "This is switched off for now." Reads, the mint, updates and the owner
+  routes keep working.
+- **Automatic intake breaker.** 30 posts + replies for one app inside an hour
+  pauses that app's posts and replies for 6 hours, then they reopen on their
+  own. The flag is a row in `switches`; the command to reopen early is in the
+  worker's "spend guards" comment. It fails open, so a D1 fault never blocks
+  intake.
+- **Status prune** deletes per app on the `(app, checked_at)` key; the old
+  app-less delete scanned the table every run (~5M rows read a day at steady
+  state).
+
 ## Owner moderation
 
 Built 2026-09-14. Signed in to deets.solutions as Aditya, the DeetsMusic
@@ -497,7 +521,7 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
   terms first.
 - ~~**Owner moderation view.**~~ Built 2026-09-14 — see "Owner
   moderation" below.
-- **`KILL_BOARDS`.** Shut intake and boards without shutting the mint.
+- ~~**`KILL_BOARDS`.**~~ Built 2026-09-14 — see "Spend guards" below.
 - **Help before "report".** No user guide exists. DeetsMusic
   AGENT-SETUP.md §5 and the release notes' Installing sections already
   answer the commonest faults. Whether their wording is reused is his
