@@ -3117,9 +3117,10 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   border-radius: 50%;
   background: var(--border);
 }
-.dm-dot[data-state="up"] { background: var(--go); }
-.dm-dot[data-state="degraded"] { background: var(--pause); }
-.dm-dot[data-state="down"] { background: var(--stop); }
+/* Status wears the fixed status lights (themes.css), not the theme's own. */
+.dm-dot[data-state="up"] { background: var(--status-ok); }
+.dm-dot[data-state="degraded"] { background: var(--status-warn); }
+.dm-dot[data-state="down"] { background: var(--status-fail); }
 .dm-status__word {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
@@ -3143,8 +3144,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   background: var(--border);
   border-radius: calc(var(--radius-control) / 4);
 }
-.dm-strip__cell[data-ok="yes"] { background: var(--go); }
-.dm-strip__cell[data-ok="no"] { background: var(--stop); }
+.dm-strip__cell[data-ok="yes"] { background: var(--status-ok); }
+.dm-strip__cell[data-ok="no"] { background: var(--status-fail); }
 .dm-strip__cell[data-ok="none"] { background: none; box-shadow: inset 0 0 0 1px var(--border); }
 .dm-strip__legend {
   display: flex;
