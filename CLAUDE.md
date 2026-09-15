@@ -34,6 +34,7 @@ Start at [README.md](README.md). Then:
 | Topic | Doc |
 | --- | --- |
 | Site structure, tokens, chrome | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
+| **Porting DeetsMusic's UI (settings panel, pop motion, look schedule) — build brief, 2026-09-15** | **[ui-direction.md](docs/ui-direction.md)** |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
 | **Designing a NEW game** | **[design-language.md](docs/design-language.md)** — the precedents, decision trees, and questionnaire |
 | Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md), [tanks.md](docs/tanks.md) |
