@@ -114,6 +114,9 @@ Two consequences fall straight out of that, and neither is optional:
 
 This is about *reporters*. An owner-only moderation view behind
 Aditya's own DeetsAccounts cookie would not contradict it — see "Open".
+Neither do signed-in **comments** on a thread (planned 2026-09-15, see
+"Threads"): posting, ▲ and the poster's own replies stay anonymous; only
+joining someone else's thread needs an account.
 
 **Ticket code only, no contact details** (2026-09-11). A report gets an
 unguessable code, and the code is the URL. Threads, replies and states
@@ -326,6 +329,127 @@ with it).
 - **Local dev:** the cookie never reaches localhost, so on `?mock`
   every visitor plays the owner. The real check only runs on
   deets.solutions, in the worker.
+
+---
+
+## Threads — planned 2026-09-15, not built
+
+Aditya's call, 2026-09-15: clicking a card on Suggestions or Known issues
+opens that post's own page, and it works like a forum — signed-in people
+leave thoughts under it. **Build is set for the evening of 2026-09-15.**
+Layout and every string on the thread page are his; Claude adds `[ph]`
+placeholders only.
+
+### The leak this has to fix first (live today)
+
+A post's `code` is its credential, but the public lists hand it out:
+`PUBLIC_COLS` (DeetsSupport `src/index.js`) starts with `code`, and both
+`GET /posts` and the mock's `pub()` return it. So anyone with devtools can,
+for any **public** post:
+
+- close it (`POST /t/<code>/close`, `handleClose`),
+- reply as the reporter (`POST /t/<code>/replies`, `handleReply`),
+- read its `meta` — version, log tail (`GET /t/<code>`, `handleTicket`).
+
+The page needs *some* id per card for ▲, which is why `code` leaked. The
+fix is the id split below, and the thread page needs it anyway.
+
+### Two ids
+
+| | `pid` (new, public) | `code` (existing, secret) |
+|---|---|---|
+| Who has it | everyone — it's on the board | the poster ("Your posts") |
+| Grants | read the thread, ▲, comment (signed in) | all of that, plus close the post, reply as reporter, see `meta` |
+| Page URL | `#p=<pid>` — safe to share | `#t=<code>` — fragment only, as now |
+
+- `pid`: new `posts` column, random from `crypto.getRandomValues` like
+  `code` (never a counter), unique index, backfilled for existing rows.
+- Public lists (`GET /posts`) send `pid` and **drop `code`**. The owner's
+  `/admin/posts` may keep both.
+- ▲ (`POST /interest`) keys by `pid`. `deets-dm-interest` in
+  `localStorage` is keyed by code today — migrate it or accept one reset.
+- `GET /p/<pid>`: public posts only (404 on hidden), **no `meta`, no
+  `source`**, plus its visible replies and comments.
+- The page's `route()` gains a `p=` branch beside `t=`; `renderTicket`
+  gets a read-only mode (no close, no reporter reply box) for `#p=`.
+- A hidden post has no public page. Only its code holder and the owner
+  see it.
+
+### Comments need a DeetsAccounts sign-in
+
+- `POST /p/<pid>/comments` verifies `ds_sess` exactly as the owner routes
+  already do (shared `SESSION_SECRET`, 30-day expiry), but accepts **any**
+  valid account, not just `OWNER_UID`. No cookie → 401, and the page shows
+  a sign-in prompt in place of the box.
+- Same guards as replies: allowlisted Origin on writes, `POST_RL`, body cap,
+  JWT-shape reject, `KILL_BOARDS`, and comments count toward the intake
+  breaker.
+- The cookie is `SameSite=Lax` on `deets.solutions`; `support.` is the same
+  site, so `credentials: "include"` carries it (the owner menu already
+  relies on this). It never reaches localhost: on `?mock` everyone is
+  signed in, as everyone is already the owner.
+- The poster's own replies through `#t=<code>` stay anonymous.
+
+### Names
+
+No new name field. The profile already has one: DeetsAccounts'
+`display_name` (editable on /profile/) and `color`.
+
+- DeetsSupport has its own D1 and cannot read DeetsAccounts'. **Store the
+  name and colour on the comment at post time.** How the worker gets them
+  is decided at build — the session token's claims if they carry the name,
+  otherwise the page sends `GET id.deets.solutions/me`'s `{name, color}`
+  along with the comment.
+  Either way, renaming later does not rewrite old comments.
+- **The name proves nothing.** Anyone can rename themselves "Aditya".
+  Aditya's comments carry `author = 'owner'`, set only by the `OWNER_UID`
+  check, and the page marks them from that, never from the name.
+
+### Storage
+
+Decided at build: either widen `replies` or add a `comments` table. The
+fields a comment needs either way:
+
+```sql
+-- author: 'owner' | 'reporter' | 'member'   (member = signed-in account)
+uid          TEXT,              -- DeetsAccounts id; NULL for reporter replies
+name         TEXT,              -- snapshot at post time
+color        TEXT,              -- snapshot at post time
+hidden       INTEGER NOT NULL DEFAULT 0
+
+CREATE TABLE blocked (
+  uid          TEXT PRIMARY KEY,
+  created_at   INTEGER NOT NULL
+);
+```
+
+Store as text, render as text, like everything else here.
+
+### Owner moderation of comments
+
+Extends the existing right-click menu to each comment on a thread page:
+
+- **Hide / Show** — the `hidden` flag; hidden comments stay visible to the
+  owner, dashed, like hidden posts.
+- **Delete** — two clicks, a real delete.
+- **Block account** — inserts into `blocked`; that uid's comments are hidden
+  and its new ones refused (403). Only possible because comments carry an
+  identity; posts never can.
+
+New routes under `/admin/` (cookie + `OWNER_UID` + allowlisted Origin), and
+matching handlers in `mock.js` so `?mock` speaks the same shapes.
+
+### Build order
+
+1. **The id split** — `pid` column + backfill, public lists send `pid` not
+   `code`, ▲ by `pid`, mock mirrored. Ships alone: it closes the leak.
+2. **Thread page, read-only** — card click → `#p=<pid>`, `GET /p/<pid>`.
+3. **Signed-in comments** — the route, the storage, name + colour snapshot,
+   owner mark.
+4. **Moderation** — Hide / Show / Delete / Block in the right-click menu.
+
+Each worker step: deploy, then the mint-host smoke from "Decisions already
+made".
 
 ---
 
@@ -550,6 +674,8 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
 
 ## Open
 
+- **Public lists leak each post's `code`** (found 2026-09-15). Fix is step 1
+  of "Threads".
 - **Apple in status.** The cron could mint its own token and send one
   cheap catalog request to `api.music.apple.com`. That is a use of the
   developer token beyond serving installs — Aditya's read under the D.7

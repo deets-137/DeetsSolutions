@@ -29,6 +29,10 @@ served flat.
 
 ## Docs map
 
+**Cold start: [docs/HANDOFF.md](docs/HANDOFF.md)** — where things stand
+and **Next up**. When asked "what's next", answer from it. When a session
+plans, finishes, or parks work, update its Next up in the same commit.
+
 Start at [README.md](README.md). Then:
 
 | Topic | Doc |
