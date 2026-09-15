@@ -289,9 +289,12 @@ Added 2026-09-14, to keep a free-plan worker free with nobody watching.
   replies, votes, closes — answers 503 `off`, which the page shows as
   "This is switched off for now." Reads, the mint, updates and the owner
   routes keep working.
-- **Automatic intake breaker.** 30 posts + replies for one app inside an hour
-  pauses that app's posts and replies for 6 hours, then they reopen on their
-  own. The flag is a row in `switches`; the command to reopen early is in the
+- **Automatic intake breaker.** 300 posts + replies for one app inside an
+  hour pauses that app's posts and replies for 1 hour, then they reopen on
+  their own. Sized for a launch (a subreddit post can bring ~100 in an hour,
+  most of them votes, which don't count) rather than a quiet day: it exists
+  to stop a scripted flood and the moderation load it lands on the boards,
+  not to save money — a post is a few D1 writes against 100k free a day. The flag is a row in `switches`; the command to reopen early is in the
   worker's "spend guards" comment. It fails open, so a D1 fault never blocks
   intake.
 - **Status prune** deletes per app on the `(app, checked_at)` key; the old
