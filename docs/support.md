@@ -332,7 +332,7 @@ with it).
 
 ---
 
-## Threads — planned 2026-09-15; step 1 built, steps 2–4 not
+## Threads — planned 2026-09-15; steps 1–2 built, 3–4 not
 
 Aditya's call, 2026-09-15: clicking a card on Suggestions or Known issues
 opens that post's own page, and it works like a forum — signed-in people
@@ -448,6 +448,11 @@ matching handlers in `mock.js` so `?mock` speaks the same shapes.
    `code`, ▲ by `pid`, mock mirrored. Ships alone: it closes the leak.
    **BUILT 2026-09-15**, not yet deployed.
 2. **Thread page, read-only** — card click → `#p=<pid>`, `GET /p/<pid>`.
+   **BUILT 2026-09-15**, not yet deployed. One renderer serves both views;
+   `#p=` drops the privacy chip, the "keep this link" line, the reply box and
+   the `remember()` call, and labels the reporter as a stranger. A card whose
+   post is HIDDEN links to `#t=<code>` instead — it has no public page, and
+   only the owner ever sees one on a board.
 3. **Signed-in comments** — the route, the storage, name + colour snapshot,
    owner mark.
 4. **Moderation** — Hide / Show / Delete / Block in the right-click menu.

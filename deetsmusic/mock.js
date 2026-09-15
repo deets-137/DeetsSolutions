@@ -318,6 +318,16 @@
       }
     }
 
+    // GET /p/<pid> — the public thread page. Public posts only, and never a
+    // code, a source or a meta: the worker's handleThread, shape for shape.
+    var tm = /^\/p\/([A-Za-z0-9_-]{8,32})$/.exec(p);
+    if (tm && method === "GET") {
+      var tp = db.posts.filter(function (x) { return x.pid === tm[1] && x.public; })[0];
+      if (!tp) return res(404, { error: "ticket" });
+      return res(200, { post: pub(tp),
+        replies: db.replies.filter(function (r) { return r.code === tp.code; }) });
+    }
+
     if (p === "/interest" && method === "POST") {
       var id = body.pid || body.code;   // the worker honours a pre-split body too
       var s = db.posts.filter(function (x) { return (x.pid === id || x.code === id) && x.public; })[0];

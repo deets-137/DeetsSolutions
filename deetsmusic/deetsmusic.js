@@ -5,8 +5,8 @@
 
    Data sources (all anonymous, no sign-in):
      music-api.deets.solutions  GET /update/deetsmusic/releases  install box + release notes
-     support.deets.solutions    GET /status, GET/POST /posts, GET /t/<code>,
-                                POST /t/<code>/replies, POST /interest
+     support.deets.solutions    GET /status, GET/POST /posts, GET /p/<pid>,
+                                GET /t/<code>, POST /t/<code>/replies, POST /interest
 
    ?mock swaps both for deetsmusic/mock.js (same response shapes), because
    the releases route is not deployed yet and the boards are empty.
@@ -855,7 +855,14 @@
 
     var main = el("div", "dm-post__main");
     var head = el("div", "dm-post__head");
-    head.appendChild(el("h3", "dm-post__title", p.title));
+    // The title is the real link — keyboard and screen readers get there
+    // through it. The card-wide click below is the mouse's shortcut.
+    var h = el("h3", "dm-post__title");
+    var link = el("a", "dm-post__link", p.title);
+    link.href = "#" + postHash(p);
+    link.title = s("threadOpen");
+    h.appendChild(link);
+    head.appendChild(h);
     head.appendChild(chip(s("state_" + p.state), p.state));
     if (p.public === false) {                     // only the owner's list carries hidden posts
       item.classList.add("is-hidden-post");
@@ -881,7 +888,25 @@
     }
     main.appendChild(foot);
     item.appendChild(main);
+
+    /* Anywhere on the card opens the thread — except the controls that do
+       their own thing (▲, More, the title link itself), a right-click (the
+       owner's menu), and a click that ended a text selection. */
+    item.addEventListener("click", function (e) {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.target.closest("a, button")) return;
+      var sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;
+      location.hash = postHash(p);
+    });
     return item;
+  }
+
+  /* A card opens the post's public thread. A HIDDEN post has no public page
+     (the worker 404s it), and only the owner ever sees one on a board — so
+     his click goes to the code view, which is the only one that exists. */
+  function postHash(p) {
+    return (p.public === false && p.code) ? "t=" + p.code : "p=" + p.pid;
   }
 
   // "More" grows a post's three-line clamp to its full height and back.
@@ -1143,18 +1168,32 @@
     });
   }
 
-  // ── A ticket (#t=<code>) ───────────────────────────────────────
-  var ticketCode = null;
+  /* ── A post's page ────────────────────────────────────
+     Two ways in, one renderer (support.md, "Threads"):
+       #t=<code>  the reporter's own view. Private posts included, the meta
+                  they sent, the reply box, and the link is theirs to keep.
+       #p=<pid>   the public thread, from a click on a board card. Public
+                  posts only, read-only, and nothing the code buys. */
+  var ticketCode = null;   // the #t= view, or null
+  var threadPid = null;    // the #p= view, or null
 
-  function showTicket(code) {
-    ticketCode = code;
+  function showPost(open) {
     $("[data-dm-home]").hidden = true;
     $("[data-dm-ticket]").hidden = false;
     window.scrollTo(0, 0);
-    loadTicket(code);
+    open();
+  }
+  function showTicket(code) {
+    ticketCode = code; threadPid = null;
+    showPost(function () { loadTicket(code); });
+  }
+  function showThread(pid) {
+    threadPid = pid; ticketCode = null;
+    showPost(function () { loadThread(pid); });
   }
   function hideTicket() {
     ticketCode = null;
+    threadPid = null;
     $("[data-dm-ticket]").hidden = true;
     $("[data-dm-home]").hidden = false;
   }
@@ -1171,30 +1210,51 @@
       body.textContent = "";
       if (res.status === 404) { body.appendChild(el("p", "dm-empty", s("ticketMissing"))); return; }
       if (!res.ok || !res.data || !res.data.post) { body.appendChild(el("p", "dm-empty", s("ticketFailed"))); return; }
-      renderTicket(res.data.post, Array.isArray(res.data.replies) ? res.data.replies : []);
+      renderTicket(res.data.post, Array.isArray(res.data.replies) ? res.data.replies : [], false);
     });
   }
 
-  function renderTicket(post, replies) {
+  function loadThread(pid) {
     var body = $("[data-dm-ticket-body]");
-    if (!OWNER) remember({ code: post.code, kind: post.kind, title: post.title });   // the owner's visits aren't "your posts"
+    var thread = $("[data-dm-thread]");
+    body.textContent = "";
+    body.appendChild(el("p", "dm-empty", s("threadLoading")));
+    thread.hidden = true;
+
+    // A hidden post answers 404 here exactly as a pid that never existed
+    // does, so "missing" is the only thing the page can honestly say.
+    api("support", "GET", "/p/" + pid).then(function (res) {
+      if (threadPid !== pid) return;
+      body.textContent = "";
+      if (res.status === 404) { body.appendChild(el("p", "dm-empty", s("threadMissing"))); return; }
+      if (!res.ok || !res.data || !res.data.post) { body.appendChild(el("p", "dm-empty", s("threadFailed"))); return; }
+      renderTicket(res.data.post, Array.isArray(res.data.replies) ? res.data.replies : [], true);
+    });
+  }
+
+  // pub: the read-only #p= view. It has no code to remember, no privacy to
+  // report (it is on the board by definition), and nothing to reply with.
+  function renderTicket(post, replies, pub) {
+    var body = $("[data-dm-ticket-body]");
+    if (!pub && !OWNER) remember({ code: post.code, kind: post.kind, title: post.title });   // the owner's visits aren't "your posts"
 
     var chips = el("div", "dm-ticket__chips");
     chips.appendChild(chip(s("ticketKind_" + post.kind)));
     chips.appendChild(chip(s("state_" + post.state), post.state));
-    chips.appendChild(chip(s(post.public ? "ticketPublic" : "ticketPrivate")));
+    if (!pub) chips.appendChild(chip(s(post.public ? "ticketPublic" : "ticketPrivate")));
     body.appendChild(chips);
 
     body.appendChild(el("h2", "dm-ticket__title", post.title));
     var meta = [s("ticketSent", { date: fmtUnixNumeric(post.created_at) })];
     if (post.updated_at && post.updated_at !== post.created_at) meta.push(s("ticketUpdated", { date: fmtUnixNumeric(post.updated_at) }));
-    var version = parseVersion(post.meta);
+    // #p= carries no meta; the worker extracts the version for it instead.
+    var version = pub ? (post.version == null ? "" : String(post.version)) : parseVersion(post.meta);
     if (version) meta.push(version === "all" ? s("ticketVersionAll") : s("ticketVersion", { v: version }));
     body.appendChild(el("p", "dm-ticket__meta", meta.join(" · ")));
     body.appendChild(el("p", "dm-ticket__body", post.body));
 
     var keep = el("div", "dm-keep");
-    keep.appendChild(el("p", "dm-hint", s("ticketKeep")));
+    keep.appendChild(el("p", "dm-hint", s(pub ? "threadShare" : "ticketKeep")));
     var copy = el("button", "home__cta home__cta--soft", s("ticketCopy"));
     copy.type = "button";
     copy.addEventListener("click", function () {
@@ -1210,12 +1270,19 @@
     replies.forEach(function (r) {
       var li = el("li", "dm-reply" + (r.author === "owner" ? " is-owner" : ""));
       var who = el("div", "dm-reply__who");
-      who.appendChild(el("span", "dm-reply__name", s(r.author === "owner" ? "authorOwner" : "authorReporter")));
+      // On a public thread the reporter is a stranger, not "You".
+      var name = r.author === "owner" ? "authorOwner" : (pub ? "authorReporterPublic" : "authorReporter");
+      who.appendChild(el("span", "dm-reply__name", s(name)));
       who.appendChild(el("span", null, fmtUnix(r.created_at)));
       li.appendChild(who);
       li.appendChild(el("p", "dm-reply__body", r.body));
       list.appendChild(li);
     });
+    /* No reply box on a public thread. The reporter's reply needs the code,
+       and so does the owner's (/admin/posts/<code>/replies) — his way in is
+       the menu's Reply, which sends him to #t=. Signed-in comments are
+       step 3 of "Threads". */
+    $("[data-dm-reply]").hidden = !!pub;
     $("[data-dm-thread]").hidden = false;
   }
 
@@ -1259,6 +1326,8 @@
     var h = location.hash.replace(/^#/, "");
     var m = /^t=([A-Za-z0-9_-]{8,32})$/.exec(h);
     if (m) { showTicket(m[1]); return; }
+    var pm = /^p=([A-Za-z0-9_-]{8,32})$/.exec(h);
+    if (pm) { showThread(pm[1]); return; }
     hideTicket();
     if (h === "report" || h === "suggest") openBoard(h);
   }
@@ -1274,7 +1343,7 @@
   function wireBoardLinks() {
     $all('a[href="#report"], a[href="#suggest"]').forEach(function (a) {
       a.addEventListener("click", function (e) {
-        if (ticketCode) return;
+        if (ticketCode || threadPid) return;
         e.preventDefault();
         openBoard(a.getAttribute("href").slice(1));
       });

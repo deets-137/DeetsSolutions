@@ -3494,6 +3494,14 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+/* The whole card opens the post's thread (deetsmusic.js); the title is the
+   link that carries it for the keyboard. No underline here — the card's own
+   hover is the affordance, and a board is a list of titles, not of links. */
+.dm-post { cursor: pointer; transition: border-color var(--dur-fast) var(--ease-ui); }
+.dm-post:hover { border-color: var(--title); }
+.dm-post__link { color: inherit; text-decoration: none; }
+.dm-post__link:hover { text-decoration: underline; }
+
 .dm-post__body {
   margin: 0;
   color: var(--text);

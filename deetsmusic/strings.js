@@ -195,6 +195,16 @@ window.DM_STRINGS = {
   replySend:             "Reply",
   replySent:             "Reply sent.",
 
+  /* a public thread (#p=<pid>) — the same page read-only, reached by
+     clicking a card on either board. Added 2026-09-15 (support.md,
+     "Threads" step 2); all [ph], awaiting his pass. */
+  threadOpen:            "[ph]Open this post",
+  threadLoading:         "[ph]Loading this post…",
+  threadMissing:         "[ph]No post on the board matches this link.",
+  threadFailed:          "[ph]Couldn't load this post.",
+  threadShare:           "[ph]Anyone with this link can read this post.",
+  authorReporterPublic:  "[ph]Who posted it",
+
   /* your posts (this browser's list of codes) — the whole box approved by
      Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */
   mineTitle:  "Your posts",
