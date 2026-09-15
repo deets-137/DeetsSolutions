@@ -71,13 +71,11 @@ window.DM_STRINGS = {
 
   /* boards */
   suggestTitle: "[ph] Suggestions",
-  suggestLead:  "[ph] Ideas for DeetsMusic. Add yours, or show interest in one that is already here.",
-  suggestOpen:  "[ph] Suggest something",
+  suggestOpen:  "[ph] Suggest something",   /* the + button's label and hover tip */
   suggestEmpty: "[ph] No suggestions yet.",
   interestHint: "[ph] Interest is a signal, not a vote.",
   issuesTitle:  "[ph] Known issues",
-  issuesLead:   "[ph] Bugs that people have reported, and what is happening with each one.",
-  issuesOpen:   "[ph] Report a bug",
+  issuesOpen:   "[ph] Report a bug",       /* the + button's label and hover tip */
   issuesEmpty:  "[ph] No known issues.",
   boardLoading: "[ph] Loading…",
   boardFailed:  "[ph] Couldn't load this list.",

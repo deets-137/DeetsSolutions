@@ -3160,11 +3160,17 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 
 /* ── Release notes — League/profile's row anatomy: a line to scan,
    opening onto the notes ─────────────────────────────────────────── */
+/* The four newest cards show; deetsmusic.js measures that height into
+   max-height, and the older releases scroll inside the list. */
 .dm-rels {
+  position: relative;          /* the offsetParent the cap is measured against */
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   align-self: stretch;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
 }
 .dm-rel {
   background: var(--surface);
@@ -3173,11 +3179,13 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   overflow: hidden;
 }
 .dm-rel.is-withdrawn { border-style: dashed; }
+.dm-rel { flex: none; }   /* a capped, scrolling list must not squash its cards */
+/* The card face: the version line, then the headliners under it. */
 .dm-rel__head {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-2) var(--space-3);
   font: inherit;
@@ -3196,6 +3204,35 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   font-variant-numeric: tabular-nums;
 }
 .dm-rel.is-withdrawn .dm-rel__v { text-decoration: line-through; text-decoration-color: var(--stop); }
+.dm-rel__top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.dm-rel__heads {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* One headliner per line, ellipsised; the dot is a list marker, not copy. */
+.dm-rel__headline {
+  position: relative;
+  padding-left: var(--space-3);
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dm-rel__headline::before {
+  content: "·";
+  position: absolute;
+  left: var(--space-1);
+  color: var(--subtext);
+}
 .dm-rel__date { margin-left: auto; color: var(--subtext); font-size: 0.8rem; }
 .dm-rel__caret {
   color: var(--subtext);
@@ -3223,6 +3260,33 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-notes strong { color: var(--title); }
 
 /* ── Boards ───────────────────────────────────────────────────────── */
+/* The + in a board's top-right corner opens its form; open, it turns to ×. */
+.dm-board > .dm-box__head { align-items: center; }
+.dm-add {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--title);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.dm-add:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
+.dm-add__glyph { display: block; transition: transform var(--dur-med) var(--ease-ui); }
+.dm-add[aria-expanded="true"] { border-color: var(--title); }
+.dm-add[aria-expanded="true"] .dm-add__glyph { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .dm-add__glyph { transition: none; } }
+
 /* The list fills whatever height the row gives the board, so the two boards
    stay one size whether they hold nothing or dozens; past its cap it
    scrolls instead of stretching the row (profile's counter-grid valve). */

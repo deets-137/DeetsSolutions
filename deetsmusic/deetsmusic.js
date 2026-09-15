@@ -115,6 +115,12 @@
   function fillStatic() {
     $all("[data-s]").forEach(function (n) { n.textContent = s(n.getAttribute("data-s")); });
     $all("[data-s-ph]").forEach(function (n) { n.setAttribute("placeholder", s(n.getAttribute("data-s-ph"))); });
+    // icon-only buttons: the string is their accessible name and hover tip
+    $all("[data-s-label]").forEach(function (n) {
+      var text = s(n.getAttribute("data-s-label"));
+      n.setAttribute("aria-label", text);
+      n.title = text;
+    });
     var badge = $("[data-dm-mock]");
     if (badge) badge.hidden = !MOCK;
   }
@@ -254,17 +260,27 @@
       var item = el("article", "dm-rel");
       if (r.withdrawn) item.classList.add("is-withdrawn");
 
+      // The card: version line on top, the release's headliners under it.
+      // A <button> may only hold phrasing content, so the lists are spans.
       var head = el("button", "dm-rel__head");
       head.type = "button";
       head.setAttribute("aria-controls", "dm-rel-" + i);
-      head.appendChild(el("span", "dm-rel__v", r.version));
-      if (latest && r.version === latest.version) head.appendChild(chip(s("tagLatest"), "latest"));
-      if (r.withdrawn) head.appendChild(chip(s("tagWithdrawn"), "withdrawn"));
-      else if (!r.url) head.appendChild(chip(s("tagNotesOnly")));
-      head.appendChild(el("span", "dm-rel__date", r.pub_date ? fmtDay(r.pub_date) : ""));
+      var top = el("span", "dm-rel__top");
+      top.appendChild(el("span", "dm-rel__v", r.version));
+      if (latest && r.version === latest.version) top.appendChild(chip(s("tagLatest"), "latest"));
+      if (r.withdrawn) top.appendChild(chip(s("tagWithdrawn"), "withdrawn"));
+      else if (!r.url) top.appendChild(chip(s("tagNotesOnly")));
+      top.appendChild(el("span", "dm-rel__date", r.pub_date ? fmtDay(r.pub_date) : ""));
       var caret = el("span", "dm-rel__caret", "▾");
       caret.setAttribute("aria-hidden", "true");
-      head.appendChild(caret);
+      top.appendChild(caret);
+      head.appendChild(top);
+      var lines = headliners(r.notes || "");
+      if (lines.length) {
+        var heads = el("span", "dm-rel__heads");
+        lines.forEach(function (line) { heads.appendChild(el("span", "dm-rel__headline", line)); });
+        head.appendChild(heads);
+      }
 
       var body = el("div", "dm-collapse dm-rel__body");
       body.id = "dm-rel-" + i;
@@ -291,13 +307,51 @@
         body.inert = !open;   // a shut row's download link must not take Tab focus
         head.setAttribute("aria-expanded", open ? "true" : "false");
       }
-      setOpen(i === 0);
+      setOpen(false);   // the headliners are the surface; notes open on demand
       head.addEventListener("click", function () { setOpen(!item.classList.contains("is-open")); });
 
       item.appendChild(head);
       item.appendChild(body);
       list.appendChild(item);
     });
+
+    capReleases(list);
+    if (!list._observed && window.ResizeObserver) {
+      // width changes rewrap the headliners; re-measure while nothing is open
+      new ResizeObserver(function () { capReleases(list); }).observe(list);
+      list._observed = true;
+    }
+  }
+
+  // The four newest cards show; the rest scroll inside the list. Cards
+  // differ in height (two to four headliners), so the cap is measured: the
+  // bottom edge of the 4th card, taken while all four are shut so opening
+  // one scrolls the list instead of moving the cap.
+  var RELEASES_SHOWN = 4;
+  function capReleases(list) {
+    var cards = list.querySelectorAll(".dm-rel");
+    if (cards.length <= RELEASES_SHOWN) { list.style.maxHeight = ""; return; }
+    for (var i = 0; i < RELEASES_SHOWN; i++) if (cards[i].classList.contains("is-open")) return;
+    var last = cards[RELEASES_SHOWN - 1];
+    list.style.maxHeight = last.offsetTop + last.offsetHeight + "px";
+  }
+
+  // A release's headliners: the bold lead-in of each paragraph ("**Favorites.**
+  // Right-click…" → "Favorites"). A catch-all lead-in ending in a colon
+  // ("**Also new:**") names nothing, so it is skipped. Notes with no bold
+  // lead-in (a one-paragraph fix) fall back to their first sentence.
+  function headliners(notes) {
+    var paras = notes.split(/\n\s*\n/).map(function (p) { return p.trim(); }).filter(Boolean);
+    var out = [];
+    paras.forEach(function (p) {
+      var m = /^\*\*([^*]+)\*\*/.exec(p);
+      if (!m || /:\s*$/.test(m[1])) return;
+      out.push(m[1].trim().replace(/[.!]\s*$/, ""));
+    });
+    if (out.length || !paras.length) return out;
+    var plain = paras[0].replace(/\s*\n\s*/g, " ").replace(/\*\*|`/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
+    var first = /^(.+?[.!?])(\s|$)/.exec(plain);
+    return [(first ? first[1] : plain).replace(/[.!]\s*$/, "")];
   }
 
   // The notes subset: blank-line paragraphs, **bold**, [text](https://…).
