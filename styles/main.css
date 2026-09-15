@@ -3100,13 +3100,12 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-steps {
   flex-basis: 100%;
   margin: 0;
-  padding: var(--space-3) 0 0 var(--space-5);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--border);
   color: var(--text);
   font-size: 0.85rem;
   line-height: 1.55;
 }
-.dm-steps li + li { margin-top: var(--space-1); }
 
 /* ── Status ───────────────────────────────────────────────────────── */
 .dm-status > .dm-hint:last-child { margin-top: auto; }   /* the scope note rides the bottom edge */

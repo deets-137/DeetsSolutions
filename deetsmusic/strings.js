@@ -32,9 +32,7 @@ window.DM_STRINGS = {
   installNone:    "[ph] No installer is up right now. Check back soon.",
   installFailed:  "[ph] Couldn't reach the download server.",
   installNeeds:   "[ph] Windows 11 and an Apple Music subscription.",
-  installStep1:   "[ph] Windows SmartScreen warns you, because the installer is not code-signed yet. Click More info, then Run anyway.",
-  installStep2:   "[ph] The installer is per-user and asks for no admin rights.",
-  installStep3:   "[ph] After that, DeetsMusic updates itself.",
+  installSmartScreen: "[ph] Windows SmartScreen warns you, because the installer is not code-signed yet. Click More info, then Run anyway.",
 
   /* status */
   statusTitle:        "[ph] Status",
