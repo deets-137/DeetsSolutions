@@ -34,13 +34,27 @@ window.DM_STRINGS = {
   installNone:    "No installer is up right now. Check back soon.",
   installFailed:  "Couldn't reach the download server.",
   installNeeds:   "Windows 11 and an Apple Music subscription.",
-  installSmartScreen: "Windows SmartScreen warns you, because the installer is not code-signed yet. Click More info, then Run anyway.",
+  /* browser warning steps: approved by Aditya in chat, 2026-09-15 (replaces the
+     "not code-signed yet" line). The page shows the visitor's own browser, and
+     "Other browsers" shows the rest. Edge and Firefox were tested on his PC with
+     0.6.0; Chrome was not. */
+  installSigned:        "The installer is signed by Aditya Sundaram. Your browser may still warn that it isn't commonly downloaded.",
+  /* the ⓘ note beside installSigned: label and text approved by Aditya in chat, 2026-09-15 */
+  installWhyLabel:      "Why the warning?",
+  installWhy:           "Why the warning? Browsers trust a file more as more people download it safely. Each new version of DeetsMusic starts with no download history, so the warning shows less often as more people download that version.",
+  installSteps_edge:    "Edge: in the download list, click … › Keep, then the arrow on Delete › Keep anyway.",
+  installSteps_firefox: "Firefox: in the downloads panel, click the arrow next to the file and allow the download. When you open it, Windows may show a blue screen: click More info, then Run anyway.",
+  installSteps_chrome:  "Chrome: in the download list, click Keep. When you open it, Windows may show a blue screen: click More info, then Run anyway.",
+  installOtherBrowsers: "Other browsers",
 
   /* status */
   /* status box: the lines without [ph] were approved by Aditya in chat, 2026-09-14 */
   statusTitle:        "Status",
-  /* dictated by Aditya in chat, 2026-09-14 — what the status reading is about */
-  statusSubject:      "DeetsMusic installer:",
+  /* dictated by Aditya in chat, 2026-09-14 — what the status reading is about;
+     renamed by him 2026-09-15: the check probes music-api /health (the token mint) */
+  statusSubject:      "DeetsMusic Gatekeeper:",
+  /* the second row, approved by Aditya in chat, 2026-09-15 — probes /update/deetsmusic/health */
+  statusSubject_installer: "DeetsMusic installer:",
   status_up:          "Up",
   status_degraded:    "Degraded",
   status_down:        "Down",

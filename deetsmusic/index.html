@@ -109,21 +109,60 @@
               <a class="home__cta" data-dm-install-btn hidden></a>
               <span class="dm-hint" data-dm-install-size></span>
             </div>
-            <p class="dm-steps" data-s="installSmartScreen"></p>
+            <!-- Browser warning steps: the visitor's browser only (deetsmusic.js
+                 renderBrowserSteps); "Other browsers" shows the rest, and an
+                 unknown browser sees all three. -->
+            <div class="dm-steps" data-dm-steps>
+              <!-- The signed line + its ⓘ, which opens the "why the warning" note. -->
+              <div class="dm-steps__head">
+                <p data-s="installSigned"></p>
+                <button type="button" class="dm-add dm-info" data-dm-why aria-expanded="false" aria-controls="dm-why" data-s-label="installWhyLabel"><svg class="dm-info__icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="3.75" r="1.4" /><path d="M8 7.25v6" /></svg></button>
+              </div>
+              <!-- The note slides open under the ⓘ: the boards' .dm-collapse. -->
+              <div class="dm-collapse" id="dm-why" data-dm-why-note inert>
+                <div class="dm-collapse__inner">
+                  <p class="dm-steps__why" data-s="installWhy"></p>
+                </div>
+              </div>
+              <!-- The text rides an inner span: fillStatic replaces a [data-s] node's
+                   whole content, and "Other browsers" is moved to the end of the
+                   visitor's own line. -->
+              <p class="dm-steps__browser" data-dm-browser="edge"><span data-s="installSteps_edge"></span></p>
+              <p class="dm-steps__browser" data-dm-browser="firefox"><span data-s="installSteps_firefox"></span></p>
+              <p class="dm-steps__browser" data-dm-browser="chrome"><span data-s="installSteps_chrome"></span></p>
+              <button type="button" class="dm-textbtn" data-dm-other-browsers data-s="installOtherBrowsers" hidden></button>
+            </div>
           </section>
 
           <!-- Status: measured by the worker's cron, never typed. -->
           <section class="dm-box dm-status" id="status" aria-labelledby="dm-status-title">
             <h2 class="dm-box__title" id="dm-status-title" data-s="statusTitle"></h2>
-            <div class="dm-status__now">
-              <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
-              <span class="dm-status__subject" data-s="statusSubject"></span>
-              <span class="dm-status__word" data-dm-status-word></span>
+            <!-- One row per checked service; data-dm-status-row is its app id in the
+                 worker's apps table. The Gatekeeper probes music-api /health (the token
+                 mint); the installer probes /update/deetsmusic/health. -->
+            <div class="dm-status__row" data-dm-status-row="deetsmusic">
+              <div class="dm-status__now">
+                <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
+                <span class="dm-status__subject" data-s="statusSubject"></span>
+                <span class="dm-status__word" data-dm-status-word></span>
+              </div>
+              <p class="dm-lead" data-dm-status-line hidden></p>
+              <div class="dm-strip" data-dm-strip aria-hidden="true" hidden></div>
+              <div class="dm-strip__legend" data-dm-strip-legend aria-hidden="true" hidden>
+                <span data-s="stripOld"></span><span data-s="stripNow"></span>
+              </div>
             </div>
-            <p class="dm-lead" data-dm-status-line hidden></p>
-            <div class="dm-strip" data-dm-strip aria-hidden="true" hidden></div>
-            <div class="dm-strip__legend" data-dm-strip-legend aria-hidden="true" hidden>
-              <span data-s="stripOld"></span><span data-s="stripNow"></span>
+            <div class="dm-status__row" data-dm-status-row="deetsmusic-installer">
+              <div class="dm-status__now">
+                <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
+                <span class="dm-status__subject" data-s="statusSubject_installer"></span>
+                <span class="dm-status__word" data-dm-status-word></span>
+              </div>
+              <p class="dm-lead" data-dm-status-line hidden></p>
+              <div class="dm-strip" data-dm-strip aria-hidden="true" hidden></div>
+              <div class="dm-strip__legend" data-dm-strip-legend aria-hidden="true" hidden>
+                <span data-s="stripOld"></span><span data-s="stripNow"></span>
+              </div>
             </div>
           </section>
 

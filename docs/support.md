@@ -445,12 +445,39 @@ with, not choices about it:
   `music-api.deets.solutions/update/deetsmusic/file/DeetsMusic_<v>_x64-setup.exe`.
   A browser download carries the web mark, so SmartScreen checks it.
   Installers up to 0.4.3 are unsigned and it warns (More info › Run
-  anyway). From the first release after 0.4.3 they are Authenticode-signed
-  by Aditya Sundaram (DeetsMusic RELEASE.md §6.9), so the prompt names the
-  publisher; it may still warn until download reputation builds. The
-  `installSmartScreen` string in `deetsmusic/strings.js` still says "not
-  code-signed yet" and needs Aditya's new wording when that release ships.
+  anyway). From 0.5.0 they are Authenticode-signed by Aditya Sundaram
+  (DeetsMusic RELEASE.md §6.9), so the prompt names the publisher; it still
+  warns until download reputation builds. **Tested 2026-09-15 with 0.6.0:**
+  Edge warns "isn't commonly downloaded" (… › Keep, then Delete ▾ › Keep
+  anyway) and Windows shows no blue screen after it; Firefox warns "not
+  commonly downloaded", and then Windows shows "Windows protected your PC"
+  (More info › Run anyway) when the file is opened. Chrome is untested. The
+  install box shows `installSigned` plus the visitor's own browser's
+  `installSteps_<browser>` line (user-agent: `Edg/` → edge, `Firefox/` →
+  firefox, `Chrome/` → chrome), with an "Other browsers" button for the rest;
+  an unknown browser sees all three (his layout call, 2026-09-15). An ⓘ
+  beside the signed line opens `installWhy` (download reputation builds per
+  file in Chrome and Firefox; SmartScreen also credits the verified
+  publisher across every release signed under that identity).
   Updates install silently either way.
+- **The Status box has one row per checked service** (2026-09-15). Each row
+  is an entry in the worker's `apps` table, loaded with its own
+  `/status?app=<id>`, with its own dot, word and 6-hour strip; the remote
+  notice rides the `deetsmusic` row only.
+  - **DeetsMusic Gatekeeper** — app `deetsmusic`, probes
+    `music-api.deets.solutions/health`: the token mint's key signs and `KILL`
+    is off. A short outage stops new installs from playing; running installs
+    keep their saved 14-day token (they refresh inside the last 3 days).
+  - **DeetsMusic installer** — app `deetsmusic-installer`, probes
+    `music-api.deets.solutions/update/deetsmusic/health` (DeetsSupport
+    `src/update.js`): 200 when the newest live installer is in R2 at its
+    indexed size. An R2 `head()`, so the 7 MB file is never read; it answers
+    before the rate limiter, because the cron's in-process probe has no
+    client IP. The row goes live with one D1 insert, after the worker deploy:
+    `INSERT INTO apps (id, label, health_url, sort) VALUES ('deetsmusic-installer',
+    'DeetsMusic installer', 'https://music-api.deets.solutions/update/deetsmusic/health', 1);`
+  - Both probes run in-process (a Worker cannot fetch its own custom
+    domain), so neither sees DNS or the edge.
 - **Releases come from `GET music-api.…/update/deetsmusic/releases`**
   (built and deployed 2026-09-14; shape in DeetsMusic RELEASE.md §6.2).
   `/update/<channel>` only answers "is there something newer than `?v=`"

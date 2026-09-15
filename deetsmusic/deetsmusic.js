@@ -126,32 +126,94 @@
     });
     var badge = $("[data-dm-mock]");
     if (badge) badge.hidden = !MOCK;
+    renderBrowserSteps();
+    wireWhy();
+  }
+
+  // The ⓘ beside the signed line opens and closes the "why the warning" note,
+  // with the boards' collapse motion (.dm-collapse; reduced motion snaps).
+  // A closed note is inert, so its text is out of the tab order.
+  function wireWhy() {
+    var btn = $("[data-dm-why]");
+    var note = $("[data-dm-why-note]");
+    if (!btn || !note) return;
+    btn.addEventListener("click", function () {
+      var open = !note.classList.contains("is-open");
+      note.classList.toggle("is-open", open);
+      note.inert = !open;
+      btn.setAttribute("aria-expanded", String(open));
+    });
+  }
+
+  // ── Install: the browser warning steps (support.md, "The page") ──
+  // Only the visitor's own browser's line shows, with "Other browsers" at its
+  // end; the button reveals the rest. Edge's user-agent also says Chrome, so
+  // Edg/ is tested first. An unknown browser sees all three and no button.
+  function browserId() {
+    var ua = navigator.userAgent || "";
+    if (/Edg\//.test(ua)) return "edge";
+    if (/Firefox\//.test(ua)) return "firefox";
+    if (/Chrome\//.test(ua)) return "chrome";
+    return null;
+  }
+  function renderBrowserSteps() {
+    var box = $("[data-dm-steps]");
+    if (!box) return;
+    var mine = browserId();
+    var lines = $all("[data-dm-browser]", box);
+    var more = $("[data-dm-other-browsers]", box);
+    if (!mine) {
+      lines.forEach(function (n) { n.hidden = false; });
+      if (more) more.hidden = true;
+      return;
+    }
+    lines.forEach(function (n) { n.hidden = n.getAttribute("data-dm-browser") !== mine; });
+    if (!more) return;
+    var own = lines.filter(function (n) { return n.getAttribute("data-dm-browser") === mine; })[0];
+    if (own) {
+      own.appendChild(document.createTextNode(" "));
+      own.appendChild(more);   // inline, at the end of the visitor's own steps
+    }
+    more.hidden = false;
+    more.addEventListener("click", function () {
+      lines.forEach(function (n) { n.hidden = false; });
+      more.hidden = true;
+    });
   }
 
   // ── Status ─────────────────────────────────────────────────────
+  // One row per checked service (support.md, "The page"). Each row's
+  // data-dm-status-row is its app id in the worker's apps table: the
+  // Gatekeeper (APP, music-api /health — the token mint) and the installer
+  // (/update/deetsmusic/health). Every row has its own dot, word and strip;
+  // the remote notice rides APP's row only.
   function loadStatus() {
-    api("support", "GET", "/status?app=" + APP).then(function (res) {
-      var a = res.ok && res.data && res.data.apps && res.data.apps[0];
-      if (!a) {
-        paintStatusWord("unknown");
-        $("[data-dm-status-line]").textContent = s("statusFailed");
-        $("[data-dm-status-line]").hidden = false;
-        return;
-      }
-      renderStatus(a);
+    $all("[data-dm-status-row]").forEach(function (row) {
+      var id = row.getAttribute("data-dm-status-row");
+      api("support", "GET", "/status?app=" + encodeURIComponent(id)).then(function (res) {
+        var a = res.ok && res.data && res.data.apps && res.data.apps[0];
+        if (!a) {
+          paintStatusWord(row, "unknown");
+          var failed = $("[data-dm-status-line]", row);
+          failed.textContent = s("statusFailed");
+          failed.hidden = false;
+          return;
+        }
+        if (id === APP) showNotice(a.notice);
+        renderStatus(row, a);
+      });
     });
   }
-  function paintStatusWord(state) {
-    $("[data-dm-status-dot]").setAttribute("data-state", state);
-    $("[data-dm-status-word]").textContent = s("status_" + state);
+  function paintStatusWord(row, state) {
+    $("[data-dm-status-dot]", row).setAttribute("data-state", state);
+    $("[data-dm-status-word]", row).textContent = s("status_" + state);
   }
-  function renderStatus(a) {
+  function renderStatus(row, a) {
     var checks = Array.isArray(a.checks) ? a.checks : [];
-    var line = $("[data-dm-status-line]");
-    var strip = $("[data-dm-strip]");
-    var legend = $("[data-dm-strip-legend]");
-    paintStatusWord(a.status);
-    showNotice(a.notice);
+    var line = $("[data-dm-status-line]", row);
+    var strip = $("[data-dm-strip]", row);
+    var legend = $("[data-dm-strip-legend]", row);
+    paintStatusWord(row, a.status);
 
     strip.textContent = "";
     // The strip is the whole reading; the line only speaks when there is
@@ -178,9 +240,9 @@
       strip.appendChild(cell);
     }
     strip.hidden = legend.hidden = false;
-    layoutStrip(strip);
+    layoutStrip(strip, legend);
     if (!strip._observed && window.ResizeObserver) {
-      new ResizeObserver(function () { layoutStrip(strip); }).observe(strip);
+      new ResizeObserver(function () { layoutStrip(strip, legend); }).observe(strip);
       strip._observed = true;
     }
   }
@@ -190,7 +252,7 @@
   // gap reads as unevenness. So the leftover is split into an even inset at
   // both ends, and the legend takes the same inset so its labels still sit
   // over the first and last cell.
-  function layoutStrip(strip) {
+  function layoutStrip(strip, legend) {
     var cells = strip.children, n = cells.length;
     if (!n || !strip.clientWidth) return;
     var dpr = window.devicePixelRatio || 1;
@@ -202,7 +264,6 @@
       cells[i].style.left = (pad + i * (w + gap)) / dpr + "px";
       cells[i].style.width = w / dpr + "px";
     }
-    var legend = $("[data-dm-strip-legend]");
     if (legend) legend.style.paddingInline = pad / dpr + "px";
   }
   function showNotice(text) {

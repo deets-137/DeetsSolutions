@@ -3145,6 +3145,10 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .dm-steps {
   flex-basis: 100%;
+  display: flex;
+  flex-direction: column;   /* the signed line, the browser line(s), then Other browsers */
+  align-items: flex-start;
+  gap: var(--space-1);
   margin: 0;
   padding-top: var(--space-3);
   border-top: 1px solid var(--border);
@@ -3152,10 +3156,36 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   font-size: 0.85rem;
   line-height: 1.55;
 }
+.dm-steps p { margin: 0; }
+/* The signed line and its ⓘ share one row; the note opens under it. */
+.dm-steps__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.dm-steps__why { color: var(--subtext); }
+/* A closed note still sits in the steps' flex column: pull back the gap it would leave, the
+   same move .dm-box makes for its collapses (the margin rides .dm-collapse's transition). */
+.dm-steps > .dm-collapse:not(.is-open) { margin-block-start: calc(var(--space-1) * -1); }
+/* Each browser's steps sit indented under the signed line; "Other browsers" rides the end of
+   the visitor's own line (deetsmusic.js moves it there). */
+.dm-steps__browser { padding-inline-start: var(--space-3); }
 
 /* ── Status ───────────────────────────────────────────────────────── */
 /* The reading sits straight under the title (top-aligned, Aditya's call);
    when Install is taller, the slack falls below the strip. */
+/* One row per checked service (Gatekeeper, installer): its reading, line and strip. A hairline
+   divides the rows, the same rule the install steps sit under. */
+.dm-status__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+}
+.dm-status__row + .dm-status__row {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
 .dm-status__now {
   display: flex;
   align-items: center;
@@ -3381,6 +3411,26 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-add__glyph { display: block; transition: transform var(--dur-med) var(--ease-ui); }
 .dm-add[aria-expanded="true"] { border-color: var(--title); }
 .dm-add[aria-expanded="true"] .dm-add__glyph { transform: rotate(45deg); }
+/* The ⓘ in the install steps: .dm-add's round button at the steps' text size (the release
+   card's download button is the size precedent). An "i" never rotates open. */
+.dm-add.dm-info {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.85rem;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+}
+/* The "i" is drawn, not typed: a skin's letter case (Ocean) would turn a text "i" into "I". */
+.dm-info__icon {
+  display: block;
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.dm-info__icon circle { stroke: none; }
 @media (prefers-reduced-motion: reduce) { .dm-add__glyph { transition: none; } }
 
 /* The list fills whatever height the row gives the board, so the two boards

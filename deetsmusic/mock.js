@@ -201,7 +201,19 @@
       return res(404, { error: "route" });
     }
 
+    // One app per row, as the worker answers /status?app=<id>. The Gatekeeper
+    // (deetsmusic) follows the mode; the installer row passes in every mode
+    // but empty, so ?mock=down shows the two rows disagreeing.
     if (p === "/status" && method === "GET") {
+      var app = u.searchParams.get("app") || "deetsmusic";
+      if (app === "deetsmusic-installer") {
+        var ic = MODE === "empty" ? [] : checks().map(function (x) {
+          return { checked_at: x.checked_at, ok: true, ms: 20 + ((x.checked_at / 300) % 30), note: null };
+        });
+        return res(200, { apps: [{ id: app, label: "DeetsMusic installer", monitored: MODE !== "empty",
+          status: MODE === "empty" ? "unmonitored" : deriveStatus(ic), notice: "", checks: ic }] });
+      }
+      if (app !== "deetsmusic") return res(200, { apps: [] });
       var c = checks();
       return res(200, { apps: [{ id: "deetsmusic", label: "DeetsMusic", monitored: MODE !== "empty",
         status: MODE === "empty" ? "unmonitored" : deriveStatus(c),
