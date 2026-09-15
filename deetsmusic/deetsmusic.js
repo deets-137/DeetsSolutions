@@ -268,9 +268,6 @@
       if (r.withdrawn) top.appendChild(chip(s("tagWithdrawn"), "withdrawn"));
       else if (!r.url) top.appendChild(chip(s("tagNotesOnly")));
       top.appendChild(el("span", "dm-rel__date", r.pub_date ? fmtDay(r.pub_date) : ""));
-      var caret = el("span", "dm-rel__caret", "▾");
-      caret.setAttribute("aria-hidden", "true");
-      top.appendChild(caret);
       head.appendChild(top);
       var lines = headliners(r.notes || "");
       if (lines.length || r.url) {   // a download square needs the headliner row to sit in
@@ -734,11 +731,25 @@
     var m = /^t=([A-Za-z0-9_-]{8,32})$/.exec(h);
     if (m) { showTicket(m[1]); return; }
     hideTicket();
-    if (h === "report" || h === "suggest") {
-      var kind = h === "report" ? "issue" : "suggestion";
-      openForm(kind, true);
-      $('[data-dm-board="' + kind + '"]').scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
-    }
+    if (h === "report" || h === "suggest") openBoard(h);
+  }
+  function openBoard(h) {
+    var kind = h === "report" ? "issue" : "suggestion";
+    openForm(kind, true);
+    $('[data-dm-board="' + kind + '"]').scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
+  }
+  // The page bar's Suggestions / Bug! buttons open their form on EVERY click.
+  // Left to the hash alone, a second click on the same #report fires no
+  // hashchange and does nothing. From a ticket they still change the hash,
+  // so route() leaves the ticket first.
+  function wireBoardLinks() {
+    $all('a[href="#report"], a[href="#suggest"]').forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        if (ticketCode) return;
+        e.preventDefault();
+        openBoard(a.getAttribute("href").slice(1));
+      });
+    });
   }
 
   // ── Boot ───────────────────────────────────────────────────────
@@ -750,6 +761,7 @@
   loadReleases();
   loadBoard("suggestion");
   loadBoard("issue");
+  wireBoardLinks();
   window.addEventListener("hashchange", route);
   route();
 })();

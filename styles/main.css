@@ -3260,12 +3260,6 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   text-overflow: ellipsis;
 }
 .dm-rel__date { margin-left: auto; color: var(--subtext); font-size: 0.8rem; }
-.dm-rel__caret {
-  color: var(--subtext);
-  font-size: 0.7em;
-  transition: transform var(--dur-fast) var(--ease-ui);
-}
-.dm-rel.is-open .dm-rel__caret { transform: rotate(180deg); }
 .dm-rel__content {
   display: flex;
   flex-direction: column;

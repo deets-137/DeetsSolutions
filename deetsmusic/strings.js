@@ -17,9 +17,10 @@
    the fact it carries; drop it freely otherwise. */
 window.DM_STRINGS = {
   /* page bar + meta */
-  tagline:     "[ph] An Apple Music player for Windows 11. Download it, see whether it is up, read what changed, and tell me what is broken.",
-  ctaDownload: "[ph] Download {v}",
-  ctaReport:   "[ph] Report a bug",
+  /* page bar buttons: dictated by Aditya in chat, 2026-09-14 */
+  ctaDownload: "Download: V {v}",
+  ctaSuggest:  "Suggestions",
+  ctaReport:   "Bug!",
   mockBadge:   "[ph] Mock data",
   noticeLabel: "[ph] Notice",
 
@@ -55,13 +56,16 @@ window.DM_STRINGS = {
   stripNow:           "Now",
 
   /* release notes */
-  releasesTitle:      "[ph] Release notes",
+  /* release notes: title, hint and the Latest / Notes only tags approved or
+     dictated by Aditya in chat, 2026-09-14 */
+  releasesTitle:      "Release notes",
+  releasesHint:       "Click the card for update notes",
   releasesLoading:    "[ph] Loading release notes…",
   releasesFailed:     "[ph] Release notes aren't available right now.",
   releasesEmpty:      "[ph] No releases yet.",
-  tagLatest:          "[ph] Latest",
+  tagLatest:          "Latest",
   tagWithdrawn:       "[ph] Withdrawn",
-  tagNotesOnly:       "[ph] Notes only",
+  tagNotesOnly:       "Notes only",
   relDownload:        "[ph] Download {v} ({mb} MB)",
   relWithdrawnReason: "[ph] Withdrawn: {reason}",
   relWithdrawn:       "[ph] This version was withdrawn, so it has no download.",
