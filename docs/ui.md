@@ -190,6 +190,67 @@ Ported from DeetsMusic 2026-09-15 ([ui-direction.md](ui-direction.md), steps 1�
 - **Focus ring** covers `a`, `button`, `summary`, `select`, `[role=switch]`,
   `[role=slider]`. Text inputs show focus with their own border.
 
+## Settings (the Vibe menu's last row)
+
+Ported from DeetsMusic's settings card 2026-09-15 ([ui-direction.md](ui-direction.md),
+steps 4, 6 and 8). Built by `controls.js`'s `buildSettings()`; styles in `chrome.css`
+§Settings.
+
+- **Shape (his call).** "Settings" is the last row of the Vibe menu, under a hairline.
+  It **expands in place**: the menu grows to `--set-panel-w` and down (`--pop-grow`), and
+  the rows slide in (`.pop-enter`). It joins the Theme / Skin accordion, so opening one
+  closes the others. A control lives in exactly one place: theme and skin stay in their
+  flyouts.
+- **Anatomy.** One scrolling column (`.set`, `max-height` bounded by the viewport, the
+  thumb fades in only while it scrolls). Sections have an uppercase fold header with a
+  row count; folds persist per section title in `deets-settings-folds`. Row kinds:
+  - toggle: the whole row is `role="switch"`, with a `•` in the right gutter.
+  - choice: a split pill of up to three halves (`radiogroup`, `aria-pressed`).
+  - range: a slider (`role="slider"`), with the handle as the skin's
+    `--scrubber-handle` mask. A drag previews, and the release saves. Arrow keys step 1,
+    Shift steps 10, and Home / End jump to the ends.
+  - A row with `when` shows only under its skin.
+
+  Everything applies live, with no Save. Focus and scroll survive every re-render.
+  Hints are `title` tooltips only.
+- **Store.** One JSON object in `deets-settings` (DeetsMusic's key names and defaults),
+  via `window.DeetsSettings.get / set / onChange`. Theme and skin keep their own
+  `deets-theme` / `deets-skin` keys. `DeetsSettings.request(rowId)` opens the menu at a
+  row and flashes it (`set-flash`), for a toast's [Settings] action.
+- **Rows today** (section "Look and feel"): Animate look changes · Animate backgrounds
+  (On / Reduced / Off → `data-bg-motion`) · Draw card edges + Sand width (Ocean only) ·
+  Canvas glow, Dim canvas, Backlight, Tint cards (Glass only, back to front) · Show notices
+  (Everything / Failures, gated in `toast.js`; a sticky toast with actions always shows).
+- **Copy** lives in the `S` table at the top of `controls.js` (shared chrome has no
+  `strings.js`). Labels and hints are DeetsMusic's own; the one site-only hint carries
+  `[ph]`.
+- **Not yet pre-paint.** The slider values, `data-bg-motion` and `data-ocean-edges` apply
+  when `controls.js` runs (deferred). A visitor who changed them can see the defaults for
+  a frame. The shared `js/prepaint.js` (ui-direction step 5) is where they move.
+
+### Look-change cover
+
+A theme or skin chip runs under an opaque `--canvas` cover (`<html data-boot>`, stages
+veil → wait → lift). The outgoing skin's `--cover-in-*` times the fade in, and the new
+skin's fonts load under it. The incoming skin's `--boot-*` times the rise of
+`.site-main`'s direct children (staggered, capped at six). Games only get the veil:
+`table.css` sets `--boot-from-opacity: 1; --boot-from: none` on `.site-main`. It never
+runs on page load. It is skipped when "Animate look changes" is off or under reduced
+motion. `--boot-safety` lifts the cover by CSS alone.
+
+### Skin sliders
+
+- **Glass** (tokens in `skin.css`):
+  - Canvas glow scales the aurora stops.
+  - Dim canvas drives `--canvas-dim` on `body::after`, which sits over the ambient layers
+    and under the content. The card frost undoes it with `brightness()`.
+  - Backlight and Tint are the card's two background layers (`--card`), the tint over a
+    glow of the accent roles. Every card rule already paints `background: var(--card)`, so
+    no card rule changed.
+- **Ocean sand**: under `data-ocean-edges="sand"` the card box paints nothing, and
+  `::before` / `::after` draw the grainy fill and specks. The card list is in `main.css`
+  §Ocean sand edges; add a new card material there.
+
 ## The page bar and shared chrome
 
 The header panel that opens Home, Resume, and Cool Stuff (`.page-bar`), and

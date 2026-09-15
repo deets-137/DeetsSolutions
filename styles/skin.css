@@ -138,6 +138,36 @@
   --set-menu-min-w:  7.5rem;          /* the small menu behind a menu half */
   --set-menu-max-h:  17.5rem;         /* longer lists scroll */
   --set-flash-dur:   1600ms;          /* a row opened from a toast: its highlight fades over this */
+  --set-panel-w:     20rem;           /* the Vibe menu's width while Settings is open */
+  --set-clearance:   9rem;            /* viewport height the open panel leaves for the header + menu rows */
+
+  /* -- range slider (settings rows; handle is a skin-swappable SVG mask) -- */
+  /* The handle is a --title-filled box masked by this SVG, so the shape is
+     arbitrary and still themes via --title. Skins override the url() only. */
+  --scrubber-track-h:     3px;
+  --scrubber-handle:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23000'/%3E%3C/svg%3E");
+  --scrubber-handle-size: 12px;
+
+  /* -- canvas dim (Glass › Dim canvas) ------------------------ */
+  /* A black layer over the canvas and ambient layers, under the content
+     (body::after in chrome.css), as an alpha 0–1. Base 0; Glass drives it. */
+  --canvas-dim:       0;
+  --canvas-dim-layer: rgb(0 0 0 / var(--canvas-dim));
+
+  /* -- look-change cover (controls.js; DeetsMusic appearance.ts) -- */
+  /* A theme or skin change: an opaque --canvas cover fades in over the old
+     look (--cover-in-*, the OUTGOING skin's), the look swaps under it, then
+     the cover fades and the page blocks rise in (--boot-*, the INCOMING
+     skin's). --boot-safety lifts the cover by CSS alone if the script never
+     does. */
+  --boot-dur:       0.8s;
+  --boot-cover-out: var(--boot-dur);  /* the cover's fade; a skin may clear it sooner */
+  --boot-ease:      cubic-bezier(0.22, 1, 0.36, 1);  /* a long, soft settle */
+  --boot-rise:      translateY(12px);
+  --boot-stagger:   70ms;
+  --boot-safety:    4s;
+  --cover-in-dur:   0.22s;
+  --cover-in-ease:  cubic-bezier(0.4, 0, 1, 1);      /* eases in, so the cover lands softly */
 
   /* -- focus ring (one place to restyle every focus state) --- */
   --focus-ring-w:   2px;
@@ -204,6 +234,19 @@
   --dur-fast:   0.1s;
   --dur-med:    0.16s;
   --hover-lift: translate(-1px, -1px);
+
+  /* look change — sheets set down firmly: short, a small rise, tight order */
+  --boot-dur:     0.5s;
+  --boot-ease:    cubic-bezier(0.3, 0, 0.1, 1);
+  --boot-rise:    translateY(6px);
+  --boot-stagger: 40ms;
+  --cover-in-dur: 0.16s;
+
+  /* slider handle — a trimmed block riding the rail, corners square */
+  --scrubber-handle:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='2' width='12' height='20' fill='%23000'/%3E%3C/svg%3E");
+  --scrubber-handle-size: 12px;
+  --scrubber-track-h:     4px;
+  --set-pill-radius:      0;
 }
 
 /* ============================================================
@@ -217,7 +260,20 @@
   --fs-title:   1.5rem;      /* all-caps reads large; size down */
 
   --radius-card: 14px;       /* softer, water-smoothed corners */
-  --card:        color-mix(in srgb, var(--surface), black 18%);
+  --ocean-card:  color-mix(in srgb, var(--surface), black 18%);   /* the recessed card, also the sand fill */
+  --card:        var(--ocean-card);
+
+  /* look change — cards come up from beneath the surface: long, deep, unhurried */
+  --boot-dur:      1.05s;
+  --boot-ease:     cubic-bezier(0.25, 0.8, 0.35, 1);
+  --boot-rise:     translateY(22px) scale(0.99);
+  --boot-stagger:  95ms;
+  --cover-in-dur:  0.3s;
+  --cover-in-ease: cubic-bezier(0.37, 0, 0.63, 1);
+
+  /* slider handle — a lens swell: the rail bulges to a fat middle and tapers
+     back at the pointed tips */
+  --scrubber-handle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 12Q12 5 23 12Q12 19 1 12Z' fill='%23000'/%3E%3C/svg%3E");
   --shadow-card: 0 0 8px 1px var(--border), 0 12px 32px rgba(0, 0, 0, 0.16);
 
   /* surface — the rolling swell, an injected SVG layer (.ocean in
@@ -236,6 +292,28 @@
   /* micro-motion — cards float on the surface; a touch buoys them up */
   --hover-lift: translateY(-1px);
 }
+/* Ocean's sand edges (Settings › Draw card edges: Sand; controls.js sets
+   data-ocean-edges) — a dark beach: each card's edge breaks into grains over
+   --sand-reach, and light specks (--border ink) scatter through that band.
+   The card box paints nothing; the fill moves to its ::before (main.css
+   §Ocean sand edges). No glow ring or drop shadow: an outer shadow would
+   trace the hard box edge the grains remove. The grain tiles are SVG noise
+   thresholded to hard 0/1 alpha, so each grain is a crisp ~1px dot. */
+:root[data-skin="ocean"][data-ocean-edges="sand"] {
+  --card:         transparent;
+  --shadow-card:  none;
+  --sand-fill:    var(--ocean-card);
+  /* Settings › Sand width sets --ocean-sand (0–100) on <html>; the fallback
+     is the default. It maps onto the min…max reach. */
+  --sand-reach-min: 4px;
+  --sand-reach-max: 40px;
+  --sand-reach:   calc(var(--sand-reach-min) + (var(--sand-reach-max) - var(--sand-reach-min)) * var(--ocean-sand, 15) / 100);
+  --sand-ink:     color-mix(in srgb, var(--border) 70%, transparent);
+  --sand-tile:    128px 128px;
+  --sand-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 1 1 1 1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E");
+  --sand-speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23s)'/%3E%3C/svg%3E");
+}
+
 /* Ocean's swell — motion for the injected layer. Roll owns the horizontal
    drift (linear, on .ocean__roll), bob the rise-and-fall (on the wrapping
    .ocean__bob) — separate elements, so the two transforms compose. The
@@ -276,13 +354,55 @@
   --menu-backdrop: blur(16px) saturate(1.4);
   --shadow-panel:  0 8px 32px rgba(0, 0, 0, 0.18);
 
-  /* frosted cards */
-  --card:              color-mix(in srgb, var(--surface) 55%, transparent);
-  --card-backdrop:     blur(14px) saturate(1.5);
+  /* ── the layers, back to front ──────────────────────────────
+     Four Settings sliders (Look and feel, shown only under Glass;
+     controls.js writes each as a custom property on <html>, and each
+     fallback below is its default). They read in the same order as the rows:
+       1. Canvas glow  --glass-canvas      the aurora's strength (--aurora-* stops)
+       2. Dim canvas   --glass-canvas-dim  black over the background, undone inside cards
+       3. Backlight    --glass-backlight   a light inside each card, under its tint
+       4. Tint cards   --glass-tint        the card color, over the backlight
+     No hex is named anywhere: every color is a theme role or an alpha of one. */
+
+  /* 1. canvas glow — scales every aurora stop: 50 = the values as written,
+     0 = no glow, 100 = double, each stop capped at 100%. */
+  --glass-glow: calc(var(--glass-canvas, 50) / 50);
+
+  /* 2. dim canvas — 0–100 maps to a 0–0.9 dim (body::after). The frost sees
+     that dim too, so its brightness() multiplies it back out (1 / (1 − dim)):
+     only the gaps get darker. The 0.9 cap keeps the ×10 restore inside 8-bit
+     precision. */
+  --glass-dim:         calc(var(--glass-canvas-dim, 0) / 100 * 0.9);
+  --canvas-dim:        var(--glass-dim);
+  --card-backdrop:     blur(14px) saturate(1.5) brightness(calc(1 / (1 - var(--glass-dim))));
   --card-border-width: 1px;
+
+  /* 3 + 4. The card paints two background layers, top first: the tint (an
+     alpha of --surface) over the backlight (a soft glow of the theme's accent
+     roles). At tint 0 the backlight shows fully. A faint halo of the same
+     light leaks past the edge (the first --shadow-card entry). */
+  --glass-light: calc(var(--glass-backlight, 50) / 100);
+  --glass-tint-ink: color-mix(in srgb, var(--surface) var(--glass-tint, 55%), transparent);
+  --card:
+    linear-gradient(var(--glass-tint-ink), var(--glass-tint-ink)),
+    radial-gradient(140% 100% at 50% 0%,
+      color-mix(in srgb, var(--go) calc(60% * var(--glass-light)), transparent),
+      color-mix(in srgb, var(--stop) calc(40% * var(--glass-light)), transparent) 55%,
+      color-mix(in srgb, var(--pause) calc(30% * var(--glass-light)), transparent));
   --shadow-card:
+    0 0 28px color-mix(in srgb, var(--go) calc(30% * var(--glass-light)), transparent),
     0 8px 32px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent);
+
+  /* look change — panes settle forward into place: soft and slow, a slight scale */
+  --boot-dur:     0.9s;
+  --boot-ease:    cubic-bezier(0.4, 0, 0.2, 1);
+  --boot-rise:    translateY(6px) scale(0.985);
+  --boot-stagger: 60ms;
+  --cover-in-dur: 0.26s;
+
+  /* slider handle — a glass ring (evenodd hollow): the track shows through */
+  --scrubber-handle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11z' fill='%23000'/%3E%3C/svg%3E");
 
   /* aurora — soft accent blobs the frost refracts, drawn on the injected
      .aurora layer (chrome.css). Hues are the theme's OWN accent roles
@@ -292,16 +412,16 @@
   --aurora-display: block;
   --aurora-1:
     radial-gradient(42% 52% at 16% 10%,
-      color-mix(in srgb, var(--go) 50%, transparent),
-      color-mix(in srgb, var(--go) 20%, transparent) 45%, transparent 80%);
+      color-mix(in srgb, var(--go) min(100%, 50% * var(--glass-glow)), transparent),
+      color-mix(in srgb, var(--go) min(100%, 20% * var(--glass-glow)), transparent) 45%, transparent 80%);
   --aurora-2:
     radial-gradient(46% 56% at 86% 22%,
-      color-mix(in srgb, var(--stop) 44%, transparent),
-      color-mix(in srgb, var(--stop) 18%, transparent) 45%, transparent 80%);
+      color-mix(in srgb, var(--stop) min(100%, 44% * var(--glass-glow)), transparent),
+      color-mix(in srgb, var(--stop) min(100%, 18% * var(--glass-glow)), transparent) 45%, transparent 80%);
   --aurora-3:
     radial-gradient(52% 52% at 60% 96%,
-      color-mix(in srgb, var(--pause) 38%, transparent),
-      color-mix(in srgb, var(--pause) 15%, transparent) 45%, transparent 82%);
+      color-mix(in srgb, var(--pause) min(100%, 38% * var(--glass-glow)), transparent),
+      color-mix(in srgb, var(--pause) min(100%, 15% * var(--glass-glow)), transparent) 45%, transparent 82%);
   --aurora-slack: 64px;               /* every drift below stays within ±64 */
   /* each blob wanders a different way and returns */
   --aurora-drift-1-x:  48px;  --aurora-drift-1-y:  32px;
@@ -366,7 +486,25 @@
   /* micro-motion — twitch-fast */
   --dur-fast:   0.08s;
   --hover-lift: translateY(-1px);
+
+  /* look change — an electric snap: the cover clears almost at once, then the
+     page blocks jolt in hard-skewed and straighten, one after the next */
+  --boot-dur:       0.6s;
+  --boot-cover-out: 0.18s;
+  --boot-ease:      cubic-bezier(0.2, 0.9, 0.3, 1);
+  --boot-rise:      translateX(18px) skewX(-10deg);
+  --boot-stagger:   50ms;
+  --cover-in-dur:   0.1s;
+
+  /* slider handle — the thumb is a lightning bolt */
+  --scrubber-handle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2 L6 14 h5 l-2 8 L18 9 h-5 l3 -7 Z' fill='%23000'/%3E%3C/svg%3E");
+  --scrubber-handle-size: 14px;
+  --set-pill-radius:      2px;
 }
+
+/* Settings › Animate backgrounds: Reduced halves the ambient rate for every
+   skin. A user choice, so it outranks the skin's --ambient-fps. */
+:root[data-bg-motion="reduced"] { --ambient-fps: 15; }
 /* Retro-Future's strike cycle: the bolt is wiped in top→bottom over ~60% of
    its period (the strike box slides 0→full reach while storm-hold
    counter-slides, so the bolt itself never moves), flickers once at full

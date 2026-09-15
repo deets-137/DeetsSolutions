@@ -32,13 +32,29 @@
     return host;
   }
 
+  /* Settings › Show notices (controls.js, `deets-settings`): "failures" lets
+     only warn + error through; "all" (default) lets everything. A toast that
+     ASKS (sticky, with actions) always shows, because a muted question would
+     stop the action it gates. Read straight from storage: this module may
+     load before controls.js. */
+  function admitted(kind, opts) {
+    if (opts.sticky && opts.actions && opts.actions.length) return true;
+    var tier = "all";
+    try { tier = (JSON.parse(localStorage.getItem("deets-settings") || "{}") || {}).toasts || "all"; }
+    catch (e) {}
+    return tier !== "failures" || kind === "warn" || kind === "error";
+  }
+
   function push(opts) {
     opts = opts || {};
+    var kind = opts.kind === "success" || opts.kind === "warn" ||
+               opts.kind === "error" ? opts.kind : "info";
+    if (!admitted(kind, opts)) {
+      return { dismiss: function () {}, update: function () {}, shown: false };
+    }
     ensureHost();
 
     var el = document.createElement("div");
-    var kind = opts.kind === "success" || opts.kind === "warn" ||
-               opts.kind === "error" ? opts.kind : "info";
     el.className = "toast toast--" + kind;
     el.setAttribute("role", kind === "error" ? "alert" : "status");
 

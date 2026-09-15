@@ -89,6 +89,9 @@
 .gt-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
 .gt-code__input:focus { border-bottom-color: var(--title); }
 .gt-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; --pop-origin: top left; }
+/* Look-change cover (chrome.css): a game board never rises; it only gets
+   the veil. */
+.site-main { --boot-from-opacity: 1; --boot-from: none; }
 /* .tb-pop__head / .tb-pop__empty are part of the tb- kit — styles/chrome.css. */
 
 /* ── gate (peek → sit / watch / open) ─────────────────────────── */

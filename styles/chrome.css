@@ -940,6 +940,289 @@ body::before {
   .pop-enter { animation: none; }
 }
 
+/* ── Settings (the Vibe menu's last row; controls.js) ───────────
+   Ported from DeetsMusic's settings card (settings.css). The "Settings"
+   row expands IN PLACE: the menu grows wider and taller (--pop-grow) and
+   the rows slide in. One scrolling column with section headers. Row kinds:
+   a TOGGLE (label + dot, the chips' idiom), a CHOICE (label + a split
+   pill), a RANGE (label + a slider + its value). Color through theme
+   roles, geometry through skin tokens. */
+.menu__group--settings {
+  margin-top: var(--space-1);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--border);
+}
+.menu__group--settings .menu__chev { transition: transform var(--pop-grow) var(--pop-ease); }
+.menu__group--settings.is-open .menu__chev { transform: rotate(180deg); }
+/* Collapsed: zero width (so the menu keeps its narrow size) and zero rows. */
+.menu__set {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 0;
+  visibility: hidden;
+  transition: grid-template-rows var(--pop-grow) var(--pop-ease),
+              width var(--pop-grow) var(--pop-ease),
+              visibility 0s linear var(--pop-grow);
+}
+.menu__group.is-open > .menu__set {
+  grid-template-rows: 1fr;
+  width: min(var(--set-panel-w), calc(100vw - 2 * var(--space-5)));
+  visibility: visible;
+  transition-delay: 0s;
+}
+.menu__set-clip { min-height: 0; overflow: hidden; }
+
+/* The scrollbar's space is always kept, so a section opening never narrows
+   the rows. The thumb fades in only while the rows outgrow the viewport
+   (`is-scrollable`, set by a ResizeObserver): a registered color, so it
+   can transition. */
+@property --set-thumb {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+.set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--set-section-gap);
+  max-height: calc(100dvh - var(--header-h) - var(--set-clearance));
+  overflow-y: auto;
+  padding-top: var(--space-2);
+  scrollbar-gutter: stable;
+  --set-thumb: transparent;
+  scrollbar-color: var(--set-thumb) transparent;
+  transition: --set-thumb var(--dur-med) var(--ease-ui);
+}
+.set.is-scrollable { --set-thumb: var(--scrollbar); }
+
+.set__section { display: flex; flex-direction: column; gap: var(--space-1); }
+.set__head {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2) var(--space-1);
+  border-bottom: 1px solid var(--border);   /* a hairline groups the section; no boxes */
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--subtext);
+}
+/* The header is a fold button: chevron, title, row count right. */
+.set__fold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.set__fold:hover { color: var(--text); }
+.set__chev {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+  transition: transform var(--dur-med) var(--ease-ui);
+}
+.set__head.is-collapsed .set__chev { transform: rotate(-90deg); }
+.set__count { margin-left: auto; opacity: 0.7; }
+
+.set__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--set-row-h);
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  text-align: left;
+}
+.set__row--toggle { cursor: pointer; }
+.set__row--toggle:hover { background: var(--surface-hover); }
+/* A choice keeps its pill on the label's line; it wraps under the label
+   only when the row is too narrow. */
+.set__row--choice { flex-wrap: wrap; }
+.set__label { flex: 1 1 auto; min-width: 0; }
+.set__dot { width: 1em; text-align: center; color: var(--title); }
+.set__row--toggle[aria-checked="true"] .set__dot::after { content: "•"; }
+
+/* Split pill: one border, halves cut by a hairline. The pressed half takes
+   the hover wash + title ink. */
+.set__split {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--set-pill-radius);
+  overflow: hidden;
+}
+.set__split > * + * { border-left: 1px solid var(--border); }
+.set__half {
+  min-width: 0;
+  padding: var(--set-pill-pad);
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--subtext);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.set__half:hover { background: var(--surface-hover); color: var(--title); }
+.set__half[aria-pressed="true"] { background: var(--surface-hover); color: var(--title); }
+/* Inset ring: the pill's overflow clip would cut an outside one. */
+.set__half:focus-visible { outline-offset: calc(-1 * var(--focus-ring-w)); }
+
+/* Range: a track + fill + a --title box masked by the skin's
+   --scrubber-handle, then the value. --slider-fill is set by controls.js. */
+.set__range {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 var(--set-range-w);
+  min-width: 0;
+  height: var(--scrubber-handle-size);
+  cursor: pointer;
+  touch-action: none;
+}
+.set__range:focus-visible { border-radius: var(--set-pill-radius); }
+.set__range-track {
+  position: relative;
+  width: 100%;
+  height: var(--scrubber-track-h);
+  border-radius: var(--set-pill-radius);
+  background: var(--panel-border);
+}
+.set__range-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--slider-fill, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--title);
+}
+.set__range-handle {
+  position: absolute;
+  top: 50%;
+  left: var(--slider-fill, 0%);
+  width: var(--scrubber-handle-size);
+  height: var(--scrubber-handle-size);
+  transform: translate(-50%, -50%);
+  background: var(--title);
+  -webkit-mask: var(--scrubber-handle) center / contain no-repeat;
+  mask: var(--scrubber-handle) center / contain no-repeat;
+  pointer-events: none;
+}
+.set__range-val {
+  flex: 0 0 var(--set-range-val-w);
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--subtext);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A row opened from elsewhere (DeetsSettings.request, e.g. a toast's
+   [Settings] button): one wash and ring that fade. A negative
+   animation-delay keeps the clock across re-renders. Reduced motion: the
+   wash holds, then snaps off. */
+.set__row.is-flash { animation: set-flash var(--set-flash-dur) var(--ease-ui); }
+@keyframes set-flash {
+  from { background: var(--surface-hover); box-shadow: inset 0 0 0 var(--focus-ring-w) var(--title); }
+  to   { background: transparent; box-shadow: inset 0 0 0 var(--focus-ring-w) transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu__set, .menu__group--settings .menu__chev, .set, .set__chev { transition: none; }
+  .set__row.is-flash { animation-timing-function: steps(1, end); }
+}
+
+/* ── Animate backgrounds (Settings; data-bg-motion on <html>) ────
+   Reduced halves the ambient rate (skin.css); Off holds the loops still
+   and hides the storm (a frozen half-drawn bolt reads as a bug). */
+:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__roll, .aurora__blob) { animation-play-state: paused; }
+:root[data-bg-motion="off"] .storm { display: none; }
+
+/* ── Canvas dim (Glass › Dim canvas) ─────────────────────────────
+   Over the canvas texture and the ambient layers (all earlier at z ≤ 0),
+   under the content (z 1). Static: it never repaints on its own. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--canvas-dim-layer);
+}
+
+/* ── Look-change cover (controls.js; DeetsMusic appearance.ts) ───
+   A theme or skin change runs stages on <html data-boot>:
+     veil = the cover fades in over the old look; the page stays in place.
+     wait = opaque: the look swaps and the new skin's fonts load under it.
+     lift = the cover fades and the page blocks rise in a stagger.
+   The safety animation ends the cover by CSS alone at --boot-safety. A page
+   that shouldn't rise (the games) sets --boot-from-opacity: 1 and
+   --boot-from: none on .site-main (table.css): it just gets the veil. */
+.boot-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 300;                     /* above everything: header menus, toasts, walkers */
+  background: var(--canvas);
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-boot] .boot-cover {
+  opacity: 1;
+  animation: boot-safety-cover 0s var(--boot-safety) forwards;
+}
+html[data-boot] .site-main > * {
+  opacity: var(--boot-from-opacity, 0);
+  transform: var(--boot-from, var(--boot-rise));
+  animation: boot-safety-page 0s var(--boot-safety) forwards;
+}
+html[data-boot="veil"] .boot-cover { transition: opacity var(--cover-in-dur) var(--cover-in-ease); }
+html[data-boot="veil"] .site-main > * { opacity: 1; transform: none; animation: none; }
+/* The look swaps --canvas under the opaque cover: its color glides, never jumps. */
+html[data-boot="wait"] .boot-cover { transition: background-color var(--cover-in-dur) var(--boot-ease); }
+html[data-boot="lift"] .boot-cover {
+  opacity: 0;
+  transition: opacity var(--boot-cover-out) var(--boot-ease),
+              background-color var(--cover-in-dur) var(--boot-ease);
+}
+html[data-boot="lift"] .site-main > * {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--boot-dur) var(--boot-ease),
+              transform var(--boot-dur) var(--boot-ease);
+}
+html[data-boot="lift"] .site-main > :nth-child(2) { transition-delay: var(--boot-stagger); }
+html[data-boot="lift"] .site-main > :nth-child(3) { transition-delay: calc(var(--boot-stagger) * 2); }
+html[data-boot="lift"] .site-main > :nth-child(4) { transition-delay: calc(var(--boot-stagger) * 3); }
+html[data-boot="lift"] .site-main > :nth-child(5) { transition-delay: calc(var(--boot-stagger) * 4); }
+html[data-boot="lift"] .site-main > :nth-child(n + 6) { transition-delay: calc(var(--boot-stagger) * 5); }
+@keyframes boot-safety-cover { to { opacity: 0; visibility: hidden; } }
+@keyframes boot-safety-page  { to { opacity: 1; transform: none; } }
+
 /* ── Toasts — shared chrome (js/toast.js; docs/ui.md) ───────────
    A fixed top-right host under the header; toasts fly in from the
    right, newest on top. Severity wears the theme's traffic-light

@@ -298,6 +298,14 @@ Per step:
     the four journal kits needed no markup change.
   - Boot/cover and Glass/Ocean slider tokens were not added yet; they land with steps 6
     and 8.
+- **Steps 4, 6 and 8 landed 2026-09-15** (settings store + panel, look-change cover, range
+  rows + Glass/Ocean sliders). Described in [ui.md](ui.md), "Settings". Steps 5 (look
+  schedule, `js/prepaint.js`) and 7 (keyboard pass) are still open. Differences from the
+  brief:
+  - Copy reuses DeetsMusic's labels and hints without `[ph]` (his call). Only the
+    "Animate look changes" hint is new wording, so only it carries `[ph]`.
+  - All rows sit in one "Look and feel" section, as DeetsMusic has them, not Look + Site.
+  - No choice has more than three options yet, so the menu half was not built.
 
 ## Decisions (Aditya's, 2026-09-15)
 
