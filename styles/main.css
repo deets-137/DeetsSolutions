@@ -2954,7 +2954,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
   gap: var(--space-4);
-  align-items: start;
+  align-items: stretch;   /* boxes sharing a row share its height */
 }
 .dm-box {
   display: flex;
@@ -3062,7 +3062,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  align-self: stretch;
+  align-content: center;   /* stretched to Status's height: sit in the middle */
   gap: var(--space-3) var(--space-4);
 }
 .dm-install__icon {
@@ -3109,7 +3109,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-steps li + li { margin-top: var(--space-1); }
 
 /* ── Status ───────────────────────────────────────────────────────── */
-.dm-status { align-self: stretch; }
+.dm-status > .dm-hint:last-child { margin-top: auto; }   /* the scope note rides the bottom edge */
 .dm-status__now { display: flex; align-items: center; gap: var(--space-3); }
 .dm-dot {
   width: 0.9rem;
@@ -3200,15 +3200,14 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   transition: transform var(--dur-fast) var(--ease-ui);
 }
 .dm-rel.is-open .dm-rel__caret { transform: rotate(180deg); }
-.dm-rel__body {
-  display: none;
+.dm-rel__content {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3);
   border-top: 1px solid var(--border);
 }
-.dm-rel.is-open .dm-rel__body { display: flex; }
 .dm-rel__reason { margin: 0; color: var(--title); font-size: 0.85rem; }
 .dm-notes {
   max-width: 46rem;
@@ -3221,11 +3220,30 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-notes strong { color: var(--title); }
 
 /* ── Boards ───────────────────────────────────────────────────────── */
+/* The list fills whatever height the row gives the board, so the two boards
+   stay one size whether they hold nothing or dozens; past its cap it
+   scrolls instead of stretching the row (profile's counter-grid valve). */
 .dm-posts {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   align-self: stretch;
+  flex: 1 1 auto;
+  min-height: 14rem;
+  max-height: 32rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+/* An empty list is a quiet well, not a stray line of text. */
+.dm-posts > .dm-empty, .dm-rels > .dm-empty {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: 6rem;
+  padding: var(--space-4);
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-control);
 }
 .dm-post {
   display: flex;
@@ -3266,6 +3284,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   overflow: hidden;
+  transition: max-height var(--dur-med) var(--ease-ui);   /* driven by deetsmusic.js */
 }
 .dm-post.is-expanded .dm-post__body { display: block; -webkit-line-clamp: unset; }
 .dm-post__foot {
@@ -3340,6 +3359,34 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .dm-form__err { margin: 0; color: var(--stop); font-size: 0.85rem; }
 .dm-form__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* ── Collapse — the release rows and the two post forms ─────────────
+   A one-row grid whose track animates 0fr → 1fr, so the open height
+   is the content's own and never needs measuring. Closed, it hands
+   back the box's flex gap, so a shut form leaves no hole. */
+.dm-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  align-self: stretch;
+  opacity: 0;
+  transition: grid-template-rows var(--dur-med) var(--ease-ui),
+              opacity var(--dur-med) var(--ease-ui),
+              margin-block-start var(--dur-med) var(--ease-ui);
+}
+.dm-collapse.is-open { grid-template-rows: 1fr; opacity: 1; }
+.dm-collapse__inner { min-height: 0; overflow: hidden; }
+.dm-box > .dm-collapse:not(.is-open) { margin-block-start: calc(var(--space-3) * -1); }
+/* The inner clip would shave the focus ring off the form's edges: widen
+   the collapse by one ring and inset its content by the same. */
+.dm-collapse--ring {
+  --dm-ring: calc(var(--focus-ring-w) + var(--focus-ring-off));
+  margin-inline: calc(var(--dm-ring) * -1);
+}
+.dm-collapse--ring .dm-collapse__inner > * { margin: var(--dm-ring); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-collapse, .dm-post__body { transition: none; }
+}
 
 /* ── Your posts ───────────────────────────────────────────────────── */
 .dm-mine__list {

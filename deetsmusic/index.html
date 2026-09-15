@@ -146,7 +146,9 @@
               <button type="button" class="home__cta home__cta--soft" data-dm-open="suggestion" aria-expanded="false" data-s="suggestOpen"></button>
             </div>
             <p class="dm-lead" data-s="suggestLead"></p>
-            <form class="dm-form" data-dm-form="suggestion" novalidate hidden>
+            <div class="dm-collapse dm-collapse--ring" data-dm-collapse="suggestion" inert>
+            <div class="dm-collapse__inner">
+            <form class="dm-form" data-dm-form="suggestion" novalidate>
               <label class="dm-field">
                 <span class="dm-field__label" data-s="formTitleLabel"></span>
                 <input class="dm-field__input" name="title" type="text" maxlength="120" autocomplete="off" data-s-ph="formTitleSuggestPh" />
@@ -163,6 +165,8 @@
                 <button type="button" class="home__cta home__cta--soft" data-dm-cancel data-s="formCancel"></button>
               </div>
             </form>
+            </div>
+            </div>
             <div class="dm-posts" data-dm-list="suggestion"></div>
             <p class="dm-hint" data-s="interestHint"></p>
           </section>
@@ -173,7 +177,9 @@
               <button type="button" class="home__cta home__cta--soft" data-dm-open="issue" aria-expanded="false" data-s="issuesOpen"></button>
             </div>
             <p class="dm-lead" data-s="issuesLead"></p>
-            <form class="dm-form" data-dm-form="issue" novalidate hidden>
+            <div class="dm-collapse dm-collapse--ring" data-dm-collapse="issue" inert>
+            <div class="dm-collapse__inner">
+            <form class="dm-form" data-dm-form="issue" novalidate>
               <label class="dm-field">
                 <span class="dm-field__label" data-s="formTitleLabel"></span>
                 <input class="dm-field__input" name="title" type="text" maxlength="120" autocomplete="off" data-s-ph="formTitleIssuePh" />
@@ -195,6 +201,8 @@
                 <button type="button" class="home__cta home__cta--soft" data-dm-cancel data-s="formCancel"></button>
               </div>
             </form>
+            </div>
+            </div>
             <div class="dm-posts" data-dm-list="issue"></div>
           </section>
 

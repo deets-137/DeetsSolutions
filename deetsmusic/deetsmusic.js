@@ -240,23 +240,29 @@
       caret.setAttribute("aria-hidden", "true");
       head.appendChild(caret);
 
-      var body = el("div", "dm-rel__body");
+      var body = el("div", "dm-collapse dm-rel__body");
       body.id = "dm-rel-" + i;
+      var inner = el("div", "dm-collapse__inner");
+      var content = el("div", "dm-rel__content");
+      inner.appendChild(content);
+      body.appendChild(inner);
       if (r.withdrawn && r.withdrawn_reason) {
-        body.appendChild(el("p", "dm-rel__reason", s("relWithdrawnReason", { reason: r.withdrawn_reason })));
+        content.appendChild(el("p", "dm-rel__reason", s("relWithdrawnReason", { reason: r.withdrawn_reason })));
       }
-      if (r.notes) body.appendChild(renderNotes(r.notes));
-      else body.appendChild(el("p", "dm-empty", s("relNoNotes")));
+      if (r.notes) content.appendChild(renderNotes(r.notes));
+      else content.appendChild(el("p", "dm-empty", s("relNoNotes")));
       if (r.url) {
         var dl = el("a", "home__cta", s("relDownload", { v: r.version, mb: r.size ? mb(r.size) : "?" }));
         dl.href = r.url;
-        body.appendChild(dl);
+        content.appendChild(dl);
       } else {
-        body.appendChild(el("p", "dm-hint", s(r.withdrawn ? "relWithdrawn" : "relHistory")));
+        content.appendChild(el("p", "dm-hint", s(r.withdrawn ? "relWithdrawn" : "relHistory")));
       }
 
       function setOpen(open) {
         item.classList.toggle("is-open", open);
+        body.classList.toggle("is-open", open);
+        body.inert = !open;   // a shut row's download link must not take Tab focus
         head.setAttribute("aria-expanded", open ? "true" : "false");
       }
       setOpen(i === 0);
@@ -340,7 +346,8 @@
     head.appendChild(el("h3", "dm-post__title", p.title));
     head.appendChild(chip(s("state_" + p.state), p.state));
     main.appendChild(head);
-    main.appendChild(el("p", "dm-post__body", p.body));
+    var text = el("p", "dm-post__body", p.body);
+    main.appendChild(text);
 
     var foot = el("div", "dm-post__foot");
     foot.appendChild(el("span", null, fmtUnix(p.created_at)));
@@ -349,7 +356,8 @@
       more.type = "button";
       more.setAttribute("aria-expanded", "false");
       more.addEventListener("click", function () {
-        var open = item.classList.toggle("is-expanded");
+        var open = !item.classList.contains("is-expanded") || item.hasAttribute("data-closing");
+        animateClamp(item, text, open);
         more.textContent = s(open ? "postLess" : "postMore");
         more.setAttribute("aria-expanded", open ? "true" : "false");
       });
@@ -358,6 +366,41 @@
     main.appendChild(foot);
     item.appendChild(main);
     return item;
+  }
+
+  // "More" grows a post's three-line clamp to its full height and back.
+  // line-clamp itself can't animate, so max-height carries the motion and
+  // the clamp returns only once a collapse has finished.
+  function animateClamp(item, text, open) {
+    if (REDUCED) {
+      item.classList.toggle("is-expanded", open);
+      return;
+    }
+    var from = text.getBoundingClientRect().height;
+    item.classList.add("is-expanded");            // unclamped, so scrollHeight is the full text
+    var to = open ? text.scrollHeight : parseFloat(getComputedStyle(text).lineHeight) * 3;
+    if (open) item.removeAttribute("data-closing"); else item.setAttribute("data-closing", "");
+    text.style.maxHeight = from + "px";
+    text.getBoundingClientRect();                 // commit the start height before the change
+    text.style.maxHeight = to + "px";
+    afterTransition(text, function () {
+      text.style.maxHeight = "";
+      if (!open && item.hasAttribute("data-closing")) {
+        item.classList.remove("is-expanded");
+        item.removeAttribute("data-closing");
+      }
+    });
+  }
+  function afterTransition(node, fn) {
+    var done = false;
+    function finish(e) {
+      if (done || (e && e.target !== node)) return;
+      done = true;
+      node.removeEventListener("transitionend", finish);
+      fn();
+    }
+    node.addEventListener("transitionend", finish);
+    setTimeout(finish, 700);                      // a skipped transition must still settle
   }
 
   // Interest is a signal, not a vote (support.md): the worker counts every
@@ -400,10 +443,15 @@
   // ── Post forms ─────────────────────────────────────────────────
   function field(form, name) { return form.elements.namedItem(name); }
 
+  function formIsOpen(kind) {
+    return $('[data-dm-collapse="' + kind + '"]').classList.contains("is-open");
+  }
   function openForm(kind, open) {
+    var wrap = $('[data-dm-collapse="' + kind + '"]');
     var form = $('[data-dm-form="' + kind + '"]');
     var toggle = $('[data-dm-open="' + kind + '"]');
-    form.hidden = !open;
+    wrap.classList.toggle("is-open", open);
+    wrap.inert = !open;
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
     if (open) field(form, "title").focus({ preventScroll: true });
   }
@@ -422,7 +470,7 @@
     function showErr(text) { err.textContent = text; err.hidden = !text; }
     updateCount();
 
-    toggle.addEventListener("click", function () { openForm(kind, form.hidden); });
+    toggle.addEventListener("click", function () { openForm(kind, !formIsOpen(kind)); });
     $("[data-dm-cancel]", form).addEventListener("click", function () { showErr(""); openForm(kind, false); });
     body.addEventListener("input", updateCount);
 
