@@ -1017,6 +1017,7 @@
         updateCount();
         openForm(kind, false);
         toast("success", s("sentToast"));
+        loadBoards();   // the write already dropped this colo's cached list
         location.hash = "t=" + res.data.code;
       });
     });
