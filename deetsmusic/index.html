@@ -117,21 +117,20 @@
             <h2 class="dm-box__title" id="dm-status-title" data-s="statusTitle"></h2>
             <div class="dm-status__now">
               <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
+              <span class="dm-status__subject" data-s="statusSubject"></span>
               <span class="dm-status__word" data-dm-status-word></span>
             </div>
-            <p class="dm-lead" data-dm-status-line></p>
+            <p class="dm-lead" data-dm-status-line hidden></p>
             <div class="dm-strip" data-dm-strip aria-hidden="true" hidden></div>
             <div class="dm-strip__legend" data-dm-strip-legend aria-hidden="true" hidden>
               <span data-s="stripOld"></span><span data-s="stripNow"></span>
             </div>
-            <p class="dm-hint" data-s="statusScope"></p>
           </section>
 
           <!-- Release notes: the whole history, withdrawn rows included. -->
           <section class="dm-box dm-box--wide" id="releases" aria-labelledby="dm-releases-title">
             <div class="dm-box__head">
               <h2 class="dm-box__title" id="dm-releases-title" data-s="releasesTitle"></h2>
-              <p class="dm-lead" data-s="releasesLead"></p>
             </div>
             <div class="dm-rels" data-dm-releases></div>
           </section>

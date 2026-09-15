@@ -36,27 +36,23 @@ window.DM_STRINGS = {
 
   /* status */
   statusTitle:        "[ph] Status",
+  /* dictated by Aditya in chat, 2026-09-14 — what the status reading is about */
+  statusSubject:      "DeetsMusic installer:",
   status_up:          "[ph] Up",
   status_degraded:    "[ph] Degraded",
   status_down:        "[ph] Down",
   status_unknown:     "[ph] Checking",
   status_unmonitored: "[ph] Not monitored",
-  statusLine:         "[ph] {pct}% of checks passed in the last {hours} hours. Last checked {ago}.",
   statusEmpty:        "[ph] No checks have run yet.",
   statusUnmonitored:  "[ph] Nothing is checking this yet.",
   statusFailed:       "[ph] Couldn't load the status.",
-  statusScope:        "[ph] DeetsMusic runs on your PC, so this checks what it depends on: the server that hands out its access key and its updates. An outage on Apple's side does not show here.",
   statusCellOk:       "[ph] {time} · OK · {ms} ms",
   statusCellBad:      "[ph] {time} · Failed · {note}",
   stripOld:           "[ph] 6 hours ago",
   stripNow:           "[ph] Now",
-  agoNow:             "[ph] just now",
-  agoMin:             "[ph] {n} min ago",
-  agoHour:            "[ph] {n} h ago",
 
   /* release notes */
   releasesTitle:      "[ph] Release notes",
-  releasesLead:       "[ph] Every version, newest first.",
   releasesLoading:    "[ph] Loading release notes…",
   releasesFailed:     "[ph] Release notes aren't available right now.",
   releasesEmpty:      "[ph] No releases yet.",

@@ -39,7 +39,7 @@
   var LS_INTEREST = "deets-dm-interest";  // [code] — suggestions this browser showed interest in
   var JWT_SHAPE = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/;   // mirrors the worker's second net
   var TITLE_MAX = 120, BODY_MAX = 4000;
-  var WINDOW_HOURS = 6, STRIP_CELLS = 72;   // the worker's status window: 6 h of 5-minute checks
+  var STRIP_CELLS = 72;   // the worker's status window: 6 h of 5-minute checks
   var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ── Helpers ────────────────────────────────────────────────────
@@ -104,12 +104,6 @@
   function fmtClock(t) {
     return new Date(t * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   }
-  function ago(t) {
-    var min = Math.round((Date.now() / 1000 - t) / 60);
-    if (min < 1) return s("agoNow");
-    if (min < 60) return s("agoMin", { n: min });
-    return s("agoHour", { n: Math.round(min / 60) });
-  }
   function mb(bytes) { return (bytes / 1048576).toFixed(1); }
 
   function fillStatic() {
@@ -132,6 +126,7 @@
       if (!a) {
         paintStatusWord("unknown");
         $("[data-dm-status-line]").textContent = s("statusFailed");
+        $("[data-dm-status-line]").hidden = false;
         return;
       }
       renderStatus(a);
@@ -150,17 +145,15 @@
     showNotice(a.notice);
 
     strip.textContent = "";
+    // The strip is the whole reading; the line only speaks when there is
+    // no strip to show.
     if (!a.monitored || !checks.length) {
       line.textContent = s(a.monitored ? "statusEmpty" : "statusUnmonitored");
+      line.hidden = false;
       strip.hidden = legend.hidden = true;
       return;
     }
-    var passed = checks.filter(function (c) { return c.ok; }).length;
-    line.textContent = s("statusLine", {
-      pct: Math.round((passed * 1000) / checks.length) / 10,
-      hours: WINDOW_HOURS,
-      ago: ago(checks[0].checked_at)
-    });
+    line.hidden = true;
     // checks arrive newest first; the strip reads left (oldest) to right (now)
     for (var i = STRIP_CELLS - 1; i >= 0; i--) {
       var c = checks[i];
@@ -293,10 +286,18 @@
       }
       if (r.notes) content.appendChild(renderNotes(r.notes));
       else content.appendChild(el("p", "dm-empty", s("relNoNotes")));
+      // A downloadable version gets a square ↓ on the card's top-right corner.
+      // It can't live inside the head <button> (no links inside buttons), so
+      // it rides the card and the head's top line leaves room for it.
+      var dl = null;
       if (r.url) {
-        var dl = el("a", "home__cta", s("relDownload", { v: r.version, mb: r.size ? mb(r.size) : "?" }));
+        var label = s("relDownload", { v: r.version, mb: r.size ? mb(r.size) : "?" });
+        dl = el("a", "dm-add dm-rel__dl");
         dl.href = r.url;
-        content.appendChild(dl);
+        dl.setAttribute("aria-label", label);
+        dl.title = label;
+        dl.appendChild(downloadIcon());
+        item.classList.add("has-dl");
       } else {
         content.appendChild(el("p", "dm-hint", s(r.withdrawn ? "relWithdrawn" : "relHistory")));
       }
@@ -311,6 +312,7 @@
       head.addEventListener("click", function () { setOpen(!item.classList.contains("is-open")); });
 
       item.appendChild(head);
+      if (dl) item.appendChild(dl);
       item.appendChild(body);
       list.appendChild(item);
     });
@@ -321,6 +323,23 @@
       new ResizeObserver(function () { capReleases(list); }).observe(list);
       list._observed = true;
     }
+  }
+
+  // A down arrow drawn in currentColor, so it wears the theme's --title.
+  function downloadIcon() {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("aria-hidden", "true");
+    var path = document.createElementNS(NS, "path");
+    path.setAttribute("d", "M8 2.5v9M4 7.5l4 4 4-4");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.75");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(path);
+    return svg;
   }
 
   // The four newest cards show; the rest scroll inside the list. Cards
