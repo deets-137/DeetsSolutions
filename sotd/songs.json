@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-14T02:00:20Z",
+  "generated_at": "2026-09-15T02:28:53Z",
   "channel": "song-of-the-day",
-  "count": 407,
+  "count": 409,
   "songs": [
     {
       "post_id": 1,
@@ -7084,7 +7084,7 @@
       "author": "sgrim:]",
       "url": "https://open.spotify.com/track/5JdLUE9D743ob2RtgmVpVx?si=b31748a0cdbc4180",
       "apple_music_url": "https://music.apple.com/us/album/makeba/1175093890?i=1175094463&uo=4",
-      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/7e/2a/64/7e2a643e-0125-78e6-9c87-8612133c0310/mzaf_8309092547184759140.plus.aac.p.m4a",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/24/31/34/24313488-9bec-15cd-90c7-79c3297ca5a2/mzaf_772666532216043993.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/5a/78/86/5a788626-308e-eb19-80e3-1b3b78ef1fe8/886446194783.jpg/600x600bb.jpg"
     },
     {
@@ -9363,6 +9363,52 @@
       "apple_music_url": "https://music.apple.com/us/album/paper-planes/935134161?i=935134581&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d6/ee/c6/d6eec660-d71b-8192-f515-a5dbc44c41cd/mzaf_4513884281275293568.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/2d/68/53/2d685345-e3fa-d277-ed24-450b51adf0c6/5060186926193_1.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 12245,
+      "posted_at": "2026-09-14T07:08:22.931000+00:00",
+      "date": "2026-09-13",
+      "day": "Sun",
+      "month": "09_2026",
+      "track_name": "So Good (feat. Kendrick Lamar)",
+      "artist_name": "Jhené Aiko",
+      "album": "Westside Whimsy",
+      "genre": "R&B/Soul",
+      "duration": "3:57",
+      "duration_sec": 237,
+      "release_date": "2026-09-11",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6810716062",
+      "apple_music_url": "https://music.apple.com/us/album/so-good-feat-kendrick-lamar/6810715695?i=6810716062&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/20/78/dd/2078ddf0-de7d-f534-a4fd-476382ae012b/mzaf_13935165721871139669.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5f/51/9f/5f519f49-44c1-6aeb-f289-5b14c677abb1/26UM1IM17017.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 12246,
+      "posted_at": "2026-09-15T02:00:09.314000+00:00",
+      "date": "2026-09-14",
+      "day": "Mon",
+      "month": "09_2026",
+      "track_name": "Makeba",
+      "artist_name": "Jain",
+      "album": "Zanaka (Deluxe)",
+      "genre": "Pop",
+      "duration": "4:08",
+      "duration_sec": 248,
+      "release_date": "2015-06-22",
+      "release_year": 2015,
+      "age_yrs": 11,
+      "service": "spotify",
+      "resolved": "yes",
+      "author": "sgrim:]",
+      "url": "https://open.spotify.com/track/5JdLUE9D743ob2RtgmVpVx?si=06aa62eeb0804fc4",
+      "apple_music_url": "https://music.apple.com/us/album/makeba/1175093890?i=1175094463&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/24/31/34/24313488-9bec-15cd-90c7-79c3297ca5a2/mzaf_772666532216043993.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/5a/78/86/5a788626-308e-eb19-80e3-1b3b78ef1fe8/886446194783.jpg/600x600bb.jpg"
     }
   ]
 }
