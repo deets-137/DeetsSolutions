@@ -527,6 +527,168 @@ Two smaller ones behind it, both his call:
 - **Sort or filter by discussion.** Only worth it once the count exists, and
   only if the boards get busy enough to want it.
 
+---
+
+## Polls — planned 2026-09-15, NOT built
+
+His call, 2026-09-15: a commenter can put a **poll** on a thread, either under
+their comment or instead of one. People add options, vote for what they want,
+and the whole thing moves — bars growing, results revealing. A board card shows
+that a thread HAS a poll, beside the comment count from "Next step" above.
+
+Nothing here is built. This is the design to build from next time.
+
+### Why a poll can be an honest ballot when ▲ cannot
+
+The boards already have a counter, and it is deliberately NOT a vote:
+"Interest, not votes — no identity means no honest ballot" ("Interest" above,
+and the comment over `handleInterest`). The number is a signal, never a count a
+decision leans on.
+
+A poll is the opposite: it is a ballot, and it is worth having precisely
+because it can be honest. **Comments already carry an identity** (step 3 of
+"Threads"), so a poll built on top of them inherits one:
+
+- **Voting needs a DeetsAccounts sign-in**, exactly as commenting does. A
+  signed-out visitor sees the poll and its results, and the vote controls are
+  replaced by the same sign-in prompt the comment box uses.
+- **One vote per account per poll**, enforced by the primary key, not by
+  `localStorage`. Changing your mind rewrites the row rather than adding one.
+- A **blocked** account's votes drop out of the counts the same moment its
+  comments are hidden. Only possible because a vote has a uid on it.
+
+That difference is the whole reason this is worth building, and it is the line
+to hold: ▲ stays anonymous and stays a signal; a poll is signed and counts.
+
+### A poll hangs off a comment
+
+Not a new kind of thread row — a poll belongs to one. That keeps everything
+"Threads" already settled:
+
+- **The comment's body is the question.** A poll "in place of a comment" is a
+  row whose body is just the question. One text field, rendered as text.
+- **One moderation unit.** Hide the comment and the poll goes with it; delete
+  it and the poll and its votes go too. The owner's right-click menu needs
+  nothing new.
+- **One identity.** The poll's author is the row's `uid`, `name` and `color`,
+  snapshotted at post time like any comment.
+- **A reporter's reply can never carry one.** `#t=` needs no account, so there
+  is no identity to hang a ballot on. Polls live on `#p=` and nowhere else.
+
+### Storage
+
+Three tables. `polls` is keyed by the reply it belongs to, so the join is the
+one that already exists.
+
+```sql
+CREATE TABLE polls (
+  id           INTEGER PRIMARY KEY,
+  reply_id     INTEGER NOT NULL REFERENCES replies(id),   -- the comment it hangs off
+  code         TEXT NOT NULL REFERENCES posts(code),      -- denormalised: the thread read filters by it
+  closed       INTEGER NOT NULL DEFAULT 0,                -- the author closes it; results stay
+  open_options INTEGER NOT NULL DEFAULT 0,                -- may voters add options? (see "Open")
+  created_at   INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX polls_reply ON polls (reply_id);      -- at most one poll per comment
+CREATE INDEX polls_thread ON polls (code);
+
+CREATE TABLE poll_options (
+  id           INTEGER PRIMARY KEY,
+  poll_id      INTEGER NOT NULL REFERENCES polls(id),
+  text         TEXT NOT NULL,
+  uid          TEXT,                  -- who added it; the author's own are the poll's uid
+  created_at   INTEGER NOT NULL
+);
+CREATE INDEX poll_options_poll ON poll_options (poll_id, created_at);
+
+CREATE TABLE poll_votes (
+  poll_id      INTEGER NOT NULL REFERENCES polls(id),
+  uid          TEXT NOT NULL,         -- DeetsAccounts id — the ballot IS the identity
+  option_id    INTEGER NOT NULL REFERENCES poll_options(id),
+  created_at   INTEGER NOT NULL,
+  PRIMARY KEY (poll_id, uid)          -- one vote per account; changing it rewrites this row
+);
+CREATE INDEX poll_votes_option ON poll_votes (option_id);
+```
+
+Caps to enforce in the worker, in the shape the other caps take: 2 options
+minimum, 6 maximum, and an option's text capped like a title rather than a
+body. A poll on a hidden post is unreachable, since the post has no page.
+
+### Wire
+
+- `GET /p/<pid>` — a row that has a poll gains one:
+
+  ```
+  poll: { id, closed, open_options,
+          options: [ { id, text, votes } ],
+          mine: <option id> | null }     // this viewer's vote, or null
+  ```
+
+  `votes` is a `GROUP BY` over `poll_votes`, minus blocked uids. `mine` needs
+  the session, which `GET /p/<pid>` does not read today — it reads the cookie
+  only to decide `owner`. Extend that to "who is this", not "is this him".
+- `POST /p/<pid>/comments` — accepts an optional `poll: { options: [text, …],
+  open_options }` beside `body`. One request, so a comment and its poll cannot
+  half-land.
+- `POST /poll/<id>/vote` — `{ option }`, or `{ option: null }` to take it back.
+  Needs `ds_sess`, an allowlisted Origin, `POST_RL`, and the `blocked` check;
+  `KILL_BOARDS` covers it like every other POST.
+- `POST /poll/<id>/options` — only if `open_options`, and only for a signed-in
+  account that is not blocked.
+- `PATCH /poll/<id>` — `{ closed }`, the poll's author or the owner.
+- `GET /posts` — gains `polls`, a count or a flag, alongside the `comments`
+  count from "Next step". **The board-cache bug written up there bites harder
+  here**: a vote changes what a card says, so `dropBoards` has to fire on a
+  vote too, or a card's poll state lags by up to 60 s.
+
+### The page
+
+Composing (under the comment box, on `#p=` only, signed in):
+
+- An "Add a poll" control opens a small options editor: two empty rows to
+  start, an add-a-row button up to the cap, and each row removable. Sending is
+  still one Send — the poll rides the comment.
+- The editor's rows appear and leave the way `animateClamp` already does it:
+  height carries the motion, `--dur-med` and `--ease-ui` carry the timing, and
+  `REDUCED` skips straight to the end state. Nothing new invented.
+
+Reading and voting:
+
+- Before you vote, the options are buttons and the counts are hidden. After you
+  vote (or once the poll is closed), each option becomes a bar that grows to its
+  share, the counts count up, and your own choice is marked.
+- **The share is data, not a rule.** It rides an inline custom property the
+  stylesheet reads — the same trick `--dm-who` uses for a commenter's colour —
+  so no geometry and no hex goes into `main.css` (CLAUDE.md, "Never").
+- Voting again moves the mark and re-animates the bars from their old widths,
+  not from zero. Taking a vote back returns to the unvoted state.
+- Signed out: the bars and counts show, and the sign-in prompt stands where the
+  buttons would — the same one the comment box uses.
+
+`mock.js` mirrors all of it, and its seed wants a poll mid-thread, a closed
+one, and one with a single runaway option so a 90%-vs-2% bar has somewhere to
+be looked at.
+
+### Open — settle these before building
+
+1. **Who adds options?** "Users should be able to add poll options" reads both
+   ways. The schema above carries `open_options` so it can be either, but the
+   default is the decision. **Recommendation: the poll's author sets the
+   options, and `open_options` is a later toggle** — an open list on a public
+   board is a moderation surface, and every option added is a row the owner
+   may have to hide, with no menu for it yet.
+2. **Are counts hidden until you vote?** Hiding them stops the first votes
+   anchoring the rest, and it is what makes the reveal worth animating.
+   Showing them always is friendlier to someone just reading. **Recommendation:
+   hidden until you vote or it closes.**
+3. **One choice or several?** Single-choice is what the `poll_votes` primary
+   key above gives for free. Multi-select means dropping `uid` out of the key
+   and capping picks per account instead.
+4. **Does a poll close on its own?** A date would need the cron, which already
+   runs every five minutes for status. Not free, but not far.
+5. **Every string is his.** Claude adds `[ph]` only.
+
 ### Shipping step 1
 
 Order matters, and it is the reverse of what you would guess:
