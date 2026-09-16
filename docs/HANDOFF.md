@@ -142,14 +142,14 @@ A board card gives no sign a thread exists, so every click is a gamble. Written 
 of the three reply paths drops the board's 60 s edge cache today, which only becomes a bug
 once a card carries a count. His call on whether it earns the space.
 
-**2026-09-15 — POLLS: BUILT and COMMITTED, not deployed.** Design (and what the
+**2026-09-16 — POLLS: LIVE.** Design (and what the
 build added to it): **[support.md "Polls"](support.md)**. Worker routes, the page, the
 mock and `migrations/2026-09-15-polls.sql` are all written and check out — the mock's
 poll routes pass 29 assertions and every worker SQL statement was run against real
-SQLite. **Three things stand between this and live**, in order: run the migration
-(`npx wrangler d1 execute deets-support --remote --file=migrations/2026-09-15-polls.sql`),
-`npx wrangler deploy`, then the site a minute later — the same order the threads deploy
-took, and for the same reason. **His visual and copy passes are DONE** (2026-09-15: cards instead of bars, four
+SQLite. Shipped in the documented order on 2026-09-16: the migration on the remote D1 (three
+tables, four indexes), then `npx wrangler deploy` (version `42d0c431`), with the site
+already pushed. **What has NOT happened is a real poll** — nobody has cast a vote on the
+live boards yet, and a signed-in vote can only be tested live, like comments before it. **His visual and copy passes are DONE** (2026-09-15: cards instead of bars, four
 in view then a sideways scroll, most votes first, a Vote button so picking is local,
 the controls grouped vote / contribute / manage, one control scale — and every
 string approved, zero `[ph]`). Both repos are committed and pushed.

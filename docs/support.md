@@ -556,20 +556,21 @@ Two smaller ones behind it, both his call:
 
 ---
 
-## Polls — BUILT 2026-09-15, not deployed
+## Polls — LIVE 2026-09-16
 
 His call, 2026-09-15: a commenter can put a **poll** on a thread, either under
 their comment or instead of one. People add options, vote for what they want,
 and the whole thing moves as the votes land. A board card shows
 that a thread HAS a poll, beside the comment count from "Next step" above.
 
-**Built and committed 2026-09-15** — worker, page, mock and migration, all
-against the five answers at the bottom. His visual pass is done (the cards, the
-button grouping and the control scale below are his calls from it) and his copy
-pass with it: **zero `[ph]`**. **Not deployed yet**: the migration has not been
-run and `npx wrangler deploy` has not run, so until they do, a thread's reply
-carries no `poll` and the page simply shows no polls. What follows is what the
-code does.
+**LIVE 2026-09-16.** Built and committed 2026-09-15 (site `74474d4`, worker
+`043b3b0`), against the five answers at the bottom; his visual pass produced the
+cards, the button grouping and the control scale below, and his copy pass left
+**zero `[ph]`**. Migration run on the remote D1 and the worker deployed
+(version `42d0c431`), in that order, with the site already out. Smoke-tested
+live: `GET /posts` carries the `polls` flag, a thread reads clean, all three
+poll routes answer `signin` rather than 404, and `/admin/poll-options/` answers
+`owner`. What follows is what the code does.
 
 ### Why a poll can be an honest ballot when ▲ cannot
 
