@@ -490,6 +490,33 @@ fails to load reuses `ticketFailed`, a row he hid reuses `tagHidden`, and
 it is one sentence either way. The one genuinely new byline is `authorPoster`
 ("Poster"): on `#t=` that row says "You", and on `#p=` it is not you.
 
+### Shipping step 1
+
+Order matters, and it is the reverse of what you would guess:
+
+1. **The migration first.** `npx wrangler d1 execute deets-support --remote
+   --file=migrations/2026-09-15-pid.sql`. The deployed code inserts into `pid`
+   and selects it; without the column every post and every ▲ answers 500.
+2. **Then the worker** (`npx wrangler deploy`), then the mint-host smoke.
+3. **Then the site**, a minute later. `GET /posts` sits in a 60 s edge cache,
+   so for up to a minute after the deploy a colo can still serve the old shape
+   — posts with a `code` and no `pid`. The new page would render those with
+   `data-pid="undefined"` and its ▲ would 404 until the cache turned over.
+   Waiting a minute costs nothing; the old page in the meantime is the page
+   that is already live.
+
+The transition is one-way on purpose. `POST /interest` still honours a body
+carrying `code`, so a tab opened before the deploy keeps voting until it
+reloads; nothing else does. `deets-dm-interest` in `localStorage` held codes
+and now holds pids, so everyone's first ▲ after the split is free. That is the
+"accept one reset" branch of the plan: the migration cannot be written, because
+the page no longer learns the code of a post it did not send.
+
+Every code that has sat on a public board since 2026-09-11 should be treated as
+known. What that bought was always bounded — close the post, reply on it as its
+reporter, read the `meta` its reporter sent — and whether any of it happened is
+not recorded either way; the boards keep no access log.
+
 ### Next step — a thread's size on its card
 
 **Proposed, not built. His call on whether it earns the space.**
@@ -529,14 +556,20 @@ Two smaller ones behind it, both his call:
 
 ---
 
-## Polls — planned 2026-09-15, NOT built
+## Polls — BUILT 2026-09-15, not deployed
 
 His call, 2026-09-15: a commenter can put a **poll** on a thread, either under
 their comment or instead of one. People add options, vote for what they want,
-and the whole thing moves — bars growing, results revealing. A board card shows
+and the whole thing moves as the votes land. A board card shows
 that a thread HAS a poll, beside the comment count from "Next step" above.
 
-Nothing here is built. This is the design to build from next time.
+**Built and committed 2026-09-15** — worker, page, mock and migration, all
+against the five answers at the bottom. His visual pass is done (the cards, the
+button grouping and the control scale below are his calls from it) and his copy
+pass with it: **zero `[ph]`**. **Not deployed yet**: the migration has not been
+run and `npx wrangler deploy` has not run, so until they do, a thread's reply
+carries no `poll` and the page simply shows no polls. What follows is what the
+code does.
 
 ### Why a poll can be an honest ballot when ▲ cannot
 
@@ -585,8 +618,9 @@ CREATE TABLE polls (
   id           INTEGER PRIMARY KEY,
   reply_id     INTEGER NOT NULL REFERENCES replies(id),   -- the comment it hangs off
   code         TEXT NOT NULL REFERENCES posts(code),      -- denormalised: the thread read filters by it
-  closed       INTEGER NOT NULL DEFAULT 0,                -- the author closes it; results stay
-  open_options INTEGER NOT NULL DEFAULT 0,                -- may voters add options? (see "Open")
+  multi        INTEGER NOT NULL DEFAULT 0,                -- one pick or several; set at creation, never after
+  closed       INTEGER NOT NULL DEFAULT 0,                -- the author's own act; the post's state closes it too
+  open_options INTEGER NOT NULL DEFAULT 1,                -- anyone signed in may add one
   created_at   INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX polls_reply ON polls (reply_id);      -- at most one poll per comment
@@ -597,6 +631,7 @@ CREATE TABLE poll_options (
   poll_id      INTEGER NOT NULL REFERENCES polls(id),
   text         TEXT NOT NULL,
   uid          TEXT,                  -- who added it; the author's own are the poll's uid
+  hidden       INTEGER NOT NULL DEFAULT 0,   -- owner moderation, exactly like a hidden comment
   created_at   INTEGER NOT NULL
 );
 CREATE INDEX poll_options_poll ON poll_options (poll_id, created_at);
@@ -606,115 +641,227 @@ CREATE TABLE poll_votes (
   uid          TEXT NOT NULL,         -- DeetsAccounts id — the ballot IS the identity
   option_id    INTEGER NOT NULL REFERENCES poll_options(id),
   created_at   INTEGER NOT NULL,
-  PRIMARY KEY (poll_id, uid)          -- one vote per account; changing it rewrites this row
+  PRIMARY KEY (poll_id, uid, option_id)   -- one row per pick
 );
 CREATE INDEX poll_votes_option ON poll_votes (option_id);
 ```
 
+**One row per pick, in both modes.** Single-choice can no longer be the primary
+key, so the worker enforces it: a vote deletes that account's rows for the poll
+and inserts the new set, and a single-choice ballot carrying two options is a
+400. One vote per account per poll survives as a rule; it just moves from the
+schema into the route.
+
 Caps to enforce in the worker, in the shape the other caps take: 2 options
-minimum, 6 maximum, and an option's text capped like a title rather than a
-body. A poll on a hidden post is unreachable, since the post has no page.
+minimum at creation, 6 maximum **including the ones voters add**, and an
+option's text capped like a title rather than a body. A poll on a hidden post
+is unreachable, since the post has no page.
+
+**Closed is two flags OR'd.** `closed` is the author closing it by hand. The
+thread closes it too: once the post's `state` is `fixed`, `wontfix` or
+`closed`, its polls stop taking votes and stand at their final counts. The
+worker computes that on read — no per-poll date, and no new cron work.
 
 ### Wire
 
 - `GET /p/<pid>` — a row that has a poll gains one:
 
   ```
-  poll: { id, closed, open_options,
-          options: [ { id, text, votes } ],
-          mine: <option id> | null }     // this viewer's vote, or null
+  poll: { id, closed, closed_state, multi, open_options, yours,
+          options: [ { id, text, votes } ],   // + hidden, uid for the owner
+          mine: [ <option id>, … ] }         // this viewer's picks; [] if none
   ```
 
-  `votes` is a `GROUP BY` over `poll_votes`, minus blocked uids. `mine` needs
-  the session, which `GET /p/<pid>` does not read today — it reads the cookie
-  only to decide `owner`. Extend that to "who is this", not "is this him".
+  `closed` is the OR'd value, so the page never has to know the post's state to
+  render the poll; `closed_state` says which of the two closed it, because
+  "closed by its author" and "closed because the thread is settled" are
+  different sentences and only the first can be reopened. `yours` answers
+  "may I close this", which the page cannot work out for itself — a member is
+  never sent another row's uid. `votes` is a `GROUP BY` over `poll_votes`, minus blocked
+  uids; hidden options drop out entirely. `mine` needs the session, which
+  `GET /p/<pid>` does not read today — it reads the cookie only to decide
+  `owner`. Extend that to "who is this", not "is this him".
 - `POST /p/<pid>/comments` — accepts an optional `poll: { options: [text, …],
-  open_options }` beside `body`. One request, so a comment and its poll cannot
-  half-land.
-- `POST /poll/<id>/vote` — `{ option }`, or `{ option: null }` to take it back.
-  Needs `ds_sess`, an allowlisted Origin, `POST_RL`, and the `blocked` check;
-  `KILL_BOARDS` covers it like every other POST.
-- `POST /poll/<id>/options` — only if `open_options`, and only for a signed-in
-  account that is not blocked.
-- `PATCH /poll/<id>` — `{ closed }`, the poll's author or the owner.
+  multi, open_options }` beside `body`. One request, so a comment and its poll
+  cannot half-land.
+- `POST /poll/<id>/vote` — `{ options: [id, …] }`, the **whole ballot**,
+  replacing whatever that account had; `[]` takes the vote back. The page
+  sends it on Vote, not on a tick, so this is one request per mind made up.
+  It answers with the fresh counts and `mine`, so it is also one request
+  rather than a thread reload. Rejected if
+  the poll is closed, if a single-choice poll gets more than one, or if an id
+  is not this poll's. Needs `ds_sess`, an allowlisted Origin, `POST_RL`, and
+  the `blocked` check; `KILL_BOARDS` covers it like every other POST.
+- `POST /poll/<id>/options` — any signed-in, unblocked account, while
+  `open_options` is on and the poll is open, up to the 6 cap. Adding an option
+  is not a vote; you still have to pick it.
+- `PATCH /poll/<id>` — `{ closed }`, the poll's author or the owner. `multi`
+  and `open_options` are fixed at creation and have no route.
+- `PATCH /admin/poll-options/<id>` — `{ hidden }`, **owner only**. It lives
+  under `/admin/` rather than beside the other poll routes so that
+  `handleAdmin`'s one owner check covers it, like every other owner route. An open option list
+  is a moderation surface, and this is the row that pays for it: without it,
+  anyone signed in can write text onto someone else's poll with nothing to take
+  it down. It belongs in the same right-click menu as "Owner moderation of
+  comments", and a hidden option's votes leave the counts with it.
 - `GET /posts` — gains `polls`, a count or a flag, alongside the `comments`
-  count from "Next step". **The board-cache bug written up there bites harder
-  here**: a vote changes what a card says, so `dropBoards` has to fire on a
-  vote too, or a card's poll state lags by up to 60 s.
+  count from "Next step". Make it a **flag, not a tally**: a card says a thread
+  HAS a poll and never how the vote is going. That keeps votes out of
+  `dropBoards` entirely — the flag only changes when a poll is created or its
+  comment is hidden, and both already drop the cache. A card's poll state
+  cannot go stale because nothing a voter does can change it.
+  **Do not `dropBoards` on a vote.** It is the one thing here that could
+  actually cost money: a vote every few seconds keeps the 60 s cache
+  permanently empty, and every board load then re-reads up to 400 post rows
+  against a 5M-rows-a-day ceiling. Adding an option is a different matter
+  — it is rare, and it changes nothing a card shows either, so it does not
+  drop the cache.
 
 ### The page
 
 Composing (under the comment box, on `#p=` only, signed in):
 
-- An "Add a poll" control opens a small options editor: two empty rows to
-  start, an add-a-row button up to the cap, and each row removable. Sending is
-  still one Send — the poll rides the comment.
+- **"Add a poll" stands beside Send** — the poll rides the comment, so the two
+  buttons belong on one row — and the editor drops down under the pair: two
+  empty rows to start, an add-a-row button up to the cap, and each row
+  removable. **A one-or-several toggle sits in the editor**, the only place
+  `multi` is ever set. Sending is still one Send (his call, 2026-09-15).
 - The editor's rows appear and leave the way `animateClamp` already does it:
   height carries the motion, `--dur-med` and `--ease-ui` carry the timing, and
   `REDUCED` skips straight to the end state. Nothing new invented.
 
 Reading and voting:
 
-- Before you vote, the options are buttons and the counts are hidden. After you
-  vote (or once the poll is closed), each option becomes a bar that grows to its
-  share, the counts count up, and your own choice is marked.
+- **Options are cards side by side, not bars** (his call, 2026-09-15). Each
+  carries its label, its count and its share as a percentage. **Four are in
+  view; past four the row scrolls sideways** rather than shrinking every card,
+  so a six-option poll reads the same as a three-option one. On a narrow
+  screen the card's floor wins and the scroll does more of the work.
+- **Most votes first**, and ordered ONCE, when the thread loads. A repaint
+  never re-sorts: a card that reordered itself under the cursor as a vote
+  landed would move the thing just clicked. A tie keeps the order the options
+  were added in.
+- **The counts are there from the first look** — the card shows them whether or
+  not you have voted. The animation is the vote landing, not a reveal.
+- **Picking is local; one Vote sends the ballot** (his call, 2026-09-15).
+  A click moves the draft and nothing leaves the page; Vote posts the whole
+  thing once, and is off until there is something unsent. Unpicking everything
+  and pressing Vote takes the vote back. So a several-pick poll costs ONE
+  write however long somebody spends making up their mind, and a dropped
+  request costs the press, never half a ballot. Measured on the mock: four
+  clicks, zero requests; one press, one request.
 - **The share is data, not a rule.** It rides an inline custom property the
   stylesheet reads — the same trick `--dm-who` uses for a commenter's colour —
-  so no geometry and no hex goes into `main.css` (CLAUDE.md, "Never").
-- Voting again moves the mark and re-animates the bars from their old widths,
-  not from zero. Taking a vote back returns to the unvoted state.
-- Signed out: the bars and counts show, and the sign-in prompt stands where the
-  buttons would — the same one the comment box uses.
+  so no geometry and no hex goes into `main.css` (CLAUDE.md, "Never"). The card
+  `color-mix`es that much fill into its own surface, so a busy option reads
+  hotter without drawing a second shape, and a vote settles in rather than
+  sliding.
+- **Three kinds of control, three places** (his call, 2026-09-15). What you do
+  with the poll leads the line under the cards: **Vote**. What only its author
+  and the owner may do sits at the far end of that same line: **Close**, where
+  nobody reaches for it by accident. What you may ADD to the poll is a
+  different act from voting on it, so the **"add an option" box** goes below a
+  hairline of its own. Signed out, the sign-in prompt stands where Vote would.
+- That box **stands open** rather than unfolding from a button, which would
+  shove the rest of the thread down the moment somebody reached for it. At the
+  six cap it stays exactly where it is, disabled. Enter sends it.
+- **One control scale inside a poll** (his call, 2026-09-15). The cards and the
+  fields are 0.85rem, so the buttons are too — a cta's own 1rem beside a
+  0.85rem field is what made Add read a size off. The buttons take the field's
+  vertical padding and share its line-height, so a button and the box beside it
+  come out the same height to the pixel (38), and a width floor keeps Vote and
+  Add the same size as each other (96).
+- **Nothing reflows mid-use** (his call, 2026-09-15). Every space a change will
+  need is reserved before the change: the pick mark is in every card from the
+  start and only fades in, the count and the share have floors under them and
+  tabular figures above them so 9% and 100% take the same room, the editor's
+  remove-row slot is held even at the two-row minimum, and the add-a-row
+  button is disabled at the cap rather than taken away. Measured: a vote, a
+  change of mind and taking it back move nothing — not the poll's height, not
+  the thread's, not one card's position.
+- Signed out: the cards and their counts show, and the sign-in prompt stands where the
+  controls would — the same one the comment box uses.
+- Closed: the controls go and the cards stay. Closed by its author and closed
+  because the thread was fixed are different sentences and want different
+  strings — both `[ph]`.
 
-`mock.js` mirrors all of it, and its seed wants a poll mid-thread, a closed
-one, and one with a single runaway option so a 90%-vs-2% bar has somewhere to
-be looked at.
+`mock.js` mirrors all of it. Its seed carries four: a one-pick poll with a
+runaway option (89 / 2 / 8, so a 90%-vs-2% split has somewhere to be looked
+at), a several-pick one holding an option a member added and your own seeded
+vote, one the author closed, and one closed by its thread (`closed = 0`, on a
+`fixed` post). Everything on the mock is the owner, so the per-option menu and
+the hidden-option case can be seen without a second account.
 
-### Open — settle these before building
+### What it costs
 
-1. **Who adds options?** "Users should be able to add poll options" reads both
-   ways. The schema above carries `open_options` so it can be either, but the
-   default is the decision. **Recommendation: the poll's author sets the
-   options, and `open_options` is a later toggle** — an open list on a public
-   board is a moderation surface, and every option added is a row the owner
-   may have to hide, with no menu for it yet.
-2. **Are counts hidden until you vote?** Hiding them stops the first votes
-   anchoring the rest, and it is what makes the reveal worth animating.
-   Showing them always is friendlier to someone just reading. **Recommendation:
-   hidden until you vote or it closes.**
-3. **One choice or several?** Single-choice is what the `poll_votes` primary
-   key above gives for free. Multi-select means dropping `uid` out of the key
-   and capping picks per account instead.
-4. **Does a poll close on its own?** A date would need the cron, which already
-   runs every five minutes for status. Not free, but not far.
-5. **Every string is his.** Claude adds `[ph]` only.
+Against the free-plan ceilings ([league.md](league.md) keeps the table), polls
+are cheap in the two places that usually bite and have exactly one amplifier
+worth watching:
 
-### Shipping step 1
+- **Worker requests (100k/day).** A vote is one POST. Even a poll that drew
+  500 voters who all changed their minds twice is ~1,500 requests — 1.5% of a
+  day.
+- **Rows written (100k/day).** A vote is a delete plus an insert, each touching
+  `poll_votes_option`, so ~4 write-units, and a several-pick ballot is that
+  once per pick it lands on — **not once per click**, because the page holds
+  the draft and only Vote sends it. The first build posted on every tick, and
+  one person working through a 3-pick poll cost ~20 units and four requests;
+  it is now ~10 and one. Thousands of ballots a day before this matters.
+- **Rows read (5M/day)** is the one that scales with success. `GET /p/<pid>`
+  grows by that poll's whole vote table, because the counts are a `GROUP BY`:
+  a thread with 300 votes on it costs ~300 extra rows **per view**. Fine at
+  a few hundred views; a thread that gets linked somewhere and takes 10,000
+  is 3M rows on its own. **The lever, if a poll ever gets that big:** a
+  denormalised `votes` count on `poll_options`, written by the vote route,
+  which turns those 300 reads into 6. It is not worth building first — it
+  costs a recount whenever an account is blocked or an option hidden — but it
+  is the escape hatch, and the schema above does not have to change to take
+  it.
 
-Order matters, and it is the reverse of what you would guess:
+Storage is nothing: a vote is ~40 bytes against 5 GB.
 
-1. **The migration first.** `npx wrangler d1 execute deets-support --remote
-   --file=migrations/2026-09-15-pid.sql`. The deployed code inserts into `pid`
-   and selects it; without the column every post and every ▲ answers 500.
-2. **Then the worker** (`npx wrangler deploy`), then the mint-host smoke.
-3. **Then the site**, a minute later. `GET /posts` sits in a 60 s edge cache,
-   so for up to a minute after the deploy a colo can still serve the old shape
-   — posts with a `code` and no `pid`. The new page would render those with
-   `data-pid="undefined"` and its ▲ would 404 until the cache turned over.
-   Waiting a minute costs nothing; the old page in the meantime is the page
-   that is already live.
+### What the build added to this design
 
-The transition is one-way on purpose. `POST /interest` still honours a body
-carrying `code`, so a tab opened before the deploy keeps voting until it
-reloads; nothing else does. `deets-dm-interest` in `localStorage` held codes
-and now holds pids, so everyone's first ▲ after the split is free. That is the
-"accept one reset" branch of the plan: the migration cannot be written, because
-the page no longer learns the code of a post it did not send.
+Four things the design did not say, decided while writing it:
 
-Every code that has sat on a public board since 2026-09-11 should be treated as
-known. What that bought was always bounded — close the post, reply on it as its
-reporter, read the `meta` its reporter sent — and whether any of it happened is
-not recorded either way; the boards keep no access log.
+- **`closed_state` on the wire.** The page has to tell the two closes apart to
+  say the right sentence, and to hide Reopen on a poll only the post can
+  reopen.
+- **`yours` on the wire**, for the same reason a member is never sent another
+  row's uid.
+- **The owner's hide is `PATCH /admin/poll-options/<id>`**, not a sibling of
+  the other poll routes: `/admin/` is where one owner check already guards
+  everything.
+- **A new poll re-reads the board** from the page, because it changes the
+  card's flag. A vote still does not, which was the whole point.
+- **Every poll button is `.dm-textbtn`, never `.dm-link`.** `.dm-link` dresses
+  an `<a>`: on a `<button>` it leaves the browser's own chrome showing, which
+  is what put grey boxes down the first build's thread (caught in his pass,
+  2026-09-15).
+
+Checked before hand-off: the mock's poll routes against 29 assertions
+(vote, change, take back, one-pick refusal, the 6 cap, duplicates, both
+closes, the cascades), and every SQL statement in the worker against real
+SQLite — the counts drop blocked accounts and hidden options, a deleted
+comment takes its poll, and one comment can hold only one poll.
+
+### Settled — his call, 2026-09-15
+
+1. **Who adds options? Anyone.** `open_options` ships on. The cost is the
+   moderation surface the first draft worried about, and it is paid for above:
+   `poll_options.hidden`, an owner-only `PATCH /poll/option/<id>`, and a place
+   for it in the right-click menu. That row is not optional — build it with the
+   feature, not after it.
+2. **Counts before voting? Yes, always visible.** Anchoring is accepted in
+   exchange for a poll that reads as information to someone who is only passing
+   through.
+3. **One choice or several? The author picks, at creation.** A `multi` column,
+   set in the compose editor and immutable after — changing it mid-poll would
+   reinterpret ballots already cast.
+4. **Auto-close rides the thread's `state`.** A poll on a `fixed`, `wontfix` or
+   `closed` post is closed. No date, no cron, and no way for a poll to outlive
+   the question it was asking.
+5. **Every string is his.** Approved in chat 2026-09-15; zero `[ph]` left.
 
 ---
 

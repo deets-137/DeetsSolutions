@@ -3752,3 +3752,212 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.dm-chip[data-tone="poll"] { color: var(--title); }
+
+/* ── Polls (docs/support.md, "Polls") ──────────────────────
+   A poll renders INSIDE the comment it hangs off, because the comment's
+   body is its question.
+
+   The options are cards side by side, not bars. The share is still data,
+   not a rule: deetsmusic.js writes each card's --dm-share (0–1) inline,
+   the same trick a commenter's colour uses with --dm-who, and the card
+   mixes that much fill into its own surface — so a busy option reads
+   hotter without a second shape, and no geometry or hex lands here.
+   Because it is a colour and not a width, a vote settles in rather than
+   sliding. */
+.dm-poll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-poll__hint { margin: 0; color: var(--subtext); font-size: 0.75rem; }
+/* Side by side while they fit, wrapping to their own rows when they do
+   not — one column each at phone width, never a squeezed six-across. */
+.dm-poll__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--space-2);
+}
+/* Past four options the row scrolls sideways instead of wrapping: four fit
+   the width exactly (the gaps come out of the same sum), the rest are a
+   flick away, and every card keeps the size it had at four. The floor wins
+   on a narrow screen, where fewer than four fit and the scroll does more
+   work. deetsmusic.js sets the class — it is the one that knows the count. */
+.dm-poll__options.is-scroll {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: max(8.5rem, calc((100% - var(--space-2) * 3) / 4));
+  padding-bottom: var(--space-1);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.dm-poll__options.is-scroll > * { scroll-snap-align: start; }
+.dm-poll__opt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-align: left;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface-hover) calc(var(--dm-share, 0) * 100%), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  transition: background var(--dur-med) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui);
+}
+button.dm-poll__opt { cursor: pointer; }
+button.dm-poll__opt:hover { border-color: var(--title); }
+/* The label takes the room; the count sits under it, so every card in a
+   row lines its numbers up whatever its label did. */
+.dm-poll__text { flex: 1 1 auto; overflow-wrap: anywhere; }
+/* Every number that moves is reserved rather than measured: tabular figures
+   so a digit is a digit wide, the count anchored left and the share right,
+   and a floor under each so 9% and 100% take the same room. A vote then
+   changes what the card says without changing anything's size. */
+.dm-poll__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--subtext);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.dm-poll__count { min-width: 5ch; }
+.dm-poll__pct { min-width: 3ch; color: var(--title); text-align: right; }
+/* Your own pick, marked rather than coloured in: the fill is the share's.
+   The mark is in every card from the start and only fades, so picking one
+   cannot resize it. */
+.dm-poll__opt.is-mine { border-color: var(--title); }
+.dm-poll__mine {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--title);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-ui);
+}
+.dm-poll__opt.is-mine .dm-poll__mine { opacity: 1; }
+/* Hidden by the owner — the same dashed keyline a hidden comment takes.
+   Nobody else is sent the option at all. */
+.dm-poll__opt.is-hidden-opt { border-style: dashed; }
+.dm-poll__opt.is-hidden-opt .dm-poll__text { color: var(--subtext); }
+.dm-poll.is-sending { opacity: 0.6; }
+/* The line under the cards: Vote leads it, and the author's Close sits at
+   the far end — the two are different kinds of act, so they do not sit
+   shoulder to shoulder. */
+.dm-poll__foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.dm-poll__foot .dm-hint { margin: 0; }
+.dm-poll__manage { margin-inline-start: auto; }
+/* A poll is one control scale, top to bottom. The cards and the fields are
+   0.85rem, so the buttons are too — a cta's own 1rem next to a 0.85rem field
+   is what made Add read a size off. Vertical padding matches the field's, so
+   a button and the box beside it come out the same height, and a floor under
+   the width keeps Vote and Add the same size as each other. */
+.dm-poll .home__cta,
+.dm-poll .dm-textbtn { font-size: 0.85rem; }
+.dm-poll .home__cta {
+  min-width: 6rem;
+  padding: var(--space-2) var(--space-3);
+}
+/* One line-height across the button and the box beside it, or the two come
+   out a pixel apart and the row reads crooked. */
+.dm-poll .home__cta,
+.dm-poll .dm-poll__input { line-height: 1.5; }
+
+/* Vote sends the ballot. It is in the foot from the start and only ever
+   enables, so arming it moves nothing; while there is something unsent the
+   poll's own keyline says so, which is the only cue a card needs beyond its
+   mark. */
+.dm-poll__send { flex: 0 0 auto; }
+[data-dm] button.dm-poll__send[disabled] { opacity: 0.55; }
+.dm-poll.is-unsent { border-color: var(--title); }
+
+/* Adding an option is a different act from voting on one, so it lives
+   below a hairline rather than in the same row. The box stands open, so it
+   never pushes the thread down when someone reaches for it; at the cap it
+   is disabled and still in place. */
+.dm-poll__addrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+.dm-poll__input { flex: 1 1 10rem; font-size: 0.85rem; }
+.dm-poll__input:disabled { color: var(--subtext); }
+
+/* The composer. Its button stands beside Send — a poll rides the comment,
+   so the two belong on one row — and the editor drops down under the pair
+   on the shared .dm-collapse kit: the open height is the content's own,
+   --dur-med and --ease-ui carry it, and REDUCED kills it without a rule
+   here. Its rows grow in and out on the same kit. */
+.dm-pollform { flex: 0 0 auto; }
+.dm-polledit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-polledit .dm-textbtn { font-size: 0.85rem; }
+.dm-polledit__rows { display: flex; flex-direction: column; }
+.dm-polledit__row.is-open + .dm-polledit__row { margin-top: var(--space-1); }
+.dm-polledit__field { display: flex; align-items: center; gap: var(--space-2); }
+.dm-polledit__input { flex: 1 1 auto; font-size: 0.85rem; line-height: 1.5; }
+/* hidden, not absent: the slot is held whatever the row count */
+.dm-polledit__drop[hidden] { display: block; visibility: hidden; }
+.dm-polledit__drop {
+  flex: 0 0 auto;
+  padding: 0 var(--space-1);
+  font: inherit;
+  color: var(--subtext);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.dm-polledit__drop:hover { color: var(--stop); }
+.dm-polledit__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+/* One pick or several, chosen HERE and never again: changing it mid-poll
+   would reinterpret ballots already cast. */
+.dm-pollmode { display: flex; align-items: center; gap: var(--space-1); }
+.dm-pollmode__opt {
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--subtext);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.dm-pollmode__opt.is-on { color: var(--title); border-color: var(--title); }
+[data-dm] .dm-textbtn[disabled] { color: var(--subtext); cursor: default; }

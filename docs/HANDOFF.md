@@ -142,15 +142,31 @@ A board card gives no sign a thread exists, so every click is a gamble. Written 
 of the three reply paths drops the board's 60 s edge cache today, which only becomes a bug
 once a card carries a count. His call on whether it earns the space.
 
-**2026-09-15 — POLLS: designed, not built.** Design:
+**2026-09-15 — POLLS: BUILT and COMMITTED, not deployed.** Design (and what the
+build added to it): **[support.md "Polls"](support.md)**. Worker routes, the page, the
+mock and `migrations/2026-09-15-polls.sql` are all written and check out — the mock's
+poll routes pass 29 assertions and every worker SQL statement was run against real
+SQLite. **Three things stand between this and live**, in order: run the migration
+(`npx wrangler d1 execute deets-support --remote --file=migrations/2026-09-15-polls.sql`),
+`npx wrangler deploy`, then the site a minute later — the same order the threads deploy
+took, and for the same reason. **His visual and copy passes are DONE** (2026-09-15: cards instead of bars, four
+in view then a sideways scroll, most votes first, a Vote button so picking is local,
+the controls grouped vote / contribute / manage, one control scale — and every
+string approved, zero `[ph]`). Both repos are committed and pushed.
+
+The design this was built from:
 **[support.md "Polls"](support.md)**. A commenter puts a poll under their comment or
 instead of one; people add options and vote; bars animate; a board card shows a thread HAS
 one, beside the comment count. A poll hangs off a comment rather than being its own kind of
 row, so it inherits the identity, the moderation and the hidden flag threads already
 settled — and because a vote carries a uid, **a poll can be an honest ballot where ▲
-deliberately is not**. Build it after the comment count, which it shares a cache bug with.
-**Five things to settle first**, in that doc's "Open" — chiefly whether voters may add
-their own options.
+deliberately is not**. The comment count on a card is still unbuilt; the poll's own flag is, and it
+is deliberately a flag and not a tally, which is what keeps votes out of the board cache.
+**The five questions it opened are settled and built** (2026-09-15, that doc's "Settled"): anyone may
+add an option, counts show before you vote, one-or-several is chosen at creation, and a
+poll closes when its thread reaches `fixed` / `wontfix` / `closed` — no cron. Open options
+buy a new obligation: a hidden flag per option and an owner-only route to set it, built
+with the feature rather than after it.
 
 **2026-09-15 — site UI port: steps 5 and 7 open.** Design: **[ui-direction.md](ui-direction.md)**.
 - Step 5, the look schedule: he chose **one shared synchronous `js/prepaint.js`** over the

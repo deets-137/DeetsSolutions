@@ -634,6 +634,15 @@
     if (!list) return;
     list.addEventListener("contextmenu", function (e) {
       if (!OWNER) return;
+      /* An option first: an open list is a moderation surface, and this menu
+         is what pays for it (support.md, "Polls"). The comment's own menu is
+         still one level out, on the row. */
+      var opt = e.target.closest("[data-poll-opt]");
+      if (opt) {
+        e.preventDefault();
+        openOptionMenu(Number(opt.getAttribute("data-poll-opt")), e.clientX, e.clientY);
+        return;
+      }
       var li = e.target.closest(".dm-reply");
       var r = li && THREAD[li.getAttribute("data-reply")];
       if (!r) return;
@@ -949,6 +958,8 @@
     h.appendChild(link);
     head.appendChild(h);
     head.appendChild(chip(s("state_" + p.state), p.state));
+    // A flag, never a tally: what the vote is doing lives on the thread.
+    if (p.polls) head.appendChild(chip(s("tagPoll"), "poll"));
     if (p.public === false) {                     // only the owner's list carries hidden posts
       item.classList.add("is-hidden-post");
       head.appendChild(chip(s("tagHidden"), "hidden"));
@@ -1383,6 +1394,14 @@
       if (r.blocked) who.appendChild(chip(s("commentBlocked"), "hidden"));
       li.appendChild(who);
       li.appendChild(el("p", "dm-reply__body", r.body));
+      /* The poll hangs off THIS comment, whose body is its question. Only a
+         signed-in account's comment can carry one, so a row without a poll is
+         simply a row. */
+      if (r.poll && Array.isArray(r.poll.options)) {
+        var pollNode = renderPoll(r.poll, r.body);
+        pollNode.setAttribute("data-poll-id", r.poll.id);
+        li.appendChild(pollNode);
+      }
       list.appendChild(li);
     });
     /* No reply box on a public thread. The reporter's reply needs the code,
@@ -1414,6 +1433,7 @@
     signin.hidden = !onThread || !!ME;
     $("[data-dm-reply-label]", form).textContent = s(onThread ? "commentLabel" : "replyLabel");
     $("[data-dm-send]", form).textContent = s(onThread ? "commentSend" : "replySend");
+    paintPollForm();
   }
 
   function wireSignin() {
@@ -1436,14 +1456,19 @@
       if (!b || b.length > BODY_MAX) { err.textContent = s("err_body"); err.hidden = false; return; }
       if (JWT_SHAPE.test(b)) { err.textContent = s("err_credential_shaped"); err.hidden = false; return; }
       if (pid && !(ME && ME.name)) { err.textContent = s(ME ? "err_name" : "commentSignin"); err.hidden = false; return; }
+      /* One Send sends both: the comment is the poll's question, so a poll
+         and its comment can never half-land (support.md, "Polls"). */
+      var draft = pid ? pollPayload() : { poll: null };
+      if (draft.err) { err.textContent = draft.err; err.hidden = false; return; }
       err.hidden = true;
       send.disabled = true;
       /* A comment carries the account cookie, so it goes out credentialed —
          the same fetch the owner routes use. The name and colour are a
          snapshot: renaming later does not rewrite what is already posted. */
+      var comment = { body: b, name: ME && ME.name, color: (ME && ME.color) || null };
+      if (draft.poll) comment.poll = draft.poll;
       var sent = pid
-        ? api("support", "POST", "/p/" + pid + "/comments",
-              { body: b, name: ME.name, color: ME.color || null }, { creds: true })
+        ? api("support", "POST", "/p/" + pid + "/comments", comment, { creds: true })
         : OWNER
           ? ownerApi("POST", "/admin/posts/" + code + "/replies", { body: b })   // replies as Aditya
           : api("support", "POST", "/t/" + code + "/replies", { body: b });
@@ -1457,11 +1482,434 @@
           return;
         }
         form.reset();
+        /* A new poll changes what the CARD says (it is the flag), and the
+           worker has just dropped its board cache, so the board behind this
+           thread is re-read. A vote never needs this: a card carries no
+           counts (support.md, "What it costs"). */
+        if (draft.poll) loadBoards();
+        resetPollDraft();
         toast("success", s(pid ? "commentSent" : "replySent"));
         if (pid && threadPid === pid) loadThread(pid);
         else if (ticketCode === code) loadTicket(code);
       });
     });
+  }
+
+  // ── Polls (support.md, "Polls") ────────────────────────────────
+  /* A poll hangs off one comment: the comment's body is the question, so a
+     poll renders inside the reply row it belongs to and never as a row of
+     its own. Voting needs an account — that is the whole reason a poll can
+     be an honest ballot where ▲ cannot.
+
+     Two rules this section keeps:
+     - The share is DATA, not a rule. Each bar's width rides an inline
+       --dm-share the stylesheet reads, the same trick a commenter's colour
+       uses, so no geometry is written into main.css.
+     - The counts show from the first look (his call, 2026-09-15). The
+       animation is the vote landing: a pick moves the bars from their old
+       widths, never from zero. CSS transitions --dm-share, so simply
+       writing the new share animates it. */
+  var POLL_MAX = 6, POLL_MIN = 2, OPTION_MAX = TITLE_MAX;
+  var POLL_SHOWN = 4;     // cards in view before the row starts scrolling
+
+  /* A refused poll write. `poll_closed` says the same thing the poll itself
+     says, so it is the same string — the collapse his threads pass made with
+     commentSignin. */
+  function pollErrText(res) {
+    var code = res && res.data && res.data.error;
+    return code === "poll_closed" ? s("pollClosed") : errText(res);
+  }
+  function voteWord(n) {
+    return n === 1 ? s("pollVotesOne") : s("pollVotes", { n: n });
+  }
+  function sharePct(votes, total) { return total ? Math.round((votes / total) * 100) : 0; }
+  function pollTotal(poll) {
+    return poll.options.reduce(function (n, o) { return n + (o.votes || 0); }, 0);
+  }
+
+  /* Picking is LOCAL. A click moves the draft and nothing else; the ballot
+     goes out once, when Vote is pressed. That is a click's worth of thought
+     for the person and one write for the worker, instead of a round trip per
+     tick — which on a several-pick poll was the whole ballot, rewritten, per
+     box (support.md, "What it costs"). */
+  function pollDirty(poll) {
+    if (poll.draft.length !== poll.mine.length) return true;
+    return poll.draft.some(function (id) { return poll.mine.indexOf(id) < 0; });
+  }
+  function renderPoll(poll, question) {
+    poll.draft = poll.mine.slice();      // the cast vote is where the draft starts
+    var box = el("div", "dm-poll");
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", s("pollAria", { question: question }));
+    if (poll.closed) box.classList.add("is-closed");
+
+    var head = el("p", "dm-poll__hint",
+      poll.closed
+        ? s(poll.closed_state ? "pollClosedState" : "pollClosed")
+        : s(poll.multi ? "pollPickMany" : "pollPickOne"));
+    box.appendChild(head);
+
+    /* Most votes first, and only ever HERE: the order is settled when the
+       thread loads and never again, so a card cannot slide out from under the
+       cursor when a vote lands on it. Sort is stable, so a tie keeps the order
+       the options were added in. Past four, the row scrolls sideways rather
+       than shrinking every card to fit (his call, 2026-09-15). */
+    var list = el("div", "dm-poll__options" + (poll.options.length > POLL_SHOWN ? " is-scroll" : ""));
+    poll.options.slice()
+      .sort(function (a, b) { return (b.votes || 0) - (a.votes || 0); })
+      .forEach(function (o) { list.appendChild(pollOption(poll, o)); });
+    box.appendChild(list);
+
+    /* Three kinds of control, so three places rather than one row of five.
+       What you do with the poll (Vote) leads, on the line under the cards.
+       What only its author and the owner may do (Close) sits at the far end
+       of that same line, where nobody reaches by accident. What you may ADD
+       to the poll is a different act from voting on it, so it goes below a
+       hairline of its own. */
+    var foot = el("div", "dm-poll__foot");
+    /* Signed out, the cards and counts still show — they always did — and the
+       door to signing in stands where Vote would. A CLOSED poll has nothing
+       to sign in for, so it says nothing. */
+    if (!ME && !poll.closed) foot.appendChild(el("p", "dm-hint", s("pollSignin")));
+    else if (!poll.closed) {
+      var send = el("button", "home__cta dm-poll__send", s("pollVote"));
+      send.type = "button";
+      send.setAttribute("data-poll-send", "");
+      send.disabled = true;                      // nothing to send until you pick
+      send.addEventListener("click", function () { castVote(poll); });
+      foot.appendChild(send);
+    }
+    /* Closing is the author's or the owner's. `multi` and the option list are
+       fixed at creation, so there is nothing else to offer here. Nobody
+       reopens a poll the THREAD closed: the post would have to be reopened
+       first, which is the owner's menu, not this control. */
+    if (ME && (poll.yours || OWNER) && !poll.closed_state) {
+      var close = el("button", "dm-textbtn dm-poll__manage", s(poll.closed ? "pollReopen" : "pollClose"));
+      close.type = "button";
+      close.addEventListener("click", function () {
+        close.disabled = true;
+        api("support", "PATCH", "/poll/" + poll.id, { closed: !poll.closed }, { creds: true })
+          .then(function (res) {
+            close.disabled = false;
+            if (!res.ok) { toast("error", errText(res)); return; }
+            toast("success", s(poll.closed ? "pollReopenedToast" : "pollClosedToast"));
+            reloadOpenPost();
+          });
+      });
+      foot.appendChild(close);
+    }
+    if (foot.childNodes.length) box.appendChild(foot);
+    if (ME && !poll.closed && poll.open_options) {
+      box.appendChild(addOptionControl(poll, poll.options.length >= POLL_MAX));
+    }
+    return box;
+  }
+
+  /* One option: a card, and — while the poll is open and someone is signed
+     in — the control that picks it. A closed poll keeps the cards and loses
+     the controls. The share is still data: it tints the card rather than
+     drawing a bar, so a busy option reads hotter without a second shape. */
+  function pollOption(poll, o) {
+    var total = pollTotal(poll);
+    var mine = poll.draft.indexOf(o.id) >= 0;
+    var pickable = !!ME && !poll.closed;
+    var row = el(pickable ? "button" : "div", "dm-poll__opt" + (mine ? " is-mine" : ""));
+    if (pickable) {
+      row.type = "button";
+      row.setAttribute("aria-pressed", mine ? "true" : "false");
+    }
+    if (o.hidden) row.classList.add("is-hidden-opt");     // the owner alone is sent one
+    row.setAttribute("data-poll-opt", o.id);
+    // Data, never a rule: the stylesheet turns this into the bar's width.
+    row.style.setProperty("--dm-share", total ? (o.votes / total).toFixed(4) : "0");
+
+    row.appendChild(el("span", "dm-poll__text", o.text));
+    var meta = el("span", "dm-poll__meta");
+    meta.appendChild(el("span", "dm-poll__count", voteWord(o.votes || 0)));
+    meta.appendChild(el("span", "dm-poll__pct", s("pollShare", { n: sharePct(o.votes || 0, total) })));
+    /* The mark is always in the card and only ever fades: appending it on a
+       vote would grow the card, and a card that changes size under the cursor
+       is the one thing a poll must not do. */
+    var tick = el("span", "dm-poll__mine");
+    tick.setAttribute("aria-label", s("pollMine"));
+    tick.title = s("pollMine");
+    meta.appendChild(tick);
+    row.appendChild(meta);
+    if (pickable) row.addEventListener("click", function () { pickOption(poll, o.id); });
+    return row;
+  }
+
+  // A click on a card: the draft moves, nothing leaves the page.
+  function pickOption(poll, id) {
+    var at = poll.draft.indexOf(id);
+    if (poll.multi) {
+      if (at >= 0) poll.draft.splice(at, 1); else poll.draft.push(id);
+    } else {
+      poll.draft = at >= 0 ? [] : [id];   // clicking your own pick clears it
+    }
+    repaintPoll(poll);
+  }
+
+  /* Vote sends the WHOLE ballot once, replacing whatever that account had; an
+     empty draft takes the vote back. A dropped request costs the press and
+     never half a vote, and the answer carries the fresh counts, so it is one
+     request rather than a thread reload. */
+  function castVote(poll) {
+    var node = document.querySelector('[data-poll-id="' + poll.id + '"]');
+    if (node) node.classList.add("is-sending");
+    api("support", "POST", "/poll/" + poll.id + "/vote", { options: poll.draft }, { creds: true })
+      .then(function (res) {
+        if (node) node.classList.remove("is-sending");
+        if (!res.ok || !res.data) {
+          toast("error", res.status === 401 ? s("pollSignin") : pollErrText(res));
+          return;
+        }
+        poll.mine = Array.isArray(res.data.mine) ? res.data.mine : [];
+        poll.draft = poll.mine.slice();
+        (res.data.options || []).forEach(function (r) {
+          poll.options.forEach(function (o) { if (o.id === r.id) o.votes = r.votes; });
+        });
+        repaintPoll(poll);
+      });
+  }
+
+  /* Repaint in place rather than rebuild: the bars have to move FROM where
+     they are, and a fresh node would start every one at zero. */
+  function repaintPoll(poll) {
+    var node = document.querySelector('[data-poll-id="' + poll.id + '"]');
+    if (!node) return;
+    var total = pollTotal(poll);
+    poll.options.forEach(function (o) {
+      var row = $('[data-poll-opt="' + o.id + '"]', node);
+      if (!row) return;
+      var mine = poll.draft.indexOf(o.id) >= 0;
+      row.style.setProperty("--dm-share", total ? (o.votes / total).toFixed(4) : "0");
+      row.classList.toggle("is-mine", mine);
+      if (row.tagName === "BUTTON") row.setAttribute("aria-pressed", mine ? "true" : "false");
+      var count = $(".dm-poll__count", row);
+      if (count) count.textContent = voteWord(o.votes || 0);
+      var pct = $(".dm-poll__pct", row);
+      if (pct) pct.textContent = s("pollShare", { n: sharePct(o.votes || 0, total) });
+      // the mark is already in the card; is-mine fades it in
+    });
+    /* The button is the only thing that says there is something unsent. It is
+       always there and only ever enables, so arming it moves nothing. */
+    var send = $("[data-poll-send]", node);
+    if (send) {
+      send.disabled = !pollDirty(poll);
+      node.classList.toggle("is-unsent", pollDirty(poll));
+    }
+  }
+
+  /* Anyone signed in may add an option (his call, 2026-09-15), which is why
+     the owner can hide one. Adding is not voting — you still have to pick it,
+     so the new bar arrives at zero. */
+  /* The box stands open rather than unfolding from a button: a control that
+     appears on click moves everything under it, and this one sits above the
+     rest of the thread. At the cap it stays exactly where it is, disabled —
+     the row keeps its space whether or not there is room left in the poll. */
+  function addOptionControl(poll, full) {
+    var row = el("div", "dm-poll__addrow");
+    var input = el("input", "dm-field__input dm-poll__input");
+    input.type = "text";
+    input.maxLength = OPTION_MAX;
+    input.placeholder = s("pollOptionPlace");
+    var send = el("button", "home__cta home__cta--soft", s("pollOptionSend"));
+    send.type = "button";
+    row.appendChild(input);
+    row.appendChild(send);
+    if (full) { input.disabled = true; send.disabled = true; row.title = s("err_poll_full"); }
+
+    function add() {
+      var text = input.value.trim();
+      if (!text) { toast("error", s("err_option_text")); return; }
+      send.disabled = true;
+      api("support", "POST", "/poll/" + poll.id + "/options", { text: text }, { creds: true })
+        .then(function (res) {
+          send.disabled = false;
+          if (res.status !== 201) { toast("error", pollErrText(res)); return; }
+          input.value = "";
+          reloadOpenPost();          // the new card comes back with the thread
+        });
+    }
+    send.addEventListener("click", add);
+    // Enter sends it: the box is inside no form of its own.
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); add(); }
+    });
+    return row;
+  }
+
+  /* The owner's per-option menu — the price of an open option list. Hide and
+     Show are the post menu's own strings; a hidden option leaves every count
+     while it is hidden, and its votes come back if he shows it again. */
+  function openOptionMenu(id, x, y) {
+    closeMenu();
+    var menu = el("div", "tb-pop dm-menu");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", s("pollOptionMenu"));
+    var row = document.querySelector('[data-poll-opt="' + id + '"]');
+    var hidden = !!(row && row.classList.contains("is-hidden-opt"));
+    menu.appendChild(menuOpt(s(hidden ? "menuShow" : "menuHide"), function () {
+      closeMenu();
+      ownerApi("PATCH", "/admin/poll-options/" + id, { hidden: !hidden }).then(function (res) {
+        if (!res.ok) { toast("error", errText(res)); return; }
+        reloadOpenPost();
+      });
+    }));
+    placeMenu(menu, x, y);
+  }
+
+  // ── Composing a poll, under the comment box ────────────────────
+  /* The draft lives here rather than in the DOM so that reopening the editor
+     keeps what was typed. `multi` is set HERE and never again: changing it
+     mid-poll would reinterpret ballots already cast. */
+  var pollDraft = { open: false, rows: ["", ""], multi: false };
+
+  function pollFormNodes() {
+    var form = $("[data-dm-reply]");
+    if (!form) return null;
+    return {
+      form: form,
+      // one node: the button beside Send is the composer's whole chrome
+      host: $("[data-dm-pollform]", form),
+      toggle: $("[data-dm-poll-open]", form),
+      collapse: $("[data-dm-poll-collapse]", form),
+      rows: $("[data-dm-poll-rows]", form),
+      addRow: $("[data-dm-poll-addrow]", form)
+    };
+  }
+
+  /* The editor is offered on a public thread, signed in, and nowhere else: a
+     reporter's reply on #t= has no account behind it to hang a ballot on. */
+  function paintPollForm() {
+    var n = pollFormNodes();
+    if (!n || !n.host) return;
+    var offer = !!threadPid && !!ME;
+    n.host.hidden = !offer;
+    if (!offer && pollDraft.open) setPollOpen(false);
+    n.toggle.textContent = s(pollDraft.open ? "pollDrop" : "pollAdd");
+  }
+
+  function setPollOpen(open) {
+    var n = pollFormNodes();
+    if (!n || !n.host) return;
+    pollDraft.open = open;
+    n.collapse.classList.toggle("is-open", open);
+    n.collapse.inert = !open;
+    n.toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    n.toggle.textContent = s(open ? "pollDrop" : "pollAdd");
+    if (open) {
+      renderPollRows();
+      var first = $(".dm-polledit__input", n.rows);
+      if (first) first.focus({ preventScroll: true });
+    }
+  }
+
+  function resetPollDraft() {
+    pollDraft = { open: false, rows: ["", ""], multi: false };
+    var n = pollFormNodes();
+    if (n && n.host) {
+      n.collapse.classList.remove("is-open");
+      n.collapse.inert = true;
+      n.toggle.setAttribute("aria-expanded", "false");
+      n.toggle.textContent = s("pollAdd");
+      renderPollRows();
+      paintPollMode();
+    }
+  }
+
+  /* Rows are rebuilt from the draft, but a row that is only being ADDED grows
+     in on the shared collapse kit — height carries the motion, --dur-med and
+     --ease-ui carry the timing, and REDUCED skips to the end state. */
+  function renderPollRows(grow) {
+    var n = pollFormNodes();
+    if (!n || !n.rows) return;
+    n.rows.textContent = "";
+    pollDraft.rows.forEach(function (value, i) {
+      var wrap = el("div", "dm-collapse dm-polledit__row");
+      var inner = el("div", "dm-collapse__inner");
+      var row = el("div", "dm-polledit__field");
+      var input = el("input", "dm-field__input dm-polledit__input");
+      input.type = "text";
+      input.maxLength = OPTION_MAX;
+      input.value = value;
+      input.placeholder = s("pollOptionPh", { n: i + 1 });
+      input.addEventListener("input", function () { pollDraft.rows[i] = input.value; });
+      row.appendChild(input);
+      /* The remove slot is always in the row and only ever hides: taking the
+         button out at two rows would re-measure every field on the way down
+         to the minimum. */
+      var drop = el("button", "dm-polledit__drop", "×");
+      drop.type = "button";
+      drop.setAttribute("aria-label", s("pollEditRemove", { n: i + 1 }));
+      drop.hidden = pollDraft.rows.length <= POLL_MIN;
+      drop.addEventListener("click", function () {
+        pollDraft.rows.splice(i, 1);
+        renderPollRows();
+      });
+      row.appendChild(drop);
+      inner.appendChild(row);
+      wrap.appendChild(inner);
+      n.rows.appendChild(wrap);
+      var last = grow && i === pollDraft.rows.length - 1;
+      if (last && !REDUCED) {
+        wrap.getBoundingClientRect();              // commit the closed height first
+        requestAnimationFrame(function () { wrap.classList.add("is-open"); });
+      } else {
+        wrap.classList.add("is-open");
+      }
+    });
+    // Disabled at the cap, never removed — the foot keeps its height.
+    if (n.addRow) n.addRow.disabled = pollDraft.rows.length >= POLL_MAX;
+  }
+
+  function paintPollMode() {
+    var form = $("[data-dm-reply]");
+    if (!form) return;
+    $all("[data-dm-poll-multi]", form).forEach(function (b) {
+      var on = (b.getAttribute("data-dm-poll-multi") === "1") === !!pollDraft.multi;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.classList.toggle("is-on", on);
+    });
+  }
+
+  function wirePollForm() {
+    var n = pollFormNodes();
+    if (!n || !n.host) return;
+    n.toggle.addEventListener("click", function () { setPollOpen(!pollDraft.open); });
+    n.addRow.addEventListener("click", function () {
+      if (pollDraft.rows.length >= POLL_MAX) return;
+      pollDraft.rows.push("");
+      renderPollRows(true);
+      var inputs = $all(".dm-polledit__input", n.rows);
+      var last = inputs[inputs.length - 1];
+      if (last) last.focus({ preventScroll: true });
+    });
+    $all("[data-dm-poll-multi]", n.form).forEach(function (b) {
+      b.addEventListener("click", function () {
+        pollDraft.multi = b.getAttribute("data-dm-poll-multi") === "1";
+        paintPollMode();
+      });
+    });
+    renderPollRows();
+    paintPollMode();
+  }
+
+  /* What rides the comment. Null when the editor is shut; an error string
+     when it is open and the rows do not make a poll — rejected whole, never
+     trimmed to fit, so a poll can never quietly lose an option. */
+  function pollPayload() {
+    if (!pollDraft.open) return { poll: null };
+    var rows = pollDraft.rows.map(function (r) { return r.trim(); }).filter(Boolean);
+    if (rows.length < POLL_MIN || rows.length > POLL_MAX) return { err: s("err_poll_options") };
+    var seen = {};
+    for (var i = 0; i < rows.length; i++) {
+      var k = rows[i].toLowerCase();
+      if (seen[k]) return { err: s("err_poll_duplicate") };
+      seen[k] = true;
+    }
+    return { poll: { options: rows, multi: !!pollDraft.multi, open_options: true } };
   }
 
   // ── Routing (fragment only) ────────────────────────────────────
@@ -1499,6 +1947,7 @@
   wireOwnerMenu();
   $all("[data-dm-form]").forEach(wireForm);
   wireReply();
+  wirePollForm();
   wireSignin();
   wireReplyMenu();
   renderMine();

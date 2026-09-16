@@ -222,8 +222,68 @@
       // NOTE: mockissue0000002 (HomePod volume) has no thread on purpose —
       // it is where "No replies yet" shows.
     ];
+    /* ── Polls (support.md, "Polls") ──────────────────────────────
+       A poll hangs off ONE comment, whose body is its question, so these add
+       comments that carry one. Four cases, so every state can be looked at
+       without voting your way into it:
+
+         mini player   one pick, a runaway option — a 90%-vs-2% bar
+         Last.fm       several picks, and an option a member added
+         lyrics card   closed BY ITS AUTHOR, results standing
+         queue order   closed BY THE THREAD (its post is 'fixed'), closed = 0
+
+       Votes are rows, not totals, because that is what the worker counts: a
+       blocked account's votes leave every count the moment it is blocked. The
+       one vote of yours is on the Last.fm poll, so the mini player opens
+       unvoted and the bars have somewhere to move to. */
+    var polls = [], pollOptions = [], pollVotes = [], oid = 0;
+    function poll(id, code, question, hoursAgo, opts, conf) {
+      conf = conf || {};
+      var r = { id: ++rid, code: code, author: "member",
+                uid: conf.uid, name: conf.name, color: conf.color, hidden: 0,
+                body: question, created_at: NOW - Math.round(hoursAgo * HOUR) };
+      replies.push(r);
+      polls.push({ id: id, reply_id: r.id, code: code, multi: conf.multi ? 1 : 0,
+                   closed: conf.closed ? 1 : 0, open_options: 1, created_at: r.created_at });
+      opts.forEach(function (o) {
+        pollOptions.push({ id: ++oid, poll_id: id, text: o.text, uid: o.uid || conf.uid,
+                           hidden: o.hidden ? 1 : 0, created_at: r.created_at });
+        var here = oid;
+        for (var i = 0; i < (o.votes || 0); i++) {     // one row per voter, as D1 holds them
+          pollVotes.push({ poll_id: id, uid: "mock-voter-" + id + "-" + here + "-" + i, option_id: here });
+        }
+        (o.who || []).forEach(function (u) { pollVotes.push({ poll_id: id, uid: u, option_id: here }); });
+      });
+    }
+    if (MODE !== "empty") {
+      poll(1, "mocksuggest00003", "[mock] Where should the mini player live?", 40, [
+        { text: "[mock] A window you can pin over anything", votes: 89 },
+        { text: "[mock] Docked to the side of the main window", votes: 2 },
+        { text: "[mock] The tray flyout, torn off", votes: 8 }
+      ], { uid: "mock-member-2", name: "kev", color: "#6ec06e" });
+
+      poll(2, "mocksuggest00002", "[mock] Which of these would you actually use?", 36, [
+        { text: "[mock] Last.fm scrobbling", votes: 14, who: ["mock-user"] },
+        { text: "[mock] ListenBrainz", votes: 6 },
+        { text: "[mock] Nothing — I do not scrobble", votes: 3 },
+        // An option a VOTER added: open_options is on by default (his call).
+        { text: "[mock] Libre.fm — added by someone else", votes: 4, uid: "mock-member-5" }
+      ], { multi: true, uid: "mock-member-4", name: "hal", color: "#c77dd4" });
+
+      poll(3, "mocksuggest00001", "[mock] How big should the lyrics card be?", 28, [
+        { text: "[mock] Just the line playing now", votes: 11 },
+        { text: "[mock] The whole song, scrolling", votes: 19 }
+      ], { closed: true, uid: "mock-member-1", name: "Margot", color: "#3f8fd0" });
+
+      // closed = 0: this one is closed because its POST is 'fixed'.
+      poll(4, "mockissue0000001", "[mock] Did 0.4.2 fix the queue order for you?", 8, [
+        { text: "[mock] Fixed for me", votes: 6 },
+        { text: "[mock] Still broken", votes: 2 }
+      ], { uid: "mock-member-6", name: "sam_r", color: "#4fb3a5" });
+    }
     // mock-member-9 is blocked, which is why its comment above is hidden.
-    return { mode: MODE, posts: posts, replies: replies, blocked: ["mock-member-9"] };
+    return { mode: MODE, posts: posts, replies: replies, blocked: ["mock-member-9"],
+             polls: polls, pollOptions: pollOptions, pollVotes: pollVotes };
   }
 
   var db = (function () {
@@ -232,6 +292,7 @@
       if (d && d.mode === MODE && Array.isArray(d.posts)) {
         d.posts.forEach(function (x) { if (!x.pid) x.pid = code16(); });   // a db saved before the id split
         if (!Array.isArray(d.blocked)) d.blocked = [];                    // …or before comments
+        if (!Array.isArray(d.polls)) { d.polls = []; d.pollOptions = []; d.pollVotes = []; }   // …or before polls
         return d;
       }
     } catch (e) {}
@@ -278,6 +339,96 @@
   function isOwnerMock() { return !!signedIn(); }
   var MOCK_UID = "mock-user";
 
+  /* ── Polls (support.md, "Polls") ────────────────────────────────────
+     The worker's threadPolls, shape for shape. `closed` goes out already
+     OR'd with the post's state, so the page never has to know a post is
+     fixed to stop offering a vote, and the counts drop blocked accounts and
+     hidden options exactly as the worker's GROUP BY does. */
+  var POLL_CLOSED_STATES = ["fixed", "wontfix", "closed"];
+  var POLL_MAX_OPTS = 6;
+  function pollBy(id) { return db.polls.filter(function (x) { return x.id === id; })[0] || null; }
+  function pollPost(p) { return db.posts.filter(function (x) { return x.code === p.code; })[0] || null; }
+  function pollIsClosed(p) {
+    var post = pollPost(p);
+    return !!p.closed || !!(post && POLL_CLOSED_STATES.indexOf(post.state) >= 0);
+  }
+  function pollOn(replyId) {
+    var p = db.polls.filter(function (x) { return x.reply_id === replyId; })[0];
+    if (!p) return null;
+    var owner = isOwnerMock();
+    var me = signedIn();
+    var author = db.replies.filter(function (r) { return r.id === p.reply_id; })[0];
+    function blocked(u) { return db.blocked.indexOf(u) >= 0; }
+    var opts = db.pollOptions
+      .filter(function (o) { return o.poll_id === p.id && (owner || !o.hidden); })
+      .sort(function (a, b) { return a.created_at - b.created_at || a.id - b.id; })
+      .map(function (o) {
+        var out = { id: o.id, text: o.text, votes: o.hidden ? 0 : db.pollVotes.filter(function (v) {
+          return v.option_id === o.id && !blocked(v.uid);
+        }).length };
+        if (owner) { out.hidden = !!o.hidden; out.uid = o.uid == null ? null : o.uid; }
+        return out;
+      });
+    return {
+      id: p.id,
+      multi: !!p.multi,
+      open_options: !!p.open_options,
+      closed: pollIsClosed(p),
+      closed_state: !!(pollPost(p) && POLL_CLOSED_STATES.indexOf(pollPost(p).state) >= 0),
+      // Whether THIS viewer may close it — a member is never sent another
+      // row's uid, so the worker answers the question instead.
+      yours: !!me && !!author && author.uid === MOCK_UID,
+      options: opts,
+      mine: me
+        ? db.pollVotes.filter(function (v) { return v.poll_id === p.id && v.uid === MOCK_UID; })
+                      .map(function (v) { return v.option_id; })
+        : []
+    };
+  }
+  function nextOptionId() {
+    return db.pollOptions.reduce(function (n, o) { return Math.max(n, o.id); }, 0) + 1;
+  }
+  function nextPollId() {
+    return db.polls.reduce(function (n, p) { return Math.max(n, p.id); }, 0) + 1;
+  }
+  // What the page repaints from after a vote: the worker's voteState.
+  function voteState(id) {
+    function blocked(u) { return db.blocked.indexOf(u) >= 0; }
+    return {
+      options: db.pollOptions.filter(function (o) { return o.poll_id === id && !o.hidden; })
+        .map(function (o) {
+          return { id: o.id, votes: db.pollVotes.filter(function (v) {
+            return v.option_id === o.id && !blocked(v.uid);
+          }).length };
+        }),
+      mine: db.pollVotes.filter(function (v) { return v.poll_id === id && v.uid === MOCK_UID; })
+                        .map(function (v) { return v.option_id; })
+    };
+  }
+  // A poll belongs to a comment, so a deleted comment takes it and its votes.
+  function dropPollsFor(match) {
+    var gone = db.polls.filter(match).map(function (p) { return p.id; });
+    if (!gone.length) return;
+    db.polls = db.polls.filter(function (p) { return gone.indexOf(p.id) < 0; });
+    db.pollOptions = db.pollOptions.filter(function (o) { return gone.indexOf(o.poll_id) < 0; });
+    db.pollVotes = db.pollVotes.filter(function (v) { return gone.indexOf(v.poll_id) < 0; });
+  }
+  // The comment's poll spec, as the worker's readPollSpec reads it.
+  function readPollSpec(spec) {
+    if (spec == null) return { poll: null };
+    if (typeof spec !== "object" || !Array.isArray(spec.options)) return { err: "poll_options" };
+    var opts = spec.options.map(function (o) { return str(o, 120); });
+    if (opts.length < 2 || opts.length > POLL_MAX_OPTS) return { err: "poll_options" };
+    if (opts.some(function (o) { return o === null; })) return { err: "poll_options" };
+    var seen = {};
+    for (var i = 0; i < opts.length; i++) {
+      var k = opts[i].toLowerCase();
+      if (seen[k]) return { err: "poll_duplicate" };
+      seen[k] = true;
+    }
+    return { poll: { options: opts, multi: spec.multi === true, open_options: spec.open_options !== false } };
+  }
+
   /* The worker's threadReplies. Comments and replies are one table in one
      order. A hidden row shows to the owner only, and `uid`/`blocked` go to
      the owner only — his menu is the only thing that acts on them. */
@@ -294,6 +445,8 @@
           o.uid = r.uid == null ? null : r.uid;
           o.blocked = !!(r.uid && db.blocked.indexOf(r.uid) >= 0);
         }
+        var poll = pollOn(r.id);
+        if (poll) o.poll = poll;
         return o;
       });
   }
@@ -303,7 +456,13 @@
     try { var mv = p.meta && JSON.parse(p.meta); if (mv && mv.version != null) version = mv.version; } catch (e) {}
     // pid, never code — the worker's PUBLIC_COLS, verbatim in what it omits.
     return { pid: p.pid, app: p.app, kind: p.kind, state: p.state, title: p.title, body: p.body,
-             interest: p.interest, created_at: p.created_at, updated_at: p.updated_at, version: version };
+             interest: p.interest, created_at: p.created_at, updated_at: p.updated_at, version: version,
+             /* A flag, never a tally: the card says the thread HAS a poll and
+                nothing about how the vote is going (support.md, "Polls"). */
+             polls: db.polls.some(function (pl) {
+               var host = db.replies.filter(function (r) { return r.id === pl.reply_id; })[0];
+               return pl.code === p.code && host && !host.hidden;
+             }) };
   }
   /* The next reply id. NOT db.replies.length + 1: deleting a comment (the
      owner's menu) would then hand the next one an id that is already spoken
@@ -368,6 +527,20 @@
           .sort(function (a, b) { return b.interest - a.interest || b.created_at - a.created_at; })
           .map(function (x) { var o = pub(x); o.public = !!x.public; o.code = x.code; return o; }) });
       }
+      /* One poll option — the price of an open option list. Hidden, never
+         deleted: the votes on it are still somebody's, and showing it again
+         gives them back. */
+      var pom = /^\/admin\/poll-options\/([0-9]{1,15})$/.exec(p);
+      if (pom) {
+        if (method !== "PATCH") return res(405, { error: "method" });
+        var po = db.pollOptions.filter(function (o) { return o.id === Number(pom[1]); })[0];
+        if (!po) return res(404, { error: "option" });
+        if (typeof body.hidden !== "boolean") return res(400, { error: "hidden" });
+        po.hidden = body.hidden ? 1 : 0;
+        save();
+        return res(200, { ok: true });
+      }
+
       // Comment moderation — the worker's /admin/replies/<id> and /admin/block.
       var rm = /^\/admin\/replies\/([0-9]{1,15})$/.exec(p);
       if (rm) {
@@ -379,6 +552,8 @@
           return res(200, { ok: true });
         }
         if (method === "DELETE") {
+          // The comment IS the poll's question, so the poll goes with it.
+          dropPollsFor(function (pl) { return pl.reply_id === rr.id; });
           db.replies = db.replies.filter(function (x) { return x.id !== rr.id; });
           save();
           return res(200, { ok: true });
@@ -395,6 +570,8 @@
         }
         if (db.blocked.indexOf(bu) < 0) db.blocked.push(bu);
         db.replies.forEach(function (x) { if (x.uid === bu) x.hidden = 1; });
+        // …and the options it added. Its votes leave the counts on their own.
+        db.pollOptions.forEach(function (o) { if (o.uid === bu) o.hidden = 1; });
         save();
         return res(200, { blocked: true });
       }
@@ -412,6 +589,7 @@
         }
         if (!am[2] && method === "DELETE") {
           db.posts = db.posts.filter(function (x) { return x.code !== ap.code; });
+          dropPollsFor(function (pl) { return pl.code === ap.code; });
           db.replies = db.replies.filter(function (r) { return r.code !== ap.code; });
           save();
           return res(200, { ok: true });
@@ -489,13 +667,89 @@
       var cn = str(body.name, 24); if (!cn) return res(400, { error: "name" });
       var cc = /^#[0-9a-fA-F]{6}$/.test(body.color || "") ? String(body.color).toLowerCase() : null;
       if (db.blocked.indexOf(MOCK_UID) >= 0) return res(403, { error: "blocked" });
-      db.replies.push({ id: nextReplyId(), code: cp.code,
+      var spec = readPollSpec(body.poll);
+      if (spec.err) return res(400, { error: spec.err });
+      var newId = nextReplyId(), at = Math.floor(Date.now() / 1000);
+      db.replies.push({ id: newId, code: cp.code,
         author: isOwnerMock() ? "owner" : "member", uid: MOCK_UID,
-        name: cn, color: cc, body: cb, hidden: 0,
-        created_at: Math.floor(Date.now() / 1000) });
-      cp.updated_at = Math.floor(Date.now() / 1000);
+        name: cn, color: cc, body: cb, hidden: 0, created_at: at });
+      /* The poll rides the comment: the comment is the question, so the two
+         land together or not at all. */
+      if (spec.poll) {
+        var np = nextPollId();
+        db.polls.push({ id: np, reply_id: newId, code: cp.code,
+          multi: spec.poll.multi ? 1 : 0, closed: 0,
+          open_options: spec.poll.open_options ? 1 : 0, created_at: at });
+        spec.poll.options.forEach(function (text) {
+          db.pollOptions.push({ id: nextOptionId(), poll_id: np, text: text,
+            uid: MOCK_UID, hidden: 0, created_at: at });
+        });
+      }
+      cp.updated_at = at;
       save();
       return res(201, { ok: true });
+    }
+
+    /* POST /poll/<id>/vote — the WHOLE ballot, replacing whatever this
+       account had. [] takes the vote back. One vote per account per poll is
+       enforced here, not by a key, exactly as the worker does it. */
+    var vm = /^\/poll\/([0-9]{1,15})\/vote$/.exec(p);
+    if (vm && method === "POST") {
+      var vp = pollBy(Number(vm[1]));
+      if (!vp) return res(404, { error: "poll" });
+      if (!signedIn()) return res(401, { error: "signin" });
+      if (pollIsClosed(vp)) return res(409, { error: "poll_closed" });
+      if (db.blocked.indexOf(MOCK_UID) >= 0) return res(403, { error: "blocked" });
+      if (!Array.isArray(body.options)) return res(400, { error: "options" });
+      var picks = body.options.map(Number);
+      if (!vp.multi && picks.length > 1) return res(400, { error: "one_choice" });
+      var live = db.pollOptions.filter(function (o) { return o.poll_id === vp.id && !o.hidden; })
+                               .map(function (o) { return o.id; });
+      if (picks.some(function (x) { return live.indexOf(x) < 0; })) return res(400, { error: "options" });
+      db.pollVotes = db.pollVotes.filter(function (v) {
+        return !(v.poll_id === vp.id && v.uid === MOCK_UID);
+      });
+      picks.forEach(function (x) { db.pollVotes.push({ poll_id: vp.id, uid: MOCK_UID, option_id: x }); });
+      save();
+      return res(200, voteState(vp.id));
+    }
+
+    /* POST /poll/<id>/options — anyone signed in, while open_options. Adding
+       is not voting: the new bar arrives at zero. */
+    var om = /^\/poll\/([0-9]{1,15})\/options$/.exec(p);
+    if (om && method === "POST") {
+      var op = pollBy(Number(om[1]));
+      if (!op) return res(404, { error: "poll" });
+      if (!signedIn()) return res(401, { error: "signin" });
+      if (!op.open_options) return res(403, { error: "poll_fixed" });
+      if (pollIsClosed(op)) return res(409, { error: "poll_closed" });
+      if (db.blocked.indexOf(MOCK_UID) >= 0) return res(403, { error: "blocked" });
+      var ot = str(body.text, 120);
+      if (!ot) return res(400, { error: "option_text" });
+      var held = db.pollOptions.filter(function (o) { return o.poll_id === op.id; });
+      if (held.length >= POLL_MAX_OPTS) return res(409, { error: "poll_full" });
+      if (held.some(function (o) { return o.text.toLowerCase() === ot.toLowerCase(); })) {
+        return res(409, { error: "poll_duplicate" });
+      }
+      var newOpt = nextOptionId();
+      db.pollOptions.push({ id: newOpt, poll_id: op.id, text: ot, uid: MOCK_UID,
+                            hidden: 0, created_at: Math.floor(Date.now() / 1000) });
+      save();
+      return res(201, { id: newOpt, text: ot });
+    }
+
+    // PATCH /poll/<id> — {closed}, the poll's author or the owner.
+    var pm2 = /^\/poll\/([0-9]{1,15})$/.exec(p);
+    if (pm2 && method === "PATCH") {
+      var pp = pollBy(Number(pm2[1]));
+      if (!pp) return res(404, { error: "poll" });
+      if (!signedIn()) return res(401, { error: "signin" });
+      var host = db.replies.filter(function (r) { return r.id === pp.reply_id; })[0];
+      if (!isOwnerMock() && !(host && host.uid === MOCK_UID)) return res(403, { error: "author" });
+      if (typeof body.closed !== "boolean") return res(400, { error: "closed" });
+      pp.closed = body.closed ? 1 : 0;
+      save();
+      return res(200, { closed: pollIsClosed(pp) });
     }
 
     if (p === "/interest" && method === "POST") {

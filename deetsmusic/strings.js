@@ -9,10 +9,10 @@
    "[ph]" may ship.
 
    State of his pass: DONE. Every string, the boards' Filter and Sort
-   included, was approved in chat 2026-09-14, and the board-thread strings
-   (thread page, comments, moderation) on 2026-09-15 — section comments
-   below name the lines he dictated. Zero [ph] left; anything added from
-   here carries one.
+   included, was approved in chat 2026-09-14; the board-thread strings (thread
+   page, comments, moderation) on 2026-09-15; and the POLL block on 2026-09-15
+   — section comments below name the lines he dictated. Zero [ph] left;
+   anything added from here carries one.
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -226,6 +226,67 @@ window.DM_STRINGS = {
   menuUnblock:           "Unblock",
   commentBlocked:        "Blocked",
   err_reply:             "That comment isn't available.",
+
+  /* POLLS (2026-09-15, docs/support.md "Polls"). Approved by Aditya in chat,
+     2026-09-15, after a pass that measured every draft against his own lines:
+     bare labels take no
+     full stop and sentences do ("No suggestions yet."), a failure says what
+     happened and what to do ("Keep the title to 10 words."), negatives
+     contract and pronouns do not ("isn't", but "That is too long to send"),
+     and a person who posted is the "Poster". Four drafts said something he
+     had already said and were collapsed into one key, as his threads pass
+     did with commentSignin. */
+  pollAdd:            "Add a poll",
+  pollDrop:           "Remove poll",
+  pollOptionPh:       "Option {n}",
+  pollAddOption:      "Add an option",   /* the composer's row button AND the reader's */
+  pollEditRemove:     "Remove option {n}",
+  pollModeLabel:      "Picks",
+  pollModeOne:        "One",
+  pollModeMany:       "Several",
+
+  /* reading a poll. The counts show from the first look — the animation is
+     the vote landing, not a reveal (his call, 2026-09-15). Hints take no full
+     stop, the way releasesHint and mineLead do not. */
+  pollAria:           "Poll: {question}",
+  pollVotes:          "{n} votes",
+  pollVotesOne:       "1 vote",
+  pollShare:          "{n}%",
+  pollMine:           "You picked this",
+  pollPickOne:        "Pick one",
+  pollPickMany:       "Pick as many as you want",
+  pollSignin:         "Sign in to vote.",
+  pollOptionPlace:    "Another option",
+  pollOptionSend:     "Add",
+  /* picking is local; this sends the ballot. Off until there is something
+     unsent, so a poll costs one write per mind made up. */
+  pollVote:           "Vote",
+
+  /* closed. Closed by its author and closed because the post is are different
+     facts, so they are different lines — and only the first can be reopened.
+     pollClosed is BOTH the line on the poll and the worker's poll_closed
+     refusal, because it is one sentence either way. */
+  pollClosed:         "This poll is closed.",
+  pollClosedState:    "This poll closed with the post.",
+  pollClose:          "Close poll",
+  pollReopen:         "Reopen poll",
+  pollClosedToast:    "Poll closed.",
+  pollReopenedToast:  "Poll reopened.",
+  /* the board card's mark: a thread HAS a poll, never how the vote is going */
+  tagPoll:            "Poll",
+  /* the owner's per-option menu — the price of letting anyone add one.
+     menuHide / menuShow are reused from the post menu. */
+  pollOptionMenu:     "Actions for this option",
+  /* the worker's poll errors (poll_closed reuses pollClosed above) */
+  err_poll_options:   "Give the poll 2 to 6 options.",
+  err_poll_duplicate: "That option is already on the poll.",
+  err_poll_full:      "This poll is full at 6 options.",
+  err_poll_fixed:     "Only the poster can add options to this poll.",
+  err_one_choice:     "This poll takes one pick.",
+  err_options:        "That pick isn't on this poll.",
+  err_option_text:    "Add an option first.",
+  err_poll:           "That poll isn't available.",
+  err_author:         "Only the poster can do that.",
 
   /* your posts (this browser's list of codes) — the whole box approved by
      Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */

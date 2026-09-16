@@ -290,8 +290,29 @@
               <textarea class="dm-field__input dm-field__area" name="body" maxlength="4000" rows="4"></textarea>
             </label>
             <p class="dm-form__err" data-dm-err role="alert" hidden></p>
+            <!-- A poll rides the comment (support.md, "Polls"): the comment's
+                 body is the question, and one Send sends both. So its button
+                 stands beside Send, and the editor drops down under the pair.
+                 Public threads only — #t= has no account behind it to hang a
+                 ballot on. The rows are built in deetsmusic.js. -->
             <div class="dm-form__actions">
               <button type="submit" class="home__cta" data-dm-send></button>
+              <button type="button" class="home__cta home__cta--soft dm-pollform" data-dm-pollform data-dm-poll-open aria-expanded="false" hidden></button>
+            </div>
+            <div class="dm-collapse dm-collapse--ring" data-dm-poll-collapse>
+              <div class="dm-collapse__inner">
+                <div class="dm-polledit">
+                  <div class="dm-polledit__rows" data-dm-poll-rows></div>
+                  <div class="dm-polledit__foot">
+                    <button type="button" class="dm-textbtn" data-dm-poll-addrow data-s="pollAddOption"></button>
+                    <div class="dm-pollmode" data-dm-poll-mode role="group">
+                      <span class="dm-field__label" data-s="pollModeLabel"></span>
+                      <button type="button" class="dm-pollmode__opt" data-dm-poll-multi="0" aria-pressed="true" data-s="pollModeOne"></button>
+                      <button type="button" class="dm-pollmode__opt" data-dm-poll-multi="1" aria-pressed="false" data-s="pollModeMany"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </form>
         </section>
