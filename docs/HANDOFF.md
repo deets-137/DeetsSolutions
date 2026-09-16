@@ -74,10 +74,20 @@ the intake breaker already counts `replies`).
 **What is left, in order:**
 1. **His copy pass.** 21 new `[ph]` strings in `deetsmusic/strings.js` — the thread page, the
    comment box and sign-in prompt, and the moderation menu. Nothing with `[ph]` ships.
-2. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed in
-   AND the owner; **signing out in the page** is the one local way to see what a stranger is
-   sent (no hidden rows, no comment box). Three seeded member comments sit on "[mock] A
-   lyrics card", one of them hidden.
+2. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed
+   in AND the owner; **signing out in the page** is the one local way to see what a stranger
+   is sent (no hidden rows, no comment box). The six public posts seed one case each:
+
+   | Card | What it is for |
+   |---|---|
+   | A lyrics card | a short thread with one row hidden |
+   | Last.fm scrobbling | members, then his answer last |
+   | A mini player | the long one: eight rows, a **blocked** account, a name and a comment that wrap |
+   | The queue forgets its order | his reply, then "still happening" |
+   | Library sync stalls | a single comment |
+   | HomePod volume jumps | **nothing** — where "No replies yet" shows |
+
+   The two private posts still open by code (`#t=`), so both views sit side by side.
 3. **The deploy — order matters** ([support.md "Shipping step 1"](support.md)): both D1
    migrations first (`2026-09-15-pid.sql`, then `2026-09-15-comments.sql`), then
    `npx wrangler deploy` + the mint-host smoke, then push the site **a minute later** —

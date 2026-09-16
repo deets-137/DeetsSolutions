@@ -115,11 +115,11 @@
       post("mocksuggest00003", "suggestion", "open", true, "[mock] A mini player that stays on top",
         "A small window with the cover, play/pause and skip, that stays above other windows while I work.\n\nIt could be the tray flyout, torn off and pinned. Bonus if it follows the album colors like Now Playing does, and if it remembers where I put it on which monitor.", 5, 1),
       post("mockissue0000001", "issue", "fixed", true, "[mock] The queue forgets its order after a restart",
-        "After I restart DeetsMusic, songs I dragged into a new order go back to the order I queued them in.", 0, 4),
+        "After I restart DeetsMusic, songs I dragged into a new order go back to the order I queued them in.", 6, 4),
       post("mockissue0000002", "issue", "open", true, "[mock] HomePod volume jumps at the start of a song",
-        "When a new song starts on a HomePod, the volume is loud for a second and then drops to where the slider is.", 0, 1.5),
+        "When a new song starts on a HomePod, the volume is loud for a second and then drops to where the slider is.", 3, 1.5),
       post("mockissue0000003", "issue", "planned", true, "[mock] Library sync stalls on a very large library",
-        "With about 40,000 songs, the first sync stops near 80% and does not finish.", 0, 0.5),
+        "With about 40,000 songs, the first sync stops near 80% and does not finish.", 11, 0.5),
       post("mockticket000001", "issue", "open", false, "[mock] Sign-in page never sends me back",
         "I finish signing in on the browser page, but DeetsMusic still says Not signed in.\n\nWindows 11 23H2, Edge as default browser.", 0, 1)
     ];
@@ -136,31 +136,90 @@
     // The public id (support.md, "Threads"). Fixed here, random on the worker,
     // so a #p= link into the mock survives a reload.
     posts.forEach(function (x, i) { x.pid = "mockpid" + String(100000001 + i); });
+    /* A member's comment: an account, a name and a colour snapshotted at post
+       time. `hidden` is the owner's flag; `uid` is what Block acts on. */
+    var rid = 0;
+    function cmt(code, name, color, uid, hoursAgo, text, hidden) {
+      return { id: ++rid, code: code, author: "member", uid: uid, name: name,
+               color: color, hidden: hidden ? 1 : 0, body: text,
+               created_at: NOW - Math.round(hoursAgo * HOUR) };
+    }
+    function said(code, author, hoursAgo, text) {   // the reporter's, or Aditya's
+      return { id: ++rid, code: code, author: author, body: text,
+               created_at: NOW - Math.round(hoursAgo * HOUR) };
+    }
     var replies = MODE === "empty" ? [] : [
-      { id: 1, code: "mockticket000001", author: "owner", created_at: NOW - 20 * HOUR,
-        body: "[mock] Thanks. Does it still happen on 0.4.3? The sign-in page changed in 0.4.0." },
-      { id: 2, code: "mockticket000001", author: "reporter", created_at: NOW - 18 * HOUR,
-        body: "[mock] Updated to 0.4.3 and it works now." },
+      said("mockticket000001", "owner", 20,
+        "[mock] Thanks. Does it still happen on 0.4.3? The sign-in page changed in 0.4.0."),
+      said("mockticket000001", "reporter", 18,
+        "[mock] Updated to 0.4.3 and it works now."),
       // the lobster thread: his real reporter reply, then an invented owner answer
-      { id: 3, code: "4x0NsiAsa16J9EZ6", author: "reporter", created_at: NOW - 4 * HOUR,
-        body: "Yo no way!" },
-      { id: 4, code: "4x0NsiAsa16J9EZ6", author: "owner", created_at: NOW - 2 * HOUR,
-        body: "[mock] Confirmed on 0.4.3. Halving the butter in the next update." },
-      /* Signed-in comments on a public thread. New ones you post here come out
-         as 'owner', because everyone on the mock is the owner — these two are
-         seeded so the member row (a name, a colour, no owner mark) is visible
-         without a second account. One is hidden, for the moderation view. */
-      { id: 5, code: "mocksuggest00001", author: "member", uid: "mock-member-1",
-        name: "Margot", color: "#3f8fd0", hidden: 0, created_at: NOW - 30 * HOUR,
-        body: "[mock] Would love this. Even just the current line, big, would do it." },
-      { id: 6, code: "mocksuggest00001", author: "member", uid: "mock-member-2",
-        name: "kev", color: "#6ec06e", hidden: 0, created_at: NOW - 26 * HOUR,
-        body: "[mock] Seconded, and it should follow the album colours like Now Playing." },
-      { id: 7, code: "mocksuggest00001", author: "member", uid: "mock-member-3",
-        name: "throwaway", color: null, hidden: 1, created_at: NOW - 25 * HOUR,
-        body: "[mock] (a hidden comment — only the owner sees this one, dashed)" }
+      said("4x0NsiAsa16J9EZ6", "reporter", 4, "Yo no way!"),
+      said("4x0NsiAsa16J9EZ6", "owner", 2,
+        "[mock] Confirmed on 0.4.3. Halving the butter in the next update."),
+
+      /* ── Threads to click through (2026-09-15) ──────────────────────
+         Anything you post here comes out as Aditya, because everyone on the
+         mock is the owner. These are seeded so the OTHER rows — a member's
+         name and colour, a hidden one, a blocked one — are visible without a
+         second account. Each public post below is a different case:
+
+           A lyrics card       a short thread, one hidden row
+           Last.fm scrobbling  members and an owner answer, ending on his
+           mini player         the long one: eight rows, a blocked account
+           queue forgets       an owner reply plus a "still happening"
+           library sync        one lonely comment
+           HomePod volume      NOTHING — the empty-thread line          */
+
+      // A lyrics card — one row hidden by the owner
+      cmt("mocksuggest00001", "Margot", "#3f8fd0", "mock-member-1", 30,
+        "[mock] Would love this. Even just the current line, big, would do it."),
+      cmt("mocksuggest00001", "kev", "#6ec06e", "mock-member-2", 26,
+        "[mock] Seconded, and it should follow the album colours like Now Playing."),
+      cmt("mocksuggest00001", "throwaway", null, "mock-member-3", 25,
+        "[mock] (a hidden comment — only the owner sees this one, dashed)", true),
+
+      // Last.fm — members, then his answer closes it out
+      cmt("mocksuggest00002", "hal", "#c77dd4", "mock-member-4", 44,
+        "[mock] Scrobbling is the one thing keeping me on the old player."),
+      cmt("mocksuggest00002", "Margot", "#3f8fd0", "mock-member-1", 41,
+        "[mock] Same. ListenBrainz too, if it is not much more work — it is the same shape of API."),
+      said("mocksuggest00002", "owner", 12,
+        "[mock] Reading up on both. The half I am unsure about is what happens to a scrobble queued while you are offline."),
+
+      // the mini player — the long thread, with a blocked account in it
+      cmt("mocksuggest00003", "kev", "#6ec06e", "mock-member-2", 70,
+        "[mock] A pinned mini player would be the whole reason I keep it open."),
+      cmt("mocksuggest00003", "Priya", "#e0a23c", "mock-member-5", 66,
+        "[mock] Please let it remember which monitor. Every other player I have tried forgets."),
+      cmt("mocksuggest00003", "sam_r", "#4fb3a5", "mock-member-6", 52,
+        "[mock] Tearing the tray flyout off is exactly right. It already looks like the thing."),
+      cmt("mocksuggest00003", "nine", "#d94141", "mock-member-9", 50,
+        "[mock] (a blocked account's comment — hidden, and marked Blocked in the owner's view)", true),
+      cmt("mocksuggest00003", "hal", "#c77dd4", "mock-member-4", 48,
+        "[mock] One more: keep the keyboard shortcuts working while it has focus."),
+      said("mocksuggest00003", "owner", 30,
+        "[mock] All of this is the same window, so it is one job. The monitor memory is the fiddly part."),
+      cmt("mocksuggest00003", "Priya", "#e0a23c", "mock-member-5", 20,
+        "[mock] Happy to test it on a three-monitor setup whenever there is a build."),
+      cmt("mocksuggest00003", "a-very-long-display-name", "#8b7bd8", "mock-member-7", 6,
+        "[mock] A long name and a long comment, for the wrapping: the point of this one is to run past a single line so the thread has something tall in it and the name has somewhere to break."),
+
+      // the fixed bug — his answer, then someone saying it is not fixed
+      said("mockissue0000001", "owner", 96,
+        "[mock] Fixed in 0.4.2 — the queue order is written on every change now, not on exit."),
+      cmt("mockissue0000001", "sam_r", "#4fb3a5", "mock-member-6", 9,
+        "[mock] Still happens for me on 0.4.3, but only if I close from the tray icon rather than the window."),
+
+      // library sync — one comment, so the thread is not empty but barely
+      cmt("mockissue0000003", "Priya", "#e0a23c", "mock-member-5", 5,
+        "[mock] 62,000 songs here and it stops around the same place.")
+
+      // NOTE: mockissue0000002 (HomePod volume) has no thread on purpose —
+      // it is where "No replies yet" shows.
     ];
-    return { mode: MODE, posts: posts, replies: replies, blocked: [] };
+    // mock-member-9 is blocked, which is why its comment above is hidden.
+    return { mode: MODE, posts: posts, replies: replies, blocked: ["mock-member-9"] };
   }
 
   var db = (function () {
@@ -242,6 +301,13 @@
     return { pid: p.pid, app: p.app, kind: p.kind, state: p.state, title: p.title, body: p.body,
              interest: p.interest, created_at: p.created_at, updated_at: p.updated_at, version: version };
   }
+  /* The next reply id. NOT db.replies.length + 1: deleting a comment (the
+     owner's menu) would then hand the next one an id that is already spoken
+     for. D1's INTEGER PRIMARY KEY never reuses a row id either. */
+  function nextReplyId() {
+    return db.replies.reduce(function (n, r) { return Math.max(n, r.id); }, 0) + 1;
+  }
+
   function res(status, data) { return { ok: status >= 200 && status < 300, status: status, data: data }; }
 
   function handle(host, method, path, body) {
@@ -348,7 +414,7 @@
         }
         if (am[2] && method === "POST") {
           var ob = str(body.body, 4000); if (!ob) return res(400, { error: "body" });
-          db.replies.push({ id: db.replies.length + 1, code: ap.code, author: "owner", body: ob, created_at: at });
+          db.replies.push({ id: nextReplyId(), code: ap.code, author: "owner", body: ob, created_at: at });
           ap.updated_at = at; save();
           return res(201, { ok: true });
         }
@@ -390,7 +456,7 @@
       }
       if (m[2] && method === "POST") {
         var rb = str(body.body, 4000); if (!rb) return res(400, { error: "body" });
-        db.replies.push({ id: db.replies.length + 1, code: found.code, author: "reporter", body: rb, created_at: Math.floor(Date.now() / 1000) });
+        db.replies.push({ id: nextReplyId(), code: found.code, author: "reporter", body: rb, created_at: Math.floor(Date.now() / 1000) });
         found.updated_at = Math.floor(Date.now() / 1000);
         save();
         return res(201, { ok: true });
@@ -419,7 +485,7 @@
       var cn = str(body.name, 24); if (!cn) return res(400, { error: "name" });
       var cc = /^#[0-9a-fA-F]{6}$/.test(body.color || "") ? String(body.color).toLowerCase() : null;
       if (db.blocked.indexOf(MOCK_UID) >= 0) return res(403, { error: "blocked" });
-      db.replies.push({ id: db.replies.length + 1, code: cp.code,
+      db.replies.push({ id: nextReplyId(), code: cp.code,
         author: isOwnerMock() ? "owner" : "member", uid: MOCK_UID,
         name: cn, color: cc, body: cb, hidden: 0,
         created_at: Math.floor(Date.now() / 1000) });
