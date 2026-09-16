@@ -15,24 +15,84 @@
 # Purging the Cloudflare cache does not prevent it either. The stale copy is on
 # the visitor's disk, not at the edge.
 #
-# So: revalidate every stylesheet and script, wherever it lives. The globs are
-# by EXTENSION rather than by directory on purpose — `/styles/*` and `/js/*`
-# would miss the per-tab and per-game assets (radio/radio.js, tanks/tanks.css,
-# games/table.js), which go stale exactly the same way. Each match costs one
+# ⚠ THIS FILE DID NOTHING UNTIL 2026-09-15. It was written with the rules
+# `/*.css` and `/*.js`, and Pages silently ignored both: a `_headers` pattern
+# takes a TRAILING splat (`/styles/*`), and `*` is not a glob you can put in the
+# middle of a path or in front of an extension. Nothing warns you — the rule
+# just never matches, and every asset keeps the 4h default. Caught by checking
+# the live `Cache-Control` after a deploy, which is the only way to see it:
+#
+#   curl -sI https://deets.solutions/styles/main.css | grep -i cache-control
+#
+# Do that after touching this file. `max-age=0` is the rule working;
+# `max-age=14400` is the rule being ignored again.
+#
+# So: revalidate every stylesheet and script, wherever it lives — one rule per
+# directory that holds one. That is more lines than an extension glob, and it
+# has the failure mode to match: a NEW tab with its own CSS or JS needs a line
+# here, or it silently goes back to four hours. The per-tab and per-game assets
+# (radio/radio.js, tanks/tanks.css, games/table.js) are exactly the ones that
+# go stale the same way, so they are each listed. Each match costs one
 # conditional request per load, answered with a ~100-byte 304 when nothing moved.
 #
+# The rules below are broader than CSS/JS — `/styles/*` catches everything in
+# that directory. That is deliberate: these directories hold code, not media.
+# The sprite and font directories are NOT listed, so they keep the 4h default.
+#
 # NOT covered, deliberately: the generated data files (sotd/songs.json,
-# movies/movies.json). They inherit the 4h default, so a nightly refresh can be
-# up to four hours late for a returning visitor. Harmless for a once-a-day feed;
-# add `/*.json` here if that ever reads as a bug.
+# movies/movies.json). `/sotd/*` would now catch songs.json, so the JSONs are
+# pinned back to the default underneath. A nightly refresh can be up to four
+# hours late for a returning visitor — harmless for a once-a-day feed; drop
+# those two rules if that ever reads as a bug.
 #
 # The alternative to all of this — versioned URLs (`chrome.css?v=…`) plus a long
 # immutable max-age — is strictly faster and strictly easier to forget, since
 # with no build step the stamping is manual. Revisit if the asset count ever
 # makes the 304s worth avoiding.
 
-/*.css
+/styles/*
   Cache-Control: public, max-age=0, must-revalidate
 
-/*.js
+/js/*
   Cache-Control: public, max-age=0, must-revalidate
+
+/games/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/deetsmusic/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/cities/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/mahjong/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/poker/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/tanks/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/radio/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/league/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/profile/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sotd/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/movies/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The generated feeds, back to the 4h default (see the note above). A later
+# rule wins in Pages' `_headers`, so these must stay below their directories.
+/sotd/songs.json
+  Cache-Control: public, max-age=14400
+
+/movies/movies.json
+  Cache-Control: public, max-age=14400
