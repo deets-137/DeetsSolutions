@@ -1,5 +1,11 @@
 # Cloudflare Pages reads this at the site root. Plain text, no build step.
 #
+# ⚠⚠ AS OF 2026-09-15 THIS FILE DOES NOTHING, AND WHY IS UNRESOLVED. ⚠⚠
+# Do not trust it to hold anything at max-age=0. Read "what is actually
+# happening" below before relying on it or editing it.
+#
+# ── what it is FOR ────────────────────────────────────────────────────────
+#
 # Pages' default for static assets is `max-age=14400` — four hours in which a
 # returning visitor's browser serves CSS/JS from disk WITHOUT asking whether it
 # changed. HTML is already `max-age=0`, so a deploy lands new markup against
@@ -15,47 +21,66 @@
 # Purging the Cloudflare cache does not prevent it either. The stale copy is on
 # the visitor's disk, not at the edge.
 #
-# ⚠ THIS FILE DID NOTHING UNTIL 2026-09-15. It was written with the rules
-# `/*.css` and `/*.js`, and Pages silently ignored both: a `_headers` pattern
-# takes a TRAILING splat (`/styles/*`), and `*` is not a glob you can put in the
-# middle of a path or in front of an extension. Nothing warns you — the rule
-# just never matches, and every asset keeps the 4h default. Caught by checking
-# the live `Cache-Control` after a deploy, which is the only way to see it:
+# ── what is actually happening (measured 2026-09-15) ──────────────────────
+#
+# Every stylesheet and script on the live site serves
+# `public, max-age=14400, must-revalidate` — the Pages default, not this file.
+# That has evidently been true since the file was written, which means the
+# 2026-08-08 fix never took and the site has been exposed the whole time. It
+# surfaced on the board-threads deploy: a visitor holding the previous
+# deetsmusic.js gets a board whose ▲ fails, because the worker now sends a
+# post's pid and that JS looks for a code.
+#
+# The original rules were `/*.css` and `/*.js`. Those ARE invalid — a Pages
+# pattern takes a trailing splat — but rewriting them as one rule per directory
+# (`/styles/*`, `/js/*`, …) changed nothing. A probe settled why: a custom
+# header added beside the Cache-Control on `/js/*` never appeared on
+# `/js/controls.js` either, so the rules are not being APPLIED at all, rather
+# than being applied and overridden on Cache-Control alone.
+#
+# The one reading that does not fit: `/sotd/songs.json` comes back with a
+# doubled `public, max-age=0, must-revalidate, public, max-age=14400`. Nothing
+# else does, including `/sotd/sotd.js` in the same directory. Unexplained, and
+# it is the loose thread worth pulling first.
+#
+# Not yet checked, in the order worth checking:
+#   1. The Pages project's build-output directory. If it is not the repo root,
+#      `_headers` is never picked up, which fits every observation here.
+#   2. A zone-level Cache Rule in the dashboard overriding browser TTL, which
+#      would also explain a uniform 14400 on exactly these asset types.
+#   3. Anything setting Pages caching defaults outside the repo.
+#
+# To check after ANY change here — the only way to see it, since a rule that
+# never matches is silent:
 #
 #   curl -sI https://deets.solutions/styles/main.css | grep -i cache-control
 #
-# Do that after touching this file. `max-age=0` is the rule working;
-# `max-age=14400` is the rule being ignored again.
+# `max-age=0` is the rule working. `max-age=14400` is it being ignored.
 #
-# So: revalidate every stylesheet and script, wherever it lives — one rule per
-# directory that holds one. That is more lines than an extension glob, and it
-# has the failure mode to match: a NEW tab with its own CSS or JS needs a line
-# here, or it silently goes back to four hours. The per-tab and per-game assets
-# (radio/radio.js, tanks/tanks.css, games/table.js) are exactly the ones that
-# go stale the same way, so they are each listed. Each match costs one
-# conditional request per load, answered with a ~100-byte 304 when nothing moved.
+# ── the stopgap in the meantime ───────────────────────────────────────────
 #
-# The rules below are broader than CSS/JS — `/styles/*` catches everything in
-# that directory. That is deliberate: these directories hold code, not media.
-# The sprite and font directories are NOT listed, so they keep the 4h default.
+# `deetsmusic/index.html` stamps its own assets `?v=<date>`. HTML is max-age=0
+# regardless, so a stamped URL is one the visitor's cache has never seen and is
+# fetched at once. That is the "versioned URLs" alternative this file's first
+# version named as the thing to avoid: strictly faster, strictly easier to
+# forget, since with no build step the stamping is manual. It is on ONE page on
+# purpose — a patch for a live bug, not a scheme to spread before the cause
+# above is found.
 #
-# NOT covered, deliberately: the generated data files (sotd/songs.json,
-# movies/movies.json). `/sotd/*` would now catch songs.json, so the JSONs are
-# pinned back to the default underneath. A nightly refresh can be up to four
-# hours late for a returning visitor — harmless for a once-a-day feed; drop
-# those two rules if that ever reads as a bug.
+# ── the rules ─────────────────────────────────────────────────────────────
 #
-# The alternative to all of this — versioned URLs (`chrome.css?v=…`) plus a long
-# immutable max-age — is strictly faster and strictly easier to forget, since
-# with no build step the stamping is manual. Revisit if the asset count ever
-# makes the 304s worth avoiding.
+# Correct syntax, currently inert. One rule per directory that holds CSS or JS;
+# a new tab with its own assets needs a line here. The rules are broader than
+# CSS/JS — `/styles/*` catches everything in that directory — which is fine,
+# since these directories hold code, not media. The sprite and font directories
+# are deliberately absent, so they keep the 4h default. Each match, once this
+# works, costs one conditional request per load, answered with a ~100-byte 304.
 
 /styles/*
   Cache-Control: public, max-age=0, must-revalidate
 
 /js/*
   Cache-Control: public, max-age=0, must-revalidate
-  X-Deets-Probe: js-rule-matched
 
 /games/*
   Cache-Control: public, max-age=0, must-revalidate
@@ -90,8 +115,9 @@
 /movies/*
   Cache-Control: public, max-age=0, must-revalidate
 
-# The generated feeds, back to the 4h default (see the note above). A later
-# rule wins in Pages' `_headers`, so these must stay below their directories.
+# The generated feeds, back to the 4h default: a once-a-day refresh does not
+# need revalidating on every load. A later rule wins, so these stay below
+# their directories.
 /sotd/songs.json
   Cache-Control: public, max-age=14400
 

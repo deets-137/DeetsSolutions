@@ -22,14 +22,24 @@
         } catch (e) {}
       })();
     </script>
+    <!-- ?v= on the assets this page's board logic depends on. `_headers` is
+         meant to hold CSS/JS at max-age=0, and on 2026-09-15 it was found not
+         to be applying at all (see _headers), so a returning visitor keeps a
+         four-hour-old copy. That is harmless for most changes and was NOT
+         harmless for the board-threads deploy: the worker now sends a post's
+         pid instead of its code, and the previous deetsmusic.js looks for a
+         code, so its up-arrow fails. index.html is max-age=0 either way, so a
+         stamped URL is one the visitor's cache has never seen and is fetched
+         at once. Bump the date when this page's JS or CSS changes, and drop
+         the whole scheme once _headers works. -->
     <link rel="stylesheet" href="../styles/chrome.css" />
-    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-09-15" />
     <script src="../js/controls.js" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
-    <script src="./strings.js" defer></script>
-    <script src="./mock.js" defer></script>
-    <script src="./deetsmusic.js" defer></script>
+    <script src="./strings.js?v=2026-09-15" defer></script>
+    <script src="./mock.js?v=2026-09-15" defer></script>
+    <script src="./deetsmusic.js?v=2026-09-15" defer></script>
     <script src="../js/walkers.js" defer></script>
   </head>
 
