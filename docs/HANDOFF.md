@@ -5,10 +5,9 @@
 > League, four live games, accounts, and the DeetsMusic support page.
 >
 > **Where things stand (2026-09-15):** the DeetsMusic UI port (steps 1–4, 6, 8), the
-> DeetsMusic page, and **board threads — all four steps — are LIVE.** Both migrations ran,
-> the worker is deployed, both repos are pushed, and the `code` leak is closed. **His
-> visual pass on threads is owed. One thing came out of the deploy and is unresolved:
-> `_headers` has never applied** — see [Known gotchas](#known-gotchas).
+> DeetsMusic page, and **board threads — all four steps — are LIVE and visual-passed.**
+> Threads are closed out bar a live test he runs at release. **Top of the docket next
+> session: `_headers` has never applied** — first item under [Next up](#next-up).
 
 **What a "what's next?" should answer from:** the [Next up](#next-up) list below, top
 down. When a session plans, finishes, or parks something, it updates this file in the same
@@ -58,7 +57,37 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-09-15 — DeetsMusic board threads: LIVE (all four steps).**
+**⚠ 2026-09-15 — `_headers` has never applied: ON THE DOCKET, first thing next session.**
+Found while checking the board-threads deploy, and it is a site-wide bug, not a DeetsMusic
+one. Every stylesheet and script on deets.solutions serves Pages' `max-age=14400`, not the
+`max-age=0` that file specifies — so **a returning visitor can hold four-hour-old CSS/JS,
+and the 2026-08-08 theme-rename class of breakage can still happen.** Apparently true since
+the file was written, which means that August fix never took.
+
+The full evidence and the checklist live in the **`_headers` comment itself**; the short
+version:
+- The original `/*.css` and `/*.js` rules ARE invalid syntax (a Pages pattern takes a
+  trailing splat), but rewriting them per directory changed nothing.
+- A probe settled it: a custom header added beside the Cache-Control on `/js/*` never
+  reached `/js/controls.js` either, so the rules **are not applied at all**, rather than
+  applied and overridden on Cache-Control alone.
+- One reading does not fit and is the thread to pull first: `/sotd/songs.json` DOES come
+  back with the rule, while `/sotd/sotd.js` beside it does not.
+
+**First step:** check the Pages project's build-output directory in the dashboard. If it is
+not the repo root, `_headers` is never picked up, which fits every observation. Then a
+zone-level Cache Rule. To see the result at all — a rule that never matches is silent:
+
+```bash
+curl -sI https://deets.solutions/styles/main.css | grep -i cache-control
+```
+
+`max-age=0` is it working; `max-age=14400` is it still being ignored. Until then, assume a
+deploy reaches returning visitors up to four hours late, and if a change would BREAK against
+the old pair, stamp that page's assets `?v=<date>` by hand — `deetsmusic/index.html` does,
+and is deliberately the only page that does.
+
+**2026-09-15 — DeetsMusic board threads: LIVE (all four steps), visual-passed.**
 Design: **[support.md "Threads"](support.md)**. Clicking a Suggestions or Known issues card
 opens `#p=<pid>`, a read-only thread; signed-in accounts comment on it under their profile
 name and colour; the owner's right-click menu moderates a row. Commits: this repo `a9252cd`,
@@ -74,10 +103,16 @@ the intake breaker already counts `replies`).
 **Copy pass DONE 2026-09-15** (support.md, "Threads" → "Copy"): 17 strings, zero `[ph]`.
 Four of the drafts were his own lines said twice, and were collapsed into the originals.
 
-**What is left:**
-1. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed
-   in AND the owner; **signing out in the page** is the one local way to see what a stranger
-   is sent (no hidden rows, no comment box). The six public posts seed one case each:
+**Visual pass DONE 2026-09-15** — his, in chat: "looks fine".
+
+**What is left: one live test, parked until he releases.** Real sign-in, a real comment and
+real moderation have only ever run against the mock, because the `ds_sess` cookie never
+reaches localhost. **He runs it himself in the coming days, if and when he officially
+releases the page** — not a task to pick up unasked.
+
+Rerunning the visual pass at http://localhost:8787/deetsmusic/?mock: you are signed in AND
+the owner there; **signing out in the page** is the one local way to see what a stranger is
+sent (no hidden rows, no comment box). The six public posts seed one case each:
 
    | Card | What it is for |
    |---|---|
@@ -88,10 +123,9 @@ Four of the drafts were his own lines said twice, and were collapsed into the or
    | Library sync stalls | a single comment |
    | HomePod volume jumps | **nothing** — where "No replies yet" shows |
 
-   The two private posts still open by code (`#t=`), so both views sit side by side.
-2. **Real sign-in, a real comment, real moderation** — only testable live. See below.
+The two private posts still open by code (`#t=`), so both views sit side by side.
 
-**DONE 2026-09-15, in this order:** both migrations (`pid` backfilled onto 3 posts, the
+**Shipped 2026-09-15, in this order:** both migrations (`pid` backfilled onto 3 posts, the
 `replies` columns and `blocked` added), `npx wrangler deploy`, the mint-host smoke (every
 `music-api` route 200, `/token` still 403 without the UA), then the site. Verified live:
 `GET /posts` carries `pid` and **no `code`**, a hidden post's pid 404s exactly as a
@@ -101,10 +135,6 @@ is 401 and without an Origin 403, both `/admin/` routes 403 to a stranger, and a
 
 ✅ **The `code` leak is closed.** Every code that sat on a public board between 2026-09-11
 and today should still be treated as known.
-
-Not testable locally, so first on the list once it is live: the `ds_sess` cookie never
-reaches localhost, so a REAL sign-in, a real comment and the owner's real moderation have
-only ever run against the mock.
 
 **Then — the next step for threads, proposed not built:** a **thread's size on its card**.
 A board card gives no sign a thread exists, so every click is a gamble. Written up in
