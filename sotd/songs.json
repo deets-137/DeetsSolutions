@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-15T02:28:53Z",
+  "generated_at": "2026-09-16T02:00:14Z",
   "channel": "song-of-the-day",
-  "count": 409,
+  "count": 411,
   "songs": [
     {
       "post_id": 1,
@@ -9409,6 +9409,52 @@
       "apple_music_url": "https://music.apple.com/us/album/makeba/1175093890?i=1175094463&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/24/31/34/24313488-9bec-15cd-90c7-79c3297ca5a2/mzaf_772666532216043993.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/5a/78/86/5a788626-308e-eb19-80e3-1b3b78ef1fe8/886446194783.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 12656,
+      "posted_at": "2026-09-15T03:30:31.646000+00:00",
+      "date": "2026-09-14",
+      "day": "Mon",
+      "month": "09_2026",
+      "track_name": "Ordinary Pleasure",
+      "artist_name": "Toro y Moi",
+      "album": "Outer Peace",
+      "genre": "Electronic",
+      "duration": "3:03",
+      "duration_sec": 183,
+      "release_date": "2018-11-14",
+      "release_year": 2018,
+      "age_yrs": 8,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1583616663",
+      "apple_music_url": "https://music.apple.com/us/album/ordinary-pleasure/1583616655?i=1583616663&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ea/ce/8d/eace8d4f-5ad7-dbbc-0b2f-4cf49d895ebf/mzaf_3554316760317277476.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/9c/bb/36/9cbb362c-03bc-8a65-cc80-62c38039eeaf/65468.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 12657,
+      "posted_at": "2026-09-16T01:57:27.615000+00:00",
+      "date": "2026-09-15",
+      "day": "Tue",
+      "month": "09_2026",
+      "track_name": "Clair-Obscur",
+      "artist_name": "Lorien Testard & Alice Duport-Percier",
+      "album": "Clair Obscur: Expedition 33 (Original Soundtrack) Reveal Edition - EP",
+      "genre": "Soundtrack",
+      "duration": "3:38",
+      "duration_sec": 218,
+      "release_date": "2024-06-10",
+      "release_year": 2024,
+      "age_yrs": 2,
+      "service": "spotify",
+      "resolved": "yes",
+      "author": "sgrim:]",
+      "url": "https://open.spotify.com/track/1vT6Unn3kM67tGaUv3N2k3?si=6682ac5e0048436e",
+      "apple_music_url": "https://music.apple.com/us/album/clair-obscur/1748463003?i=1748463005&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/58/12/29/58122911-b934-4730-b958-b8a9e25efb07/mzaf_2272039751009427579.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/a0/60/b7/a060b778-1b64-c09e-035a-45f75d900397/artwork.jpg/600x600bb.jpg"
     }
   ]
 }
