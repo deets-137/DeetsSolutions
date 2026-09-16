@@ -8,9 +8,11 @@
    edits an un-prefixed (handwritten) value, and nothing still carrying
    "[ph]" may ship.
 
-   State of his pass: DONE 2026-09-14 — every string, the boards' Filter
-   and Sort included, was approved in chat (section comments below name the
-   lines he dictated). Zero [ph] left; anything added from here carries one.
+   State of his pass: DONE. Every string, the boards' Filter and Sort
+   included, was approved in chat 2026-09-14, and the board-thread strings
+   (thread page, comments, moderation) on 2026-09-15 — section comments
+   below name the lines he dictated. Zero [ph] left; anything added from
+   here carries one.
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -196,36 +198,34 @@ window.DM_STRINGS = {
   replySent:             "Reply sent.",
 
   /* a public thread (#p=<pid>) — the same page read-only, reached by
-     clicking a card on either board. Added 2026-09-15 (support.md,
-     "Threads" step 2); all [ph], awaiting his pass. */
-  threadOpen:            "[ph]Open this post",
-  threadLoading:         "[ph]Loading this post…",
-  threadMissing:         "[ph]No post on the board matches this link.",
-  threadFailed:          "[ph]Couldn't load this post.",
-  threadShare:           "[ph]Anyone with this link can read this post.",
-  authorReporterPublic:  "[ph]Who posted it",
+     clicking a card on either board. Approved by Aditya in chat, 2026-09-15.
+     The thread reuses his ticketMissing, ticketFailed and tagHidden rather
+     than saying the same thing twice. */
+  threadOpen:            "Open this post",
+  threadLoading:         "Loading this post…",   /* ticketLoading says "your" — this one isn't */
+  threadShare:           "Anyone with this link can read this post.",
+  authorPoster:          "Poster",   /* the byline where #t= says "You" — here it isn't you */
 
-  /* signed-in comments on a public thread (support.md, "Threads" step 3),
-     added 2026-09-15; all [ph], awaiting his pass */
-  commentLabel:          "[ph]Add a comment",
-  commentSend:           "[ph]Comment",
-  commentSent:           "[ph]Comment posted.",
-  commentSignin:         "[ph]Sign in to leave a comment.",
-  commentSigninGo:       "[ph]Sign in",
-  commentHidden:         "[ph]Hidden",
-  err_signin:            "[ph]Sign in to leave a comment.",
-  err_blocked:           "[ph]You can't comment on the boards.",
-  err_name:              "[ph]Your profile needs a name before you can comment.",
+  /* signed-in comments on a public thread. Approved by Aditya in chat,
+     2026-09-15; commentSignin is BOTH the resting prompt and the worker's
+     401, his call — it is one sentence, so it is one string. */
+  commentLabel:          "Add a comment",
+  commentSend:           "Comment",
+  commentSent:           "Comment sent.",
+  commentSignin:         "Sign in to leave a comment.",
+  commentSigninGo:       "Sign in",
+  err_blocked:           "You can't comment on the boards.",
+  err_name:              "Add a name to your profile first.",
 
-  /* owner moderation of a thread row (support.md, "Threads" step 4),
-     added 2026-09-15; all [ph], awaiting his pass. menuHide / menuShow /
-     menuDelete / menuDeleteConfirm are reused from the post menu. */
-  replyMenuAria:         "[ph]Moderate {who}'s comment",
-  menuBlock:             "[ph]Block this account",
-  menuBlockConfirm:      "[ph]Click again to block",
-  menuUnblock:           "[ph]Unblock this account",
-  commentBlocked:        "[ph]Blocked",
-  err_reply:             "[ph]That comment is already gone.",
+  /* owner moderation of a thread row. Approved by Aditya in chat, 2026-09-15.
+     menuHide / menuShow / menuDelete / menuDeleteConfirm and tagHidden are
+     reused from the post menu. */
+  replyMenuAria:         "Actions for {who}'s comment",
+  menuBlock:             "Block",
+  menuBlockConfirm:      "Click again to block",
+  menuUnblock:           "Unblock",
+  commentBlocked:        "Blocked",
+  err_reply:             "That comment isn't available.",
 
   /* your posts (this browser's list of codes) — the whole box approved by
      Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */

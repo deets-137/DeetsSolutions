@@ -480,6 +480,53 @@ out in the page is the one local way to see what a stranger is sent.
 Each worker step: deploy, then the mint-host smoke from "Decisions already
 made".
 
+### Copy
+
+His pass, in chat 2026-09-15: 17 strings, zero `[ph]`. Four of Claude's drafts
+were his own lines said twice and were **collapsed into the originals** rather
+than reworded — a thread that cannot be found reuses `ticketMissing`, one that
+fails to load reuses `ticketFailed`, a row he hid reuses `tagHidden`, and
+`commentSignin` is BOTH the prompt under the box and the worker's 401, because
+it is one sentence either way. The one genuinely new byline is `authorPoster`
+("Poster"): on `#t=` that row says "You", and on `#p=` it is not you.
+
+### Next step — a thread's size on its card
+
+**Proposed, not built. His call on whether it earns the space.**
+
+A board card gives no sign a thread exists. You click a card to find out, and
+five of the six seeded mock posts have something and one does not — live, the
+ratio will be worse, and most clicks will land on nothing. A count on the card
+is what turns the boards into something worth browsing.
+
+What it takes, end to end:
+
+- `GET /posts` returns a `comments` count per post. A correlated subquery
+  (`SELECT COUNT(*) FROM replies r WHERE r.code = posts.code AND r.hidden = 0`)
+  is one more column on a query that already runs behind the 60 s edge cache,
+  so it costs nothing per view — but `replies_thread` is `(code, created_at)`
+  and this wants `code` alone, which that index already serves as a prefix.
+- The count must **exclude hidden rows**, and the owner's `/admin/posts` may as
+  well send the true one. Two different numbers for the same post is fine; only
+  he sees the second.
+- ⚠ **None of the three write paths drops the board cache today.**
+  `handleReply`, `handleComment` and the owner's `/admin/posts/<code>/replies`
+  all call `tripIfFlooded` and stop there — correct as it stands, because a
+  reply changes nothing on a card. The count is what makes that a bug: a new
+  comment would not show for up to 60 s, and the owner's own reply would look
+  lost. **Add `dropBoards(ctx, app)` to all three in the same change**, and
+  note that the admin reply handler has no `app` in hand yet.
+- The card shows it beside the date in `.dm-post__foot`, and a post with none
+  shows nothing rather than a zero.
+- `mock.js` mirrors the column, and its seed already has the spread to show it.
+
+Two smaller ones behind it, both his call:
+
+- **A thread's own link.** `#p=<pid>` is shareable but nothing offers it except
+  the browser bar; the page has a Copy link button on `#t=` already.
+- **Sort or filter by discussion.** Only worth it once the count exists, and
+  only if the boards get busy enough to want it.
+
 ### Shipping step 1
 
 Order matters, and it is the reverse of what you would guess:

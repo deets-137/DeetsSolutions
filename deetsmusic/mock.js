@@ -167,7 +167,7 @@
            A lyrics card       a short thread, one hidden row
            Last.fm scrobbling  members and an owner answer, ending on his
            mini player         the long one: eight rows, a blocked account
-           queue forgets       an owner reply plus a "still happening"
+           queue forgets       the reporter ("Poster"), his answer, a follow-up
            library sync        one lonely comment
            HomePod volume      NOTHING — the empty-thread line          */
 
@@ -205,7 +205,11 @@
       cmt("mocksuggest00003", "a-very-long-display-name", "#8b7bd8", "mock-member-7", 6,
         "[mock] A long name and a long comment, for the wrapping: the point of this one is to run past a single line so the thread has something tall in it and the name has somewhere to break."),
 
-      // the fixed bug — his answer, then someone saying it is not fixed
+      /* the fixed bug — the only PUBLIC thread with a reporter row in it, so
+         it is where the "Poster" byline shows (on #t= the same row says
+         "You"). Then his answer, then someone saying it is not fixed. */
+      said("mockissue0000001", "reporter", 100,
+        "[mock] It is the drag order specifically — the queue itself survives, the order I dragged them into does not."),
       said("mockissue0000001", "owner", 96,
         "[mock] Fixed in 0.4.2 — the queue order is written on every change now, not on exit."),
       cmt("mockissue0000001", "sam_r", "#4fb3a5", "mock-member-6", 9,

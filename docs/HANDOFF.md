@@ -71,10 +71,11 @@ payload is `{u, e, iat}` — no name — and it proves nothing either way), and 
 **widened `replies` row**, not a new table (one thread, one chronology, one hidden flag, and
 the intake breaker already counts `replies`).
 
+**Copy pass DONE 2026-09-15** (support.md, "Threads" → "Copy"): 17 strings, zero `[ph]`.
+Four of the drafts were his own lines said twice, and were collapsed into the originals.
+
 **What is left, in order:**
-1. **His copy pass.** 21 new `[ph]` strings in `deetsmusic/strings.js` — the thread page, the
-   comment box and sign-in prompt, and the moderation menu. Nothing with `[ph]` ships.
-2. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed
+1. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed
    in AND the owner; **signing out in the page** is the one local way to see what a stranger
    is sent (no hidden rows, no comment box). The six public posts seed one case each:
 
@@ -83,12 +84,12 @@ the intake breaker already counts `replies`).
    | A lyrics card | a short thread with one row hidden |
    | Last.fm scrobbling | members, then his answer last |
    | A mini player | the long one: eight rows, a **blocked** account, a name and a comment that wrap |
-   | The queue forgets its order | his reply, then "still happening" |
+   | The queue forgets its order | the only public thread with a **reporter** row — the one place "Poster" shows |
    | Library sync stalls | a single comment |
    | HomePod volume jumps | **nothing** — where "No replies yet" shows |
 
    The two private posts still open by code (`#t=`), so both views sit side by side.
-3. **The deploy — order matters** ([support.md "Shipping step 1"](support.md)): both D1
+2. **The deploy — order matters** ([support.md "Shipping step 1"](support.md)): both D1
    migrations first (`2026-09-15-pid.sql`, then `2026-09-15-comments.sql`), then
    `npx wrangler deploy` + the mint-host smoke, then push the site **a minute later** —
    `GET /posts` sits in a 60 s edge cache and the old shape has no `pid`.
@@ -101,6 +102,12 @@ known.
 Not testable locally, so first on the list once it is live: the `ds_sess` cookie never
 reaches localhost, so a REAL sign-in, a real comment and the owner's real moderation have
 only ever run against the mock.
+
+**Then — the next step for threads, proposed not built:** a **thread's size on its card**.
+A board card gives no sign a thread exists, so every click is a gamble. Written up in
+[support.md "Next step"](support.md), with the thing that has to change alongside it: none
+of the three reply paths drops the board's 60 s edge cache today, which only becomes a bug
+once a card carries a count. His call on whether it earns the space.
 
 **2026-09-15 — site UI port: steps 5 and 7 open.** Design: **[ui-direction.md](ui-direction.md)**.
 - Step 5, the look schedule: he chose **one shared synchronous `js/prepaint.js`** over the

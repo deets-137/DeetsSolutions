@@ -586,7 +586,7 @@
     closeMenu();
     var menu = el("div", "tb-pop dm-menu");
     menu.setAttribute("role", "menu");
-    menu.setAttribute("aria-label", s("replyMenuAria", { who: r.name || s("authorReporterPublic") }));
+    menu.setAttribute("aria-label", s("replyMenuAria", { who: r.name || s("authorPoster") }));
 
     menu.appendChild(menuOpt(s(r.hidden ? "menuShow" : "menuHide"), function () {
       replyAct(r, "PATCH", "/admin/replies/" + r.id, { hidden: !r.hidden });
@@ -1317,8 +1317,8 @@
     api("support", "GET", "/p/" + pid).then(function (res) {
       if (threadPid !== pid) return;
       body.textContent = "";
-      if (res.status === 404) { body.appendChild(el("p", "dm-empty", s("threadMissing"))); return; }
-      if (!res.ok || !res.data || !res.data.post) { body.appendChild(el("p", "dm-empty", s("threadFailed"))); return; }
+      if (res.status === 404) { body.appendChild(el("p", "dm-empty", s("ticketMissing"))); return; }
+      if (!res.ok || !res.data || !res.data.post) { body.appendChild(el("p", "dm-empty", s("ticketFailed"))); return; }
       renderTicket(res.data.post, Array.isArray(res.data.replies) ? res.data.replies : [], true);
     });
   }
@@ -1369,8 +1369,8 @@
          member's own name is their profile's, snapshotted when they posted;
          on a public thread the reporter is a stranger, not "You". */
       var label = r.author === "member"
-        ? (r.name || s(pub ? "authorReporterPublic" : "authorReporter"))
-        : s(r.author === "owner" ? "authorOwner" : (pub ? "authorReporterPublic" : "authorReporter"));
+        ? (r.name || s(pub ? "authorPoster" : "authorReporter"))
+        : s(r.author === "owner" ? "authorOwner" : (pub ? "authorPoster" : "authorReporter"));
       var nameEl = el("span", "dm-reply__name", label);
       // A profile colour is data, not a rule: it rides an inline custom
       // property the stylesheet reads, so no hex is written into the CSS.
@@ -1379,7 +1379,7 @@
       who.appendChild(el("span", null, fmtUnix(r.created_at)));
       // Only the owner is sent hidden rows at all (the worker filters them).
       // Only the owner is sent hidden rows, or `blocked` at all.
-      if (r.hidden) { li.classList.add("is-hidden-reply"); who.appendChild(chip(s("commentHidden"), "hidden")); }
+      if (r.hidden) { li.classList.add("is-hidden-reply"); who.appendChild(chip(s("tagHidden"), "hidden")); }
       if (r.blocked) who.appendChild(chip(s("commentBlocked"), "hidden"));
       li.appendChild(who);
       li.appendChild(el("p", "dm-reply__body", r.body));
@@ -1435,7 +1435,7 @@
       if (!code && !pid) return;
       if (!b || b.length > BODY_MAX) { err.textContent = s("err_body"); err.hidden = false; return; }
       if (JWT_SHAPE.test(b)) { err.textContent = s("err_credential_shaped"); err.hidden = false; return; }
-      if (pid && !(ME && ME.name)) { err.textContent = s(ME ? "err_name" : "err_signin"); err.hidden = false; return; }
+      if (pid && !(ME && ME.name)) { err.textContent = s(ME ? "err_name" : "commentSignin"); err.hidden = false; return; }
       err.hidden = true;
       send.disabled = true;
       /* A comment carries the account cookie, so it goes out credentialed —
@@ -1449,7 +1449,13 @@
           : api("support", "POST", "/t/" + code + "/replies", { body: b });
       sent.then(function (res) {
         send.disabled = false;
-        if (res.status !== 201) { err.textContent = errText(res); err.hidden = false; return; }
+        // A 401 here means the session died mid-visit; the prompt below the
+        // box says the same thing, so it is the same string (his call).
+        if (res.status !== 201) {
+          err.textContent = res.status === 401 ? s("commentSignin") : errText(res);
+          err.hidden = false;
+          return;
+        }
         form.reset();
         toast("success", s(pid ? "commentSent" : "replySent"));
         if (pid && threadPid === pid) loadThread(pid);
