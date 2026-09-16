@@ -4,11 +4,11 @@
 > step, no dependencies) plus a ring of sibling Cloudflare Worker repos: journals, Radio,
 > League, four live games, accounts, and the DeetsMusic support page.
 >
-> **Where things stand (2026-09-15):** the DeetsMusic UI port (steps 1–4, 6, 8) and the
-> DeetsMusic page are live. **Board threads, all four steps, are BUILT and committed in
-> both repos but NOT pushed and NOT deployed** — and step 1 closes a leak that is live
-> until the worker is. **Next: his copy pass on the new `[ph]` strings, then the deploy,
-> in the order under [Next up](#next-up).**
+> **Where things stand (2026-09-15):** the DeetsMusic UI port (steps 1–4, 6, 8), the
+> DeetsMusic page, and **board threads — all four steps — are LIVE.** Both migrations ran,
+> the worker is deployed, both repos are pushed, and the `code` leak is closed. **His
+> visual pass on threads is owed. One thing came out of the deploy and is unresolved:
+> `_headers` has never applied** — see [Known gotchas](#known-gotchas).
 
 **What a "what's next?" should answer from:** the [Next up](#next-up) list below, top
 down. When a session plans, finishes, or parks something, it updates this file in the same
@@ -58,12 +58,12 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-09-15 — DeetsMusic board threads: BUILT (all four steps), unpushed, undeployed.**
+**2026-09-15 — DeetsMusic board threads: LIVE (all four steps).**
 Design: **[support.md "Threads"](support.md)**. Clicking a Suggestions or Known issues card
 opens `#p=<pid>`, a read-only thread; signed-in accounts comment on it under their profile
 name and colour; the owner's right-click menu moderates a row. Commits: this repo `a9252cd`,
 `3b3f6d5`, `a6cfe59`, `f9773fd`; `../DeetsSupport` `c30c52a`, `dd1128c`, `5a32a35`,
-`1df8c86`. Both trees are clean; neither is pushed.
+`1df8c86`. Both repos pushed; worker version `024addde`; both migrations run.
 
 Both questions the plan left open were settled by what the code already said, and both are
 written up in support.md: the commenter's **name rides the request** (DeetsAccounts' session
@@ -74,7 +74,7 @@ the intake breaker already counts `replies`).
 **Copy pass DONE 2026-09-15** (support.md, "Threads" → "Copy"): 17 strings, zero `[ph]`.
 Four of the drafts were his own lines said twice, and were collapsed into the originals.
 
-**What is left, in order:**
+**What is left:**
 1. **His visual pass** at http://localhost:8787/deetsmusic/?mock. On `?mock` you are signed
    in AND the owner; **signing out in the page** is the one local way to see what a stranger
    is sent (no hidden rows, no comment box). The six public posts seed one case each:
@@ -89,15 +89,18 @@ Four of the drafts were his own lines said twice, and were collapsed into the or
    | HomePod volume jumps | **nothing** — where "No replies yet" shows |
 
    The two private posts still open by code (`#t=`), so both views sit side by side.
-2. **The deploy — order matters** ([support.md "Shipping step 1"](support.md)): both D1
-   migrations first (`2026-09-15-pid.sql`, then `2026-09-15-comments.sql`), then
-   `npx wrangler deploy` + the mint-host smoke, then push the site **a minute later** —
-   `GET /posts` sits in a 60 s edge cache and the old shape has no `pid`.
+2. **Real sign-in, a real comment, real moderation** — only testable live. See below.
 
-⚠ **The leak step 1 closes is live until that deploy lands.** Public `GET /posts` still
-returns each post's secret `code`, which closes the post, replies as its reporter and reads
-its `meta`. Every code that has sat on a public board since 2026-09-11 should be treated as
-known.
+**DONE 2026-09-15, in this order:** both migrations (`pid` backfilled onto 3 posts, the
+`replies` columns and `blocked` added), `npx wrangler deploy`, the mint-host smoke (every
+`music-api` route 200, `/token` still 403 without the UA), then the site. Verified live:
+`GET /posts` carries `pid` and **no `code`**, a hidden post's pid 404s exactly as a
+nonsense one does, `/p/<pid>` leaks no `code`/`meta`/`source`, a comment without a cookie
+is 401 and without an Origin 403, both `/admin/` routes 403 to a stranger, and a vote by
+`pid` round-tripped +1/−1 back to 0.
+
+✅ **The `code` leak is closed.** Every code that sat on a public board between 2026-09-11
+and today should still be treated as known.
 
 Not testable locally, so first on the list once it is live: the `ds_sess` cookie never
 reaches localhost, so a REAL sign-in, a real comment and the owner's real moderation have
@@ -166,5 +169,15 @@ Last recorded state, from session memory — **verify against git before acting.
 - **Mocks don't model disconnects** — rejoin behavior is only testable live.
 - **A same-document hash navigation doesn't reload.** Use `location.reload()` when testing
   a page in the browser pane.
+- **⚠ `_headers` has never applied — unresolved (2026-09-15).** Every stylesheet and
+  script on the live site serves Pages' `max-age=14400`, not the `max-age=0` that file
+  says, so a returning visitor can hold four-hour-old CSS/JS. The 2026-08-08 theme-rename
+  breakage it was written to prevent can therefore still happen. Its old `/*.css` rules
+  were genuinely invalid, but per-directory rules changed nothing, and a probe showed the
+  rules are not applied AT ALL. `deetsmusic/index.html` stamps its own assets `?v=` as a
+  stopgap. **The full findings and the three things to check are in the `_headers` comment
+  itself** — first being the Pages project's build-output directory. Until this is fixed,
+  assume a deploy reaches returning visitors up to four hours late, and stamp by hand if
+  that would break something.
 - **A re-vendor can strip live features.** Check what the deployed workers carry before
   re-vendoring `games/table-do.js` while a games branch sits unmerged.
