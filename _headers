@@ -55,6 +55,7 @@
 
 /js/*
   Cache-Control: public, max-age=0, must-revalidate
+  X-Deets-Probe: js-rule-matched
 
 /games/*
   Cache-Control: public, max-age=0, must-revalidate
