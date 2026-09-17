@@ -393,7 +393,8 @@ body::before {
 .site-nav a[aria-current="page"] { color: var(--title); }
 
 /* ── Grouped nav dropdowns (desktop) ──────────────────────────────
-   The primary nav groups its destinations under four hover menus
+   The primary nav leads with one plain tab (DeetsMusic, a bare
+   .site-nav a), then groups the rest under four hover menus
    (Blog / Games / Utilities / About Me). Pure CSS, no desktop JS: the
    panel reveals on hover and on :focus-within (keyboard), reusing the
    same menu material as the Vibe + wordmark popovers. Mobile is

@@ -44,6 +44,8 @@
   // the id split (2026-09-15); those entries just go stale, so the first ▲ after
   // it is free. A signal, not a ballot — see interestButton.
   var LS_INTEREST = "deets-dm-interest";
+  // false once the visitor shuts the newest release on the release notes; open otherwise.
+  var LS_LATEST_OPEN = "deets-dm-latest-open";
   var JWT_SHAPE = /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/;   // mirrors the worker's second net
   var TITLE_MAX = 120, BODY_MAX = 4000;
   var TITLE_WORDS = 10;   // "Bug / Request in 10 words" — the worker enforces it too
@@ -325,6 +327,12 @@
     btn.hidden = cta.hidden = false;
   }
 
+  // Release notes (reworked 2026-09-16). Every release reads the same way
+  // once open: its changes' headliners down the left, the chosen change's
+  // notes on the right (renderFeatures). The newest release leads, open by
+  // default and collapsible, and the visitor's pick sticks (LS_LATEST_OPEN).
+  // Earlier releases are a row of cards, side by side like a poll's options;
+  // a card opens its release under the row, and a second click shuts it.
   function renderReleases(rows, latest) {
     var list = $("[data-dm-releases]");
     list.textContent = "";
@@ -332,71 +340,160 @@
       list.appendChild(el("p", "dm-empty", s("releasesEmpty")));
       return;
     }
-    rows.forEach(function (r, i) {
-      var item = el("article", "dm-rel");
-      if (r.withdrawn) item.classList.add("is-withdrawn");
+    list.appendChild(renderLatest(rows[0], latest));
+    if (rows.length > 1) list.appendChild(renderEarlier(rows.slice(1), latest));
+  }
 
-      // The card: version line on top, the release's headliners under it.
-      // A <button> may only hold phrasing content, so the lists are spans.
-      var head = el("button", "dm-rel__head");
-      head.type = "button";
-      head.setAttribute("aria-controls", "dm-rel-" + i);
-      var top = el("span", "dm-rel__top");
-      top.appendChild(el("span", "dm-rel__v", r.version));
-      if (latest && r.version === latest.version) top.appendChild(chip(s("tagLatest"), "latest"));
-      if (r.withdrawn) top.appendChild(chip(s("tagWithdrawn"), "withdrawn"));
-      else if (!r.url) top.appendChild(chip(s("tagNotesOnly")));
-      top.appendChild(el("span", "dm-rel__date", r.pub_date ? fmtDay(r.pub_date) : ""));
-      head.appendChild(top);
-      var lines = headliners(r.notes || "");
-      if (lines.length || r.url) {   // a download square needs the headliner row to sit in
-        var heads = el("span", "dm-rel__heads");
-        lines.forEach(function (line) { heads.appendChild(el("span", "dm-rel__headline", line)); });
-        head.appendChild(heads);
-      }
+  function relChips(parent, r, latest) {
+    if (latest && r.version === latest.version) parent.appendChild(chip(s("tagLatest"), "latest"));
+    if (r.withdrawn) parent.appendChild(chip(s("tagWithdrawn"), "withdrawn"));
+    else if (!r.url) parent.appendChild(chip(s("tagNotesOnly")));
+  }
 
-      var body = el("div", "dm-collapse dm-rel__body");
-      body.id = "dm-rel-" + i;
-      var inner = el("div", "dm-collapse__inner");
-      var content = el("div", "dm-rel__content");
-      inner.appendChild(content);
-      body.appendChild(inner);
-      if (r.withdrawn && r.withdrawn_reason) {
-        content.appendChild(el("p", "dm-rel__reason", s("relWithdrawnReason", { reason: r.withdrawn_reason })));
-      }
-      if (r.notes) content.appendChild(renderNotes(r.notes));
-      else content.appendChild(el("p", "dm-empty", s("relNoNotes")));
-      // A downloadable version gets a square ↓ under the date, beside the
-      // headliners. It can't live inside the head <button> (no links inside
-      // buttons), so it rides the card and the headliner row leaves room.
-      var dl = null;
-      if (r.url) {
-        var label = s("relDownload", { v: r.version, mb: r.size ? mb(r.size) : "?" });
-        dl = el("a", "dm-add dm-rel__dl");
-        dl.href = r.url;
-        dl.setAttribute("aria-label", label);
-        dl.title = label;
-        dl.appendChild(downloadIcon());
-        item.classList.add("has-dl");
-      } else {
-        content.appendChild(el("p", "dm-hint", s(r.withdrawn ? "relWithdrawn" : "relHistory")));
-      }
+  function relDownload(r, cls) {
+    var label = s("relDownload", { v: r.version, mb: r.size ? mb(r.size) : "?" });
+    var dl = el("a", "dm-add " + cls);
+    dl.href = r.url;
+    dl.setAttribute("aria-label", label);
+    dl.title = label;
+    dl.appendChild(downloadIcon());
+    return dl;
+  }
 
-      function setOpen(open) {
-        item.classList.toggle("is-open", open);
-        body.classList.toggle("is-open", open);
-        body.inert = !open;   // a shut row's download link must not take Tab focus
-        head.setAttribute("aria-expanded", open ? "true" : "false");
-      }
-      setOpen(false);   // the headliners are the surface; notes open on demand
-      head.addEventListener("click", function () { setOpen(!item.classList.contains("is-open")); });
+  // An open release: why it was withdrawn, its changes, and the line for a
+  // version with no download.
+  function relContent(content, r) {
+    if (r.withdrawn && r.withdrawn_reason) {
+      content.appendChild(el("p", "dm-rel__reason", s("relWithdrawnReason", { reason: r.withdrawn_reason })));
+    }
+    if (r.notes) content.appendChild(renderFeatures(r.notes));
+    else content.appendChild(el("p", "dm-empty", s("relNoNotes")));
+    if (!r.url) content.appendChild(el("p", "dm-hint", s(r.withdrawn ? "relWithdrawn" : "relHistory")));
+  }
 
-      item.appendChild(head);
-      if (dl) item.appendChild(dl);
-      item.appendChild(body);
-      list.appendChild(item);
+  function renderLatest(r, latest) {
+    var box = el("article", "dm-spot");
+    if (r.withdrawn) box.classList.add("is-withdrawn");
+
+    var bar = el("div", "dm-spot__bar");
+    var h = el("h3", "dm-spot__h");
+    var head = el("button", "dm-spot__head");
+    head.type = "button";
+    head.setAttribute("aria-controls", "dm-spot-body");
+    head.appendChild(el("span", "dm-rel__v dm-spot__v", r.version));
+    relChips(head, r, latest);
+    head.appendChild(el("span", "dm-rel__date", r.pub_date ? fmtDay(r.pub_date) : ""));
+    h.appendChild(head);
+    bar.appendChild(h);
+    if (r.url) bar.appendChild(relDownload(r, "dm-spot__dl"));
+
+    var body = el("div", "dm-collapse dm-spot__body");
+    body.id = "dm-spot-body";
+    var inner = el("div", "dm-collapse__inner");
+    var content = el("div", "dm-spot__content");
+    relContent(content, r);
+    inner.appendChild(content);
+    body.appendChild(inner);
+
+    function setOpen(open) {
+      box.classList.toggle("is-open", open);
+      body.classList.toggle("is-open", open);
+      body.inert = !open;
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    setOpen(readJSON(LS_LATEST_OPEN, true) !== false);
+    head.addEventListener("click", function () {
+      var open = !box.classList.contains("is-open");
+      setOpen(open);
+      writeJSON(LS_LATEST_OPEN, open);
     });
 
+    box.appendChild(bar);
+    box.appendChild(body);
+    return box;
+  }
+
+  var VER_TAGS = 3;   // a version card names this many changes, then "+N more"
+
+  function renderEarlier(rows, latest) {
+    var wrap = el("section", "dm-earlier");
+    wrap.appendChild(el("h3", "dm-rels__earlier", s("relEarlier")));
+
+    // Past four cards the row scrolls sideways, the poll options' rule.
+    var strip = el("div", "dm-vers" + (rows.length > 4 ? " is-scroll" : ""));
+    var detail = el("div", "dm-collapse dm-vers__detail");
+    detail.id = "dm-vers-detail";
+    var inner = el("div", "dm-collapse__inner");
+    var content = el("div", "dm-vers__content");
+    inner.appendChild(content);
+    detail.appendChild(inner);
+    detail.inert = true;
+
+    var cards = [];
+    var current = null;
+    function show(card, r) {
+      cards.forEach(function (c) {
+        var on = c.card === card;
+        c.card.classList.toggle("is-on", on);
+        c.btn.setAttribute("aria-expanded", on ? "true" : "false");
+      });
+      current = card;
+      if (!card) {
+        detail.classList.remove("is-open");
+        detail.inert = true;
+        return;
+      }
+      content.textContent = "";
+      var title = el("h4", "dm-vers__title");
+      title.appendChild(el("span", "dm-rel__v", r.version));
+      title.appendChild(el("span", "dm-rel__date", r.pub_date ? fmtDay(r.pub_date) : ""));
+      content.appendChild(title);
+      relContent(content, r);
+      // Swapping from one open card to another: the new notes settle in.
+      content.classList.remove("is-entering");
+      void content.offsetWidth;
+      content.classList.add("is-entering");
+      detail.classList.add("is-open");
+      detail.inert = false;
+    }
+
+    rows.forEach(function (r) {
+      var card = el("article", "dm-ver");
+      if (r.withdrawn) card.classList.add("is-withdrawn");
+      var btn = el("button", "dm-ver__btn");
+      btn.type = "button";
+      btn.setAttribute("aria-controls", detail.id);
+      btn.setAttribute("aria-expanded", "false");
+      var top = el("span", "dm-ver__top");
+      top.appendChild(el("span", "dm-rel__v", r.version));
+      btn.appendChild(top);
+      var sub = el("span", "dm-ver__sub");
+      sub.appendChild(el("span", "dm-ver__date", r.pub_date ? fmtDay(r.pub_date) : ""));
+      relChips(sub, r, latest);
+      btn.appendChild(sub);
+      var lines = headliners(r.notes || "");
+      if (lines.length) {
+        var heads = el("span", "dm-ver__heads");
+        lines.slice(0, VER_TAGS).forEach(function (line) { heads.appendChild(el("span", "dm-rel__headline", line)); });
+        if (lines.length > VER_TAGS) {
+          heads.appendChild(el("span", "dm-rel__headline dm-ver__more", s("relMore", { n: lines.length - VER_TAGS })));
+        }
+        btn.appendChild(heads);
+      }
+      btn.addEventListener("click", function () { show(current === card ? null : card, r); });
+      card.appendChild(btn);
+      // The ↓ can't live inside the <button>; it rides the card's corner.
+      if (r.url) {
+        card.appendChild(relDownload(r, "dm-ver__dl"));
+        card.classList.add("has-dl");
+      }
+      cards.push({ card: card, btn: btn });
+      strip.appendChild(card);
+    });
+
+    wrap.appendChild(strip);
+    wrap.appendChild(detail);
+    return wrap;
   }
 
   // A down arrow drawn in currentColor, so it wears the theme's --title.
@@ -436,15 +533,82 @@
 
   // The notes subset: blank-line paragraphs, **bold**, [text](https://…).
   // A relative link (it works on GitHub, not here) degrades to its text.
-  function renderNotes(text) {
-    var wrap = el("div", "dm-notes");
+  // Read as a list of changes, the same way headliners() reads them: a
+  // paragraph with a bold lead-in is one change, titled by it; a catch-all
+  // lead-in ("**Also:**") is a quieter last entry; a paragraph with no
+  // lead-in (a one-paragraph fix) is titled by its first sentence.
+  // Laid out as tabs: the titles down the left, the chosen change's notes on
+  // the right. Every pane shares one grid cell, so the box keeps the tallest
+  // pane's height and a switch cross-fades instead of jumping.
+  var featSeq = 0;
+  function renderFeatures(text) {
+    var items = [];
     text.split(/\n\s*\n/).forEach(function (para) {
-      para = para.trim();
+      para = para.trim().replace(/\s*\n\s*/g, " ");
       if (!para) return;
-      var p = el("p");
-      inline(para.replace(/\s*\n\s*/g, " "), p);
-      wrap.appendChild(p);
+      var m = /^\*\*([^*]+)\*\*\s*/.exec(para);
+      if (m && !/:\s*$/.test(m[1])) {
+        items.push({ title: m[1].trim().replace(/[.!]\s*$/, ""), body: para.slice(m[0].length) });
+      } else if (m) {
+        items.push({ title: m[1].trim().replace(/:\s*$/, ""), body: para.slice(m[0].length), minor: true });
+      } else {
+        items.push({ title: headliners(para)[0] || para, body: para });
+      }
     });
+    if (!items.length) return el("p", "dm-empty", s("relNoNotes"));
+
+    var id = "dm-feat-" + (featSeq++);
+    var wrap = el("div", "dm-feats");
+    var tabs = el("div", "dm-feats__list");
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-orientation", "vertical");
+    var panes = el("div", "dm-feats__panes");
+    var btns = [], paneEls = [];
+
+    items.forEach(function (it, i) {
+      var b = el("button", "dm-feat" + (it.minor ? " is-minor" : ""), it.title);
+      b.type = "button";
+      b.id = id + "-t" + i;
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-controls", id + "-p" + i);
+      b.addEventListener("click", function () { select(i); });
+      b.addEventListener("keydown", function (e) {
+        var to = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: items.length - 1 }[e.key];
+        if (to == null) return;
+        e.preventDefault();
+        select((to + items.length) % items.length);
+        btns[(to + items.length) % items.length].focus();
+      });
+      tabs.appendChild(b);
+      btns.push(b);
+
+      var p = el("div", "dm-feat__pane");
+      p.id = id + "-p" + i;
+      p.setAttribute("role", "tabpanel");
+      p.setAttribute("aria-labelledby", b.id);
+      p.appendChild(el("h4", "dm-feat__title", it.title));
+      if (it.body) {
+        var body = el("p");
+        inline(it.body, body);
+        p.appendChild(body);
+      }
+      panes.appendChild(p);
+      paneEls.push(p);
+    });
+
+    function select(n) {
+      btns.forEach(function (b, i) {
+        var on = i === n;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        b.tabIndex = on ? 0 : -1;
+        paneEls[i].classList.toggle("is-on", on);
+      });
+    }
+    select(0);
+
+    wrap.appendChild(tabs);
+    wrap.appendChild(panes);
     return wrap;
   }
   function inline(str, parent) {
