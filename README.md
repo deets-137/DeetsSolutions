@@ -53,7 +53,7 @@ Every page has a two-axis appearance system, picked from the Vibe menu in the
 header and remembered per visitor:
 
 - **Theme** (color): Lilac, Green, Sepia, Moonlight, Black & Yellow, Black & Red
-- **Skin** (shape, type, motion): Vanilla, Press, Ocean, Glass, Retro-Future
+- **Skin** (shape, type, motion): Vanilla, Press, Ocean, Glass, Cyber
 
 Any theme pairs with any skin — 30 combinations, driven entirely by CSS
 tokens. Nothing in the site's styles hardcodes a color or a geometry value.

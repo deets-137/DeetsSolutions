@@ -41,7 +41,7 @@
         { id: "press",        label: "Press" },
         { id: "ocean",        label: "Ocean" },
         { id: "glass",        label: "Glass" },
-        { id: "retro-future", label: "Retro-Future" },
+        { id: "cyber", label: "Cyber" },
       ],
     },
   };
@@ -71,7 +71,8 @@
     glade:      "green",
     hornet:     "black-yellow",
     viper:      "black-red",
-    cyberstorm: "retro-future",
+    cyberstorm: "cyber",
+    "retro-future": "cyber",
   };
 
   function current(axis) {
@@ -111,7 +112,7 @@
     motion: "Animate look changes",
     motionHint: "[ph] Theme and skin changes fade the page out and back in. Off: they change at once",
     bgMotion: "Animate backgrounds",
-    bgMotionHint: "The moving Ocean, Glass, and Retro-Future backgrounds. Reduced: fewer updates, less CPU. Off: they hold still",
+    bgMotionHint: "The moving Ocean, Glass, and Cyber backgrounds. Reduced: fewer updates, less CPU. Off: they hold still",
     on: "On",
     reduced: "Reduced",
     off: "Off",
@@ -245,7 +246,7 @@
     press: ['12px "Anton"', '12px "IBM Plex Mono"'],
     ocean: ['12px "Cinzel"', '12px "Spectral"'],
     glass: [],
-    "retro-future": ['12px "Orbitron"', '12px "Rajdhani"'],
+    "cyber": ['12px "Orbitron"', '12px "Rajdhani"'],
   };
   var cover = { phase: null, jobs: [], timer: 0 };
   // A time token ("0.8s" / "70ms") in ms.

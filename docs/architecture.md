@@ -18,9 +18,9 @@ Two orthogonal axes, ported from the DeetsMusic app:
   named for the color it is rather than a mood it evokes — describing the
   mood is the skin axis's job.
 - **Skin = everything that isn't color** (type, shape, material, motion),
-  set as `data-skin`: Vanilla, Press, Ocean, Glass, Retro-Future.
+  set as `data-skin`: Vanilla, Press, Ocean, Glass, Cyber.
 
-Ids are the lowercase slug of the label (`black-yellow`, `retro-future`).
+Ids are the lowercase slug of the label (`black-yellow`, `cyber`).
 
 Any theme pairs with any skin — 6 × 5 = 30 combos, all of which every
 component must survive. That works because tokens cascade in strict tiers:
@@ -50,7 +50,7 @@ banners documenting every role.
 known constraints are documented in [ui.md](ui.md)), persists both choices
 in `localStorage` (`deets-theme` / `deets-skin`), and injects two inert
 decorative SVG layers that individual skins opt into via a display token:
-the **storm** (Retro-Future's lightning bolts) and the **ocean** (Ocean's
+the **storm** (Cyber's lightning bolts) and the **ocean** (Ocean's
 three rolling wave trains — seamless sine-period `<pattern>` tiles, each an
 opaque fill under a hairline crest so nearer swells occlude farther ones).
 In both cases the geometry lives in `controls.js`, the ink is a theme role,
@@ -90,6 +90,13 @@ The 2026-08-08 rename (Fairy → Lilac, Glade → Green, Hornet → Black & Yell
 Viper → Black & Red, CyberStorm → Retro-Future) did 1–3 but not the two-phase
 dance, and briefly rendered unstyled for anyone holding a cached stylesheet.
 That is what prompted `_headers`.
+
+The 2026-09-17 rename (Retro-Future → Cyber, with DeetsMusic) closed the window in
+one deploy instead: every page's `chrome.css` and `controls.js` link, and
+`chrome.css`'s four `@import`s, carry `?v=2026-09-17`. New HTML therefore asks
+for stylesheet URLs no browser has cached, since `_headers` still does nothing.
+Saved `retro-future` ids migrate through `RETIRED` and each page's pre-paint map.
+Bump the stamp on the next change to a token sheet.
 
 ## Sprite walkers
 
@@ -277,13 +284,13 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   LinkedIn pill in the page bar, plus the updated-on `.page-meta` line
   (restamped by the rebuild script).
 - The body sits on `.resume__sheet` — the skin's card material — so busy
-  canvases (Retro-Future's grid, Glass's aurora) stay behind a plate.
+  canvases (Cyber's grid, Glass's aurora) stay behind a plate.
   Vanilla's card is flush with the canvas by design.
 - Entry heads mirror the source PDF: a bold company + location
   `.resume__row`, then an italic role + dates row. Rows don't wrap — the
   left text flexes and wraps internally while the right column holds the
   first line — so dates stay right-aligned in every skin, including the
-  wide-set Retro-Future faces. One company with several roles nests
+  wide-set Cyber faces. One company with several roles nests
   `.resume__role-group`s under a single company row.
 - The in-page `media="print"` stylesheet **is** the PDF layout, and is
   deliberately theme-exempt (paper, not a theme surface): it collapses

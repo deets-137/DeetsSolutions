@@ -151,7 +151,7 @@ Every `[hidden]` popover animates in and out with no JS, using `@starting-style`
 - **Per-skin timing tokens:** `--boot-dur`, `--boot-ease`, `--boot-rise`, `--boot-stagger`.
   - Press: quick and short.
   - Ocean: slow and deep.
-  - Retro-Future: skewed slide.
+  - Cyber: skewed slide.
 - **A CSS safety animation** removes the cover after 4 s no matter what.
 - **Gated by** "Animate look changes" and OS reduced motion.
 - **Site caveat:** DeetsMusic lifts bento cards. The site needs its own list of what
@@ -198,7 +198,7 @@ Diff `DeetsSolutions/styles/skin.css` (~315 lines) against `DeetsMusic/src/style
 **Reconcile the base motion values on purpose; don't blindly copy.**
 - Site base: `--dur-fast .14s`, `--dur-med .22s`.
 - DeetsMusic base: `.12s`, `.18s`.
-- Per-skin overrides already match: Press `.1/.16`, Glass `.2`, Retro-Future `.08`.
+- Per-skin overrides already match: Press `.1/.16`, Glass `.2`, Cyber `.08`.
 
 Recommend taking DeetsMusic's base values so both products feel identical.
 

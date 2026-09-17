@@ -55,7 +55,7 @@
   --card-backdrop:     none;            /* frosted-glass blur; a skin opts in */
   --shadow-card:       none;            /* skins add a real card shadow */
 
-  /* -- canvas pattern (Press halftone / Retro-Future grid) ---- */
+  /* -- canvas pattern (Press halftone / Cyber grid) ---- */
   /* A STILL background-image painted on <body>, BEHIND the content. Its
      color comes from theme roles; the pattern is skin. Vanilla = none. A
      canvas that MOVES draws on an ambient layer instead (Glass → aurora),
@@ -101,7 +101,7 @@
   /* An inline-SVG layer (two <path pathLength="1"> bolts) injected into
      <body> by controls.js, that a skin opts into. The GEOMETRY is a skin
      token (CSS d: path(...)); the ink is a theme ROLE. Base is inert. */
-  --storm-display: none;             /* retro-future opts in */
+  --storm-display: none;             /* cyber opts in */
   --storm-ink:     var(--title);
   --storm-glow:    none;
   --storm-w:       2px;
@@ -448,11 +448,11 @@
 }
 
 /* ============================================================
-   RETRO-FUTURE — electric/futuristic. Machined sci-fi type, every
+   CYBER — electric/futuristic. Machined sci-fi type, every
    corner cut square, lightning bolts slow-drawing down a circuit
    grid behind the content.
    ============================================================ */
-[data-skin="retro-future"] {
+[data-skin="cyber"] {
   --font-title: "Orbitron", "Segoe UI", system-ui, sans-serif;
   --font-body:  "Rajdhani", "Segoe UI", system-ui, sans-serif;
   --fw-title:   700;
@@ -505,7 +505,7 @@
 /* Settings › Animate backgrounds: Reduced halves the ambient rate for every
    skin. A user choice, so it outranks the skin's --ambient-fps. */
 :root[data-bg-motion="reduced"] { --ambient-fps: 15; }
-/* Retro-Future's strike cycle: the bolt is wiped in top→bottom over ~60% of
+/* Cyber's strike cycle: the bolt is wiped in top→bottom over ~60% of
    its period (the strike box slides 0→full reach while storm-hold
    counter-slides, so the bolt itself never moves), flickers once at full
    reach, cuts to dark, and rests until the next strike. Every bolt runs

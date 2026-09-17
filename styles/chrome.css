@@ -12,10 +12,10 @@
 
    Nothing page-specific belongs here. See docs/ui.md.
    ============================================================ */
-@import "./fonts.css";
-@import "./palette.css";
-@import "./themes.css";
-@import "./skin.css";
+@import "./fonts.css?v=2026-09-17";
+@import "./palette.css?v=2026-09-17";
+@import "./themes.css?v=2026-09-17";
+@import "./skin.css?v=2026-09-17";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -78,7 +78,7 @@ body {
 }
 
 /* ── Canvas texture layer ───────────────────────────────────────
-   The skin's STILL wallpaper (Press halftone / Retro-Future grid)
+   The skin's STILL wallpaper (Press halftone / Cyber grid)
    painted on a VIEWPORT-fixed layer behind the content. It lives here,
    not as a body background, so its size resolves against one screen
    rather than the whole scroll height. Fixed also dodges the per-scroll
@@ -97,7 +97,7 @@ body::before {
 }
 
 /* ── Ambient layers (injected by controls.js) ───────────────────
-   Ocean swell / Glass aurora / Retro-Future storm, each inert unless a
+   Ocean swell / Glass aurora / Cyber storm, each inert unless a
    skin opts in via its --*-display token. Only transform + opacity
    animate, so the compositor moves rasterized boxes and an idle layer
    costs no main-thread paint. Loops are stepped at --ambient-fps (see

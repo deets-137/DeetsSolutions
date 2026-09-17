@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="lilac" data-skin="retro-future">
+<html lang="en" data-theme="lilac" data-skin="cyber">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,7 +28,7 @@
           /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
           var R = { desk: "press", fairy: "lilac", glade: "green",
                     hornet: "black-yellow", viper: "black-red",
-                    cyberstorm: "retro-future" };
+                    cyberstorm: "cyber", "retro-future": "cyber" };
           var t = localStorage.getItem("deets-theme");
           if (!t) { t = dark ? "moonlight" : "lilac"; }
           document.documentElement.setAttribute("data-theme", R[t] || t);
@@ -38,11 +38,11 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="styles/chrome.css" />
+    <link rel="stylesheet" href="styles/chrome.css?v=2026-09-17" />
     <!-- ?v= for the same reason as deetsmusic/index.html: _headers is not
          applying, and the DeetsMusic card needs this main.css + home.js. -->
     <link rel="stylesheet" href="styles/main.css?v=2026-09-16b" />
-    <script src="js/controls.js" defer></script>
+    <script src="js/controls.js?v=2026-09-17" defer></script>
     <script src="js/account.js" defer></script>
     <script src="js/toast.js" defer></script>
     <script src="js/home.js?v=2026-09-16b" defer></script>

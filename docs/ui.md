@@ -76,7 +76,7 @@ right gutter (`.flyout__item::after`).
 `localStorage` under `deets-theme` / `deets-skin`. A saved choice wins;
 otherwise **both** axes follow the OS light/dark preference, landing on one
 of two curated pairs: **Glass × Lilac** in light, **Ocean × Moonlight** in
-dark (his call, 2026-09-15; it was Press × Lilac / Retro-Future × Black &
+dark (his call, 2026-09-15; it was Press × Lilac / Cyber × Black &
 Red). Each pair ships tuned: the settings defaults carry his Glass slider
 values and Ocean's sand edges. Settings › Reset to default clears the saved
 theme, skin and settings, so the visitor lands back on these.
@@ -165,7 +165,7 @@ at ≥ 56rem so it can never show on desktop.
 Ported from DeetsMusic 2026-09-15 ([ui-direction.md](ui-direction.md), steps 1–3).
 
 - **Base durations** are DeetsMusic's: `--dur-fast .12s`, `--dur-med .18s`. Skins still
-  override (Press `.1/.16`, Glass `.2`, Retro-Future `.08`).
+  override (Press `.1/.16`, Glass `.2`, Cyber `.08`).
 - **Pop.** Every floating panel (`.menu`, `.nav-menu`, `.tb-pop`) fades and scales in from
   the corner it hangs from, driven by its `hidden` attribute: `@starting-style` plus
   `transition: display … allow-discrete`, no JS. Tokens are `--pop-in/-out/-shift/-scale/-ease`
