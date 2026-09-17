@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-16T02:00:14Z",
+  "generated_at": "2026-09-17T02:11:17Z",
   "channel": "song-of-the-day",
-  "count": 411,
+  "count": 412,
   "songs": [
     {
       "post_id": 1,
@@ -9455,6 +9455,29 @@
       "apple_music_url": "https://music.apple.com/us/album/clair-obscur/1748463003?i=1748463005&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/58/12/29/58122911-b934-4730-b958-b8a9e25efb07/mzaf_2272039751009427579.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/a0/60/b7/a060b778-1b64-c09e-035a-45f75d900397/artwork.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 13069,
+      "posted_at": "2026-09-16T06:01:49.317000+00:00",
+      "date": "2026-09-15",
+      "day": "Tue",
+      "month": "09_2026",
+      "track_name": "Feet Don't Fail Me Now",
+      "artist_name": "Joy Crookes",
+      "album": "Feet Don't Fail Me Now - Single",
+      "genre": "Pop",
+      "duration": "3:18",
+      "duration_sec": 198,
+      "release_date": "2021-06-16",
+      "release_year": 2021,
+      "age_yrs": 5,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1570796132",
+      "apple_music_url": "https://music.apple.com/us/album/feet-dont-fail-me-now/1570796128?i=1570796132&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bf/e4/72/bfe4726b-ad3e-20a4-497a-39611a08e06f/mzaf_15930026747799669416.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/6b/7f/f4/6b7ff46b-e2e4-97f5-6d18-785a24ed6a7e/886449346608.jpg/600x600bb.jpg"
     }
   ]
 }
