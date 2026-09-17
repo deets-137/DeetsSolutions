@@ -33,13 +33,13 @@
          at once. Bump the date when this page's JS or CSS changes, and drop
          the whole scheme once _headers works. -->
     <link rel="stylesheet" href="../styles/chrome.css" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-09-15" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-09-16b" />
     <script src="../js/controls.js" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
-    <script src="./strings.js?v=2026-09-15" defer></script>
+    <script src="./strings.js?v=2026-09-16b" defer></script>
     <script src="./mock.js?v=2026-09-15" defer></script>
-    <script src="./deetsmusic.js?v=2026-09-15" defer></script>
+    <script src="./deetsmusic.js?v=2026-09-16b" defer></script>
     <script src="../js/walkers.js" defer></script>
   </head>
 
@@ -49,6 +49,7 @@
         <a class="wordmark" href="/">Deets</a>
       </div>
       <nav class="site-nav" aria-label="Primary">
+        <a href="/deetsmusic/" aria-current="page">DeetsMusic</a>
         <div class="nav-group">
           <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
           <div class="nav-group__menu" role="menu">
@@ -69,7 +70,6 @@
           <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
           <div class="nav-group__menu" role="menu">
             <a href="/radio/" role="menuitem">DeetsRadio</a>
-            <a href="/deetsmusic/" role="menuitem" aria-current="page">DeetsMusic</a>
             <a href="/league/" role="menuitem">League</a>
           </div>
         </div>
@@ -176,7 +176,9 @@
             </div>
           </section>
 
-          <!-- Release notes: the whole history, withdrawn rows included. -->
+          <!-- Release notes: the whole history, withdrawn rows included — the
+               newest as a spotlight, the rest folded by series (deetsmusic.js
+               renderReleases). -->
           <section class="dm-box dm-box--wide" id="releases" aria-labelledby="dm-releases-title">
             <div class="dm-box__head">
               <h2 class="dm-box__title" id="dm-releases-title" data-s="releasesTitle"></h2>

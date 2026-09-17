@@ -6,7 +6,12 @@
 >
 > **Where things stand (2026-09-15):** the DeetsMusic UI port (steps 1–4, 6, 8), the
 > DeetsMusic page, and **board threads — all four steps — are LIVE and visual-passed.**
-> Threads are closed out bar a live test he runs at release. **Top of the docket next
+> Threads are closed out bar a live test he runs at release. **2026-09-16 (branch
+> `Musical-Perfection`, merged + LIVE, his copy and visual pass done):** DeetsMusic is its
+> own nav tab left of Blog; its release notes are two-pane (headliners left, notes right),
+> the newest release collapsible and remembered, earlier ones a row of cards; Home leads
+> with a DeetsMusic card (icon, version, date). Design in [support.md](support.md),
+> "The page". **Top of the docket next
 > session: `_headers` has never applied** — first item under [Next up](#next-up).
 
 **What a "what's next?" should answer from:** the [Next up](#next-up) list below, top

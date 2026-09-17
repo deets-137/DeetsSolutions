@@ -11,8 +11,9 @@
    State of his pass: DONE. Every string, the boards' Filter and Sort
    included, was approved in chat 2026-09-14; the board-thread strings (thread
    page, comments, moderation) on 2026-09-15; and the POLL block on 2026-09-15
-   — section comments below name the lines he dictated. Zero [ph] left;
-   anything added from here carries one.
+   — section comments below name the lines he dictated; the release-notes
+   layout strings on 2026-09-16. Zero [ph] left; anything added from here
+   carries one.
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -86,6 +87,9 @@ window.DM_STRINGS = {
   relWithdrawn:       "This version was withdrawn, so it has no download.",
   relHistory:         "This version came out before the updater, so it has no download here.",
   relNoNotes:         "No notes for this version.",
+  /* release notes layout: approved by Aditya in chat, 2026-09-16 */
+  relEarlier:         "Earlier releases",
+  relMore:            "+{n} more",   /* a version card past its first three changes */
 
   /* boards */
   /* Suggestions + Known issues boards, top to bottom — every string from

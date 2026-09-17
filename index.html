@@ -39,11 +39,13 @@
       })();
     </script>
     <link rel="stylesheet" href="styles/chrome.css" />
-    <link rel="stylesheet" href="styles/main.css" />
+    <!-- ?v= for the same reason as deetsmusic/index.html: _headers is not
+         applying, and the DeetsMusic card needs this main.css + home.js. -->
+    <link rel="stylesheet" href="styles/main.css?v=2026-09-16b" />
     <script src="js/controls.js" defer></script>
     <script src="js/account.js" defer></script>
     <script src="js/toast.js" defer></script>
-    <script src="js/home.js" defer></script>
+    <script src="js/home.js?v=2026-09-16b" defer></script>
     <script src="js/walkers.js" defer></script>
   </head>
 
@@ -53,6 +55,7 @@
         <a class="wordmark" href="/">Deets</a>
       </div>
       <nav class="site-nav" aria-label="Primary">
+        <a href="deetsmusic/">DeetsMusic</a>
         <div class="nav-group">
           <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
           <div class="nav-group__menu" role="menu">
@@ -73,7 +76,6 @@
           <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
           <div class="nav-group__menu" role="menu">
             <a href="radio/" role="menuitem">DeetsRadio</a>
-            <a href="deetsmusic/" role="menuitem">DeetsMusic</a>
             <a href="league/" role="menuitem">League</a>
           </div>
         </div>
@@ -99,6 +101,23 @@
       </section>
 
       <div class="home__grid">
+        <!-- The left column: DeetsMusic's latest release over the SOTD hub. -->
+        <div class="home__main">
+        <!-- DeetsMusic card: app icon, name, and the latest release's version +
+             date. home.js fills it from the DeetsMusic releases route; hidden
+             until that loads, and left out if it fails. The title link
+             stretches over the whole card; Release notes sits above it. -->
+        <section class="home-card dm-homecard" aria-labelledby="dm-card-title" data-dm-card hidden>
+          <div class="dm-homecard__head">
+            <img class="dm-homecard__icon" src="assets/deetsmusic/icon.png" alt="" width="56" height="56" />
+            <div class="dm-homecard__id">
+              <h2 class="home-card__title" id="dm-card-title"><a class="home-card__link" href="deetsmusic/">DeetsMusic</a></h2>
+              <p class="dm-homecard__ver" data-dm-card-ver></p>
+            </div>
+            <a class="home__cta home__cta--soft" href="deetsmusic/#releases">Release notes →</a>
+          </div>
+        </section>
+
         <!-- SOTD hub: the showcase column. home.js fills the hero with the
              latest of Deets' picks (friends' picks stay behind the journal's
              vanity gate) and builds the cover calendar — clicking a day loads
@@ -125,6 +144,7 @@
                clears its threshold. -->
           <div class="sotd-facts" data-hub-facts hidden></div>
         </section>
+        </div>
 
         <!-- Side stack: each card is a section (not a link) so the strip
              inside can carry the real cards from that tab — the project

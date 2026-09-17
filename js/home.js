@@ -601,4 +601,29 @@
       }));
     })
     .catch(function () {});
+
+  /* DeetsMusic card — the latest release's version + date, in the DeetsMusic
+     page's install-box format, read from the same route its release notes
+     use (CORS allows deets.solutions and the 8787/8788 dev origins). The
+     whole card links to the page. Hidden until that loads; a failed fetch
+     leaves the card out. */
+  function dmNumericDay(iso) {   // 9/16/2026, in UTC like the DeetsMusic page
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric", timeZone: "UTC" });
+  }
+
+  (function () {
+    var card = document.querySelector("[data-dm-card]");
+    if (!card) return;
+    fetch("https://music-api.deets.solutions/update/deetsmusic/releases")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var rel = d && ((d.latest && d.latest.version && d.latest) || (Array.isArray(d.releases) && d.releases[0]));
+        if (!rel) return;
+        card.querySelector("[data-dm-card-ver]").textContent =
+          "V" + rel.version + (rel.pub_date ? " · " + dmNumericDay(rel.pub_date) : "");
+        card.hidden = false;
+      })
+      .catch(function () {});
+  })();
 })();

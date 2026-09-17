@@ -1058,13 +1058,22 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
   page, `mock.js` is the in-page mock, and the styles are the DeetsMusic
   section at the bottom of `main.css` (`dm-` prefix, the profile's bento
   anatomy). The icon is `assets/deetsmusic/icon.png`, copied from
-  DeetsMusic's `src-tauri/icons/icon.png`. The nav link sits under
-  Utilities on all 15 pages. It has no `data-nav-core`, so it is not in
-  the mobile menu yet.
+  DeetsMusic's `src-tauri/icons/icon.png`. The nav link is its own
+  top-level tab, left of Blog, on all 15 pages (moved out of Utilities
+  2026-09-16). It has no `data-nav-core`, so it is not in the mobile menu
+  yet. Home carries a DeetsMusic card at the top of its left column
+  (`js/home.js`, `.dm-homecard`): the latest release from the same
+  releases route, as version + date; the whole card links to the page.
 - **Order.** The page bar carries a Download pill and a Report pill. Below
   it: the notice, then Install beside Status, then Release notes (full
-  width), then Suggestions beside Known issues, then Your posts, then the
-  privacy and trademark footer. `#t=<code>` swaps all of that for one
+  width: every open release is two panes, its changes' bold lead-ins down
+  the left and the chosen change's notes sliding in on the right, with any
+  `**Also:**` paragraph as a quieter last entry. The newest release is
+  open by default and folds shut, remembered in `deets-dm-latest-open`.
+  Earlier releases are a row of cards, the poll options' species (past
+  four, it scrolls sideways); a card opens its release under the row),
+  then Suggestions beside Known issues, then Your posts, then the privacy
+  and trademark footer. `#t=<code>` swaps all of that for one
   ticket and its thread. `#report` and `#suggest` open the matching form.
 - **Status** shows the worker's six-hour window as a strip of 72 checks.
   The worker exposes nothing older, so there is no 30-day history.
