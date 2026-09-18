@@ -62,6 +62,22 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-09-17 — A Status row for DeetsMusic's rooms worker: designed, not built.** The worker
+is live (`rooms.deets.solutions`, its own private repo DeetsMusicRooms) and its health route is
+ready for the cron. The site's side is one D1 insert, one markup block pasted under the
+installer row, and one `[ph]` string of Aditya's to write:
+**[rooms-status.md](rooms-status.md)**. **First step:** the D1 insert in §2a — the row then
+appears on the next five-minute tick and fills its strip over six hours.
+
+**2026-09-16 — DeetsRadio moves onto the DeetsMusic rooms worker: PARKED, and not by this repo.**
+DeetsMusic built the rooms worker on 2026-09-17 and decided the same day that **the site is out
+of scope** for it (`../DeetsMusic/docs/ROOMS.md` §13): the Radio tab keeps its own worker and its
+own name, and the app owes it no protocol compatibility. If this site ever wants the Radio tab on
+that worker, it starts from ROOMS.md as it stands and is this repo's session to run — the five
+old differences (rooms that live on when empty, free-form names, preview listeners, YouTube
+entries, a browser host) are all still open, and the first two are settled the other way in the
+app's design.
+
 **⚠ 2026-09-15 — `_headers` has never applied: ON THE DOCKET, first thing next session.**
 Found while checking the board-threads deploy, and it is a site-wide bug, not a DeetsMusic
 one. Every stylesheet and script on deets.solutions serves Pages' `max-age=14400`, not the

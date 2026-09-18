@@ -47,6 +47,7 @@ Start at [README.md](README.md). Then:
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
 | Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
 | DeetsMusic page (`deetsmusic/`, nav tab): status, installs, releases, boards (filter/sort, owner right-click moderation), intake, remote config — worker live, page SHIPPED 2026-09-14 (`?mock` = sample data, everyone owner), Aditya leads its design | [support.md](docs/support.md) |
+| A Status row for DeetsMusic's listening-rooms worker (`rooms.deets.solutions`): one D1 insert, one markup block, one `[ph]` string — designed 2026-09-17, not built | [rooms-status.md](docs/rooms-status.md) |
 
 ## CSS
 
