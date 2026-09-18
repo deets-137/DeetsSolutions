@@ -1,6 +1,10 @@
 # The Rooms status row — what this site needs to set it up
 
-> **Written 2026-09-17. Nothing here is built on the site yet.** The worker it watches
+> **Written 2026-09-17. The site side was built the same day** — §2b's markup is in
+> `deetsmusic/index.html`, §2c's string is in `deetsmusic/strings.js` (approved by him the
+> same day, no `[ph]` left), and `?mock`
+> serves the row as healthy in every mode but `empty`. **§2a, the D1 insert, has not been
+> run**, so the row reads "Not monitored" until it is. The worker it watches
 > **is live**: `rooms.deets.solutions` (repo
 > [DeetsMusicRooms](https://github.com/deets-137/DeetsMusicRooms), design in
 > `../DeetsMusic/docs/ROOMS.md`). This doc is the site's side only — one more row in the
@@ -87,12 +91,10 @@ changed — nothing new to style, and `deetsmusic.js` picks it up with no edit:
 
 ### 2c. Strings in `deetsmusic/strings.js`
 
-One new string — the row's subject. **It is `[ph]`: Aditya's to write or approve before it
-ships** (CLAUDE.md, "Copy"):
+One new string — the row's subject, **approved by Aditya in chat on 2026-09-17**:
 
 ```js
-/* [ph] the third status row — the listening-rooms worker */
-statusSubject_rooms: "[ph] DeetsMusic rooms:",
+statusSubject_rooms: "DeetsMusic rooms:",
 ```
 
 The words under the dot (`status_up`, `status_degraded`, `status_down`, `status_unknown`)

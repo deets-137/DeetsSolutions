@@ -487,15 +487,19 @@
     }
 
     // One app per row, as the worker answers /status?app=<id>. The Gatekeeper
-    // (deetsmusic) follows the mode; the installer row passes in every mode
-    // but empty, so ?mock=down shows the two rows disagreeing.
+    // (deetsmusic) follows the mode; the installer and rooms rows pass in
+    // every mode but empty, so ?mock=down shows the rows disagreeing — which
+    // is the real reading for rooms (rooms-status.md §3).
     if (p === "/status" && method === "GET") {
       var app = u.searchParams.get("app") || "deetsmusic";
-      if (app === "deetsmusic-installer") {
+      var HEALTHY = { "deetsmusic-installer": "DeetsMusic installer",
+                      "deetsmusic-rooms": "DeetsMusic rooms" };
+      if (HEALTHY[app]) {
+        var base = app === "deetsmusic-rooms" ? 40 : 20;
         var ic = MODE === "empty" ? [] : checks().map(function (x) {
-          return { checked_at: x.checked_at, ok: true, ms: 20 + ((x.checked_at / 300) % 30), note: null };
+          return { checked_at: x.checked_at, ok: true, ms: base + ((x.checked_at / 300) % 30), note: null };
         });
-        return res(200, { apps: [{ id: app, label: "DeetsMusic installer", monitored: MODE !== "empty",
+        return res(200, { apps: [{ id: app, label: HEALTHY[app], monitored: MODE !== "empty",
           status: MODE === "empty" ? "unmonitored" : deriveStatus(ic), notice: "", checks: ic }] });
       }
       if (app !== "deetsmusic") return res(200, { apps: [] });

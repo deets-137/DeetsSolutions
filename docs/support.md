@@ -1015,9 +1015,10 @@ with, not choices about it:
     'DeetsMusic installer', 'https://music-api.deets.solutions/update/deetsmusic/health', 1);`
   - **DeetsMusic rooms** — app `deetsmusic-rooms`, probes
     `rooms.deets.solutions/health` (its own worker and repo,
-    [DeetsMusicRooms](https://github.com/deets-137/DeetsMusicRooms)). **Designed,
-    not built on this site:** the row, its D1 insert, its markup and its one
-    `[ph]` string are in [rooms-status.md](rooms-status.md). Unlike the two
+    [DeetsMusicRooms](https://github.com/deets-137/DeetsMusicRooms)). **Site side
+    built 2026-09-17** — markup, mock row and its subject string (his words, same
+    day); it stays dark until the D1 insert in [rooms-status.md](rooms-status.md)
+    §2a is run against `deets-support`. Unlike the two
     above it is a real fetch across the edge, so it is the only row that sees
     DNS. Down here means rooms stop — including rooms already playing, because
     that worker keeps the clock — and nothing else in DeetsMusic is affected.

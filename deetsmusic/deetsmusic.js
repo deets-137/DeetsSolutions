@@ -194,8 +194,9 @@
   // ── Status ─────────────────────────────────────────────────────
   // One row per checked service (support.md, "The page"). Each row's
   // data-dm-status-row is its app id in the worker's apps table: the
-  // Gatekeeper (APP, music-api /health — the token mint) and the installer
-  // (/update/deetsmusic/health). Every row has its own dot, word and strip;
+  // Gatekeeper (APP, music-api /health — the token mint), the installer
+  // (/update/deetsmusic/health) and rooms (rooms.deets.solutions/health, a
+  // different worker). Every row has its own dot, word and strip;
   // the remote notice rides APP's row only.
   function loadStatus() {
     $all("[data-dm-status-row]").forEach(function (row) {

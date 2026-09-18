@@ -58,6 +58,9 @@ window.DM_STRINGS = {
   statusSubject:      "DeetsMusic Gatekeeper:",
   /* the second row, approved by Aditya in chat, 2026-09-15 — probes /update/deetsmusic/health */
   statusSubject_installer: "DeetsMusic installer:",
+  /* the third row, approved by Aditya in chat, 2026-09-17 — probes
+     rooms.deets.solutions/health (rooms-status.md §2c) */
+  statusSubject_rooms: "DeetsMusic rooms:",
   status_up:          "Up",
   status_degraded:    "Degraded",
   status_down:        "Down",
