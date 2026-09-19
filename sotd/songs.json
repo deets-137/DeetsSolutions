@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-18T02:00:23Z",
+  "generated_at": "2026-09-19T03:39:49Z",
   "channel": "song-of-the-day",
-  "count": 416,
+  "count": 417,
   "songs": [
     {
       "post_id": 1,
@@ -9570,6 +9570,29 @@
       "apple_music_url": "https://music.apple.com/us/album/time-bomb/1637994934?i=1637995424&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/99/4b/52/994b52fe-9a0d-dfd3-17e3-729b84aca320/mzaf_3542324918665491285.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/61/e0/e5/61e0e56f-54ce-6df7-80a3-91ccceb51bca/196589370235.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 13902,
+      "posted_at": "2026-09-18T02:45:48.097000+00:00",
+      "date": "2026-09-17",
+      "day": "Thu",
+      "month": "09_2026",
+      "track_name": "This Is Halloween ~ the Nightmare Before Christmas Lofi",
+      "artist_name": "Closed on Sunday",
+      "album": "This Is Halloween ~ the Nightmare Before Christmas Lofi - Single",
+      "genre": "Hip-Hop/Rap",
+      "duration": "1:26",
+      "duration_sec": 86,
+      "release_date": "2020-10-21",
+      "release_year": 2020,
+      "age_yrs": 6,
+      "service": "spotify",
+      "resolved": "yes",
+      "author": "sgrim:]",
+      "url": "https://open.spotify.com/track/4t6YbDzdt0wj3M0Yiohtm3?si=e913e0ca81374090",
+      "apple_music_url": "https://music.apple.com/us/album/this-is-halloween-the-nightmare-before-christmas-lofi/1536404643?i=1536404644",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/8c/c6/3e/8cc63e36-83a0-f185-c660-74cdfbda2180/mzaf_12907794585536643267.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/6a/5d/f3/6a5df37d-5178-9831-9d03-a3e80b7b4f89/artwork.jpg/600x600bb.jpg"
     }
   ]
 }
