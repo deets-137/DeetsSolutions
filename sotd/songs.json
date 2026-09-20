@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-19T03:39:49Z",
+  "generated_at": "2026-09-20T04:34:01Z",
   "channel": "song-of-the-day",
-  "count": 417,
+  "count": 419,
   "songs": [
     {
       "post_id": 1,
@@ -9593,6 +9593,52 @@
       "apple_music_url": "https://music.apple.com/us/album/this-is-halloween-the-nightmare-before-christmas-lofi/1536404643?i=1536404644",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/8c/c6/3e/8cc63e36-83a0-f185-c660-74cdfbda2180/mzaf_12907794585536643267.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/6a/5d/f3/6a5df37d-5178-9831-9d03-a3e80b7b4f89/artwork.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 14320,
+      "posted_at": "2026-09-19T05:02:22.200000+00:00",
+      "date": "2026-09-18",
+      "day": "Fri",
+      "month": "09_2026",
+      "track_name": "Mama",
+      "artist_name": "Dexter Story, Sudan Archives & Kamasi Washington",
+      "album": "T'som",
+      "genre": "R&B/Soul",
+      "duration": "3:40",
+      "duration_sec": 220,
+      "release_date": "2026-08-25",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6801359870",
+      "apple_music_url": "https://music.apple.com/us/album/mama/6801359859?i=6801359870&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a8/3a/a5/a83aa5fd-782c-546c-8ae3-28115d1ffc1d/mzaf_17958305781087432758.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fe/f9/6d/fef96d89-c9c0-f30e-bdc0-198696c08898/129340.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 14321,
+      "posted_at": "2026-09-19T22:53:34.814000+00:00",
+      "date": "2026-09-19",
+      "day": "Sat",
+      "month": "09_2026",
+      "track_name": "In the Honey",
+      "artist_name": "Wafia",
+      "album": "In the Honey - Single",
+      "genre": "Pop",
+      "duration": "2:53",
+      "duration_sec": 173,
+      "release_date": "2022-05-19",
+      "release_year": 2022,
+      "age_yrs": 4,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/in-the-honey/1669585694?i=1669585909",
+      "apple_music_url": "https://music.apple.com/us/album/in-the-honey/1669585694?i=1669585909&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b1/1b/52/b11b522a-12b8-502c-9d5e-7434ca84d521/mzaf_10609658627605716651.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/fb/70/05/fb7005ec-8110-ef84-2885-f6b410c35921/067003464765.png/600x600bb.jpg"
     }
   ]
 }
