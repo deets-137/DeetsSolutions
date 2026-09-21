@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-20T04:34:01Z",
+  "generated_at": "2026-09-21T02:00:14Z",
   "channel": "song-of-the-day",
-  "count": 419,
+  "count": 420,
   "songs": [
     {
       "post_id": 1,
@@ -9639,6 +9639,29 @@
       "apple_music_url": "https://music.apple.com/us/album/in-the-honey/1669585694?i=1669585909&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b1/1b/52/b11b522a-12b8-502c-9d5e-7434ca84d521/mzaf_10609658627605716651.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/fb/70/05/fb7005ec-8110-ef84-2885-f6b410c35921/067003464765.png/600x600bb.jpg"
+    },
+    {
+      "post_id": 14741,
+      "posted_at": "2026-09-20T22:04:35.077000+00:00",
+      "date": "2026-09-20",
+      "day": "Sun",
+      "month": "09_2026",
+      "track_name": "Early (feat. Jafaris)",
+      "artist_name": "Joy Crookes",
+      "album": "Early (feat. Jafaris) - Single",
+      "genre": "Pop",
+      "duration": "3:13",
+      "duration_sec": 193,
+      "release_date": "2019-10-04",
+      "release_year": 2019,
+      "age_yrs": 7,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/early-feat-jafaris/1481063805?i=1481063808",
+      "apple_music_url": "https://music.apple.com/us/album/early-feat-jafaris/1481063805?i=1481063808&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/74/83/c3/7483c3eb-d9dc-0a0d-b43d-8a948a7e523e/mzaf_5224691894116318144.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/97/b7/8e/97b78eac-6cec-336e-2cc6-84b5eabc8601/886447990421.jpg/600x600bb.jpg"
     }
   ]
 }
