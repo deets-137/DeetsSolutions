@@ -4177,3 +4177,28 @@ button.dm-poll__opt:hover { border-color: var(--title); }
 }
 .dm-pollmode__opt.is-on { color: var(--title); border-color: var(--title); }
 [data-dm] .dm-textbtn[disabled] { color: var(--subtext); cursor: default; }
+
+/* ── DeetsMusic demo (deetsmusic/demo/, DeetsMusic repo docs/features/WEB-DEMO.md) ──
+   The real app runs in an iframe inside a .dm-box. demo.js sets the frame's and the
+   iframe's size at run time from the app's own window size; a page narrower than the
+   app scales the iframe down from its top-left corner. */
+.dmd-lede { color: var(--subtext); margin: 0 0 var(--space-3); }
+.dmd-lede:has(+ .dmd-lede) { margin-block-end: var(--space-1); }
+.dmd-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+.dmd-stage { display: flex; justify-content: center; min-width: 0; }
+.dmd-frame {
+  padding: var(--space-2);
+  overflow: hidden;
+  transition: width var(--dur-med) var(--ease-ui), height var(--dur-med) var(--ease-ui);
+}
+.dmd-app {
+  display: block;
+  flex: none;
+  border: 0;
+  transform-origin: top left;
+}

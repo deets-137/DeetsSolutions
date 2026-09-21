@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="press" data-surface="midi" data-boot="hold">
+  <head>
+    <script>
+  (function () {
+    try {
+      var pairs = [["deets-theme", "deets.theme"], ["deets-skin", "deets.skin"]];
+      for (var i = 0; i < pairs.length; i++) {
+        var site = localStorage.getItem(pairs[i][0]);
+        if (site && !localStorage.getItem(pairs[i][1])) localStorage.setItem(pairs[i][1], site);
+      }
+    } catch (e) {}
+  })();
+</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Appearance pre-paint. The attributes above are the light-mode
+         defaults; this resolves the REAL choice (saved id, retired-id
+         migration, or the OS light/dark preference) before the stylesheet
+         below is applied, so a dark-mode launch never flashes Lilac × Press.
+         theme.ts / skin.ts own the same logic and re-apply it on load —
+         keep the two RETIRED maps and the defaults in sync. -->
+    <script>
+      (function () {
+        var R = {
+          fairy: "lilac", glade: "green", hornet: "black-yellow", viper: "black-red",
+          desk: "press", cyberstorm: "cyber", "retro-future": "cyber",
+        };
+        var dark = false;
+        try { dark = window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) {}
+        // Look schedule (LOOK-SCHEDULE.md): the look for this minute, unless a hand pick
+        // still holds. look-schedule.ts writes both keys; keep the two in step.
+        var look = null;
+        try {
+          var P = JSON.parse(localStorage.getItem("deets.look.prepaint"));
+          var H = JSON.parse(localStorage.getItem("deets.look.hold"));
+          if (P) {
+            var t = new Date(), m = t.getHours() * 60 + t.getMinutes(), w = P.window;
+            var day = w ? (w[0] <= w[1] ? m >= w[0] && m < w[1] : m >= w[0] || m < w[1]) : !dark;
+            var held = H && H.period === (day ? "day" : "night") && (H.until === null || Date.now() < H.until);
+            if (!held) look = day ? P.day : P.night;
+          }
+        } catch (e) {}
+        [["deets.theme", "data-theme", dark ? "black-red" : "lilac"],
+         ["deets.skin",  "data-skin",  dark ? "cyber" : "press"]].forEach(function (a, i) {
+          var saved = null;
+          try { saved = localStorage.getItem(a[0]); } catch (e) {}
+          document.documentElement.setAttribute(a[1], look ? (R[look[i]] || look[i]) : saved ? (R[saved] || saved) : a[2]);
+        });
+      })();
+    </script>
+    <title>DeetsMusic</title>
+    <!-- Silence MusicKit's BLOCKING alert() for benign playback-transport races: an
+         internal play() promise superseded by a queue swap (e.g. the second setQueue on a
+         dead-catalog-id fallback, or a changeToMediaAtIndex jump) — the clicked song still
+         plays, but MusicKit pops the abandoned promise as a modal dialog that freezes the
+         transport. MUST run BEFORE musickit.js so the override is in place however MusicKit
+         reaches alert (it can own the reference from load). Mirrors the unhandledrejection
+         filter in player.ts (installMusicKitRejectionFilter); keep the two regexes in sync. -->
+    <script>
+      (function () {
+        var BENIGN = /play\(\) (?:method was called without a previous stop\(\) or pause\(\)|request was interrupted by (?:a new load request|a call to pause\(\)))/i;
+        // Every OTHER alert (MusicKit's "Unable to prepare for playback.", …) never
+        // shows as a native dialog either: it goes to player.ts, which finds the cause
+        // and raises the right toast (TOASTS.md §Apple health). Alerts that arrive before
+        // player.ts loads wait in a small queue.
+        window.__deetsMkAlerts = [];
+        window.alert = function (message) {
+          var msg = message == null ? "" : String(message);
+          if (BENIGN.test(msg)) {
+            console.debug("[player] swallowed benign MusicKit alert:", msg);
+            return;
+          }
+          console.warn("[player] MusicKit alert → toast:", msg);
+          if (typeof window.__deetsMkAlert === "function") window.__deetsMkAlert(msg);
+          else if (window.__deetsMkAlerts.length < 5) window.__deetsMkAlerts.push(msg);
+        };
+      })();
+    </script>
+    <!-- MusicKit JS — the in-webview playback engine (DRM via EME). Same build the
+         loopback auth page loads. `player.ts` configures it lazily on first play. -->
+    <script type="module" crossorigin src="./assets/main-DLYJgWHl.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/main-xlyVKgKj.css">
+  </head>
+
+  <body>
+    <!-- Launch cover (src/boot-cover.ts, UX-COVERUPS.md §6): opaque --canvas over the page
+         while <html data-boot> is set, so the window shows a finished ground, then fades. -->
+    <div class="boot-cover" aria-hidden="true"></div>
+    <!-- Custom frameless chrome. The middle .drag-region is the OS drag handle;
+         the title (settings trigger) and lights opt out by not carrying it. -->
+    <header class="titlebar">
+      <div class="settings">
+        <button
+          class="app-title"
+          id="settings-trigger"
+          type="button"
+          aria-haspopup="true"
+          aria-expanded="false"
+          title="Opens the menu: theme, skin, window size, account, and Settings"
+        >DeetsMusic</button>
+
+        <div class="menu" id="settings-menu" role="menu" hidden>
+          <div class="menu__row" data-row="theme">
+            <span class="menu__label">Theme</span>
+            <span class="menu__chev" aria-hidden="true">›</span>
+            <div class="flyout" role="menu" aria-label="Theme">
+              <button class="flyout__item" type="button" role="menuitemradio" data-theme="lilac"        data-theme-choice="lilac"        title="Light. Purple and mint">Lilac</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-theme="green"        data-theme-choice="green"        title="Light. Green and fern">Green</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-theme="sepia"        data-theme-choice="sepia"        title="Light. Parchment and terracotta">Sepia</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-theme="moonlight"    data-theme-choice="moonlight"    title="Dark. Slate and moon white">Moonlight</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-theme="black-yellow" data-theme-choice="black-yellow" title="Dark. Yellow on black">Black &amp; Yellow</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-theme="black-red"    data-theme-choice="black-red"    title="Dark. Red on black">Black &amp; Red</button>
+            </div>
+          </div>
+
+          <div class="menu__row" data-row="skin">
+            <span class="menu__label">Skin</span>
+            <span class="menu__chev" aria-hidden="true">›</span>
+            <div class="flyout" role="menu" aria-label="Skin">
+              <!-- Vanilla is hidden from the picker (2026-09-10): its block is still the
+                   [data-skin] base in skin.css and a saved "vanilla" still applies. -->
+              <button class="flyout__item" type="button" role="menuitemradio" data-skin="press"        data-skin-choice="press"        title="A print shop: ink on paper, square corners. The cover can be a record">Press</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-skin="ocean"        data-skin-choice="ocean"        title="Cards on rolling waves, with a serif">Ocean</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-skin="glass"        data-skin-choice="glass"        title="Frosted panels over a soft glow">Glass</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-skin="cyber" data-skin-choice="cyber" title="Lightning behind the cards, machined type">Cyber</button>
+            </div>
+          </div>
+
+          <div class="menu__row" data-row="surface">
+            <span class="menu__label">Surface</span>
+            <span class="menu__chev" aria-hidden="true">›</span>
+            <div class="flyout" role="menu" aria-label="Surface">
+              <!-- Mini | Player (2026-09-14): one pill cut in two, the search pin idiom. Mini =
+                   Now Playing + one card; Player = Now Playing alone. Renamed from "NP"
+                   2026-09-18: one thing, one name. -->
+              <div class="flyout__item flyout__split" data-surface-choice-row="mini">
+                <button class="flyout__half" type="button" role="menuitemradio" data-surface-choice="mini" data-mini-choice="cards" title="A small window: Now Playing and one card">Mini</button>
+                <button class="flyout__half" type="button" role="menuitemradio" data-surface-choice="mini" data-mini-choice="player" title="The player alone: Now Playing only">Player</button>
+              </div>
+              <button class="flyout__item" type="button" role="menuitemradio" data-surface-choice="midi" title="The tall window: Now Playing and two cards">Midi</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-surface-choice="max" title="The wide window: the stage, the queue, and four cards">Max</button>
+            </div>
+          </div>
+
+          <!-- Everything else (Always on Top, Minimize to Tray, hover menus, Library Add,
+               the Extension block, the playback/playlist preferences) lives in the
+               Settings card (SETTINGS.md); this row summons it into a slot. -->
+          <button class="menu__row menu__row--toggle" id="settings-open" type="button" role="menuitem" data-row="settings" title="Shows the Settings card">
+            <span class="menu__label">Settings…</span>
+          </button>
+
+
+          <div class="menu__row" data-row="account">
+            <span class="menu__label">Account</span>
+            <span class="menu__chev" aria-hidden="true">›</span>
+            <div class="flyout flyout--account" role="menu" aria-label="Account">
+              <div class="account">
+                <button class="account__btn" id="account-action" data-acct-btn type="button" data-state="out">
+                  <span class="account__label">Apple Music</span>
+                  <span class="account__icon" id="account-icon" data-acct-icon aria-hidden="true"></span>
+                </button>
+                <div class="account__status" id="account-status" data-acct-status>Not signed in</div>
+              </div>
+              <!-- Last.fm (docs/integrations/LASTFM.md §4): the same button + status shape; src/lastfm.ts wires it. -->
+              <div class="account" id="lastfm-account">
+                <button class="account__btn" id="lastfm-action" type="button" data-state="out" title="Connects your Last.fm account in your browser. Songs you hear go to your Last.fm profile">
+                  <span class="account__label">Last.fm</span>
+                  <span class="account__icon" id="lastfm-icon" aria-hidden="true"></span>
+                </button>
+                <div class="account__status" id="lastfm-status">Not connected</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- The Compass (COMPASS.md): the title bar's own button, right of the title. The glyph
+           is the hand-drawn compass the owner gave (a face, a needle, two ticks). -->
+      <button class="compass__btn" id="compass-open" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Go anywhere" title="Go anywhere! (Ctrl + Space)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.4c4.6-.3 8.2 3 8.4 7.6.2 4.9-3.5 9.2-8.3 9.4-4.7.2-8.6-3.6-8.5-8.4C3.7 7.4 7.4 3.7 12 3.4z"/><path d="M12 5.6l1.6 6.9L12 12l-1.6.5z"/><path d="M6.1 11.7h1.7M16.2 11.7h1.7M12 16.8v1.2"/></svg></button>
+
+      <!-- The cog (QUICK-SETTINGS.md): the title bar's own way into settings, right of the
+           Compass. It opens the quick panel: a strip of service logos (Apple Music, Discord)
+           and "All settings", which opens the Settings card as wide as the window allows
+           (the cog's own job until 2026-09-20). A logo shows that service's rows, drawn by
+           the Settings card's own code. Six teeth, so the 120-degree turn each press adds
+           lands on an identical tooth and the glyph never looks crooked. src/quick-panel.ts
+           wires it. -->
+      <div class="quick" id="quick">
+      <button class="cog__btn" id="cog-open" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Quick settings" title="Quick settings, grouped by what they are for, and the way to all of Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.41 2.96A9.4 9.4 0 0 1 14.59 2.96L14.75 6.11A6.5 6.5 0 0 1 15.73 6.68L18.53 5.24A9.4 9.4 0 0 1 21.12 9.73L18.48 11.43A6.5 6.5 0 0 1 18.48 12.57L21.12 14.27A9.4 9.4 0 0 1 18.53 18.76L15.73 17.32A6.5 6.5 0 0 1 14.75 17.89L14.59 21.04A9.4 9.4 0 0 1 9.41 21.04L9.25 17.89A6.5 6.5 0 0 1 8.27 17.32L5.47 18.76A9.4 9.4 0 0 1 2.88 14.27L5.52 12.57A6.5 6.5 0 0 1 5.52 11.43L2.88 9.73A9.4 9.4 0 0 1 5.47 5.24L8.27 6.68A6.5 6.5 0 0 1 9.25 6.11L9.41 2.96Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <div class="quick__panel pop app-scroll" id="quick-panel" role="group" aria-label="Quick settings" data-frames="quick" hidden>
+          <!-- Tips stay in the Settings card; this line takes you there (quick-panel.ts). -->
+          <button class="quick__tips" type="button" data-quick-tips title="Opens Settings at Tips">Tips are in the Settings card itself!</button>
+          <div class="quick__bar">
+            <!-- The logos are filled in by quick-panel.ts (the official files' paths). -->
+            <button class="quick__logo" type="button" data-quick="apple" aria-pressed="false" aria-label="Apple Music" title="Apple Music: your sign-in and the Apple Music settings"></button>
+            <button class="quick__logo" type="button" data-quick="discord" aria-pressed="false" aria-label="Discord" title="Discord: your profile's activity and the Song of the Day channel"></button>
+            <!-- The middle group runs from the fewest rows to the most (QUICK-SETTINGS.md §9): Connections 4, Fun 4–10, Look 5–14, Help 14–16, Window 19. -->
+            <button class="quick__logo" type="button" data-quick="agents" aria-pressed="false" aria-label="Connections" title="Connections: the browser extension and AI agents"></button>
+            <button class="quick__logo" type="button" data-quick="fun" aria-pressed="false" aria-label="Fun things" title="Fun things: Song of the Day and Friends"></button>
+            <button class="quick__logo" type="button" data-quick="look" aria-pressed="false" aria-label="Look" title="Look: the day and night looks, this skin's own settings, and motion"></button>
+            <button class="quick__logo" type="button" data-quick="help" aria-pressed="false" aria-label="Help and playback" title="Help and playback: menus, hints and notices, and how songs play"></button>
+            <button class="quick__logo" type="button" data-quick="window" aria-pressed="false" aria-label="Window" title="Window: the tray, the sizes, keep on top, and growing cards"></button>
+            <!-- The right cluster: the app's own upkeep, then the cog. -->
+            <button class="quick__logo quick__right" type="button" data-quick="bugs" aria-pressed="false" aria-label="Updates and bugs" title="Updates and bugs: how updates arrive, roll back, and send a report"></button>
+            <button class="quick__logo" type="button" data-quick="reset" aria-pressed="false" aria-label="Reset" title="Reset: put a group of settings, or all of them, back as they came"></button>
+            <!-- The cog's glyph, copied in by quick-panel.ts. -->
+            <button class="quick__logo quick__all" type="button" id="quick-all" aria-pressed="false" aria-label="All settings" title="All settings: opens Settings at full size"></button>
+          </div>
+          <div class="quick__body" id="quick-body" hidden>
+            <!-- The second copy of title menu › Account › Apple Music. main.ts paints both. -->
+            <div class="account quick__acct" data-quick-part="apple" hidden>
+              <button class="account__btn" data-acct-btn type="button" data-state="out">
+                <span class="account__label">Apple Music</span>
+                <span class="account__icon" data-acct-icon aria-hidden="true"></span>
+              </button>
+              <div class="account__status" data-acct-status>Not signed in</div>
+            </div>
+            <div id="quick-rows"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drag-region" data-tauri-drag-region></div>
+
+      <!-- The Compass (COMPASS.md): the bar Ctrl+Space drops under the title bar, in every
+           surface. src/compass.ts fills it. -->
+      <div class="compass pop app-scroll" id="compass" role="dialog" aria-label="Go anywhere" hidden></div>
+
+      <div class="chrome-right">
+        <!-- Listening rooms (ROOMS.md §1, src/room-panel.ts): three figures side by side.
+             In a room the glyph fills and carries the member count. The panel is built by
+             room-panel.ts: your name, Start a room and Join out of a room; the code, the
+             members, the host's guest-control pills and Leave inside one. -->
+        <div class="room" id="room">
+          <button
+            class="room__btn"
+            id="room-btn"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Listening room"
+            title="Listen with friends"
+          ></button>
+          <div class="room__panel pop app-scroll" id="room-panel" role="group" aria-label="Listening room" hidden></div>
+        </div>
+
+        <!-- Sound (SOUND.md §2.3, src/sound-panel.ts): the equalizer and DeetsAdaptiveSound.
+             The icon's three fader knobs follow the curve (low, mid, high); the panel's
+             content is built by sound-panel.ts. Every effect is off by default. -->
+        <div class="sound" id="sound">
+          <button
+            class="sound__btn"
+            id="sound-btn"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Sound"
+            title="Sound: the equalizer and adaptive sound"
+          ></button>
+          <div class="sound__panel pop" id="sound-panel" role="group" aria-label="Sound" hidden></div>
+        </div>
+
+        <!-- Sleep timer (NEXT-VERSION §17, src/sleep.ts): the alarm clock. Its panel is a
+             kitchen-timer dial (drag to set, it turns back as time runs out), two "end of"
+             chips, the wind-down length, and the every-day schedule. The icon and the dial's
+             face are drawn by sleep.ts. -->
+        <div class="sleep" id="sleep">
+          <button
+            class="sleep__btn"
+            id="sleep-btn"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Sleep timer"
+            title="The sleep timer. Music pauses when it runs out"
+          ></button>
+
+          <div class="sleep__panel pop" id="sleep-panel" role="group" aria-label="Sleep timer" hidden>
+            <div class="sleep__dial" id="sleep-dial" role="slider" tabindex="0" aria-label="Minutes until sleep"
+                 aria-valuemin="0" aria-valuemax="120" aria-valuenow="0"
+                 title="Turn the timer to set the minutes. Music pauses when it runs out">
+              <svg class="sleep__face" viewBox="0 0 200 200" aria-hidden="true">
+                <g class="sleep__ring" id="sleep-ring"></g>
+                <path class="sleep__mark" d="M100 3 L106 13 L94 13 Z" />
+              </svg>
+              <div class="sleep__center">
+                <div class="sleep__readout" id="sleep-readout">Off</div>
+                <div class="sleep__line">
+                  <div class="sleep__caption" id="sleep-caption">Turn the timer</div>
+                  <button class="sleep__off" id="sleep-off" type="button" hidden title="Turns the sleep timer off">Off</button>
+                </div>
+              </div>
+            </div>
+            <div class="sleep__chips">
+              <button class="sleep__chip" type="button" data-sleep-mode="song" aria-pressed="false" title="Pauses when this song ends">End of song</button>
+              <button class="sleep__chip" type="button" data-sleep-mode="queue" aria-pressed="false" title="Pauses when Up Next runs out">End of Up Next</button>
+            </div>
+            <!-- These four are ALSO rows of Settings › Sleep (2026-09-18). Both controls write
+                 the same store key and both repaint on onSettingsChange, so neither can drift.
+                 They stay here because someone who opens this panel for the first time must be
+                 able to set the daily timer without being sent to the Settings card. -->
+            <div class="sleep__row">
+              <span class="sleep__label">Wind down</span>
+              <button class="sleep__pill" id="sleep-wind" type="button" title="Over these last minutes the volume sinks to nothing, then the music pauses. Click for the next length">5 min</button>
+            </div>
+            <div class="sleep__row">
+              <span class="sleep__label">Play out song</span>
+              <button class="sleep__pill" id="sleep-playout" type="button" title="On: when the time runs out in the middle of a song, the song plays to its end first">Off</button>
+            </div>
+            <div class="sleep__row">
+              <span class="sleep__label">Every day</span>
+              <button class="sleep__pill" id="sleep-sched" type="button" title="A sleep time that sets itself every day: at sunset, or at a time you pick. It pauses only if music is playing then">Off</button>
+            </div>
+            <div class="sleep__row sleep__row--time" id="sleep-time-row" hidden>
+              <button class="sleep__step" id="sleep-earlier" type="button" aria-label="15 minutes earlier" title="15 minutes earlier">‹</button>
+              <span class="sleep__time" id="sleep-time">10:00 PM</span>
+              <button class="sleep__step" id="sleep-later" type="button" aria-label="15 minutes later" title="15 minutes later">›</button>
+            </div>
+            <div class="sleep__status" id="sleep-status" hidden></div>
+          </div>
+        </div>
+
+        <!-- Volume (NEXT-VERSION §20, 2026-09-16): a level-filled pill that GROWS in place on
+             hover and scrubs there. Small: the tinted fill under a "Vol." label. Grown: the
+             mute speaker at the left, the fill as a horizontal slider in the middle, the
+             AirPlay square at the right (mini/midi; max has it on the stage row). No panel. -->
+        <div class="vol" id="vol">
+          <div
+            class="vol__pill"
+            id="vol-pill"
+            role="slider"
+            tabindex="0"
+            aria-label="Volume"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="100"
+            title="The volume. Drag it, or roll the wheel"
+          >
+            <span class="vol__pill-fill" aria-hidden="true"></span>
+            <button class="vol__mute" id="vol-mute" type="button" aria-label="Mute" aria-pressed="false" title="Turns the sound off and on"></button>
+            <div class="vol__track" id="vol-scrub">
+              <span class="vol__pill-label">Vol.</span>
+            </div>
+            <!-- AirPlay (AIRPLAY.md): the "Play on" panel for mini/midi; max has the
+                 same square on the stage volume row. CSS shows one per surface. -->
+            <button class="vol__airplay ap-square" id="vol-airplay" type="button" aria-label="AirPlay" data-state="idle" title="Plays on a speaker or TV on your network">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><mask id="ap-cut-vol" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="white" stroke="none"></rect><path class="ap-cut" d="M8 21l4-5 4 5z" fill="black" stroke="black"></path></mask><circle class="ap-ring" cx="12" cy="12" r="8" mask="url(#ap-cut-vol)"></circle><path class="ap-caret" d="M8 21l4-5 4 5z"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="lights">
+          <!-- Windows' order (user's call 2026-09-16): minimize, maximize, close. -->
+          <button class="light light--min" id="tl-min" type="button" aria-label="Minimize" title="Puts the window on the taskbar">
+          <svg class="sigil" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.6 5H8.4" /></svg>
+        </button>
+        <button class="light light--max" id="tl-max" type="button" aria-label="Maximize" title="Fills the screen. Press again to go back">
+          <svg class="sigil" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.6V8.4M1.6 5H8.4" /></svg>
+        </button>
+        <button class="light light--close" id="tl-close" type="button" aria-label="Close" title="Closes DeetsMusic. With Close to tray on, it hides to the tray and keeps playing">
+          <svg class="sigil" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.3 2.3L7.7 7.7M7.7 2.3L2.3 7.7" /></svg>
+        </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-body">
+      <!-- Ambient layers (Ocean swell / Glass aurora / Cyber storm) sit BEHIND the
+           cards and are inert (display:none) unless a skin opts in via its display token.
+           All three animate ONLY transform and opacity on plain boxes, so the compositor
+           moves finished layers and the main thread paints nothing per frame (an SVG child
+           transform or a background-position repaints every frame: ~25–45% of a core idle).
+           src/ambient.ts pauses them while the window cannot be seen. -->
+
+      <!-- Ocean — three seamless wave trains. Each train is a bob <div> (rise and fall)
+           around a roll <div> (drift), so the two transforms compose. The tile shapes
+           (one full sine period each, so no seam) are SVG masks in src/styles.css: an
+           opaque --canvas fill under a hairline crest, so a nearer swell occludes the ones
+           behind it. Farthest (3) paints first. -->
+      <div class="ocean" aria-hidden="true">
+        <div class="ocean__bob ocean__bob--3"><div class="ocean__roll ocean__roll--3"></div></div>
+        <div class="ocean__bob ocean__bob--2"><div class="ocean__roll ocean__roll--2"></div></div>
+        <div class="ocean__bob ocean__bob--1"><div class="ocean__roll ocean__roll--1"></div></div>
+      </div>
+
+      <!-- Aurora — one <div> per blob, so each drifts on its own transform. -->
+      <div class="aurora" aria-hidden="true">
+        <div class="aurora__blob aurora__blob--1"></div>
+        <div class="aurora__blob aurora__blob--2"></div>
+        <div class="aurora__blob aurora__blob--3"></div>
+      </div>
+
+      <!-- Storm — each strike is a top→bottom wipe: the strike box slides down and clips,
+           the hold box slides up by the same amount, so the bolt stays put while the clip
+           reveals it. The paths carry no `d` — geometry is a skin token (CSS d: path(...)).
+           Position is runtime (src/storm.ts). -->
+      <div class="storm" aria-hidden="true">
+        <div class="storm__strike storm__strike--1"><div class="storm__hold">
+          <svg class="storm__svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="storm__bolt"></path></svg>
+        </div></div>
+        <div class="storm__strike storm__strike--2"><div class="storm__hold">
+          <svg class="storm__svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="storm__bolt"></path></svg>
+        </div></div>
+      </div>
+
+      <!-- Each .panel is a mount HOST. The layout manager (src/layout.ts) mounts a card into
+           each slot from the persisted assignment; the two content slots are swappable via
+           their title picker. Now Playing is anchored to the top slot. -->
+      <div class="bento" data-screen="home">
+        <!-- The stage column (docs/cards/STAGE-COLUMN.md): Now Playing over the anchored Queue.
+             OUTSIDE max this wrapper is `display: contents` — the two panels are then direct
+             grid items of .bento, in document order, exactly as they were before it existed.
+             In max it is the column-1 grid item and carries its own two rows, so the stage
+             can split where the bento does not. -->
+        <div class="stage">
+          <section class="panel" data-slot="np" data-span="wide"></section>
+          <!-- max-only host (hidden elsewhere): the anchored Queue under the stage. -->
+          <section class="panel" data-slot="queue"></section>
+        </div>
+        <section class="panel" data-slot="left"></section>
+        <section class="panel" data-slot="right"></section>
+        <!-- max-only hosts (hidden elsewhere): two more content slots for the 2×2 bento. -->
+        <section class="panel" data-slot="c"></section>
+        <section class="panel" data-slot="d"></section>
+      </div>
+    </main>
+  </body>
+</html>

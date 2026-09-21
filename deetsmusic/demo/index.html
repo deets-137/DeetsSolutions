@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="cyber">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsMusic demo — Deets</title>
+    <link rel="icon" href="../../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "cyber", "retro-future": "cyber" };
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "moonlight" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "ocean" : "glass"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="../../styles/chrome.css?v=2026-09-17" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-09-21c" />
+    <script src="../../js/controls.js?v=2026-09-17" defer></script>
+    <script src="./strings.js?v=2026-09-21c" defer></script>
+    <script src="./demo.js?v=2026-09-21b" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/deetsmusic/" aria-current="page">DeetsMusic</a>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
+            <a href="/poker/" role="menuitem">DeetsPoker</a>
+            <a href="/tanks/" role="menuitem">DeetsTanks</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <!-- The DeetsMusic web demo (DeetsMusic repo: docs/features/WEB-DEMO.md). The real
+         app's UI, built by `npm run demo:build` in the DeetsMusic repo and copied to app/,
+         runs in the frame below with mock songs. The frame follows the app's own window
+         size: a surface change in the app resizes it. Every string comes from strings.js. -->
+    <main class="site-main" data-dmd>
+      <header class="page-bar">
+        <h1 class="page-bar__title" data-s="title"></h1>
+        <div class="page-bar__actions">
+          <a class="home__cta" href="/deetsmusic/" data-s="appPage"></a>
+          <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsMusicWindows" target="_blank" rel="noopener" data-s="github"></a>
+        </div>
+      </header>
+
+      <p class="dmd-lede" data-s="lede"></p>
+      <p class="dmd-lede" data-s="ledeSignIn"></p>
+
+      <!-- The app's own first-run walk and its New badges guide a visitor; Start over
+           resets the demo, and with it the walk. -->
+      <div class="dmd-bar">
+        <button type="button" class="home__cta home__cta--soft" data-dmd-reset data-s="reset"></button>
+      </div>
+
+      <div class="dmd-stage" data-dmd-stage>
+        <div class="dm-box dmd-frame" data-dmd-frame>
+          <iframe class="dmd-app" data-dmd-app src="./app/index.html" data-s-title="frameTitle"></iframe>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

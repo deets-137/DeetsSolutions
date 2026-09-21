@@ -62,6 +62,14 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-09-21 — The DeetsMusic web demo (`/deetsmusic/demo/`): BUILT on branch `demo-time`.**
+The real DeetsMusic UI in an iframe with mock songs; the design and the build live in the
+DeetsMusic repo (`docs/features/WEB-DEMO.md`). Here: `deetsmusic/demo/` (page, `demo.js`,
+`strings.js` — all his words, zero `[ph]`), `app/` (the build — never hand-edit; the DeetsMusic
+repo's `npm run demo:publish` replaces it), and one `.dmd-*` block in `main.css`. The app's look
+reaches its own box only. **Left:** merge `demo-time` into `master` to go live, and a link to
+the demo from the DeetsMusic page if he wants one.
+
 **2026-09-17 — A Status row for DeetsMusic's rooms worker: site side BUILT, one gate left.**
 The worker is live (`rooms.deets.solutions`, its own private repo DeetsMusicRooms). The page now
 carries the third row: markup under the installer row, a mock branch that serves it healthy in
