@@ -1067,9 +1067,11 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
   page, `mock.js` is the in-page mock, and the styles are the DeetsMusic
   section at the bottom of `main.css` (`dm-` prefix, the profile's bento
   anatomy). The icon is `assets/deetsmusic/icon.png`, copied from
-  DeetsMusic's `src-tauri/icons/icon.png`. The nav link is its own
-  top-level tab, left of Blog, on all 15 pages (moved out of Utilities
-  2026-09-16). It has no `data-nav-core`, so it is not in the mobile menu
+  DeetsMusic's `src-tauri/icons/icon.png`. The nav entry is its own
+  top-level dropdown, left of Blog, on every page (moved out of Utilities
+  2026-09-16; made a dropdown 2026-09-21). The label itself is a link to
+  `/deetsmusic/`; its menu holds App (`/deetsmusic/`) and Demo
+  (`/deetsmusic/demo/`). It has no `data-nav-core`, so it is not in the mobile menu
   yet. Home carries a DeetsMusic card at the top of its left column
   (`js/home.js`, `.dm-homecard`): the latest release from the same
   releases route, as version + date; the whole card links to the page.
