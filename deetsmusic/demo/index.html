@@ -23,10 +23,10 @@
       })();
     </script>
     <link rel="stylesheet" href="../../styles/chrome.css?v=2026-09-17" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-09-21c" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-09-21d" />
     <script src="../../js/controls.js?v=2026-09-17" defer></script>
-    <script src="./strings.js?v=2026-09-21c" defer></script>
-    <script src="./demo.js?v=2026-09-21b" defer></script>
+    <script src="./strings.js?v=2026-09-21e" defer></script>
+    <script src="./demo.js?v=2026-09-21e" defer></script>
   </head>
 
   <body>
@@ -93,9 +93,26 @@
       <p class="dmd-lede" data-s="ledeSignIn"></p>
 
       <!-- The app's own first-run walk and its New badges guide a visitor; Start over
-           resets the demo, and with it the walk. -->
+           resets the demo, and with it the walk. Below it, two quick clusters (demo.js):
+           the Looks set the app's theme and skin in one go, the Surfaces its window. The
+           lit button in each is what the app shows now. -->
       <div class="dmd-bar">
         <button type="button" class="home__cta home__cta--soft" data-dmd-reset data-s="reset"></button>
+      </div>
+      <div class="dmd-bar dmd-quick">
+        <div class="dmd-cluster">
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="lilac glass" aria-pressed="false" data-s="look1"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="moonlight ocean" aria-pressed="false" data-s="look2"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="sepia press" aria-pressed="false" data-s="look3"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="black-red cyber" aria-pressed="false" data-s="look4"></button>
+        </div>
+        <span class="dmd-sep" aria-hidden="true" data-s="quickSep"></span>
+        <div class="dmd-cluster">
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="mini player" aria-pressed="false" data-s="surfacePlayer"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="mini cards" aria-pressed="false" data-s="surfaceMini"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="midi" aria-pressed="false" data-s="surfaceMidi"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="max" aria-pressed="false" data-s="surfaceMax"></button>
+        </div>
       </div>
 
       <div class="dmd-stage" data-dmd-stage>

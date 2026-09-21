@@ -4190,6 +4190,11 @@ button.dm-poll__opt:hover { border-color: var(--title); }
   gap: var(--space-2);
   margin-block-end: var(--space-3);
 }
+/* The quick row: Looks | X | Surfaces. Each cluster wraps on its own, so a narrow page
+   never splits a pair across the separator. */
+.dmd-quick { align-items: center; }
+.dmd-cluster { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.dmd-sep { color: var(--subtext); padding-inline: var(--space-1); }
 .dmd-stage { display: flex; justify-content: center; min-width: 0; }
 .dmd-frame {
   padding: var(--space-2);

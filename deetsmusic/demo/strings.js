@@ -15,4 +15,15 @@ window.DMD_STRINGS = {
   reset:      "Start over",
   resetAsk:   "Start the demo over? Your playlists, hearts and plays here go back to the start.",
   frameTitle: "The DeetsMusic app",
+
+  /* dictated by Aditya in chat, 2026-09-21: the quick Look and Surface buttons */
+  look1:      "Look 1",
+  look2:      "Look 2",
+  look3:      "Look 3",
+  look4:      "Look 4",
+  quickSep:   "X",
+  surfacePlayer: "Player",
+  surfaceMini:   "Mini",
+  surfaceMidi:   "Midi",
+  surfaceMax:    "Max",
 };

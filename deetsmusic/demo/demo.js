@@ -52,6 +52,69 @@
     }
   });
 
+  // The quick clusters: Look 1–4 (a theme + skin pair) and the Surfaces (Player, Mini,
+  // Midi, Max). Each presses the app's own title-menu items (same-origin frame), so a
+  // pick takes the app's real path: its transition, its look-schedule hold, its window
+  // resize, and the messages above. A theme and a skin pressed back to back share one
+  // transition; only the half that differs is pressed. Player and Mini are the two
+  // halves of the menu's "Mini | Player" row (data-mini-choice).
+  var looks = root.querySelectorAll("[data-dmd-look]");
+  var surfaces = root.querySelectorAll("[data-dmd-surface]");
+  function appRoot() {
+    try { return app.contentDocument && app.contentDocument.documentElement; } catch (e) { return null; }
+  }
+  function attr(el, name) { return el.getAttribute(name) || ""; }
+  // "mini player" / "mini cards" on mini, the bare surface name otherwise.
+  function surfaceNow(el) {
+    var s = attr(el, "data-surface");
+    return s === "mini" ? s + " " + (attr(el, "data-mini") || "cards") : s;
+  }
+  function light(buttons, key, now) {
+    buttons.forEach(function (b) {
+      var on = b.dataset[key] === now;
+      b.setAttribute("aria-pressed", String(on));
+      b.classList.toggle("home__cta--soft", !on);
+    });
+  }
+  function mark() {
+    var el = appRoot();
+    if (!el) return;
+    light(looks, "dmdLook", attr(el, "data-theme") + " " + attr(el, "data-skin"));
+    light(surfaces, "dmdSurface", surfaceNow(el));
+  }
+  function press(selector) {
+    var item = app.contentDocument.querySelector(selector);
+    if (item) item.click();
+  }
+  looks.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var el = appRoot();
+      if (!el) return;
+      var pair = b.dataset.dmdLook.split(" ");
+      if (attr(el, "data-theme") !== pair[0]) press('[data-theme-choice="' + pair[0] + '"]');
+      if (attr(el, "data-skin") !== pair[1]) press('[data-skin-choice="' + pair[1] + '"]');
+    });
+  });
+  surfaces.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var el = appRoot();
+      if (!el || surfaceNow(el) === b.dataset.dmdSurface) return;
+      var pick = b.dataset.dmdSurface.split(" ");
+      press('[data-surface-choice="' + pick[0] + '"]' + (pick[1] ? '[data-mini-choice="' + pick[1] + '"]' : ""));
+    });
+  });
+  // The app flips these attributes on <html> for every change, whoever made it (these
+  // buttons, its own menu, the look schedule). A reload is a new document: watch again.
+  var watcher = new MutationObserver(mark);
+  function watch() {
+    var el = appRoot();
+    watcher.disconnect();
+    if (el) watcher.observe(el, { attributes: true, attributeFilter: ["data-theme", "data-skin", "data-surface", "data-mini"] });
+    mark();
+  }
+  app.addEventListener("load", watch);
+  watch();
+
   // Start over: the app keeps a visitor's changes in this site's localStorage under
   // its own `deets.` keys (the site's own keys use `deets-`, so they stay).
   var reset = root.querySelector("[data-dmd-reset]");
