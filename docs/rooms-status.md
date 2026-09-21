@@ -7,7 +7,7 @@
 > run**, so the row reads "Not monitored" until it is. The worker it watches
 > **is live**: `rooms.deets.solutions` (repo
 > [DeetsMusicRooms](https://github.com/deets-137/DeetsMusicRooms), design in
-> `../DeetsMusic/docs/ROOMS.md`). This doc is the site's side only — one more row in the
+> `../DeetsMusic/docs/integrations/ROOMS.md`). This doc is the site's side only — one more row in the
 > DeetsMusic page's Status box, with its own dot, word, line and strip.
 >
 > It is **one insert and a paste**: one D1 row, one markup block, one string, and no new
@@ -128,7 +128,7 @@ word and the check history, exactly like the other two. There is no room count o
 page, and the worker exposes no route that would give one.
 
 A room code is the only thing protecting a room — eight characters, unlisted, no directory
-(`../DeetsMusic/docs/ROOMS.md` §6). A "rooms live now" number would be harmless; a list
+(`../DeetsMusic/docs/integrations/ROOMS.md` §6). A "rooms live now" number would be harmless; a list
 would not be. Do not add one without deciding which it is.
 
 ---
@@ -143,7 +143,7 @@ would not be. Do not add one without deciding which it is.
    the worker's own IP limit and the second will report failures: that is the guard
    working, not a fault.
 4. Cloudflare dashboard → Workers → `deetsmusic-rooms`. The free-tier limit it reaches
-   first is SQLite rows written (`../DeetsMusic/docs/ROOMS.md` §3.2), which is about 200
+   first is SQLite rows written (`../DeetsMusic/docs/integrations/ROOMS.md` §3.2), which is about 200
    evening-long rooms a day.
 
 ---
@@ -152,6 +152,6 @@ would not be. Do not add one without deciding which it is.
 
 The **Radio tab moving onto this worker** is a separate, older plan and is **not part of
 this row** — see [HANDOFF.md](HANDOFF.md), "Next up". DeetsMusic decided on 2026-09-17
-that the site is out of scope for rooms (`../DeetsMusic/docs/ROOMS.md` §13), so the Radio
+that the site is out of scope for rooms (`../DeetsMusic/docs/integrations/ROOMS.md` §13), so the Radio
 tab keeps its own worker and its own name until this site decides otherwise. This doc adds
 a status row for a worker the site does not otherwise talk to.

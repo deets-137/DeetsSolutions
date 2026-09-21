@@ -72,7 +72,7 @@ tick and fills its strip over six hours.
 
 **2026-09-16 — DeetsRadio moves onto the DeetsMusic rooms worker: PARKED, and not by this repo.**
 DeetsMusic built the rooms worker on 2026-09-17 and decided the same day that **the site is out
-of scope** for it (`../DeetsMusic/docs/ROOMS.md` §13): the Radio tab keeps its own worker and its
+of scope** for it (`../DeetsMusic/docs/integrations/ROOMS.md` §13): the Radio tab keeps its own worker and its
 own name, and the app owes it no protocol compatibility. If this site ever wants the Radio tab on
 that worker, it starts from ROOMS.md as it stands and is this repo's session to run — the five
 old differences (rooms that live on when empty, free-form names, preview listeners, YouTube
