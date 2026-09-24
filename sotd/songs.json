@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-22T04:18:53Z",
+  "generated_at": "2026-09-24T02:00:16Z",
   "channel": "song-of-the-day",
-  "count": 422,
+  "count": 423,
   "songs": [
     {
       "post_id": 1,
@@ -9708,6 +9708,29 @@
       "apple_music_url": "https://music.apple.com/us/album/the-deep/1582030307?i=1582030325&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/52/0a/76/520a76d5-f828-0166-c761-40c672898373/mzaf_16959011823381246196.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/0a/20/bf/0a20bf5c-5b0f-4ade-5cd5-2fe85195438a/21UMGIM81211.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 16008,
+      "posted_at": "2026-09-23T02:23:32.795000+00:00",
+      "date": "2026-09-22",
+      "day": "Tue",
+      "month": "09_2026",
+      "track_name": "No Hands",
+      "artist_name": "Joy Crookes",
+      "album": "Perception - EP",
+      "genre": "Pop",
+      "duration": "2:11",
+      "duration_sec": 131,
+      "release_date": "2019-05-31",
+      "release_year": 2019,
+      "age_yrs": 7,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/no-hands/1463973094?i=1463973326",
+      "apple_music_url": "https://music.apple.com/us/album/no-hands/1463973094?i=1463973326&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/91/d6/c9/91d6c939-a704-cb4b-9ec1-57df881f15f0/mzaf_768350903518144058.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/cf/dd/46/cfdd4650-031e-033d-1184-1607845a544e/886447422953.jpg/600x600bb.jpg"
     }
   ]
 }
