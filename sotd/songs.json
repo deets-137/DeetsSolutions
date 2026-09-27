@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-26T02:00:13Z",
+  "generated_at": "2026-09-27T02:00:15Z",
   "channel": "song-of-the-day",
-  "count": 425,
+  "count": 427,
   "songs": [
     {
       "post_id": 1,
@@ -9777,6 +9777,52 @@
       "apple_music_url": "https://music.apple.com/us/album/dreams-nightmares-feat-brandon-eugene-smith/1333524996?i=1333525000&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/3e/cc/c8/3eccc830-2cec-e3c4-a8f7-53b417e78479/mzaf_10064199903337555893.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/40/7b/7d/407b7dcf-4a11-398f-0a56-01e556378141/5057728690186_cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 17283,
+      "posted_at": "2026-09-26T06:10:51.573000+00:00",
+      "date": "2026-09-25",
+      "day": "Fri",
+      "month": "09_2026",
+      "track_name": "Let's Get Acquainted",
+      "artist_name": "James the Seventh",
+      "album": "Science",
+      "genre": "Alternative",
+      "duration": "2:23",
+      "duration_sec": 143,
+      "release_date": "2026-08-14",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/lets-get-acquainted/6788187270?i=6788187496",
+      "apple_music_url": "https://music.apple.com/us/album/lets-get-acquainted/6788187270?i=6788187496&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8b/d7/50/8bd75043-da4d-fca9-f323-25e59510059a/mzaf_7936292630932935552.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7d/ce/cd/7dcecda2-e61e-e3f9-87af-413cfd931fde/075679569837.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 17284,
+      "posted_at": "2026-09-26T21:09:44.122000+00:00",
+      "date": "2026-09-26",
+      "day": "Sat",
+      "month": "09_2026",
+      "track_name": "Coolest Cat",
+      "artist_name": "James the Seventh",
+      "album": "Science",
+      "genre": "Alternative",
+      "duration": "2:06",
+      "duration_sec": 126,
+      "release_date": "2026-05-15",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6788187274",
+      "apple_music_url": "https://music.apple.com/us/album/coolest-cat/6788187270?i=6788187274&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/34/76/2b/34762b2e-3d0d-0f64-dcfa-764c70b4fcd2/mzaf_1443327738444998531.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7d/ce/cd/7dcecda2-e61e-e3f9-87af-413cfd931fde/075679569837.jpg/600x600bb.jpg"
     }
   ]
 }
