@@ -4,11 +4,13 @@
     <script>
   (function () {
     try {
-      var pairs = [["deets-theme", "deets.theme"], ["deets-skin", "deets.skin"]];
+      var look = JSON.parse(localStorage.getItem("deets.settings") || "{}");
+      var pairs = [["deets-theme", "theme"], ["deets-skin", "skin"]], seeded = false;
       for (var i = 0; i < pairs.length; i++) {
         var site = localStorage.getItem(pairs[i][0]);
-        if (site && !localStorage.getItem(pairs[i][1])) localStorage.setItem(pairs[i][1], site);
+        if (site && !look[pairs[i][1]]) { look[pairs[i][1]] = site; seeded = true; }
       }
+      if (seeded) localStorage.setItem("deets.settings", JSON.stringify(look));
     } catch (e) {}
     // The demo's own defaults (WEB-DEMO.md §11, his call 2026-09-26): Ocean's Album light
     // starts at 80, not the app's 0. Written only while the visitor has no value of their own,
@@ -62,10 +64,15 @@
             if (!held) look = day ? P.day : P.night;
           }
         } catch (e) {}
-        [["deets.theme", "data-theme", dark ? "black-red" : "lilac"],
-         ["deets.skin",  "data-skin",  dark ? "cyber" : "press"]].forEach(function (a, i) {
-          var saved = null;
-          try { saved = localStorage.getItem(a[0]); } catch (e) {}
+        // Your look: the settings store's `theme` / `skin` (RULES.md §7a), else the old keys
+        // (a store from before 2026-09-26 that has not loaded yet).
+        var S = null;
+        try { S = JSON.parse(localStorage.getItem("deets.settings")); } catch (e) {}
+        [["theme", "deets.theme", "data-theme", dark ? "black-red" : "lilac"],
+         ["skin",  "deets.skin",  "data-skin",  dark ? "cyber" : "press"]].forEach(function (a, i) {
+          var saved = S && S[a[0]];
+          try { if (!saved) saved = localStorage.getItem(a[1]); } catch (e) {}
+          a = a.slice(1);
           document.documentElement.setAttribute(a[1], look ? (R[look[i]] || look[i]) : saved ? (R[saved] || saved) : a[2]);
         });
       })();
@@ -102,8 +109,8 @@
          loopback auth page loads. `player.ts` configures it lazily on first play.
          A launch with no network fails this load; the flag lets player.ts load it again
          (TOASTS.md §5, the Apple health offline row). -->
-    <script type="module" crossorigin src="./assets/main-qNnnFUdl.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/main-DWVYK0Wx.css">
+    <script type="module" crossorigin src="./assets/main-Dd5NmYIJ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/main-BMpFjVkK.css">
   </head>
 
   <body>
