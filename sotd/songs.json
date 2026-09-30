@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-27T02:00:15Z",
+  "generated_at": "2026-09-30T02:00:18Z",
   "channel": "song-of-the-day",
-  "count": 427,
+  "count": 429,
   "songs": [
     {
       "post_id": 1,
@@ -9822,6 +9822,52 @@
       "url": "https://music.apple.com/song/6788187274",
       "apple_music_url": "https://music.apple.com/us/album/coolest-cat/6788187270?i=6788187274&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/34/76/2b/34762b2e-3d0d-0f64-dcfa-764c70b4fcd2/mzaf_1443327738444998531.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7d/ce/cd/7dcecda2-e61e-e3f9-87af-413cfd931fde/075679569837.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 18139,
+      "posted_at": "2026-09-28T04:08:30.852000+00:00",
+      "date": "2026-09-27",
+      "day": "Sun",
+      "month": "09_2026",
+      "track_name": "22 (OVER S∞∞N)",
+      "artist_name": "Bon Iver",
+      "album": "22, A Million",
+      "genre": "Alternative",
+      "duration": "2:48",
+      "duration_sec": 168,
+      "release_date": "2016-08-15",
+      "release_year": 2016,
+      "age_yrs": 10,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1141108073",
+      "apple_music_url": "https://music.apple.com/us/album/22-over-s-n/1141107722?i=1141108073&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5b/bf/df/5bbfdf1a-1d6d-2d58-4475-63866b7dcf3f/mzaf_15639924600341276537.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/df/7d/90/df7d908a-b7ae-5565-4f89-40f8bc9440ab/656605230061.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 18568,
+      "posted_at": "2026-09-29T19:04:06.351000+00:00",
+      "date": "2026-09-29",
+      "day": "Tue",
+      "month": "09_2026",
+      "track_name": "Race Car Driver",
+      "artist_name": "James the Seventh",
+      "album": "Science",
+      "genre": "Alternative",
+      "duration": "2:33",
+      "duration_sec": 153,
+      "release_date": "2026-08-14",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6788187500",
+      "apple_music_url": "https://music.apple.com/us/album/race-car-driver/6788187270?i=6788187500&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/74/7b/2a/747b2aed-183a-8200-3bbe-c39bddd853f9/mzaf_13487619835189481865.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7d/ce/cd/7dcecda2-e61e-e3f9-87af-413cfd931fde/075679569837.jpg/600x600bb.jpg"
     }
   ]
