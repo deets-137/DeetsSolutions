@@ -712,7 +712,7 @@
      state flips classes/text only — the page rebuilds on every state
      message while the popup is open, and it must hold still. */
   var GUIDE_SECTIONS = [
-    { head: "guideSecShape", items: [["allChows", "1"], ["allPungs", "3"], ["halfFlush", "3"], ["fullFlush", "7"]] },
+    { head: "guideSecShape", items: [["allChows", "1"], ["allPungs", "3"], ["sevenPairs", "4"], ["halfFlush", "3"], ["fullFlush", "7"]] },
     { head: "guideSecWinds", items: [["dragonPung", "1"], ["smallDragons", "+3"], ["seatWind", "1"], ["prevWind", "1"], ["smallWinds", "+3"]] },
     { head: "guideSecWon", note: "guideWonNote",
       items: [["selfDraw", "1"], ["concealed", "1"], ["robbingKong", "1"], ["kongReplacement", "1"], ["lastTileDraw", "1"], ["lastTileDiscard", "1"]] },

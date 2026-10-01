@@ -270,8 +270,16 @@
     for (var k in c) { if (ORPHANS.indexOf(k) < 0) return false; total += c[k]; }
     return pair === 1 && total === 14;
   }
+  // seven different pairs, nothing melded (a doubled pair is not two)
+  function isSevenPairs(tiles, meldCount) {
+    if (meldCount > 0 || tiles.length !== 14) return false;
+    var c = countsOf(tiles), kinds = 0;
+    for (var k in c) { if (c[k] !== 2) return false; kinds++; }
+    return kinds === 7;
+  }
   function isWinningTiles(tiles, meldCount) {
     if (isThirteenOrphans(tiles, meldCount)) return true;
+    if (isSevenPairs(tiles, meldCount)) return true;
     if (tiles.length !== 14 - meldCount * 3) return false;
     return !!decompose(tiles, meldCount);
   }
@@ -285,6 +293,8 @@
     var meldCount = g.players[seat].melds.length;
     var thirteen = isThirteenOrphans(tiles, meldCount);
     var decs = thirteen ? [null] : decomposeAll(tiles, meldCount);
+    // seven pairs competes as one more arrangement (a set-free "decomposition")
+    if (!thirteen && isSevenPairs(tiles, meldCount)) decs.push({ sevenPairs: true, sets: [] });
     if (!thirteen && !decs.length) return null;
     var best = null;
     decs.forEach(function (dec) {
@@ -347,6 +357,7 @@
       var chows2 = allSets.filter(function (s) { return s.kind === "chow"; });
       var dragonP = pungs2.filter(function (s) { return DRAGONS.indexOf(s.tile) >= 0; });
       var windP = pungs2.filter(function (s) { return WINDS.indexOf(s.tile) >= 0; });
+      if (dec.sevenPairs) add("sevenPairs", 4);
       if (chows2.length === 4 && !isHonor(dec.pair)) add("allChows", 1);
       if (pungs2.length === 4) add("allPungs", 3);
       if (suitN === 1) add(honors > 0 ? "halfFlush" : "fullFlush", honors > 0 ? 3 : 7);
@@ -397,7 +408,8 @@
   }
 
   /* faan FACTS an incomplete hand already holds (the scoring guide's
-     live marks): meld-locked dragon/wind pungs, banked flowers, and
+     live marks): dragon/wind pungs (melded, or three alike concealed),
+     banked flowers, and
      current suit purity. Returns { faan, parts } like scoreHand, but
      only from what the tiles show right now — win-moment bonuses
      (self-draw, concealed, robbing, limit hands) are never counted,
@@ -409,18 +421,22 @@
     var cap = g.settings.capFaan;
     var parts = [];
     function add(key, n) { parts.push({ key: key, faan: n }); }
-    p.melds.forEach(function (m) {
-      if (m.kind === "chow") return;
-      if (DRAGONS.indexOf(m.tile) >= 0) add("dragonPung", 1);
-      var wi = WINDS.indexOf(m.tile);
+    function honorPung(t) {
+      if (DRAGONS.indexOf(t) >= 0) add("dragonPung", 1);
+      var wi = WINDS.indexOf(t);
       if (wi >= 0) {
         if (wi === seatWindIdx(g, seat)) add("seatWind", 1);
         if (wi === g.round.prevailing % 4) add("prevWind", 1);
       }
-    });
+    }
+    p.melds.forEach(function (m) { if (m.kind !== "chow") honorPung(m.tile); });
     // suit purity across the whole hand: concealed + drawn + meld tiles
     var tiles = p.hand.slice();
     if (g.turn && g.turn.seat === seat && g.turn.drawn != null) tiles.push(g.turn.drawn);
+    // a concealed honor triplet is as good as held: honors can't chow,
+    // so three alike can only ever score as a pung
+    var hc = countsOf(tiles);
+    for (var hk in hc) if (isHonor(hk) && hc[hk] >= 3) honorPung(hk);
     p.melds.forEach(function (m) { tiles.push(m.tile); });
     var suits = {}, honors = 0;
     tiles.forEach(function (t) { if (isHonor(t)) honors++; else suits[suitOf(t)] = 1; });
@@ -1231,6 +1247,32 @@
       var pr2 = scoreProgress(g, 0);
       // pure one suit 7 + the two flowers
       eq(pr2.faan, 9, "progress: pure flush reads from concealed tiles alone");
+      // a concealed round-wind triplet lights the row (seat 1 = South, round = East)
+      p.flowers = []; g.players[1].flowers = [];
+      g.players[1].melds = [];
+      g.players[1].hand = ["we", "we", "we", "dg", "dg", "dg", "m1", "m2", "m3", "p4", "p5", "s9", "s9"];
+      var pr3 = scoreProgress(g, 1);
+      ok(pr3.parts.some(function (x) { return x.key === "prevWind"; }), "progress: concealed round-wind triplet counts");
+      ok(!pr3.parts.some(function (x) { return x.key === "seatWind"; }), "…but not as South's seat wind");
+      ok(pr3.parts.some(function (x) { return x.key === "dragonPung"; }), "progress: concealed dragon triplet counts");
+    })();
+
+    /* seven pairs */
+    (function () {
+      var sp = ["m1","m1","m4","m4","p2","p2","p7","p7","s3","s3","s8","s8","dr","dr"];
+      ok(isWinningTiles(sp, 0), "seven pairs wins");
+      ok(!isWinningTiles(["m1","m1","m1","m1","p2","p2","p7","p7","s3","s3","s8","s8","dr","dr"], 0), "a doubled pair isn't two pairs");
+      var g = createGame({ settings: { minFaan: 0, capFaan: 13, winds: 1 } }, ctx);
+      g.phase = "play"; g.order = [0, 1, 2, 3];
+      g.round = { prevailing: 0, dealerIdx: 0, hand: 1 };
+      g.turn = { seat: 0, drawn: null };
+      g.players[0].flowers = ["f3"];
+      var sc = scoreHand(g, 0, sp, { seat: 0, selfDraw: false, discarder: 1 });
+      // seven pairs 4 + concealed 1
+      eq(sc && sc.faan, 5, "seven pairs scores 4 + concealed");
+      var sc2 = scoreHand(g, 0, ["m1","m1","m2","m2","m3","m3","m5","m5","m6","m6","m7","m7","m9","m9"], { seat: 0, selfDraw: false, discarder: 1 });
+      // pure one suit 7 + seven pairs 4 + concealed 1 (beats the all-chows split)
+      eq(sc2 && sc2.faan, 12, "seven pairs stacks with a flush and outscores the chow split");
     })();
 
     /* standings — competition ranking over cumulative score */

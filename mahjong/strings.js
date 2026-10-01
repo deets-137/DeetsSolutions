@@ -224,6 +224,7 @@ window.MAHJONG_STRINGS = {
    faanNoFlowers: "No Flowers",
    faanSeatFlower: "Seat Flower",
    faanFlowerQuad: "Flower Quad",
+   faanSevenPairs: "[ph] Seven Pairs",
 
    /* ── scoring guide (the Scoring pill's popup) ────────────────
       approved by Aditya in chat (2026-07-24, scoring-guide session) —
@@ -277,6 +278,7 @@ window.MAHJONG_STRINGS = {
    guideDescGreatWinds: "triplets of all 4 winds",
    guideDescAllKongs: "four kongs",
    guideDescNineGates: "concealed 1112345678999 + one more",
+   guideDescSevenPairs: "[ph] seven different pairs, nothing melded",
 
    /* ── in-game attention toasts ────────────────────────────────── */
    claimToast: "You can claim {name}'s {tile}!",

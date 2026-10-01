@@ -110,6 +110,7 @@ split, so a hand that parses as both chows and pungs scores as pungs):
 | --- | --- |
 | cap (limit) | Thirteen Orphans, Heavenly/Earthly, All Honors, Great Dragons, Great Winds, All Kongs, Nine Gates |
 | 7 | Pure One Suit |
+| 4 | Seven Pairs (seven *different* pairs, nothing melded; the scorer weighs it against every set split) |
 | 3 | All Pungs, Mixed One Suit, Small Dragons (+the 2 dragon-pung faan → 5 total), Small Winds (+wind-pung faan) |
 | 1 each | Common Hand (all chows, non-honor pair), dragon pung, seat wind pung, round wind pung, concealed (no claimed melds, discard win), self-draw, robbing the kong, kong replacement, last-tile draw/claim, no flowers, each own-seat flower/season |
 | 2 | a complete flower or season quad (on top of its seat faan) |
