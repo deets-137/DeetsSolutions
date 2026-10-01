@@ -1,8 +1,32 @@
 {
- "generated_at": "2026-09-21T02:00:15Z",
+ "generated_at": "2026-10-01T02:00:19Z",
  "source": "letterboxd",
- "count": 318,
+ "count": 319,
  "movies": [
+  {
+   "name": "Best of the Best",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/best-of-the-best-2026/",
+   "logged_date": "2026-09-30",
+   "watched_date": "2026-09-30",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 5.0,
+   "liked": true,
+   "review": "Shoutout Joy Crookes\nShoutout Hasan\nShoutout Maitreyi\nShoutout the whole project cast and crew\n\nThe movie has some rom-com quirks of jumping the gun in a couple places with the story, but it can’t be accused of lacking passion, care, or anything of the sort. A fun one, I can’t stop watching interviews and reading pieces about it from the folks who worked on it.",
+   "review_date": "2026-09-30",
+   "watches": [
+    {
+     "date": "2026-09-30",
+     "rating": 5.0,
+     "rewatch": false,
+     "review": "Shoutout Joy Crookes\nShoutout Hasan\nShoutout Maitreyi\nShoutout the whole project cast and crew\n\nThe movie has some rom-com quirks of jumping the gun in a couple places with the story, but it can’t be accused of lacking passion, care, or anything of the sort. A fun one, I can’t stop watching interviews and reading pieces about it from the folks who worked on it."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/9soOjsZ91vtMzypK2F3MC378JI5.jpg"
+  },
   {
    "name": "Vishwanath & Sons",
    "year": 2026,
