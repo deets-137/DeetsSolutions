@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-01T02:00:17Z",
+  "generated_at": "2026-10-03T08:40:36Z",
   "channel": "song-of-the-day",
-  "count": 431,
+  "count": 433,
   "songs": [
     {
       "post_id": 1,
@@ -9915,6 +9915,52 @@
       "apple_music_url": "https://music.apple.com/us/album/good-grief/1440838269?i=1440838546&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/fc/79/f6/fc79f6d3-3600-8ecc-0e3a-2a20747373a1/mzaf_18384239319494411270.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/20/08/63/20086312-e5d1-55ea-6f8a-8945c4f93144/16UMGIM34328.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 19862,
+      "posted_at": "2026-10-02T06:25:46.712000+00:00",
+      "date": "2026-10-01",
+      "day": "Thu",
+      "month": "10_2026",
+      "track_name": "Draw You Out",
+      "artist_name": "Noah Kahan & The Hunger Games",
+      "album": "The Hunger Games: Sunrise on the Reaping - The Album",
+      "genre": "Alternative",
+      "duration": "4:15",
+      "duration_sec": 255,
+      "release_date": "2026-10-02",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "avery",
+      "url": "https://music.apple.com/us/song/draw-you-out/6814871229",
+      "apple_music_url": "https://music.apple.com/us/album/draw-you-out/6814870921?i=6814871229&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d8/cc/02/d8cc0258-b260-47d9-fa81-c6493fed86a4/mzaf_17247647537135624103.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/de/a0/db/dea0db01-b9a7-173e-ccb2-c07c31f634bb/26UM1IM10359.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 19863,
+      "posted_at": "2026-10-02T06:27:46.762000+00:00",
+      "date": "2026-10-01",
+      "day": "Thu",
+      "month": "10_2026",
+      "track_name": "barcelona",
+      "artist_name": "Winnetka Bowling League & Sasha Alex Sloan",
+      "album": "barcelona - Single",
+      "genre": "Alternative",
+      "duration": "3:45",
+      "duration_sec": 225,
+      "release_date": "2021-05-12",
+      "release_year": 2021,
+      "age_yrs": 5,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1565583662",
+      "apple_music_url": "https://music.apple.com/us/album/barcelona/1565583655?i=1565583662&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/da/6a/1c/da6a1c06-1da7-0e05-4830-a019e756769f/mzaf_5504696785652149903.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/7d/c6/fe/7dc6fec5-bc61-1db5-7759-27d8c1606b33/886449194827.jpg/600x600bb.jpg"
     }
   ]
 }
