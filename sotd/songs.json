@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-03T08:40:36Z",
+  "generated_at": "2026-10-04T05:53:49Z",
   "channel": "song-of-the-day",
-  "count": 433,
+  "count": 434,
   "songs": [
     {
       "post_id": 1,
@@ -9961,6 +9961,29 @@
       "apple_music_url": "https://music.apple.com/us/album/barcelona/1565583655?i=1565583662&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/da/6a/1c/da6a1c06-1da7-0e05-4830-a019e756769f/mzaf_5504696785652149903.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/7d/c6/fe/7dc6fec5-bc61-1db5-7759-27d8c1606b33/886449194827.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 20297,
+      "posted_at": "2026-10-03T08:53:56.592000+00:00",
+      "date": "2026-10-02",
+      "day": "Fri",
+      "month": "10_2026",
+      "track_name": "Blissed Out",
+      "artist_name": "Raveena",
+      "album": "Blissed Out - Single",
+      "genre": "Pop",
+      "duration": "3:58",
+      "duration_sec": 238,
+      "release_date": "2026-09-16",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/blissed-out/6807981980?i=6807981985",
+      "apple_music_url": "https://music.apple.com/us/album/blissed-out/6807981980?i=6807981985&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8f/a5/0f/8fa50ff0-ff74-ca29-d821-0a59d6e7234f/mzaf_593629197048477819.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d6/6c/f3/d66cf352-9ff7-bcc5-3696-6f828ee1f7e9/193436485944_RaveenaBlissedOutSingleArtwork.jpg/600x600bb.jpg"
     }
   ]
 }
