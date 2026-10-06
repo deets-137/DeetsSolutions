@@ -588,6 +588,7 @@
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
       ALL = (data && data.songs) || [];
+      if (window.DeetsAppearance && DeetsAppearance.offerSotd) DeetsAppearance.offerSotd(ALL);   // Ocean's glow (controls.js)
       TOTAL = ALL.length;
       UPDATED = data.generated_at ? prettyDate(data.generated_at.slice(0, 10)) : "";
       UPLOADERS = uniqSorted(ALL.map(function (s) { return s.author; }));

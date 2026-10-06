@@ -138,6 +138,9 @@
     sure: "Sure?",               // DeetsMusic's confirm-by-rearming label
     lightLook: "[ph] Light default look",
     darkLook: "[ph] Dark default look",
+    tips: "Tips",                    // DeetsMusic's section name
+    tour: "Show the tour again",     // DeetsMusic's row label
+    tourHint: "[ph] Deets and Happy walk you round the home page, the way they did on your first visit",
   };
 
   /* The two first-visit looks (his call, 2026-09-15). The OS light/dark
@@ -409,8 +412,9 @@
      place: theme and skin stay in their flyouts above. Everything applies
      live; there is no Save. Row kinds: toggle (key: boolean), choice (key +
      up to three [value, label] options, a split pill), range (key 0–100; a
-     drag previews through previewSkin, the release writes the store). A row
-     with `when` shows only while it holds (the skin-only rows). */
+     drag previews through previewSkin, the release writes the store), action
+     (no key; a button that calls `run`). A row with `when` shows only while
+     it holds (the skin-only rows). */
   function skinIs(id) { return document.documentElement.getAttribute("data-skin") === id; }
   function glass() { return skinIs("glass"); }
   var SECTIONS = [
@@ -557,6 +561,12 @@
           half.setAttribute("data-focus", "row:" + r.id + ":" + o[0]);
           half.addEventListener("click", function () { setSetting(r.key, o[0]); });
         });
+      } else if (r.kind === "action") {
+        node = make("button", "set__row set__row--go");
+        node.type = "button";
+        node.setAttribute("data-focus", "row:" + r.id);
+        node.appendChild(label);
+        node.addEventListener("click", r.run);
       } else {
         var v = clamp100(setting(r.key));
         node = make("div", "set__row set__row--range");
@@ -885,19 +895,75 @@
     document.body.insertBefore(el, document.body.firstChild);
   }
 
-  /* Ocean: three wave trains, each an opaque fill under a hairline crest,
-     so a nearer swell occludes the ones behind it. Each tile is one full
-     sine period (Q + T reflection), so the curve's value AND tangent match
-     at the tile edge: no seam, no crossings. The tiles are CSS masks built
-     here from the geometry table; ink/fill are theme roles (.ocean in
-     chrome.css). */
+  /* Ocean: the app's swell (DeetsMusic 0.14.0, its docs/features/OCEAN.md
+     §3). Three depth bands, far to near, each a bob box (rise and fall)
+     around a train box (the roll), then the glow from the deep. The bands
+     are painted once, in a worker, by js/ocean.js (+ ocean-worker.js); it
+     is loaded the first time the skin is Ocean (loadOcean below), so pages
+     carry no tag for it. CSS moves the boxes (chrome.css). */
+  function buildOcean() {
+    if (document.documentElement.getAttribute("data-ocean-sea") === "classic") return buildClassicOcean();
+    var sea = layer("ocean");
+    ["far", "mid", "near"].forEach(function (n) {
+      var bob = sea.appendChild(document.createElement("div"));
+      bob.className = "ocean__bob ocean__bob--" + n;
+      bob.appendChild(document.createElement("div")).className = "ocean__train ocean__train--" + n;
+    });
+    sea.appendChild(document.createElement("div")).className = "ocean__glow";
+    return sea;
+  }
+
+  /* The sea's painter, loaded on demand: now if the skin is Ocean, else the
+     first time it becomes Ocean. Its path resolves from this script's own
+     URL (pages sit at different depths), keeping the same ?v= query. */
+  var SELF_SRC = (document.currentScript && document.currentScript.src) || "";
+  var oceanLoading = false;
+  function loadOcean() {
+    if (oceanLoading || !SELF_SRC || !skinIs("ocean")) return;
+    if (!document.body.querySelector(':scope > .ocean:not([data-sea="classic"])')) return;
+    oceanLoading = true;
+    var q = SELF_SRC.indexOf("?") >= 0 ? SELF_SRC.slice(SELF_SRC.indexOf("?")) : "";
+    var s = document.createElement("script");
+    s.src = new URL("ocean.js", SELF_SRC.split("?")[0]).href + q;
+    s.async = true;
+    document.head.appendChild(s);
+  }
+  function watchOcean() {
+    loadOcean();
+    if (oceanLoading) return;
+    var mo = new MutationObserver(function () {
+      loadOcean();
+      if (oceanLoading) mo.disconnect();
+    });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-skin"] });
+  }
+
+  /* Today's Song of the Day, for the sea's glow (js/ocean.js). The home page
+     and the SOTD journal load songs.json anyway and hand the list over here,
+     so the sea needs no second fetch; it is held for an ocean.js that loads
+     later. */
+  var sotdSongs = null;
+  function offerSotd(songs) {
+    if (!songs || !songs.length) return;
+    sotdSongs = songs;
+    if (window.DeetsOcean) window.DeetsOcean.offer(songs);
+  }
+
+  /* The classic sea, kept for the Tanks level designer (tanks/designer.html
+     sets data-ocean-sea="classic"; docs/tanks.md): three wave trains, each
+     an opaque fill under a hairline crest, so a nearer swell occludes the
+     ones behind it. Each tile is one full sine period (Q + T reflection),
+     so the curve's value AND tangent match at the tile edge: no seam, no
+     crossings. The tiles are CSS masks built here from the geometry table;
+     ink/fill are theme roles (.ocean[data-sea="classic"] in chrome.css). */
   function svgMask(w, h, body) {
     return 'url("data:image/svg+xml,' + encodeURIComponent(
       "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h + "'>" +
       body + "</svg>") + '")';
   }
-  function buildOcean() {
+  function buildClassicOcean() {
     var sea = layer("ocean");
+    sea.setAttribute("data-sea", "classic");
     // [tile width, tile height, crest baseline, amplitude], farthest first
     // so the nearest train paints last (on top).
     var SWELLS = { 3: [80, 46, 26, 4], 2: [64, 38, 22, 5], 1: [48, 30, 17, 6] };
@@ -970,6 +1036,10 @@
     axes: AXES,
     get: function (name) { return current(AXES[name]); },
     set: function (name, id) { apply(AXES[name], id); },
+    // Ocean's glow (js/ocean.js): a page that loaded sotd/songs.json passes
+    // its songs list; heldSotd gives it back to an ocean.js loaded later.
+    offerSotd: offerSotd,
+    heldSotd: function () { return sotdSongs; },
   };
 
   // The settings store for page scripts. `request` is wired once the Vibe
@@ -983,7 +1053,7 @@
 
   function init() {
     inject(buildOcean()); inject(buildAurora()); inject(buildStorm()); inject(layer("boot-cover"));
-    watchVisibility(); buildMenu(); buildNavMenu();
+    watchVisibility(); watchOcean(); buildMenu(); buildNavMenu();
   }
 
   if (document.readyState === "loading") {

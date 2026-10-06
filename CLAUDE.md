@@ -6,6 +6,10 @@ served flat.
 ## Never
 
 - **Never add a dependency.** No npm, bundlers, frameworks, or CDN scripts.
+  One dev-only exception (his call, 2026-10-06): `wrangler` as a local
+  devDependency, for the local server (`npm run dev` → `scripts/dev.js`).
+  `package.json` and its lockfile are gitignored, so they never reach Pages.
+  Nothing the browser loads may come from `node_modules`.
 - **Never write a hex code or hardcoded geometry into a site rule.** Use the
   semantic tokens from `themes.css` (color) and `skin.css` (shape/type/motion).
   If the value has no token, add a role to the right tier. Every component
@@ -45,8 +49,10 @@ Start at [README.md](README.md). Then:
 | **Real-time games (tanks, doom)** | **[realtime.md](docs/realtime.md)** — read before tanks.md; owns the tick, authority, DO posture |
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
+| The home page's first-run walk (Deets + Happy lead a first visitor; `/?tour`) — built 2026-09-24, copy all `[ph]` | [onboarding.md](docs/onboarding.md) |
 | Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
 | DeetsMusic page (`deetsmusic/`, nav tab): status, installs, releases, boards (filter/sort, owner right-click moderation), intake, remote config — worker live, page SHIPPED 2026-09-14 (`?mock` = sample data, everyone owner), Aditya leads its design | [support.md](docs/support.md) |
+| **DeetsMusic page's product pass** (tagline, features, screenshots, requirements + trust; later items; the tip jar; the site's Ocean brought up to the app's sea) — planned 2026-10-06, not built | [deetsmusic-page-pass.md](docs/deetsmusic-page-pass.md) |
 | DeetsMusic web demo (`deetsmusic/demo/`): the real app UI in an iframe with mock songs. `app/` is a build copied from the DeetsMusic repo (`npm run demo:publish`) — never hand-edit it | DeetsMusic repo `docs/features/WEB-DEMO.md` |
 | A Status row for DeetsMusic's listening-rooms worker (`rooms.deets.solutions`): one D1 insert, one markup block, one `[ph]` string — designed 2026-09-17, not built | [rooms-status.md](docs/rooms-status.md) |
 
@@ -139,7 +145,7 @@ he dictated in chat.
 | Cities | Underway |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 | Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |
-| DeetsMusic | Done — whole-page pass 2026-09-14 in chat (filter/sort included), the board-thread strings 2026-09-15 (thread page, comments, moderation menu), and the poll strings 2026-09-15; zero `[ph]` left |
+| DeetsMusic | Done — whole-page pass 2026-09-14 in chat (filter/sort included), the board-thread strings 2026-09-15 (thread page, comments, moderation menu), and the poll strings 2026-09-15. The product pass-1 block (Features, Demos, Requirements and trust; 2026-10-06) approved in chat the same day; only the three picture alt texts are still `[ph]` |
 | Settings panel (shared chrome) | Copy lives in the `S` table in `js/controls.js`, not a `strings.js`. Labels reused from DeetsMusic need no `[ph]` (his call, 2026-09-15); only new site-only wording does |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his

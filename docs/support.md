@@ -974,8 +974,10 @@ What it holds (2026-09-14): **server uptime, installs, release notes,
 update patches, suggestions, and bugs.** Facts the design has to work
 with, not choices about it:
 
-- **It is probably the only public download point.** The GitHub repo is
-  private, and DeetsMusic RELEASE.md §6.6's lost-key runbook sends people
+- **It is probably the only public download point.** The GitHub repo
+  (`deets-137/DeetsMusicWindows`) was private when this was written; **it is
+  public, MIT, since** (checked 2026-10-06, [deetsmusic-page-pass.md](deetsmusic-page-pass.md)
+  §2), with Issues and Discussions off. DeetsMusic RELEASE.md §6.6's lost-key runbook sends people
   to "the GitHub Release, the support page" for a hand install. The
   remote `notice` links here.
 - **The installer comes straight from R2 through the worker:**

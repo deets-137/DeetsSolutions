@@ -15,7 +15,7 @@
 @import "./fonts.css?v=2026-09-17";
 @import "./palette.css?v=2026-09-17";
 @import "./themes.css?v=2026-09-17";
-@import "./skin.css?v=2026-09-17";
+@import "./skin.css?v=2026-10-06b";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -113,15 +113,75 @@ body::before {
   pointer-events: none;
 }
 
-/* Ocean — the roll and bob keyframes (skin.css) read per-layer distances
-   from --roll-dist / --bob-amp, set here. */
-.ocean { display: var(--ocean-display, none); }
+/* Ocean — DeetsMusic's swell (its styles.css §Ocean layer; docs/features/
+   OCEAN.md §3). js/ocean.js paints each depth band once (in a worker) at the
+   sea's height and sets it as a plain background, with its tile width as
+   --tw. After that nothing is painted again: the boxes only move (transform)
+   and fade (opacity). No masks. Paint order, back to front: the water
+   (--ocean-deep), the far band, the middle band, the near band, the glow
+   from the deep. Each band's wave bodies are opaque water, so a nearer swell
+   hides the water behind it. The roll and bob keyframes (skin.css) read
+   per-box distances from --roll-dist / --bob-amp, set here. */
+.ocean {
+  display: var(--ocean-display, none);
+  background: var(--ocean-deep);
+}
 .ocean__bob {
   position: absolute;
   inset: 0;
-  animation: ocean-bob 9s linear infinite alternate;   /* the ease is sampled into the keyframes */
+  animation: ocean-bob calc(var(--bob-s) * 1s) linear infinite alternate;   /* the ease is sampled into the keyframes */
   will-change: transform;
 }
+/* The bands bob against each other, so the sea breathes rather than pumps. */
+.ocean__bob--far  { --bob-s: var(--ocean-bob-far);  --bob-amp: var(--ocean-bob-amp-far); }
+.ocean__bob--mid  { --bob-s: var(--ocean-bob-mid);  --bob-amp: var(--ocean-bob-amp-mid); }
+.ocean__bob--near { --bob-s: var(--ocean-bob-near); --bob-amp: var(--ocean-bob-amp-near); }
+/* A band: one tile wider than the viewport, rolling right by one tile per
+   loop. Its picture is the sea's full height (ocean.js repaints it when the
+   height changes). It fades in once painted (data-on). */
+.ocean__train {
+  position: absolute;
+  left: calc(-1 * var(--tw, 0px));
+  top: 0;
+  width: calc(100% + var(--tw, 0px));
+  height: 100%;
+  background-repeat: repeat-x;
+  --roll-dist: var(--tw, 0px);
+  animation: ocean-roll calc(var(--roll-s) * 1s) linear infinite;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity var(--ocean-glow-fade) var(--ocean-ease);
+}
+.ocean__train[data-on] { opacity: 1; }
+.ocean__train--far  { --roll-s: var(--ocean-roll-far); }
+.ocean__train--mid  { --roll-s: var(--ocean-roll-mid); }
+.ocean__train--near { --roll-s: var(--ocean-roll-near); }
+/* The glow from the deep, in the color of today's Song of the Day cover
+   (ocean.js sets --ocean-glow-color on .ocean; transparent with no cover).
+   The color crossfades as a registered property, which repaints this one
+   box while it fades (once a day at most). */
+@property --ocean-glow-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+.ocean__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(var(--ocean-glow-shape), var(--ocean-glow-color), transparent var(--ocean-glow-reach));
+  opacity: var(--ocean-glow);
+  transition: --ocean-glow-color var(--ocean-glow-fade) var(--ocean-ease);
+}
+/* The radio shell (main.css §radio shell) covers the whole page with its
+   frame and its flat dock; the framed page runs its own sea. This one would
+   only be painted and rolled out of sight. */
+:root[data-radio-shell] .ocean { display: none; }
+
+/* The classic sea — the Tanks level designer only (tanks/designer.html sets
+   data-ocean-sea="classic"; his call, 2026-10-06). Masked wave trains built
+   by controls.js buildClassicOcean(), over the plain canvas. */
+.ocean[data-sea="classic"] { background: none; }
+.ocean[data-sea="classic"] .ocean__bob { animation: ocean-bob 9s linear infinite alternate; }
 /* Oversized and left-shifted so a full roll cycle (≤144px) never drags the
    box's own edge into view; the tiles just repeat across the slack. */
 .ocean__roll {
@@ -225,7 +285,9 @@ body::before {
    segment (ocean-bob has 5, aurora-drift 10; the storm wipe is its 0→60%
    segment). A browser without round() / unit division runs them smooth. */
 @supports (animation-timing-function: steps(round(1s * 30 / 1s))) {
-  .ocean__bob    { animation-timing-function: steps(round(9 * var(--ambient-fps) / 5)); }
+  .ocean__bob    { animation-timing-function: steps(round(var(--bob-s) * var(--ambient-fps) / 5)); }
+  .ocean__train  { animation-timing-function: steps(round(var(--roll-s) * var(--ambient-fps))); }
+  .ocean[data-sea="classic"] .ocean__bob { animation-timing-function: steps(round(9 * var(--ambient-fps) / 5)); }
   .ocean__roll   { animation-timing-function: steps(round(16 * var(--ambient-fps))); }
   .aurora__blob  { animation-timing-function: steps(round(var(--aurora-dur) * var(--ambient-fps) / 10 / 1s)); }
   .storm__strike,
@@ -233,14 +295,16 @@ body::before {
 }
 
 /* Hidden tab (controls.js): hold still, keep position. */
-:root[data-ambient="paused"] :is(.ocean__bob, .ocean__roll, .aurora__blob, .storm__strike, .storm__hold) {
+:root[data-ambient="paused"] :is(.ocean__bob, .ocean__train, .ocean__roll, .aurora__blob, .storm__strike, .storm__hold) {
   animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aurora__blob { animation: none; }           /* freeze the Glass aurora */
   /* Ocean stays VISIBLE, just still: a motionless sea is still a sea. */
-  .ocean__roll, .ocean__bob { animation: none; }
+  .ocean__train, .ocean__roll, .ocean__bob,
+  .ocean[data-sea="classic"] .ocean__bob { animation: none; }
+  .ocean__glow { transition: none; }
   .storm { display: none; }                    /* a frozen half-drawn bolt reads as a bug */
 }
 
@@ -1098,8 +1162,10 @@ body::before {
   color: var(--text);
   text-align: left;
 }
-.set__row--toggle { cursor: pointer; }
-.set__row--toggle:hover { background: var(--surface-hover); }
+.set__row--toggle,
+.set__row--go { cursor: pointer; }
+.set__row--toggle:hover,
+.set__row--go:hover { background: var(--surface-hover); }
 /* A choice keeps its pill on the label's line; it wraps under the label
    only when the row is too narrow. */
 .set__row--choice { flex-wrap: wrap; }
@@ -1214,7 +1280,7 @@ body::before {
 /* ── Animate backgrounds (Settings; data-bg-motion on <html>) ────
    Reduced halves the ambient rate (skin.css); Off holds the loops still
    and hides the storm (a frozen half-drawn bolt reads as a bug). */
-:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__roll, .aurora__blob) { animation-play-state: paused; }
+:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__train, .ocean__roll, .aurora__blob) { animation-play-state: paused; }
 :root[data-bg-motion="off"] .storm { display: none; }
 
 /* ── Canvas dim (Glass › Dim canvas) ─────────────────────────────

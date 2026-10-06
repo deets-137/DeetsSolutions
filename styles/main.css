@@ -632,6 +632,160 @@
 .home-card__link { color: inherit; text-decoration: none; }
 .home-card__link:hover { text-decoration: underline; text-decoration-color: var(--border); }
 
+/* ── The first-run walk (js/walk.js; docs/onboarding.md) ────────────
+   Deets and Happy walk to the thing a step names and stand beside it; a
+   speech card in the toast material holds the sentence. z 9: over the page
+   and the ambient walkers (5), under the header (10), so the menus two
+   steps ask you to open always draw over the walk. The sprite frame sizes
+   are the art's (the walker block in chrome.css keeps the same ones). */
+.walk {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+.walk__stop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--walk-card-gap);
+  max-width: calc(100vw - 2 * var(--space-2));
+  transition: left var(--walk-travel) var(--ease-ui),
+              top var(--walk-travel) var(--ease-ui),
+              opacity var(--dur-med) var(--ease-ui);
+}
+.walk__stop.is-leaving { opacity: 0; }
+.walk__pair {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--walk-pair-gap);
+}
+.walk__sprite {
+  flex: none;
+  width: var(--fw);
+  height: var(--fh);
+  background-repeat: no-repeat;
+  background-size: var(--fw) var(--fh);
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+}
+.walk__deets {
+  --fw: calc(32px * var(--walk-scale));
+  --fh: calc(64px * var(--walk-scale));
+  background-image: url("../assets/sprites/deets/idle_down.png");
+}
+.walk__happy {
+  --fw: calc(32px * var(--walk-scale));
+  --fh: calc(32px * var(--walk-scale));
+  background-image: url("../assets/sprites/happy/sit_side.png");
+}
+/* Walking: the 4-frame side strips, on the walkers' own cycle. The strips
+   face LEFT, so rightward travel mirrors them; standing, Deets faces you
+   and Happy sits. */
+.walk__stop[data-move="walk"] .walk__sprite {
+  background-size: calc(var(--fw) * 4) var(--fh);
+  animation: walker-cycle var(--walk-cycle) steps(4) infinite;
+}
+.walk__stop[data-move="walk"] .walk__deets { background-image: url("../assets/sprites/deets/walk_side.png"); }
+.walk__stop[data-move="walk"] .walk__happy { background-image: url("../assets/sprites/happy/walk_side.png"); }
+.walk__stop[data-move="walk"][data-way="right"] .walk__sprite { transform: scaleX(-1); }
+
+.walk__card {
+  pointer-events: auto;
+  position: relative;
+  box-sizing: border-box;
+  width: var(--walk-card-w);
+  max-width: 100%;
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-left: var(--walk-stripe) solid var(--title);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  padding: var(--walk-card-pad);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--walk-fs);
+  line-height: var(--lh-text);
+  animation: walk-card-in var(--pop-in) var(--pop-ease) both;
+}
+/* The arrow that names the target, on the card's top or bottom edge;
+   walk.js lines --walk-point-x up with the target's middle. */
+.walk__card::before {
+  content: "";
+  position: absolute;
+  left: var(--walk-point-x, var(--space-3));
+  width: 0;
+  height: 0;
+  border-left: calc(var(--walk-point) / 2) solid transparent;
+  border-right: calc(var(--walk-point) / 2) solid transparent;
+  transform: translateX(-50%);
+}
+.walk__stop[data-point="up"] .walk__card::before { bottom: 100%; border-bottom: var(--walk-point) solid var(--border); }
+.walk__stop[data-point="down"] .walk__card::before { top: 100%; border-top: var(--walk-point) solid var(--border); }
+.walk__stop[data-point="none"] .walk__card::before { content: none; }
+/* Pointing down means the card is above the target: the sprites go under it. */
+.walk__stop[data-point="down"] { flex-direction: column-reverse; }
+/* Tucked: a menu leaves no room for the card, so only the pair waits. */
+.walk__stop[data-tuck="1"] .walk__card { display: none; }
+
+.walk__step {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--subtext);
+  font-size: var(--walk-fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.walk__text { margin: 0; overflow-wrap: break-word; }
+.walk__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+/* The toast button idiom. */
+.walk__btn {
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--walk-fs-small);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-ui);
+}
+.walk__btn:hover { background: var(--surface-hover); }
+.walk__btn:focus-visible { outline: var(--focus-ring-w) solid var(--title); outline-offset: var(--focus-ring-off); }
+/* Skip is the quiet one: leaving is not the action to dress up. */
+.walk__btn--skip { border-color: transparent; color: var(--subtext); }
+.walk__btn--skip:hover { color: var(--text); }
+
+/* The thing a step names, while that step waits: a ring that breathes. */
+.walk-target {
+  outline: var(--focus-ring-w) solid var(--title);
+  outline-offset: var(--focus-ring-off);
+  animation: walk-target var(--walk-cycle) var(--ease-ui) infinite alternate;
+}
+@keyframes walk-card-in {
+  from { opacity: 0; transform: translateY(var(--pop-shift)); }
+}
+@keyframes walk-target {
+  from { outline-color: transparent; }
+}
+/* Reduced motion: the sprites are placed, not walked, and nothing pulses.
+   The walk itself still runs. */
+@media (prefers-reduced-motion: reduce) {
+  .walk__stop { transition: none; }
+  .walk__stop[data-move="walk"] .walk__sprite { animation: none; }
+  .walk__card, .walk-target { animation: none; }
+}
+
 /* The left column: the DeetsMusic card, then the SOTD hub, which grows to
    meet the side stack's height. */
 .home__main {
@@ -3295,6 +3449,119 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+/* ── Product pass 1 (docs/deetsmusic-page-pass.md §3): tagline, features,
+   screenshots, requirements + trust. `.dm-pitch` because `.dm-feats` is
+   the release notes' two-pane. Items are the earlier-release cards'
+   species (surface fill, control radius, keyline). ── */
+.dm-tagline { margin-block-start: calc(var(--space-4) * -0.5); }
+
+/* Even tiles (his call, 2026-10-06): all eight are one width and one
+   height. One grid holds them all (the two lists are display: contents):
+   six half-tracks, each tile spans two, so the six go 3 + 3 and the two
+   "Only" tiles sit centered under them at the same width. Every tile row
+   is 1fr — in an auto-height grid the fr rows all grow to the tallest —
+   and the label's row is auto. 2 across, then 1, when narrower. */
+.dm-pitch { container-type: inline-size; }
+.dm-pitch__tiles {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: 1fr 1fr auto 1fr;
+  gap: var(--space-3);
+  align-self: stretch;
+}
+.dm-pitch__list { display: contents; }
+.dm-pitch__item { grid-column: span 2; }
+.dm-pitch__item--only:first-child { grid-column: 2 / span 2; }
+.dm-pitch__only { grid-column: 1 / -1; }
+@container (max-width: 40rem) {
+  .dm-pitch__tiles { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr 1fr auto 1fr; }
+  .dm-pitch__item--only:first-child { grid-column: 1 / span 2; }
+}
+@container (max-width: 26rem) {
+  .dm-pitch__tiles { grid-template-columns: 1fr; grid-template-rows: repeat(6, 1fr) auto repeat(2, 1fr); }
+  .dm-pitch__item, .dm-pitch__item--only:first-child { grid-column: 1 / -1; }
+}
+.dm-pitch__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  text-align: center;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dm-pitch__t {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
+  color: var(--title);
+}
+.dm-pitch__b { margin: 0; color: var(--text); font-size: 0.9rem; line-height: 1.5; }
+.dm-pitch__only {
+  justify-self: center;
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: calc(var(--fs-title) * 0.7);
+  color: var(--title);
+}
+
+/* Screenshots: Max beside Midi and the Compass. The columns are the
+   pictures' own aspect ratios (Max 1100×950, Midi 495×670), so the three
+   stand at one height; narrower, Max takes its own row. */
+.dm-shots__row {
+  display: grid;
+  grid-template-columns: 1.57fr 1fr 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  align-self: stretch;
+}
+@media (max-width: 48rem) {
+  .dm-shots__row { grid-template-columns: 1fr 1fr; }
+  .dm-shot--max { grid-column: 1 / -1; }
+}
+.dm-shot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+}
+.dm-shot__link {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  transition: border-color var(--dur-fast) var(--ease-ui);
+}
+.dm-shot__link:hover { border-color: var(--title); }
+.dm-shot__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--surface);   /* the box holds its shape while the file loads */
+}
+
+/* Requirements + trust: label column, fact column, aligned across rows. */
+.dm-trust__list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  align-self: stretch;
+  margin: 0;
+}
+.dm-trust__row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+.dm-trust__row dt { color: var(--title); font-weight: var(--fw-title); font-family: var(--font-title); }
+.dm-trust__row dd { margin: 0; color: var(--text); line-height: 1.5; }
+@media (max-width: 30rem) {
+  .dm-trust__list { grid-template-columns: 1fr; }
 }
 
 /* ── Release notes — the newest release, then a row of earlier ones ──

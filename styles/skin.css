@@ -88,11 +88,36 @@
      core, 60 → 30 fps). A unitless integer. */
   --ambient-fps: 30;
 
-  /* -- ocean layer (rolling swell behind content) ------------- */
-  /* An inline-SVG layer (three seamless wave-train patterns) injected
-     into <body> by controls.js, that a skin opts into. Geometry lives
-     in controls.js; ink fades with distance via these roles. */
-  --ocean-display: none;             /* ocean opts in */
+  /* -- ocean layer (the sea behind content) -------------------- */
+  /* Injected into <body> by controls.js, that a skin opts into; js/ocean.js
+     paints the three depth bands from these colors (DeetsMusic's skin.css
+     ocean block, values one to one). Only the swell and the glow are
+     ported: no heave, ripples or neon (docs/deetsmusic-page-pass.md §7). */
+  --ocean-display:      none;             /* ocean opts in */
+  --ocean-water-top:    var(--canvas);    /* the water at the horizon … */
+  --ocean-water-bottom: var(--canvas);    /* … and at the bottom (the deepest) */
+  --ocean-deep:         linear-gradient(to bottom, var(--ocean-water-top), var(--ocean-water-bottom));
+  --ocean-swell-ink:    var(--border);    /* the crest line */
+  --ocean-trough:       0.35;             /* how much darker a trough is under its crest, on dark water */
+  --ocean-trough-light: 0.12;             /* the same on light water (more reads as sand dunes) */
+  --ocean-roll-far:     90;               /* s for a band to roll one tile (unitless: steps() needs a number); */
+  --ocean-roll-mid:     90;               /*   the tiles are 360 / 720 / 1200 px (ocean-worker.js BANDS), */
+  --ocean-roll-near:    100;              /*   so the near swell moves fastest */
+  --ocean-bob-far:      13;               /* s for one rise of a band */
+  --ocean-bob-mid:      11;
+  --ocean-bob-near:     9;
+  --ocean-bob-amp-far:  1px;              /* how far each band bobs; the signs alternate so the sea breathes */
+  --ocean-bob-amp-mid:  -2px;
+  --ocean-bob-amp-near: 3px;
+  --ocean-ease:         cubic-bezier(0.37, 0, 0.63, 1);
+  /* The glow is stronger and reaches higher than the app's (0.28, 80% 60%
+     at 115%, 75%): his call 2026-10-06, the app's level was invisible here. */
+  --ocean-glow:         0.5;              /* the cover's glow from the deep */
+  --ocean-glow-fade:    2.4s;             /* a band or a new cover's glow fades in */
+  --ocean-glow-shape:   ellipse 95% 75% at 50% 108%;   /* rising from below the bottom edge */
+  --ocean-glow-reach:   85%;              /* where the glow has faded out */
+  /* The classic sea (the Tanks level designer only, data-ocean-sea="classic"):
+     masked wave trains whose ink fades with distance via these roles. */
   --ocean-ink-1:   var(--border);
   --ocean-ink-2:   var(--border);
   --ocean-ink-3:   var(--border);
@@ -168,6 +193,24 @@
   --boot-safety:    4s;
   --cover-in-dur:   0.22s;
   --cover-in-ease:  cubic-bezier(0.4, 0, 1, 1);      /* eases in, so the cover lands softly */
+
+  /* -- first-run walk (js/walk.js; docs/onboarding.md) -------- */
+  /* Deets and Happy lead a first visitor round the home page. The speech
+     card wears the toast material; these are its geometry. The sprites'
+     own frame sizes are the art's, not a choice, and live with the walker
+     rules in main.css. Values match DeetsMusic's walk tokens. */
+  --walk-card-w:   19rem;             /* the toast host's width */
+  --walk-card-pad: var(--space-2) var(--space-3);
+  --walk-card-gap: var(--space-2);    /* between the sprites and the card */
+  --walk-pair-gap: var(--space-1);    /* between Deets and Happy */
+  --walk-gap:      10px;              /* clearance between the group and its target */
+  --walk-point:    14px;              /* the arrow that names the target */
+  --walk-scale:    2;                 /* pixel art doubled, like walkers.js */
+  --walk-cycle:    0.571s;            /* the walkers' rate: steps(4) at 7 fps */
+  --walk-travel:   0.75s;             /* one stop to the next */
+  --walk-fs:       0.9rem;
+  --walk-fs-small: 0.8rem;            /* the step count and the buttons */
+  --walk-stripe:   3px;               /* the card's left stripe, like a toast's */
 
   /* -- focus ring (one place to restyle every focus state) --- */
   --focus-ring-w:   2px;
@@ -276,15 +319,25 @@
   --scrubber-handle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 12Q12 5 23 12Q12 19 1 12Z' fill='%23000'/%3E%3C/svg%3E");
   --shadow-card: 0 0 8px 1px var(--border), 0 12px 32px rgba(0, 0, 0, 0.16);
 
-  /* surface — the rolling swell, an injected SVG layer (.ocean in
-     main.css; wave geometry in controls.js). Three opaque wave trains,
-     each crest a hairline over a --canvas fill so a nearer swell
-     occludes the ones behind it. Atmospheric perspective: the front
-     crest is full --border; middle/back fade toward --canvas (70% /
-     45% ink), so far waves recede into haze. (This replaced the old
-     radial-gradient scallops, whose arcs crossed at tile corners and
-     scattered chevron artifacts across the canvas.) */
-  --ocean-display: block;
+  /* surface — the sea (.ocean in chrome.css, painted by js/ocean.js).
+     A heavy swell in perspective: rows crowd into haze at the horizon
+     (the top) and grow tall and sharp toward the bottom, each wave's dark
+     body hiding the water behind it. The water is darkest at the bottom,
+     where today's Song of the Day cover glows. The other values are the
+     base block's. DeetsMusic's Ocean, one to one (its skin.css). */
+  --ocean-display:      block;
+  --ocean-water-top:    color-mix(in srgb, var(--canvas), var(--border) 10%);
+  --ocean-water-bottom: color-mix(in srgb, var(--canvas), black 22%);
+  /* The crest line. On a light theme, lifted toward the title color so it
+     reads on pale water. On a dark theme, sunk toward the canvas: the border
+     lifted toward the title glowed on dark water (his word in the app,
+     2026-09-23: "too bright for dark modes"). light-dark() follows the
+     theme's color-scheme. */
+  --ocean-swell-ink:    light-dark(color-mix(in srgb, var(--border) 80%, var(--title)),
+                                   color-mix(in srgb, var(--border) 55%, var(--canvas)));
+  /* The classic sea (Tanks designer): the front crest is full --border;
+     middle/back fade toward --canvas (70% / 45% ink), so far waves recede
+     into haze. */
   --ocean-ink-1:   var(--border);
   --ocean-ink-2:   color-mix(in srgb, var(--border) 70%, var(--canvas));
   --ocean-ink-3:   color-mix(in srgb, var(--border) 45%, var(--canvas));
@@ -315,11 +368,13 @@
 }
 
 /* Ocean's swell — motion for the injected layer. Roll owns the horizontal
-   drift (linear, on .ocean__roll), bob the rise-and-fall (on the wrapping
-   .ocean__bob) — separate elements, so the two transforms compose. The
-   bob's ease is sampled into the keyframes, because the stepped timing
-   (--ambient-fps) replaces any easing. Per-layer distances come from
-   --roll-dist / --bob-amp, set on the elements in chrome.css. */
+   drift (linear, on .ocean__train; the classic sea's .ocean__roll), bob the
+   rise-and-fall (on the wrapping .ocean__bob) — separate elements, so the
+   two transforms compose. A band rolls by exactly one of its own tiles per
+   loop (ocean.js sets --tw), so the wrap never shows. The bob's ease is
+   sampled into the keyframes, because the stepped timing (--ambient-fps)
+   replaces any easing. Per-layer distances come from --roll-dist /
+   --bob-amp, set on the elements in chrome.css. */
 @keyframes ocean-roll {
   to { transform: translateX(var(--roll-dist, 0px)); }
 }

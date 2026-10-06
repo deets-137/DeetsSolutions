@@ -171,6 +171,10 @@ Every `[hidden]` popover animates in and out with no JS, using `@starting-style`
   - Aurora freezes.
   - Ocean holds still and stays visible.
   - Storm is **hidden**, because a frozen half-drawn bolt reads as a bug.
+- **Ocean since 2026-10-06:** the site's Ocean is the app's painted swell (three bands from
+  a worker) plus a glow in today's Song of the Day cover color, not the masked wave trains.
+  See [ui.md](ui.md) "Motion" (Ambient layers) and
+  [deetsmusic-page-pass.md](deetsmusic-page-pass.md) §7.
 
 ### Other reduced-motion gaps to close while you're in there
 - `--hover-lift` transforms

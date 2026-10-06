@@ -178,7 +178,32 @@ Ported from DeetsMusic 2026-09-15 ([ui-direction.md](ui-direction.md), steps 1�
     scale (radio.js / deetsmusic.js context menus).
 - **Ambient layers** (ocean, aurora, storm) are injected by `controls.js` and animate only
   `transform` and `opacity`:
-  - Ocean: masked tile boxes (masks built from the geometry table in `controls.js`).
+  - Ocean: DeetsMusic's swell (the app's `docs/features/OCEAN.md` §3, ported 2026-10-06;
+    plan and decisions in [deetsmusic-page-pass.md](deetsmusic-page-pass.md) §7).
+    `controls.js` injects `.ocean` (three `.ocean__bob--{far,mid,near}` boxes, each around
+    an `.ocean__train--*`, then `.ocean__glow`) and loads `js/ocean.js` the first time the
+    skin is Ocean (path resolved from its own `src`, same `?v=`), so no page carries a tag
+    for it. `ocean.js` has `js/ocean-worker.js` (a classic Worker; the painter, ported from
+    the app's `ocean-texture.ts`) paint about 30 Gerstner rows in perspective into three
+    PNG bands (tiles 360 / 720 / 1200 px, painted at the sea's height, dpr capped at 2) and
+    sets each as a plain background; CSS then only rolls (90 / 90 / 100 s per tile) and
+    bobs them. Colors are skin.css tokens from theme roles: `--ocean-water-top/-bottom`,
+    `--ocean-swell-ink` (a `light-dark()` pair), `--ocean-trough` / `--ocean-trough-light`.
+    Repaints on a `data-theme` or `data-skin` change, a sea height change of 24 px or more
+    (debounced), and a `devicePixelRatio` change; old blob URLs are released. Without
+    Worker or OffscreenCanvas it loads `ocean-worker.js` as a plain script and paints on
+    the main thread, one band per task.
+  - Ocean's **glow from the deep** takes the color of today's Song of the Day cover (the
+    newest song in `sotd/songs.json` with `artwork_url`): a 60×60 copy from mzstatic (CORS
+    `*`), its dominant colors, the most colorful one, then the app's `asGlow` mapping, set as
+    `--ocean-glow-color` on `.ocean` (transparent with no cover). Cached in localStorage
+    `deets-ocean-glow` (`{at, art, date, rgb}`); songs.json is checked at most every 20 h,
+    3 s after load so the home page and the SOTD journal can hand their copy over first
+    (`DeetsAppearance.offerSotd`). No heave, ripples or neon (they need a player).
+  - The Tanks level designer keeps the **classic** sea (masked wave trains,
+    `controls.js` `buildClassicOcean()`, `.ocean[data-sea="classic"]` in chrome.css): it
+    sets `data-ocean-sea="classic"` on its `<html>`. While the radio shell is open the
+    parent page's sea is `display: none` (the framed page runs its own).
   - Glass's aurora: its own `.aurora` layer of three drifting blobs (`--aurora-*` tokens),
     no longer a `background-position` drift on `body::before`. `--canvas-bg` is for still
     patterns only.

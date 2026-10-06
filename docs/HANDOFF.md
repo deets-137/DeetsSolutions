@@ -62,6 +62,45 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-06 — The DeetsMusic page's product pass, and the site's Ocean: SHIPPED (pushed to master).**
+Two reviews by another AI agent (a page review and a market read) were checked against the app;
+the verdicts, his decisions and the forks he settled (§2a) are in
+**[deetsmusic-page-pass.md](deetsmusic-page-pass.md)**. **Pass 1:** a tagline under the bar, a
+Features box (six tiles 3 + 3, then the "Only in DeetsMusic" pair centered, all one size), Demos
+(three screenshots that follow the visitor's own theme × skin: 72 WebPs in
+`assets/deetsmusic/shots/`, four skins, Vanilla shows Press), and a Requirements and trust box
+(no VirusTotal), all before Release notes. His desk test and copy pass done the same day; only
+the three picture alt texts are still `[ph]`. Re-shoot the pictures when the app's look changes
+(§3c, "Re-shooting"). **The Ocean:** the app's swell plus a glow from today's SOTD cover,
+stronger than the app's (§7e). Every page's `chrome.css` / `controls.js` went to
+`?v=2026-10-06b` (`_headers` still doesn't apply). **Open:** the alt texts; a radio-shell and
+weak-machine check of the sea (§7e). **Also his:** no Microsoft Store; a tip jar before the
+Reddit launch post, not now (§6.9); the page is partly a portfolio piece but the product leads.
+
+**2026-09-24 — A first-visit onboarding flow for recruiters and new visitors: the home WALK is BUILT, the rest is an idea.**
+**Built the same day, HELD BACK from the 2026-10-06 push:** that commit carried the walk's
+inert pieces (its CSS and tokens, the walkers' pause guard, the settings panel's `action` row
+kind and the Tips strings) but **not `js/walk.js`, its `<script>` tag in `index.html`, or the
+Tips section in `controls.js`'s settings panel** — they sit uncommitted in the working tree,
+because the walk starts on its own for every first visitor and its copy is all `[ph]`. Ship
+those three together after his passes. Deets and Happy walk a first visitor round the home page
+(hello → DeetsMusic → Cool Stuff → Resume → Vibe → send-off), ported from DeetsMusic's walk.
+`deets.solutions/?tour` always starts it, which makes it the URL for applications. Design and
+testing: **[onboarding.md](onboarding.md)**. **Left:** his visual pass, then his copy pass (every
+string is `[ph]`: the `W` table in `js/walk.js` and `S.tourHint` in `controls.js`), then commit.
+The open questions below are still open. Aditya is linking the site from job applications (Website, Portfolio and Other URL fields), and a
+cold visitor doesn't get what he's built. The home page opens on SOTD, Movies and a nav of 20+
+entries, and the pages render with JavaScript, so a link preview or a quick look shows little.
+While choosing between `/deetsmusic/` and `/deetsmusic/demo/` for an application, neither felt
+self-explanatory: the demo drops you into a player with no framing, and the product page doesn't
+lead with "what this is, what I built, why it's impressive." **Goal:** someone arriving from a
+resume link understands the headline projects (DeetsMusic, the agent harness, MCP server, games)
+and where to click within about 30 seconds. **Open questions:** a "Start here" / recruiter path
+on the home page vs. a dedicated landing URL to put on applications; a short framing header on
+`/deetsmusic/demo/`; whether `cool-stuff/` should become the portfolio front door. **First step:**
+walk the site cold from each URL he's used on applications and list where a visitor gets lost.
+All copy is his words, so draft structure with `[ph]` strings only.
+
 **2026-09-21 — The DeetsMusic web demo (`/deetsmusic/demo/`): BUILT on branch `demo-time`.**
 The real DeetsMusic UI in an iframe with mock songs; the design and the build live in the
 DeetsMusic repo (`docs/features/WEB-DEMO.md`). Here: `deetsmusic/demo/` (page, `demo.js`,

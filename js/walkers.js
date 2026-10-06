@@ -138,8 +138,10 @@
 
   function schedule(delayRange) {
     setTimeout(function () {
-      // A hidden tab skips its turn — the stroll would play to nobody.
-      if (!document.hidden) spawn(randomKind());
+      // A hidden tab skips its turn — the stroll would play to nobody. So
+      // does the first-run walk (walk.js): Deets can't be in two places.
+      var touring = window.DeetsWalk && window.DeetsWalk.active();
+      if (!document.hidden && !touring) spawn(randomKind());
       schedule(NEXT_DELAY);
     }, rand(delayRange[0], delayRange[1]) * 1000);
   }

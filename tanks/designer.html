@@ -5,14 +5,17 @@
      no-ops here (no [data-settings] mount). So the attributes below
      stand and the script is loaded purely for the injected ocean
      layer — the wave trains are its geometry, and copying them here
-     would be exactly the duplication the house rules forbid. -->
-<html lang="en" data-theme="moonlight" data-skin="ocean">
+     would be exactly the duplication the house rules forbid.
+     data-ocean-sea="classic" keeps this page on the old masked wave trains
+     (his call, 2026-10-06: Tanks keeps its old sea) while the rest of the
+     site moved to the app's painted swell (js/ocean.js). -->
+<html lang="en" data-theme="moonlight" data-skin="ocean" data-ocean-sea="classic">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Tanks level designer</title>
-<link rel="stylesheet" href="../styles/chrome.css?v=2026-09-17">
+<link rel="stylesheet" href="../styles/chrome.css?v=2026-10-06b">
 <link rel="stylesheet" href="tanks.css">
 <!--
   DeetsTanks — THE LEVEL DESIGNER (docs/tanks.md, "The level designer").
@@ -192,7 +195,7 @@
 <script src="art.js"></script>
 <script src="render.js"></script>
 <script src="input.js"></script>
-<script src="../js/controls.js?v=2026-09-17"></script>
+<script src="../js/controls.js?v=2026-10-06b"></script>
 <script>
 (function () {
   "use strict";

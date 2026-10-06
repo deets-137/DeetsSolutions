@@ -50,11 +50,12 @@ banners documenting every role.
 known constraints are documented in [ui.md](ui.md)), persists both choices
 in `localStorage` (`deets-theme` / `deets-skin`), and injects two inert
 decorative SVG layers that individual skins opt into via a display token:
-the **storm** (Cyber's lightning bolts) and the **ocean** (Ocean's
-three rolling wave trains — seamless sine-period `<pattern>` tiles, each an
-opaque fill under a hairline crest so nearer swells occlude farther ones).
-In both cases the geometry lives in `controls.js`, the ink is a theme role,
-and the motion is skin tokens.
+the **storm** (Cyber's lightning bolts) and the **ocean** (Ocean's swell:
+three depth bands painted by `js/ocean.js` + `js/ocean-worker.js`, which
+`controls.js` loads only when the skin is Ocean, plus a glow in today's Song
+of the Day cover color; the Tanks designer keeps the old masked wave trains —
+[ui.md](ui.md) "Motion"). The storm's geometry lives in `controls.js`; in
+both cases the ink is a theme role and the motion is skin tokens.
 
 Each page resolves both axes inline in `<head>`, before CSS paints, so
 there's no flash of the wrong look. A saved choice wins; otherwise both axes
@@ -337,8 +338,16 @@ header carries this warning.
 
 ## Local dev & deploy
 
-- `.claude/launch.json` defines `deets-site` (port 8787) — or any static
-  server from the repo root works: `python -m http.server 8787`.
+- `npm run dev` (or `.claude/launch.json` → `deets-site`) runs
+  `scripts/dev.js`: `wrangler pages dev .` on the first free port from 8787
+  up. `package.json` is gitignored, since Pages would otherwise install and
+  publish `node_modules`. On a fresh clone, run
+  `npm install --save-dev wrangler` once first.
+  It serves the site the way Pages does, `_headers` included, so
+  `curl -sI localhost:<port>/styles/main.css` shows the cache headers the
+  rules ask for. Any plain static server (`python -m http.server`) still works
+  but ignores `_headers`. Not `cf dev`: as of cf 1.0.0-beta.12 it crashes on
+  Windows (`spawn EFTYPE`) and scaffolds the site as a Worker.
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.

@@ -12,8 +12,8 @@
    included, was approved in chat 2026-09-14; the board-thread strings (thread
    page, comments, moderation) on 2026-09-15; and the POLL block on 2026-09-15
    — section comments below name the lines he dictated; the release-notes
-   layout strings on 2026-09-16. Zero [ph] left; anything added from here
-   carries one.
+   layout strings on 2026-09-16. The product pass-1 block was approved
+   2026-10-06 bar three alt texts; anything added from here carries [ph].
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -49,6 +49,65 @@ window.DM_STRINGS = {
   installSteps_firefox: "Firefox: in the downloads panel, click the arrow next to the file and allow the download. When you open it, Windows may show a blue screen: click More info, then Run anyway.",
   installSteps_chrome:  "Chrome: in the download list, click Keep. When you open it, Windows may show a blue screen: click More info, then Run anyway.",
   installOtherBrowsers: "Other browsers",
+
+  /* product pass 1 (docs/deetsmusic-page-pass.md §3), added 2026-10-06.
+     Every claim is checked against the app's shipped docs (the doc in
+     brackets on each feature). Approved by Aditya in chat 2026-10-06, all
+     but the three picture alt texts, which are still [ph]. */
+  /* the line under the page bar: approved by Aditya in chat, 2026-10-06 */
+  tagline:          "Free. A lightweight Apple Music player for Windows 11.",
+
+  /* features: the everyday grid, then the "Only in DeetsMusic" row (his call).
+     The looks tile is 6 × 4: the app's menu offers four skins, not Vanilla. */
+  featuresTitle:    "Features",
+  feat_lastfm_t:    "Last.fm scrobbling",                 /* integrations/LASTFM.md */
+  feat_lastfm_b:    "Every song you play lands on your Last.fm profile.",
+  feat_discord_t:   "Discord status and Friends",         /* integrations/FRIENDS.md */
+  feat_discord_b:   "Show what you're playing on Discord, and see what your friends are playing.",
+  feat_airplay_t:   "Play on a HomePod",                  /* integrations/AIRPLAY.md */
+  feat_airplay_b:   "Send the music to a HomePod or another AirPlay speaker.",
+  feat_sizes_t:     "Mini, Midi and Max",                 /* architecture/SURFACES-AND-CARDS.md */
+  feat_sizes_b:     "One window in several sizes, with cards you can swap.",
+  feat_looks_t:     "6 themes × 4 skins",                 /* architecture/UI-ARCHITECTURE.md */
+  feat_looks_b:     "24 looks, and the pictures on this page follow the one you pick here.",
+  feat_eq_t:        "Equalizer",                          /* features/SOUND.md */
+  feat_eq_b:        "Shape the sound to your speakers or headphones.",
+  onlyTitle:        "Only in DeetsMusic",
+  feat_rooms_t:     "Listening rooms",                    /* integrations/ROOMS.md */
+  feat_rooms_b:     "Listen along with friends in sync, each on their own Apple Music.",
+  feat_agent_t:     "Control it from an AI app or a terminal", /* integrations/AGENT.md */
+  feat_agent_b:     "A command line and an MCP server let a script or an AI assistant play, queue and search.",
+
+  /* screenshots: the demo's mock songs, in the visitor's own theme × skin.
+     Title, hint, click line and the three captions approved/dictated by
+     Aditya in chat, 2026-10-06; the alt texts are still [ph]. */
+  shotsTitle:       "Demos",
+  shotsHint:        "Matches the selected skin and theme of the website",
+  shotsClick:       "Click a picture to try the demo.",
+  shot_midi:        "Midi, on Home",
+  shot_midiAlt:     "[ph]DeetsMusic at Midi size, showing the Home card beside Now Playing.",
+  shot_max:         "Max",
+  shot_maxAlt:      "[ph]DeetsMusic at Max size, with several cards open at once.",
+  shot_compass:     "The Compass (Ctrl+Space)",
+  shot_compassAlt:  "[ph]DeetsMusic's Compass search box open over the player.",
+
+  /* requirements + trust: its own box after the pictures, no VirusTotal (his call) */
+  trustTitle:       "Requirements and trust",   /* approved by Aditya in chat, 2026-10-06 */
+  trust_systemK:    "System",
+  trust_system:     "Windows 11, 64-bit (x64). WebView2, which Windows 11 already has.",
+  trust_installK:   "Install",
+  trust_install:    "Installs for your Windows account only, so setup needs no admin rights.",
+  trust_updatesK:   "Updates",
+  trust_updates:    "The app updates itself: a new version installs when it restarts.",
+  trust_signedK:    "Signed",
+  trust_signed:     "Code-signed by Aditya Sundaram.",
+  trust_airplayK:   "AirPlay",
+  trust_airplay:    "The first time you connect a speaker, Windows asks once to let DeetsMusic through the firewall.",
+  trust_sourceK:    "Source",
+  trust_source:     "Free and open source under the MIT license.",
+  trust_repo:       "Read the code on GitHub",
+  trust_license:    "License",
+  trust_support:    "Bugs and ideas go to the boards on this page, not GitHub.",
 
   /* status */
   /* status box: the lines without [ph] were approved by Aditya in chat, 2026-09-14 */

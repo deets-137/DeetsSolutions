@@ -32,14 +32,14 @@
          stamped URL is one the visitor's cache has never seen and is fetched
          at once. Bump the date when this page's JS or CSS changes, and drop
          the whole scheme once _headers works. -->
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-09-17" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-09-16b" />
-    <script src="../js/controls.js?v=2026-09-17" defer></script>
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-10-06b" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-10-06e" />
+    <script src="../js/controls.js?v=2026-10-06b" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
-    <script src="./strings.js?v=2026-09-16b" defer></script>
+    <script src="./strings.js?v=2026-10-06c" defer></script>
     <script src="./mock.js?v=2026-09-15" defer></script>
-    <script src="./deetsmusic.js?v=2026-09-16b" defer></script>
+    <script src="./deetsmusic.js?v=2026-10-06b" defer></script>
     <script src="../js/walkers.js" defer></script>
   </head>
 
@@ -104,6 +104,9 @@
           <a class="home__cta home__cta--soft" href="#report" data-s="ctaReport"></a>
         </div>
       </header>
+      <!-- The tagline: the site's line under a page bar (.page-meta, as on
+           Cool Stuff and Resume). Product pass 1, deetsmusic-page-pass.md §3a. -->
+      <p class="page-meta dm-tagline" data-s="tagline"></p>
 
       <div data-dm-home>
         <div class="dm-notice" data-dm-notice role="status" hidden>
@@ -193,6 +196,71 @@
                 <span data-s="stripOld"></span><span data-s="stripNow"></span>
               </div>
             </div>
+          </section>
+
+          <!-- Features: the everyday grid, then the "Only in DeetsMusic" row
+               (his call, deetsmusic-page-pass.md §2a). Every item is shipped;
+               strings.js names the app doc behind each claim. -->
+          <section class="dm-box dm-box--wide dm-pitch" id="features" aria-labelledby="dm-features-title">
+            <h2 class="dm-box__title" id="dm-features-title" data-s="featuresTitle"></h2>
+            <div class="dm-pitch__tiles">
+            <ul class="dm-pitch__list">
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_lastfm_t"></h3><p class="dm-pitch__b" data-s="feat_lastfm_b"></p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_discord_t"></h3><p class="dm-pitch__b" data-s="feat_discord_b"></p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_airplay_t"></h3><p class="dm-pitch__b" data-s="feat_airplay_b"></p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_sizes_t"></h3><p class="dm-pitch__b" data-s="feat_sizes_b"></p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_looks_t"></h3><p class="dm-pitch__b" data-s="feat_looks_b"></p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_eq_t"></h3><p class="dm-pitch__b" data-s="feat_eq_b"></p></li>
+            </ul>
+            <h3 class="dm-pitch__only" data-s="onlyTitle"></h3>
+            <ul class="dm-pitch__list dm-pitch__list--only">
+              <li class="dm-pitch__item dm-pitch__item--only"><h4 class="dm-pitch__t" data-s="feat_rooms_t"></h4><p class="dm-pitch__b" data-s="feat_rooms_b"></p></li>
+              <li class="dm-pitch__item dm-pitch__item--only"><h4 class="dm-pitch__t" data-s="feat_agent_t"></h4><p class="dm-pitch__b" data-s="feat_agent_b"></p></li>
+            </ul>
+            </div>
+          </section>
+
+          <!-- Screenshots: the app's shots runner on the web demo's mock songs,
+               one WebP per shot per theme × skin (assets/deetsmusic/shots/).
+               deetsmusic.js points each <img> at the visitor's current look
+               and follows a look change. Each opens the demo. -->
+          <section class="dm-box dm-box--wide dm-shots" id="screenshots" aria-labelledby="dm-shots-title">
+            <div class="dm-box__head">
+              <h2 class="dm-box__title" id="dm-shots-title" data-s="shotsTitle"></h2>
+              <p class="dm-lead"><span data-s="shotsHint"></span> · <span data-s="shotsClick"></span></p>
+            </div>
+            <div class="dm-shots__row">
+              <figure class="dm-shot dm-shot--max">
+                <a class="dm-shot__link" href="demo/"><img class="dm-shot__img" data-dm-shot="max-overview" data-s-alt="shot_maxAlt" width="1100" height="950" loading="lazy" decoding="async" /></a>
+                <figcaption class="dm-hint" data-s="shot_max"></figcaption>
+              </figure>
+              <figure class="dm-shot">
+                <a class="dm-shot__link" href="demo/"><img class="dm-shot__img" data-dm-shot="midi-home" data-s-alt="shot_midiAlt" width="495" height="670" loading="lazy" decoding="async" /></a>
+                <figcaption class="dm-hint" data-s="shot_midi"></figcaption>
+              </figure>
+              <figure class="dm-shot">
+                <a class="dm-shot__link" href="demo/"><img class="dm-shot__img" data-dm-shot="compass-open" data-s-alt="shot_compassAlt" width="495" height="670" loading="lazy" decoding="async" /></a>
+                <figcaption class="dm-hint" data-s="shot_compass"></figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <!-- Requirements + trust: facts verified 2026-10-06 against the app
+               (deetsmusic-page-pass.md §4). No VirusTotal (his call). The repo
+               is public, MIT; Issues are off there, so support stays here. -->
+          <section class="dm-box dm-box--wide dm-trust" id="requirements" aria-labelledby="dm-trust-title">
+            <h2 class="dm-box__title" id="dm-trust-title" data-s="trustTitle"></h2>
+            <dl class="dm-trust__list">
+              <div class="dm-trust__row"><dt data-s="trust_systemK"></dt><dd data-s="trust_system"></dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_installK"></dt><dd data-s="trust_install"></dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_updatesK"></dt><dd data-s="trust_updates"></dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_signedK"></dt><dd data-s="trust_signed"></dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_airplayK"></dt><dd data-s="trust_airplay"></dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_sourceK"></dt><dd><span data-s="trust_source"></span>
+                <a class="dm-link" href="https://github.com/deets-137/DeetsMusicWindows" rel="noopener" data-s="trust_repo"></a> ·
+                <a class="dm-link" href="https://github.com/deets-137/DeetsMusicWindows/blob/main/LICENSE" rel="noopener" data-s="trust_license"></a></dd></div>
+            </dl>
+            <p class="dm-hint" data-s="trust_support"></p>
           </section>
 
           <!-- Release notes: the whole history, withdrawn rows included — the

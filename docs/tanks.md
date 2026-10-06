@@ -397,7 +397,10 @@ look. It can pin them statically because `controls.js` only *applies*
 an axis from inside `buildMenu()`, which no-ops without a
 `[data-settings]` mount — so the script is loaded purely for the
 injected ocean layer, whose wave geometry lives in it and must not be
-copied here. Content sits at `z-index: 1` above the fixed layer.
+copied here. Since 2026-10-06 the rest of the site's Ocean is the painted
+swell (`js/ocean.js`); **the designer keeps the old sea** (his call): its
+`<html>` carries `data-ocean-sea="classic"`, so `controls.js` builds the
+masked wave trains (`buildClassicOcean()`) and never loads `ocean.js`. Content sits at `z-index: 1` above the fixed layer.
 Moonlight's status lights are monochrome by design, so validation
 severity carries a glyph (`✕ ! ✓`) rather than riding colour alone.
 - **Validate** inline via `engine.validateLevel`, with failures shown

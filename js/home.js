@@ -460,7 +460,11 @@
 
   fetch("sotd/songs.json")
     .then(function (r) { return r.json(); })
-    .then(function (data) { initHub(data.songs || []); })
+    .then(function (data) {
+      initHub(data.songs || []);
+      // the Ocean sea's glow takes today's cover from this list (controls.js)
+      if (window.DeetsAppearance && DeetsAppearance.offerSotd) DeetsAppearance.offerSotd(data.songs);
+    })
     .catch(function () {});
 
   /* ── Side strips ───────────────────────────────────────────────

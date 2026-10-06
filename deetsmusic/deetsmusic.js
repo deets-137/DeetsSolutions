@@ -2106,8 +2106,34 @@
     });
   }
 
+  // ── Screenshots in the visitor's look (deetsmusic-page-pass.md §2a) ──
+  // One WebP per shot per theme × skin; the ids are the app's too. The
+  // pictures follow <html>'s data-theme / data-skin, which the Vibe menu and
+  // the look schedule both write, so a change there swaps them live.
+  // The app's menu offers four skins, not Vanilla, so a Vanilla visitor sees
+  // Press — the app's own light default (his call, 2026-10-06).
+  var SHOTS_DIR = "../assets/deetsmusic/shots/";
+  var SHOT_SKIN = { vanilla: "press" };
+  function renderShots() {
+    var root = document.documentElement;
+    var skin = root.getAttribute("data-skin");
+    var look = root.getAttribute("data-theme") + "-" + (SHOT_SKIN[skin] || skin);
+    $all("[data-dm-shot]").forEach(function (img) {
+      var src = SHOTS_DIR + img.getAttribute("data-dm-shot") + "." + look + ".webp";
+      if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+    });
+  }
+  function wireShots() {
+    $all("[data-s-alt]").forEach(function (n) { n.alt = s(n.getAttribute("data-s-alt")); });
+    renderShots();
+    new MutationObserver(renderShots).observe(document.documentElement, {
+      attributes: true, attributeFilter: ["data-theme", "data-skin"],
+    });
+  }
+
   // ── Boot ───────────────────────────────────────────────────────
   fillStatic();
+  wireShots();
   wireVersionPick();
   wireOwnerMenu();
   $all("[data-dm-form]").forEach(wireForm);

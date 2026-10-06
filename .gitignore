@@ -19,6 +19,13 @@ __pycache__/
 # Wrangler's local dev cache (`npx wrangler dev` run from the site root)
 .wrangler/
 
+# Dev-only tooling (wrangler, for `npm run dev`). Never shipped to the site.
+# The manifest stays local too: a package.json at the root makes Pages run
+# `npm install` and publish node_modules alongside the site.
+node_modules/
+package.json
+package-lock.json
+
 # Apple Music signing credentials (DeetsRadio) — only the README is tracked.
 scripts/secrets/*
 !scripts/secrets/README.md
