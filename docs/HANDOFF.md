@@ -69,12 +69,12 @@ the verdicts, his decisions and the forks he settled (§2a) are in
 Features box (six tiles 3 + 3, then the "Only in DeetsMusic" pair centered, all one size), Demos
 (three screenshots that follow the visitor's own theme × skin: 72 WebPs in
 `assets/deetsmusic/shots/`, four skins, Vanilla shows Press), and a Requirements and trust box
-(no VirusTotal), all before Release notes. His desk test and copy pass done the same day; only
-the three picture alt texts are still `[ph]`. Re-shoot the pictures when the app's look changes
+(no VirusTotal), all before Release notes. His desk test and copy pass done the same day, alt
+texts included: zero `[ph]` on the page. Re-shoot the pictures when the app's look changes
 (§3c, "Re-shooting"). **The Ocean:** the app's swell plus a glow from today's SOTD cover,
 stronger than the app's (§7e). Every page's `chrome.css` / `controls.js` went to
-`?v=2026-10-06b` (`_headers` still doesn't apply). **Open:** the alt texts; a radio-shell and
-weak-machine check of the sea (§7e). **Also his:** no Microsoft Store; a tip jar before the
+`?v=2026-10-06b` (`_headers` still doesn't apply). **Open:** a radio-shell and weak-machine check of
+the sea (§7e). **Also his:** no Microsoft Store; a tip jar before the
 Reddit launch post, not now (§6.9); the page is partly a portfolio piece but the product leads.
 
 **2026-09-24 — A first-visit onboarding flow for recruiters and new visitors: the home WALK is BUILT, the rest is an idea.**

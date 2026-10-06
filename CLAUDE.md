@@ -145,7 +145,7 @@ he dictated in chat.
 | Cities | Underway |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 | Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |
-| DeetsMusic | Done — whole-page pass 2026-09-14 in chat (filter/sort included), the board-thread strings 2026-09-15 (thread page, comments, moderation menu), and the poll strings 2026-09-15. The product pass-1 block (Features, Demos, Requirements and trust; 2026-10-06) approved in chat the same day; only the three picture alt texts are still `[ph]` |
+| DeetsMusic | Done — whole-page pass 2026-09-14 in chat (filter/sort included), the board-thread strings 2026-09-15 (thread page, comments, moderation menu), and the poll strings 2026-09-15. The product pass-1 block (Features, Demos, Requirements and trust; 2026-10-06) approved in chat the same day, alt texts included; zero `[ph]` left |
 | Settings panel (shared chrome) | Copy lives in the `S` table in `js/controls.js`, not a `strings.js`. Labels reused from DeetsMusic need no `[ph]` (his call, 2026-09-15); only new site-only wording does |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his

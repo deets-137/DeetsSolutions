@@ -13,7 +13,7 @@
    page, comments, moderation) on 2026-09-15; and the POLL block on 2026-09-15
    — section comments below name the lines he dictated; the release-notes
    layout strings on 2026-09-16. The product pass-1 block was approved
-   2026-10-06 bar three alt texts; anything added from here carries [ph].
+   2026-10-06 in full; anything added from here carries [ph].
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -52,8 +52,8 @@ window.DM_STRINGS = {
 
   /* product pass 1 (docs/deetsmusic-page-pass.md §3), added 2026-10-06.
      Every claim is checked against the app's shipped docs (the doc in
-     brackets on each feature). Approved by Aditya in chat 2026-10-06, all
-     but the three picture alt texts, which are still [ph]. */
+     brackets on each feature). Approved by Aditya in chat 2026-10-06, alt
+     texts included. */
   /* the line under the page bar: approved by Aditya in chat, 2026-10-06 */
   tagline:          "Free. A lightweight Apple Music player for Windows 11.",
 
@@ -80,16 +80,16 @@ window.DM_STRINGS = {
 
   /* screenshots: the demo's mock songs, in the visitor's own theme × skin.
      Title, hint, click line and the three captions approved/dictated by
-     Aditya in chat, 2026-10-06; the alt texts are still [ph]. */
+     Aditya in chat, 2026-10-06, and the alt texts too. */
   shotsTitle:       "Demos",
   shotsHint:        "Matches the selected skin and theme of the website",
   shotsClick:       "Click a picture to try the demo.",
   shot_midi:        "Midi, on Home",
-  shot_midiAlt:     "[ph]DeetsMusic at Midi size, showing the Home card beside Now Playing.",
+  shot_midiAlt:     "DeetsMusic at Midi size, showing the Home card beside Now Playing.",
   shot_max:         "Max",
-  shot_maxAlt:      "[ph]DeetsMusic at Max size, with several cards open at once.",
+  shot_maxAlt:      "DeetsMusic at Max size, with several cards open at once.",
   shot_compass:     "The Compass (Ctrl+Space)",
-  shot_compassAlt:  "[ph]DeetsMusic's Compass search box open over the player.",
+  shot_compassAlt:  "DeetsMusic's Compass search box open over the player.",
 
   /* requirements + trust: its own box after the pictures, no VirusTotal (his call) */
   trustTitle:       "Requirements and trust",   /* approved by Aditya in chat, 2026-10-06 */

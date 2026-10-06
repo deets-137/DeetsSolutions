@@ -105,7 +105,7 @@ Pass 1 (§3):
   line and the alt texts stay `[ph]`). The Ocean glow is **stronger than the app's**, with a
   chroma lift for dull covers (§7e). Then he approved the rest of the copy: the box is
   **Features**, the looks tile reads **6 themes × 4 skins** ("24 looks"), and every pass-1 string
-  is his except the three picture alt texts (`[ph]`). The eight feature tiles are one size, the
+  is his, the three picture alt texts too (zero `[ph]`). The eight feature tiles are one size, the
   six in 3 + 3 with the "Only" pair centered under them (one grid, `.dm-pitch__tiles`).
 
 Ocean (§7c):
