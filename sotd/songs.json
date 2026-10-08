@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-07T02:00:16Z",
+  "generated_at": "2026-10-08T02:00:15Z",
   "channel": "song-of-the-day",
-  "count": 437,
+  "count": 438,
   "songs": [
     {
       "post_id": 1,
@@ -10053,6 +10053,29 @@
       "apple_music_url": "https://music.apple.com/us/album/better-days/1688724363?i=1688725039&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/70/6c/59/706c593a-f142-6b44-3fcd-c8c3d23de2bf/mzaf_8939725456625134357.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/12/92/3c/12923cf4-1671-e78f-3813-432c6857394a/23UMGIM51805.rgb.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 22043,
+      "posted_at": "2026-10-07T06:30:28.328000+00:00",
+      "date": "2026-10-06",
+      "day": "Tue",
+      "month": "10_2026",
+      "track_name": "Honeysea II (feat. Swrly, Ivoris & Will Qu)",
+      "artist_name": "Hans.",
+      "album": "Puddles - Single",
+      "genre": "Hip-Hop/Rap",
+      "duration": "2:23",
+      "duration_sec": 143,
+      "release_date": "2018-08-24",
+      "release_year": 2018,
+      "age_yrs": 8,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/honeysea-ii-feat-swrly-ivoris-will-qu/1423078113?i=1423078118",
+      "apple_music_url": "https://music.apple.com/us/album/honeysea-ii-feat-swrly-ivoris-will-qu/1423078113?i=1423078118&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/2e/55/f4/2e55f466-0e24-4cac-89fc-898f5d9510f5/mzaf_319676159309351592.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/6a/81/bc/6a81bc5b-6b07-2448-ec8d-114f0c46b65f/cover.jpg/600x600bb.jpg"
     }
   ]
 }
