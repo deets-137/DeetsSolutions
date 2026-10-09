@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-08T02:00:15Z",
+  "generated_at": "2026-10-09T02:00:17Z",
   "channel": "song-of-the-day",
-  "count": 438,
+  "count": 439,
   "songs": [
     {
       "post_id": 1,
@@ -10076,6 +10076,29 @@
       "apple_music_url": "https://music.apple.com/us/album/honeysea-ii-feat-swrly-ivoris-will-qu/1423078113?i=1423078118&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/2e/55/f4/2e55f466-0e24-4cac-89fc-898f5d9510f5/mzaf_319676159309351592.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/6a/81/bc/6a81bc5b-6b07-2448-ec8d-114f0c46b65f/cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 22482,
+      "posted_at": "2026-10-08T02:31:45.879000+00:00",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "month": "10_2026",
+      "track_name": "SHOW ME OUT",
+      "artist_name": "UMI",
+      "album": "talking to the wind - EP",
+      "genre": "R&B/Soul",
+      "duration": "2:13",
+      "duration_sec": 133,
+      "release_date": "2024-01-19",
+      "release_year": 2024,
+      "age_yrs": 2,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1719819553",
+      "apple_music_url": "https://music.apple.com/us/album/show-me-out/1719819531?i=1719819553&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8f/9d/bd/8f9dbd86-2802-f49d-0bbe-e4249f55ba18/mzaf_9817986370181768615.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/9f/a7/dd/9fa7ddff-fc44-3e75-a8f1-cc990b5b8476/193436365550_EPCoverPhotoFINALcroppedRyuseiSabi.jpg/600x600bb.jpg"
     }
   ]
 }
