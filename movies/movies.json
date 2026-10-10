@@ -1,8 +1,32 @@
 {
- "generated_at": "2026-10-06T02:00:15Z",
+ "generated_at": "2026-10-10T02:00:18Z",
  "source": "letterboxd",
- "count": 319,
+ "count": 320,
  "movies": [
+  {
+   "name": "Now You See Me: Now You Don't",
+   "year": 2025,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/now-you-see-me-now-you-dont-2025/",
+   "logged_date": "2026-10-09",
+   "watched_date": "2026-10-08",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 3.0,
+   "liked": true,
+   "review": "Impeccable style, lots of jumps in the story but that’s ok. What a fun time",
+   "review_date": "2026-10-09",
+   "watches": [
+    {
+     "date": "2026-10-08",
+     "rating": 3.0,
+     "rewatch": false,
+     "review": "Impeccable style, lots of jumps in the story but that’s ok. What a fun time"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/oD3Eey4e4Z259XLm3eD3WGcoJAh.jpg"
+  },
   {
    "name": "Best of the Best",
    "year": 2026,

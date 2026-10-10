@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-09T02:00:17Z",
+  "generated_at": "2026-10-10T02:00:17Z",
   "channel": "song-of-the-day",
-  "count": 439,
+  "count": 440,
   "songs": [
     {
       "post_id": 1,
@@ -10099,6 +10099,29 @@
       "apple_music_url": "https://music.apple.com/us/album/show-me-out/1719819531?i=1719819553&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8f/9d/bd/8f9dbd86-2802-f49d-0bbe-e4249f55ba18/mzaf_9817986370181768615.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/9f/a7/dd/9fa7ddff-fc44-3e75-a8f1-cc990b5b8476/193436365550_EPCoverPhotoFINALcroppedRyuseiSabi.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 22922,
+      "posted_at": "2026-10-09T07:04:06.421000+00:00",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "month": "10_2026",
+      "track_name": "Old School Turntables",
+      "artist_name": "Matt DiMona",
+      "album": "Old School Turntables - Single",
+      "genre": "Alternative",
+      "duration": "4:24",
+      "duration_sec": 264,
+      "release_date": "2017-09-13",
+      "release_year": 2017,
+      "age_yrs": 9,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/old-school-turntables/1281183420?i=1281183421",
+      "apple_music_url": "https://music.apple.com/us/album/old-school-turntables/1281183420?i=1281183421&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/b5/ef/7b/b5ef7b00-dc00-fab5-c0fc-b8458d790b2f/mzaf_14427008920221354468.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/c6/c8/f8/c6c8f89a-287d-8936-291f-7101226e2243/content_art_2FxG5MGX6RoqiivjKIn9lw_OST-_HIGH_RES_ARTWORK.jpg/600x600bb.jpg"
     }
   ]
 }
