@@ -349,14 +349,21 @@ header carries this warning.
   but ignores `_headers`. Not `cf dev`: as of cf 1.0.0-beta.12 it crashes on
   Windows (`spawn EFTYPE`) and scaffolds the site as a Worker.
 - **Copy editor (dev only).** `scripts/dev.js` fronts wrangler with a small
-  proxy that injects `scripts/copy-edit.js` into every HTML page. On a page
-  whose copy fills from `strings.js` via `[data-s]` (today: DeetsMusic), an
-  "Edit copy" pill (bottom left, or Alt+E) makes that text typeable. It shows
-  the raw strings, `{tokens}` included, and dashes the `[ph]` ones. Enter or
-  clicking away saves the key into `strings.js`, and Esc reverts. Leaving
-  edit mode reloads. Nothing in the served tree references it, so it never
-  reaches Pages. It is for Aditya typing his own words: the Copy rule for
-  Claude is unchanged.
+  proxy that injects `scripts/copy-edit.js` into every HTML page. An "Edit
+  copy" pill (bottom left, or Alt+E) traces each piece of on-screen text to
+  where it lives and makes it typeable. Text found exactly once in the page's
+  own `.html` body saves there. Otherwise text that equals one `strings.js`
+  value (a `[data-s]` node, or rendered text, with `{tokens}` as wildcards)
+  saves to that key and shows the raw string. Text that maps to several
+  places stays locked, with a dotted outline and a tooltip naming where to
+  edit it. `[ph]` strings are dashed. Enter or clicking away saves, and Esc
+  reverts. Leaving edit mode reloads. It skips the shared site header and
+  settings menu (one copy per page), the resume (it mirrors the master
+  resume and its PDF), anything rendered from JSON or an API (it is in
+  neither file), alt text and placeholders, and whatever a page draws after
+  edit mode starts (toggle again to pick it up). Nothing in the served tree
+  references it, so it never reaches Pages. It is for Aditya typing his own
+  words: the Copy rule for Claude is unchanged.
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.

@@ -7,8 +7,10 @@
 // checked locally (the proxy passes headers through untouched).
 //
 // The proxy exists for the copy editor (scripts/copy-edit.js): it injects
-// that script into every HTML page and answers its saves at /__copy/save,
-// rewriting one key's value in a page's strings.js. None of it is in the
+// that script into every HTML page and answers its saves: /__copy/save
+// rewrites one key's value in a page's strings.js, /__copy/save-html one
+// text in a page's own HTML (/__copy/probe says which texts qualify).
+// None of it is in the
 // repo's served tree, so none of it can reach Pages.
 //
 // Not `cf dev`: as of cf 1.0.0-beta.12 it dies on Windows with `spawn EFTYPE`,
@@ -70,17 +72,69 @@ function saveString(body) {
   return [200, { ok: true }];
 }
 
+// Pages with no strings.js keep their copy in the HTML itself. A text node
+// is found by its words, between one tag's `>` and the next `<`, in the
+// page's own body: <head>, scripts, styles, comments and the shared site
+// header are blanked first (the header repeats on 16 pages; one page's edit
+// would fork it). Only text found exactly once is editable, so anything
+// rendered from JSON — songs, films, league data — never matches.
+const MASK = /<head[\s\S]*?<\/head>|<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->|<header class="site-header"[\s\S]*?<\/header>/gi;
+
+function htmlFile(file) {
+  if (typeof file !== 'string' || !/^[\w/.-]*\.html$/.test(file) || file.includes('..')) return null;
+  if (/^resume\//.test(file) || /^deetsmusic\/demo\/app\//.test(file)) return null;
+  const abs = path.join(ROOT, file);
+  return fs.existsSync(abs) ? abs : null;
+}
+
+function textPattern(text) {
+  const word = (w) => Array.from(w).map((c) => (/[A-Za-z0-9]/.test(c) ? c
+    : '(?:' + c.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&') + '|&[#\\w]+;)')).join('');
+  const words = text.trim().split(/\s+/).filter(Boolean).map(word);
+  return new RegExp('(?<=>\\s*)' + words.join('(?:\\s|&nbsp;|&#160;)+') + '(?=\\s*<)', 'g');
+}
+
+function findText(src, text) {
+  const blank = src.replace(MASK, (m) => ' '.repeat(m.length));
+  return Array.from(blank.matchAll(textPattern(text)));
+}
+
+function probeHtml(body) {
+  const abs = htmlFile(body.file);
+  if (!abs || !Array.isArray(body.texts)) return [200, { ok: true, counts: [] }];
+  const src = fs.readFileSync(abs, 'utf8');
+  return [200, { ok: true, counts: body.texts.map((t) => (typeof t === 'string' && t.trim() ? findText(src, t).length : 0)) }];
+}
+
+function saveHtml(body) {
+  const { file, old, value } = body;
+  const abs = htmlFile(file);
+  if (!abs) return [400, 'not an editable page'];
+  if (typeof old !== 'string' || typeof value !== 'string' || !value.trim()) return [400, 'empty text'];
+  const src = fs.readFileSync(abs, 'utf8');
+  const hits = findText(src, old);
+  if (hits.length !== 1) return [409, hits.length ? `text appears ${hits.length} times in ${file}` : `text not found in ${file}`];
+  const at = hits[0].index;
+  const safe = value.replace(/\s*\n\s*/g, ' ').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  fs.writeFileSync(abs, src.slice(0, at) + safe + src.slice(at + hits[0][0].length));
+  console.log(`copy-edit: ${file} › "${old.slice(0, 40)}"`);
+  return [200, { ok: true }];
+}
+
+const POSTS = { '/__copy/save': saveString, '/__copy/save-html': saveHtml, '/__copy/probe': probeHtml };
+
 function copyRoute(req, res) {
   if (req.method === 'GET' && req.url.split('?')[0] === '/__copy/edit.js') {
     return send(res, 200, fs.readFileSync(EDITOR, 'utf8'), 'text/javascript; charset=utf-8');
   }
-  if (req.method === 'POST' && req.url === '/__copy/save') {
+  const handler = req.method === 'POST' && POSTS[req.url];
+  if (handler) {
     let raw = '';
     req.setEncoding('utf8');
     req.on('data', (c) => { raw += c; });
     req.on('end', () => {
       let out;
-      try { out = saveString(JSON.parse(raw)); } catch (e) { out = [400, String(e.message)]; }
+      try { out = handler(JSON.parse(raw)); } catch (e) { out = [400, String(e.message)]; }
       send(res, out[0], out[0] === 200 ? out[1] : { ok: false, error: out[1] });
     });
     return;
