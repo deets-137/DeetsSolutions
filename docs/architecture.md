@@ -348,6 +348,15 @@ header carries this warning.
   rules ask for. Any plain static server (`python -m http.server`) still works
   but ignores `_headers`. Not `cf dev`: as of cf 1.0.0-beta.12 it crashes on
   Windows (`spawn EFTYPE`) and scaffolds the site as a Worker.
+- **Copy editor (dev only).** `scripts/dev.js` fronts wrangler with a small
+  proxy that injects `scripts/copy-edit.js` into every HTML page. On a page
+  whose copy fills from `strings.js` via `[data-s]` (today: DeetsMusic), an
+  "Edit copy" pill (bottom left, or Alt+E) makes that text typeable. It shows
+  the raw strings, `{tokens}` included, and dashes the `[ph]` ones. Enter or
+  clicking away saves the key into `strings.js`, and Esc reverts. Leaving
+  edit mode reloads. Nothing in the served tree references it, so it never
+  reaches Pages. It is for Aditya typing his own words: the Copy rule for
+  Claude is unchanged.
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.
