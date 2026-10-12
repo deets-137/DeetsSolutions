@@ -3513,19 +3513,19 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   color: var(--title);
 }
 
-/* Screenshots: Max beside Midi and the Compass. The columns are the
-   pictures' own aspect ratios (Max 1100×950, Midi 495×670), so the three
-   stand at one height; narrower, Max takes its own row. */
+/* Screenshots: Max beside the full screen player. The columns are the
+   pictures' own aspect ratios (Max 1100×950 = 1.16, the full player
+   1200×600 = 2), so the two stand at one height; narrower, each takes
+   its own row. */
 .dm-shots__row {
   display: grid;
-  grid-template-columns: 1.57fr 1fr 1fr;
+  grid-template-columns: 1.16fr 2fr;
   gap: var(--space-3);
   align-items: start;
   align-self: stretch;
 }
 @media (max-width: 48rem) {
-  .dm-shots__row { grid-template-columns: 1fr 1fr; }
-  .dm-shot--max { grid-column: 1 / -1; }
+  .dm-shots__row { grid-template-columns: 1fr; }
 }
 .dm-shot {
   display: flex;

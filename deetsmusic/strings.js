@@ -36,12 +36,12 @@ window.DM_STRINGS = {
   installButton:  "Download for Windows",
   installNone:    "No installer is up right now. Check back soon.",
   installFailed:  "Couldn't reach the download server.",
-  installNeeds:   "Windows 11 and an Apple Music subscription.",
+  installNeeds:   "Apple Music subscription required.",
   /* browser warning steps: approved by Aditya in chat, 2026-09-15 (replaces the
      "not code-signed yet" line). The page shows the visitor's own browser, and
      "Other browsers" shows the rest. Edge and Firefox were tested on his PC with
      0.6.0; Chrome was not. */
-  installSigned:        "The installer is signed by Aditya Sundaram. Your browser may still warn that it isn't commonly downloaded.",
+  installSigned:        "Installer's signed by Aditya Sundaram but not commonly downloaded, so  there will be a browser warning for now rip. ",
   /* the ⓘ note beside installSigned: label and text approved by Aditya in chat, 2026-09-15 */
   installWhyLabel:      "Why the warning?",
   installWhy:           "Why the warning? Browsers trust a file more as more people download it safely. Each new version of DeetsMusic starts with no download history, so the warning shows less often as more people download that version.",
@@ -55,59 +55,58 @@ window.DM_STRINGS = {
      brackets on each feature). Approved by Aditya in chat 2026-10-06, alt
      texts included. */
   /* the line under the page bar: approved by Aditya in chat, 2026-10-06 */
-  tagline:          "Free. A lightweight Apple Music player for Windows 11.",
+  tagline:          "Free. Lightweight. Uniquely Deets. An Apple Music player for Windows.",
 
   /* features: the everyday grid, then the "Only in DeetsMusic" row (his call).
      The looks tile is 6 × 4: the app's menu offers four skins, not Vanilla. */
   featuresTitle:    "Features",
-  feat_lastfm_t:    "Last.fm scrobbling",                 /* integrations/LASTFM.md */
-  feat_lastfm_b:    "Every song you play lands on your Last.fm profile.",
-  feat_discord_t:   "Discord status and Friends",         /* integrations/FRIENDS.md */
-  feat_discord_b:   "Show what you're playing on Discord, and see what your friends are playing.",
-  feat_airplay_t:   "Play on a HomePod",                  /* integrations/AIRPLAY.md */
-  feat_airplay_b:   "Send the music to a HomePod or another AirPlay speaker.",
+  feat_lastfm_t:    "Last.fm Scrobbling",                 /* integrations/LASTFM.md */
+  feat_lastfm_b:    "[Had to be the first one listed yk] Live logging your listening history to Last.Fm so you can make your own rewinds and get better recs.",
+  feat_discord_t:   "Discord Status + Webhooks",         /* integrations/FRIENDS.md */
+  feat_discord_b:   "Optionally have what you're listening to live update as a Discord status. Can also add a Disc channel to post Song of the Days to.",
+  feat_airplay_t:   "Airplay",                  /* integrations/AIRPLAY.md */
+  feat_airplay_b:   "Link up w any airplay speaker and stream just DeetsMusic audio or your entire PC audio (figured it'd be cool but not by default).",
   feat_sizes_t:     "Mini, Midi and Max",                 /* architecture/SURFACES-AND-CARDS.md */
-  feat_sizes_b:     "One window in several sizes, with cards you can swap.",
+  feat_sizes_b:     "Different UI layouts for different sized app size. Mini and midi don't take a lot of space and hold a panel or two if that's all you need.",
   feat_looks_t:     "6 themes × 4 skins",                 /* architecture/UI-ARCHITECTURE.md */
-  feat_looks_b:     "24 looks, and the pictures on this page follow the one you pick here.",
+  feat_looks_b:     "24 looks matching the website (for now lol). Themes are color schemes on top of the skins' skeleton (unique animations, style, etc). ",
   feat_eq_t:        "Equalizer",                          /* features/SOUND.md */
-  feat_eq_b:        "Shape the sound to your speakers or headphones.",
+  feat_eq_b:        "Tune the bass, treble, and more with a 10 band EQ. Set your own presets (please and let me know any changes you want there lol).",
   onlyTitle:        "Only in DeetsMusic",
   feat_rooms_t:     "Listening rooms",                    /* integrations/ROOMS.md */
-  feat_rooms_b:     "Listen along with friends in sync, each on their own Apple Music.",
-  feat_agent_t:     "Control it from an AI app or a terminal", /* integrations/AGENT.md */
-  feat_agent_b:     "A command line and an MCP server let a script or an AI assistant play, queue and search.",
+  feat_rooms_b:     "Add friends in app & start a room where you and your friends can listen to music, queue up songs, and vibe together.",
+  feat_agent_t:     "MCP & CLI Interfaces [For Nerds]", /* integrations/AGENT.md */
+  feat_agent_b:     "An MCP and CLI allow your preferred AI system to make a playlist, queue up songs, and operate the app for you. Disabled by default.",
 
   /* screenshots: the demo's mock songs, in the visitor's own theme × skin.
-     Title, hint, click line and the three captions approved/dictated by
-     Aditya in chat, 2026-10-06, and the alt texts too. */
+     Title, hint, click line and the Max caption approved/dictated by
+     Aditya in chat, 2026-10-06, and its alt text too. The full player's
+     caption is his (2026-10-11), and its alt text approved the same day. */
   shotsTitle:       "Demos",
   shotsHint:        "Matches the selected skin and theme of the website",
-  shotsClick:       "Click a picture to try the demo.",
-  shot_midi:        "Midi, on Home",
-  shot_midiAlt:     "DeetsMusic at Midi size, showing the Home card beside Now Playing.",
+  shotsClick:       "Click a picture to try the full demo.",
   shot_max:         "Max",
   shot_maxAlt:      "DeetsMusic at Max size, with several cards open at once.",
-  shot_compass:     "The Compass (Ctrl+Space)",
-  shot_compassAlt:  "DeetsMusic's Compass search box open over the player.",
+  shot_full:        "Full Screen Player",
+  shot_fullAlt:     "DeetsMusic's full screen player: a large album cover between the Queue and History.",
 
   /* requirements + trust: its own box after the pictures, no VirusTotal (his call) */
-  trustTitle:       "Requirements and trust",   /* approved by Aditya in chat, 2026-10-06 */
+  trustTitle:       "Requirements AND More",   /* approved by Aditya in chat, 2026-10-06 */
   trust_systemK:    "System",
-  trust_system:     "Windows 11, 64-bit (x64). WebView2, which Windows 11 already has.",
+  trust_system:     "Windows 11 (x64) [untested on W10 but it'd probably mostly work? Let me know, happy to fix it up]",
   trust_installK:   "Install",
-  trust_install:    "Installs for your Windows account only, so setup needs no admin rights.",
+  trust_install:    "Download button above downloads an installer which should set everything up easy peasy for ya.",
   trust_updatesK:   "Updates",
-  trust_updates:    "The app updates itself: a new version installs when it restarts.",
+  trust_updates:    "In app, you should get a notification that an update is available or (Settings > Updates > Check now)",
   trust_signedK:    "Signed",
   trust_signed:     "Code-signed by Aditya Sundaram.",
   trust_airplayK:   "AirPlay",
-  trust_airplay:    "The first time you connect a speaker, Windows asks once to let DeetsMusic through the firewall.",
+  trust_airplay:    "Should work with any Airplay 2 receiver (tested and confirmed on HomePods)",
   trust_sourceK:    "Source",
-  trust_source:     "Free and open source under the MIT license.",
+  trust_source:     "Free and open source under the MIT license. You can mod and mess w it as you like. ",
   trust_repo:       "Read the code on GitHub",
   trust_license:    "License",
-  trust_support:    "Bugs and ideas go to the boards on this page, not GitHub.",
+  trust_support:    "Bugs and ideas on this page, not GitHub. GitHub issues feels too formal lol.",
 
   /* status */
   /* status box: the lines without [ph] were approved by Aditya in chat, 2026-09-14 */
@@ -365,7 +364,7 @@ window.DM_STRINGS = {
 
   /* fine print — the Privacy box, approved by Aditya in chat, 2026-09-14 */
   fineTitle:  "Privacy",
-  privacy1:   "Sign-in to Apple Music stays on your PC, and your Apple Music sign-in token never leaves it.",
-  privacy2:   "The DeetsMusic server sees nothing about you unless you send a post on this page, and then it sees only what you typed.",
-  trademark:  "Apple Music is a trademark of Apple Inc., registered in the U.S. and other countries. DeetsMusic is an independent project. It is not affiliated with, sponsored by, or endorsed by Apple."
+  privacy1:   "Apple sign in is purely on your PC, DeetsMusic can't see anything about your Apple account.",
+  privacy2:   "There's no cloud backups or anything yet so no one except Apple gets your play history.",
+  trademark:  "Apple Music is a trademark of Apple Inc., registered in the U.S. and other countries. DeetsMusic is an independent project. It is not affiliated with, sponsored by, or endorsed by Apple. (But I am unemployed and looking to get into Product-side roles so if we wanna chat Apple (or other service provider), I am so down)"
 };

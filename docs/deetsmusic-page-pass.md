@@ -95,9 +95,10 @@ Pass 1 (§3):
   Music player for Windows 11.` (he writes the final words).
 - **Features:** two groups. The everyday features in a grid first; an **"Only in DeetsMusic"
   row below it** (listening rooms, control from an AI app or a terminal).
-- **Screenshots:** Midi Home, Max overview, Compass, **in the visitor's own look.** All 30
-  theme × skin pairs are shot (the theme and skin ids match the app's), converted to WebP when
-  copied in, and the page swaps them live when the look changes. A visitor downloads 3.
+- **Screenshots:** Max overview and the full screen player (Midi Home and the Compass until
+  2026-10-11, §3c), **in the visitor's own look.** All 24
+  theme × skin pairs the app has are shot (6 themes × 4 skins; the ids match the app's), converted to WebP when
+  copied in, and the page swaps them live when the look changes. A visitor downloads 2.
 - **Requirements + Trust:** a small box of its own after Features. **No VirusTotal.**
 - **Later the same day (desk test):** the app's menu offers only four skins (no Vanilla), so the
   Vanilla pictures were dropped (72 files) and a Vanilla visitor sees **Press**. The section is
@@ -182,9 +183,18 @@ options, your recommendation first.
   links to the demo (`/deetsmusic/demo/`).
 - **Note:** the shots runner exists in the app repo. Do not build a new capture tool.
 - **As built (2026-10-06):** three pictures (`max-overview`, `midi-home`, `compass-open`) in all
-  30 looks, named `<shot>.<theme>-<skin>.webp`. `deetsmusic.js` (`renderShots`) sets each
+  24 looks (6 themes × Cyber, Glass, Ocean, Press; a Vanilla visitor gets Press), named
+  `<shot>.<theme>-<skin>.webp`, 72 files. `deetsmusic.js` (`renderShots`) sets each
   `<img>`'s src from `<html>`'s `data-theme` / `data-skin` and follows a change. Each picture
   links to `demo/`. WebP at about 2× display width (Max 960 px, Midi 600 px), quality 82.
+- **Changed 2026-10-11 (his call):** the Midi and Compass pictures were replaced by one picture,
+  `max-full-player`: Max at 1800 × 900 with the full player open, the Queue on the left and
+  History on the right (app 0.26.1). Caption *Full Screen Player* (his words); the alt text was
+  approved the same day. Salt & Signal plays in it, because the Honey Static cover prints its own title under
+  the app's. The row is now two pictures, Max then the full player (`1.16fr 2fr`, their aspect
+  ratios); under 48rem each takes its own row. Today: 2 pictures × 24 looks = **48 files**;
+  the full player WebP is 1200 × 600. The 48 Midi and Compass files were deleted (the recipes
+  stay in the app's `docs/guide/shots.json`).
 - **Re-shooting** (when the app's look changes):
   1. Shoot from a clean checkout of the app at a release, never the working tree: another
      session may have work in progress. `git worktree add --detach <scratch>/dm-shots HEAD`, with
@@ -193,9 +203,11 @@ options, your recommendation first.
      app repo. Every page then fails with `504 (Outdated Optimize Dep)`, and every shot comes out
      as a blank, flat-colored frame. Give the scratch copy its own cache: add
      `cacheDir: ".vite-shots-cache"` to its `vite.demo.config.ts` (scratch only, never commit).
-  3. `node scripts/shots.mjs --only midi-home,max-overview,compass-open --out <scratch>/shots`.
-  4. Convert with Pillow (dev-time only): resize to the widths above, save WebP q82, and reject
-     any frame whose pixels barely vary (a blank one). Copy the 90 files over the old ones.
+  3. `node scripts/shots.mjs --only max-overview,max-full-player --look <the 24 looks> --out
+     <scratch>/shots` (without `--look` it also shoots Vanilla, which the page does not use).
+  4. Convert with Pillow (dev-time only): resize to the widths above (Max 960 px, the full
+     player 1200 px), save WebP q82, and reject any frame whose pixels barely vary (a blank
+     one). Copy the 48 files over the old ones.
 
 ### 3d. Requirements + Trust block
 
