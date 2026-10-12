@@ -15,7 +15,7 @@
 @import "./fonts.css?v=2026-09-17";
 @import "./palette.css?v=2026-09-17";
 @import "./themes.css?v=2026-09-17";
-@import "./skin.css?v=2026-10-06b";
+@import "./skin.css?v=2026-10-11";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -156,10 +156,29 @@ body::before {
 .ocean__train--far  { --roll-s: var(--ocean-roll-far); }
 .ocean__train--mid  { --roll-s: var(--ocean-roll-mid); }
 .ocean__train--near { --roll-s: var(--ocean-roll-near); }
+/* The album light (Settings › Album light; the app's OCEAN.md §7): the band's
+   crest lines in the cover's color, with a bloom. ocean.js paints them only
+   while Album light is above 0. Two per band: a new cover's lines fade in on
+   one while the old one fades out. Each is its own layer (will-change), so a
+   fade never re-rasters the band; it rolls with the band because it sits
+   inside it. No heave, so no pulse (the app's --ocean-neon-pulse). */
+.ocean {
+  --ocean-lit: calc(var(--ocean-light, 80) / 100);
+}
+.ocean__neon {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat-x;
+  opacity: 0;
+  will-change: opacity;
+  transition: opacity var(--ocean-neon-fade) var(--ocean-ease);
+}
+.ocean__neon[data-on] { opacity: var(--ocean-lit); }
 /* The glow from the deep, in the color of today's Song of the Day cover
    (ocean.js sets --ocean-glow-color on .ocean; transparent with no cover).
    The color crossfades as a registered property, which repaints this one
-   box while it fades (once a day at most). */
+   box while it fades (once a day at most). Album light raises it: stronger
+   (--ocean-glow → --ocean-light-glow) and taller. */
 @property --ocean-glow-color {
   syntax: "<color>";
   inherits: true;
@@ -168,8 +187,9 @@ body::before {
 .ocean__glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(var(--ocean-glow-shape), var(--ocean-glow-color), transparent var(--ocean-glow-reach));
-  opacity: var(--ocean-glow);
+  background: radial-gradient(ellipse var(--ocean-glow-w) calc(var(--ocean-glow-h) + var(--ocean-light-reach) * var(--ocean-lit)) at var(--ocean-glow-at),
+                              var(--ocean-glow-color), transparent var(--ocean-glow-reach));
+  opacity: calc(var(--ocean-glow) + (var(--ocean-light-glow) - var(--ocean-glow)) * var(--ocean-lit));
   transition: --ocean-glow-color var(--ocean-glow-fade) var(--ocean-ease);
 }
 /* The radio shell (main.css §radio shell) covers the whole page with its
@@ -304,7 +324,7 @@ body::before {
   /* Ocean stays VISIBLE, just still: a motionless sea is still a sea. */
   .ocean__train, .ocean__roll, .ocean__bob,
   .ocean[data-sea="classic"] .ocean__bob { animation: none; }
-  .ocean__glow { transition: none; }
+  .ocean__glow, .ocean__neon { transition: none; }
   .storm { display: none; }                    /* a frozen half-drawn bolt reads as a bug */
 }
 

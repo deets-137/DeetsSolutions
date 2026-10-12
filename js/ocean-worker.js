@@ -1,7 +1,7 @@
 /* Ocean's swell painter — a hand port of DeetsMusic's src/ocean-texture.ts and
    src/ocean-worker.ts (the app's docs/features/OCEAN.md §3) to plain JS. Pure math,
-   no DOM. Keep it in step with the app's painter; the neon album light (OCEAN.md §7)
-   is not ported.
+   no DOM. Keep it in step with the app's painter, the neon album light (OCEAN.md §7)
+   included: a job with `neon` paints only the crest lines.
 
    One file, two ways in:
    - As a classic Worker (js/ocean.js starts it): a job in, { id, blob } out — the
@@ -110,6 +110,10 @@
         var set = 0.62 + 0.38 * Math.sin((tau * setK * x) / w + setPh);
         var yc = y0 - amp * set * Math.cos(th);
         var lo = Math.max(0, Math.floor(yc - 4 * px)), hi = Math.min(h - 1, Math.ceil(yc + body));
+        if (s.neon) {
+          neonColumn(s.neon, row, x, yc, px, w, h, r, g, b, a, over);
+          continue;
+        }
         for (var y = lo; y <= hi; y++) {
           var d = y - yc;
           var i = y * w + x;
@@ -133,6 +137,32 @@
     return unpremultiply(w, h, r, g, b, a);
   }
 
+  /* One column of one row, in neon (the album light, OCEAN.md §7): erase the light the
+     row's body covers, then the bloom (reaching further above the crest than below it,
+     onto the row's own water), then the core. The bloom is wider and the line brighter
+     on the near rows, as the band's own line is. n: { core, bloom } ([r, g, b] 0–255). */
+  function neonColumn(n, row, x, yc, px, w, h, r, g, b, a, over) {
+    var body = row.body * px, line = row.line * px * 1.3;
+    var sigma = (2 + 7 * row.lit) * px;
+    var lo = Math.max(0, Math.floor(yc - 3 * sigma)), hi = Math.min(h - 1, Math.ceil(yc + body));
+    for (var y = lo; y <= hi; y++) {
+      var d = y - yc;
+      var i = y * w + x;
+      if (d >= 0) {
+        var keep = smooth(body * 0.55, body, d);
+        r[i] *= keep;
+        g[i] *= keep;
+        b[i] *= keep;
+        a[i] *= keep;
+      }
+      var sd = d / (d < 0 ? sigma : sigma * 0.5);
+      var glow = 0.55 * row.lit * Math.exp(-(sd * sd));
+      if (glow > 0.002) over(i, n.bloom[0], n.bloom[1], n.bloom[2], glow);
+      var core = row.lit * Math.exp(-((d / line) * (d / line)));
+      if (core > 0.002) over(i, n.core[0], n.core[1], n.core[2], core);
+    }
+  }
+
   /* Premultiplied float planes → straight RGBA bytes. */
   function unpremultiply(w, h, r, g, b, a) {
     var data = new Uint8ClampedArray(w * h * 4);
@@ -148,7 +178,7 @@
   }
 
   /* A job (js/ocean.js): { band, tile, height (CSS px), px, ink, top, bottom, shade,
-     seed } → the band's pixels. The rows are laid out here, so the controller never
+     seed, neon? } → the band's pixels. The rows are laid out here, so the controller never
      needs the texture code. */
   function paintBand(job) {
     return swellLayer({
@@ -161,6 +191,7 @@
       bottom: job.bottom,
       shade: job.shade,
       seed: job.seed,
+      neon: job.neon || null,
     });
   }
 

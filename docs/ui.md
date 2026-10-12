@@ -193,6 +193,15 @@ Ported from DeetsMusic 2026-09-15 ([ui-direction.md](ui-direction.md), steps 1�
     (debounced), and a `devicePixelRatio` change; old blob URLs are released. Without
     Worker or OffscreenCanvas it loads `ocean-worker.js` as a plain script and paints on
     the main thread, one band per task.
+  - Ocean's **album light** (the app's OCEAN.md §7, ported 2026-10-11; Settings › Album
+    light, 0–100, default 80): each `.ocean__train--*` holds two `.ocean__neon` layers.
+    Above 0, `ocean.js` has the worker paint each band again in neon mode (`neonColumn`,
+    the band's own rows and seed), only the crest lines and their bloom in the cover's
+    color (`asNeon`), on the unlit layer; then all three bands crossfade at once
+    (`--ocean-neon-fade` 1.1 s). `--ocean-light` on `<html>` sets the neon's opacity and
+    raises the glow from `--ocean-glow` toward `--ocean-light-glow` (0.7) and
+    `--ocean-light-reach` (35%) taller. No heave on the site, so no pulse. At 0 nothing is
+    painted; no cover, the neon fades out.
   - Ocean's **glow from the deep** takes the color of today's Song of the Day cover (the
     newest song in `sotd/songs.json` with `artwork_url`): a 60×60 copy from mzstatic (CORS
     `*`), its dominant colors, the most colorful one, then the app's `asGlow` mapping, set as
@@ -252,9 +261,13 @@ steps 4, 6 and 8). Built by `controls.js`'s `buildSettings()`; styles in `chrome
   It writes every `DEFAULTS` value back and clears `deets-theme` / `deets-skin`, so the OS
   pair applies again under the cover.
 - **Defaults are tuned per first-visit pair** (his call, 2026-09-15): Glass › Canvas glow
-  74, Dim canvas 21, Backlight 65, Tint 26; Ocean › sand edges at 20. `skin.css`'s `var()`
-  fallbacks and the sand selector (`:not([data-ocean-edges="soft"])`) mirror them, so the
-  first frame matches before `controls.js` runs.
+  74, Dim canvas 21, Backlight 65, Tint 26. Ocean › **soft** edges (sand width 20 when he
+  picks Sand) and **Album light 80** (his call, 2026-10-11; it was sand before). The CSS
+  `var()` fallbacks (`--ocean-light, 80` in chrome.css) and the opt-in sand selector
+  (`[data-ocean-edges="sand"]`) mirror them, so the first frame matches before
+  `controls.js` runs. A visitor whose stored `deets-settings` already holds
+  `oceanEdges: "sand"` keeps it: the store saves every key on any change, so the new
+  default reaches only fresh stores (and Reset / the moon).
 - **Sun / moon row** (his call, 2026-09-15): the Vibe menu's top row, above Theme and
   Skin, is a sun and a moon split by a hairline. Each is one click to its default look
   from `LOOK_PAIRS` in `controls.js`: the theme and the skin, plus that skin's own settings

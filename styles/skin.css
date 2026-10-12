@@ -91,8 +91,8 @@
   /* -- ocean layer (the sea behind content) -------------------- */
   /* Injected into <body> by controls.js, that a skin opts into; js/ocean.js
      paints the three depth bands from these colors (DeetsMusic's skin.css
-     ocean block, values one to one). Only the swell and the glow are
-     ported: no heave, ripples or neon (docs/deetsmusic-page-pass.md §7). */
+     ocean block, values one to one). The swell, the glow and the neon
+     album light are ported: no heave or ripples (docs/deetsmusic-page-pass.md §7). */
   --ocean-display:      none;             /* ocean opts in */
   --ocean-water-top:    var(--canvas);    /* the water at the horizon … */
   --ocean-water-bottom: var(--canvas);    /* … and at the bottom (the deepest) */
@@ -114,8 +114,15 @@
      at 115%, 75%): his call 2026-10-06, the app's level was invisible here. */
   --ocean-glow:         0.5;              /* the cover's glow from the deep */
   --ocean-glow-fade:    2.4s;             /* a band or a new cover's glow fades in */
-  --ocean-glow-shape:   ellipse 95% 75% at 50% 108%;   /* rising from below the bottom edge */
+  --ocean-glow-w:       95%;              /* the glow's ellipse, rising from below the bottom edge */
+  --ocean-glow-h:       75%;
+  --ocean-glow-at:      50% 108%;
   --ocean-glow-reach:   85%;              /* where the glow has faded out */
+  /* The album light (Settings › Album light; the app's OCEAN.md §7): controls.js
+     sets --ocean-light (0–100) on <html>, and the fallback is its default. */
+  --ocean-light-glow:   0.7;              /* the glow at full Album light (--ocean-glow at 0) */
+  --ocean-light-reach:  35%;              /* how much taller the glow rises at full Album light */
+  --ocean-neon-fade:    1.1s;             /* the neon crossfades to a new cover's color */
   /* The classic sea (the Tanks level designer only, data-ocean-sea="classic"):
      masked wave trains whose ink fades with distance via these roles. */
   --ocean-ink-1:   var(--border);
@@ -346,13 +353,14 @@
   --hover-lift: translateY(-1px);
 }
 /* Ocean's sand edges (Settings › Draw card edges: Sand; controls.js sets
-   data-ocean-edges) — a dark beach: each card's edge breaks into grains over
+   data-ocean-edges; Soft is the default, so a first frame without the
+   attribute is soft) — a dark beach: each card's edge breaks into grains over
    --sand-reach, and light specks (--border ink) scatter through that band.
    The card box paints nothing; the fill moves to its ::before (main.css
    §Ocean sand edges). No glow ring or drop shadow: an outer shadow would
    trace the hard box edge the grains remove. The grain tiles are SVG noise
    thresholded to hard 0/1 alpha, so each grain is a crisp ~1px dot. */
-:root[data-skin="ocean"]:not([data-ocean-edges="soft"]) {
+:root[data-skin="ocean"][data-ocean-edges="sand"] {
   --card:         transparent;
   --shadow-card:  none;
   --sand-fill:    var(--ocean-card);

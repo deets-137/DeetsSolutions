@@ -122,6 +122,8 @@
     soft: "Soft",
     oceanSand: "Sand width",
     oceanSandHint: "Ocean only. How far the sand reaches into each card",
+    oceanLight: "Album light",       // DeetsMusic's row label
+    oceanLightHint: "[ph] Ocean only. How strongly today's Song of the Day cover lights the sea. High: the waves glow like neon, and cost more on a PC without a graphics card",
     glassCanvas: "Canvas glow",
     glassCanvasHint: "Glass only. How brightly the colors glow on the background. The cards do not change",
     glassDim: "Dim canvas",
@@ -152,7 +154,7 @@
     { theme: "lilac", skin: "glass", label: S.lightLook, icon: "sun",
       keys: ["glassCanvasGlow", "glassCanvasDim", "glassBacklight", "glassTint"] },
     { theme: "moonlight", skin: "ocean", label: S.darkLook, icon: "moon",
-      keys: ["oceanEdges", "oceanSand"] },
+      keys: ["oceanEdges", "oceanSand", "oceanLight"] },
   ];
   function osPair() { return LOOK_PAIRS[prefersDark() ? 1 : 0]; }
 
@@ -166,13 +168,15 @@
   var FOLDS_KEY = "deets-settings-folds";
   // The site's first-visit look is tuned (his call, 2026-09-15): Glass × Lilac
   // on light ships with his slider values, Ocean × Moonlight on dark with
-  // sand edges. skin.css's var() fallbacks mirror these, so the first frame
-  // (before this deferred script runs) already matches.
+  // soft edges and the album light at 80 (his call, 2026-10-11, his app's
+  // value). The CSS var() fallbacks and the sand selector mirror these, so
+  // the first frame (before this deferred script runs) already matches.
   var DEFAULTS = {
     appearanceMotion: true,    // theme/skin changes play the cover; OS reduced motion still wins
     backgroundMotion: "on",    // ambient layers: on = 30 fps, reduced = 15, off = still (storm hides)
-    oceanEdges: "sand",        // Ocean: "sand" breaks the card edges into grains; "soft" is the glow
+    oceanEdges: "soft",        // Ocean: "sand" breaks the card edges into grains; "soft" is the glow
     oceanSand: 20,             // Ocean sand: 0–100 across --sand-reach-min…max
+    oceanLight: 80,            // Ocean album light: 0 = the plain sea, 100 = neon crests (js/ocean.js)
     glassCanvasGlow: 74,       // Glass, 0–100: aurora strength (50 = as the skin writes it)
     glassCanvasDim: 21,        // Glass, 0–100: darkens the canvas; the cards undo it
     glassBacklight: 65,        // Glass, 0–100: the light behind each card
@@ -215,12 +219,15 @@
     glassCanvasGlow: ["--glass-canvas", ""],
     glassCanvasDim:  ["--glass-canvas-dim", ""],
     oceanSand:       ["--ocean-sand", ""],
+    oceanLight:      ["--ocean-light", ""],
   };
   function clamp100(v) { return Math.max(0, Math.min(100, Math.round(Number(v) || 0))); }
-  // Show a slider value without writing the store (a drag).
+  // Show a slider value without writing the store (a drag). The album light
+  // also tells the sea, whose first move above 0 paints the neon.
   function previewSkin(key, v) {
     var p = SKIN_PROPS[key];
     document.documentElement.style.setProperty(p[0], clamp100(v) + p[1]);
+    if (key === "oceanLight" && window.DeetsOcean) DeetsOcean.setLight(clamp100(v));
   }
   function applySettings(key) {
     var root = document.documentElement;
@@ -425,6 +432,9 @@
         { kind: "toggle", id: "motion", label: S.motion, hint: S.motionHint, key: "appearanceMotion" },
         { kind: "choice", id: "bgmotion", label: S.bgMotion, hint: S.bgMotionHint, key: "backgroundMotion",
           options: [["on", S.on], ["reduced", S.reduced], ["off", S.off]] },
+        // Ocean: the app's order (its settings-card.ts), the light above the edges.
+        { kind: "range", id: "oceanlight", label: S.oceanLight, hint: S.oceanLightHint, key: "oceanLight", unit: "%",
+          when: function () { return skinIs("ocean"); } },
         { kind: "choice", id: "oceanedges", label: S.oceanEdges, hint: S.oceanEdgesHint, key: "oceanEdges",
           options: [["sand", S.sand], ["soft", S.soft]],
           when: function () { return skinIs("ocean"); } },
@@ -897,7 +907,8 @@
 
   /* Ocean: the app's swell (DeetsMusic 0.14.0, its docs/features/OCEAN.md
      §3). Three depth bands, far to near, each a bob box (rise and fall)
-     around a train box (the roll), then the glow from the deep. The bands
+     around a train box (the roll) holding two neon layers (the album light,
+     OCEAN.md §7), then the glow from the deep. The bands
      are painted once, in a worker, by js/ocean.js (+ ocean-worker.js); it
      is loaded the first time the skin is Ocean (loadOcean below), so pages
      carry no tag for it. CSS moves the boxes (chrome.css). */
@@ -907,7 +918,10 @@
     ["far", "mid", "near"].forEach(function (n) {
       var bob = sea.appendChild(document.createElement("div"));
       bob.className = "ocean__bob ocean__bob--" + n;
-      bob.appendChild(document.createElement("div")).className = "ocean__train ocean__train--" + n;
+      var train = bob.appendChild(document.createElement("div"));
+      train.className = "ocean__train ocean__train--" + n;
+      train.appendChild(document.createElement("div")).className = "ocean__neon";
+      train.appendChild(document.createElement("div")).className = "ocean__neon";
     });
     sea.appendChild(document.createElement("div")).className = "ocean__glow";
     return sea;

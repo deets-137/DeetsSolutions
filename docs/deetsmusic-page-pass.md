@@ -337,7 +337,8 @@ same day. 7a–7d below are the plan as written before the build; **7e is what w
   - The cover's color is found from pixels, not Apple's palette (the site has none): the
     60×60 cover is binned (3 bits a channel), the bins covering ≥ 4 % of it (up to 6; else the
     top 3) are the candidates, and the most colorful wins, as `albumColor` ranks bg/c1/c2.
-  - No heave, ripples, neon album light or `.ocean__heave` wrapper (§2a scope).
+  - No heave, ripples or `.ocean__heave` wrapper (§2a scope). The neon album light was
+    left out here and **added 2026-10-11** (§7f).
   - No-Worker / no-OffscreenCanvas fallback: the painter loads as a plain script and paints
     on the main thread, one band per task (the app needs no fallback).
   - While the radio shell is open, the parent page's sea is `display: none`: the shell covers
@@ -353,6 +354,25 @@ same day. 7a–7d below are the plan as written before the build; **7e is what w
 - **Left for him:** the visual pass in all 6 themes (light and dark), on a weak machine
   too (§7d's cost check was not run). The radio shell's hide-the-parent-sea rule was not
   exercised headless. No new strings.
+
+### 7f. The album light (2026-10-11)
+- **Why:** side by side with the app on the same song, the site's sea read flat: the app
+  had Album light up (neon crests in the cover's color, a stronger and taller glow), and
+  the site had only the swell and the glow.
+- **His calls:** port it; a Settings slider like the app's ("Album light", the app's
+  label), **default 80** (his app's value); and Ocean's card edges now **default Soft**,
+  not Sand.
+- **Built:** `neonColumn` in `js/ocean-worker.js`, `asNeon` / `paintNeon` / `setLight` in
+  `js/ocean.js` (the app's code one to one, minus the heave pulse), two `.ocean__neon`
+  per band (`controls.js`), CSS in `chrome.css` (§Ambient layers), tokens in `skin.css`.
+  The sand selectors flipped to opt-in (`[data-ocean-edges="sand"]`). Asset `?v=` bumped
+  to 2026-10-11. Details: [ui.md](ui.md) "Ambient layers".
+- **Verified** (local, Moonlight × Ocean, home): six neon layers, three lit at 0.8, the
+  glow at 0.66, no console errors; a fresh store gets Soft and 80, and the Look section
+  counts the new row. One `[ph]`: the row's hint (the app's hint names the album; the
+  site's source is the SOTD cover).
+- **Left for him:** the visual pass (all 6 themes, light water too), the weak-machine
+  cost check (now six band images instead of three), and the hint's wording.
 
 ### 7a. What the site has
 `js/controls.js` injects an ocean layer: masked tile boxes from a geometry table, rolling

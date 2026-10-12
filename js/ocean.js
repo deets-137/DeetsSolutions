@@ -1,7 +1,7 @@
 /* The Ocean sea — a hand port of DeetsMusic's src/ocean.ts (the app's
-   docs/features/OCEAN.md §3) to plain JS: the swell and the glow from the deep. No
-   heave, no ripples, no neon album light: those follow the app's player, and the site
-   has none (docs/deetsmusic-page-pass.md §7).
+   docs/features/OCEAN.md §3 and §7) to plain JS: the swell, the glow from the deep
+   and the album light. No heave, no ripples: those follow the app's player, and the
+   site has none (docs/deetsmusic-page-pass.md §7).
 
    controls.js injects the layer (.ocean > .ocean__bob--{far,mid,near} >
    .ocean__train--*, then .ocean__glow) and loads this file the first time the skin is
@@ -13,6 +13,10 @@
      background. A theme change, a new sea height or a new display scale repaints them.
    - The glow from the deep, in the color of today's Song of the Day cover, set as
      --ocean-glow-color on .ocean (transparent with no cover, the app's "no album").
+   - The album light (Settings › Album light, default 80). Above 0, the worker also
+     paints each band's crest lines alone, as neon in the cover's color, onto a layer
+     inside the band. CSS sets how bright (--ocean-light) and raises the glow. At 0
+     nothing is painted.
 
    The glow's source. The newest song in sotd/songs.json that has artwork is "today's".
    songs.json is large, so it is not fetched on every view: the derived color, the art
@@ -122,6 +126,18 @@
     var lch = toOKLCH(c);
     var L = darkWater ? Math.min(Math.max(lch[0], 0.5), 0.66) : Math.min(Math.max(lch[0], 0.55), 0.72);
     return fromOKLCH([L, Math.min(lch[1] * 1.8, 0.16), lch[2]]);
+  }
+
+  /* Album color → the neon crest: the bloom in the color made more vivid, and a
+     core lifted toward white on dark water (a lit tube). On light water a bright
+     line vanishes, so both go deeper. A grey cover stays grey: the chroma is
+     scaled, never invented. The app's asNeon, one to one. */
+  function asNeon(c, darkWater) {
+    var lch = toOKLCH(c);
+    var vivid = Math.min(lch[1] * 1.5, 0.2), h = lch[2];
+    return darkWater
+      ? { bloom: fromOKLCH([0.72, vivid, h]), core: fromOKLCH([0.92, vivid * 0.45, h]) }
+      : { bloom: fromOKLCH([0.62, vivid, h]), core: fromOKLCH([0.45, vivid, h]) };
   }
 
   // ── the bands ──────────────────────────────────────────────────────────────────
@@ -253,12 +269,88 @@
         });
       });
     });
+    // new rows (a height, a scale or a theme): the neon must lie on them
+    neonPainted = "";
+    paintNeon();
+  }
+
+  // ── the album light ────────────────────────────────────────────────────────────
+  /* Settings › Album light, 0–100 (controls.js; its default is 80). */
+  var lightLevel = (function () {
+    var v = window.DeetsSettings && DeetsSettings.get("oceanLight");
+    return typeof v === "number" ? v : 80;
+  })();
+  /* What the lit neon layers show (colors, height, scale); "" = nothing current. */
+  var neonPainted = "", neonSeq = 0;
+
+  function neonLayers(band) {
+    return Array.prototype.slice.call(sea.querySelectorAll(".ocean__train--" + band + " .ocean__neon"));
+  }
+
+  /* Paint the crest lines in the cover's color and crossfade to them: the new lines
+     go on the unlit layer of each band, then all three bands swap at once. No cover:
+     the neon fades out. At 0 nothing is painted. */
+  function paintNeon() {
+    if (!active() || lightLevel <= 0 || !paintedHeight) return;
+    if (!glowSource) {
+      Array.prototype.forEach.call(sea.querySelectorAll(".ocean__neon[data-on]"), function (n) { n.removeAttribute("data-on"); });
+      neonPainted = "";
+      return;
+    }
+    var water = resolve("var(--ocean-water-bottom)") || [0, 0, 0];
+    var neon = asNeon(glowSource, isDark(water));
+    var height = paintedHeight, dpr = paintedDpr;
+    var core = to255(neon.core), bloom = to255(neon.bloom);
+    var key = core + "|" + bloom + "|" + height + "|" + dpr;
+    if (key === neonPainted) return;
+    neonPainted = key;
+    var mine = ++neonSeq;
+    var next = [], left = BANDS.length;
+    var settle = function () {
+      if (--left || mine !== neonSeq) return;
+      BANDS.forEach(function (band) {
+        neonLayers(band.name).forEach(function (n) {
+          if (next.indexOf(n) >= 0) n.setAttribute("data-on", "");
+          else n.removeAttribute("data-on");
+        });
+      });
+    };
+    BANDS.forEach(function (band, i) {
+      draw({
+        band: band.name,
+        tile: band.tile,
+        height: height,
+        px: dpr,
+        ink: [0, 0, 0],
+        top: [0, 0, 0],
+        bottom: [0, 0, 0],
+        shade: 0,
+        seed: 3 + i * 8,   // the band's seed: the same crests
+        neon: { core: core, bloom: bloom },
+      }, function (blob) {
+        var layers = neonLayers(band.name);
+        var off = layers.filter(function (n) { return !n.hasAttribute("data-on"); })[0] || layers[0];
+        if (!blob || !off || mine !== neonSeq) return settle();
+        setImage(off, blob, band.tile + "px 100%", function () {
+          next.push(off);
+          settle();
+        });
+      });
+    });
+  }
+
+  function setLight(v) {
+    var was = lightLevel;
+    lightLevel = v;
+    if (v > 0 && was <= 0) paintNeon();
   }
 
   // ── the glow from the deep ─────────────────────────────────────────────────────
   var glowSource = null;   // [r, g, b] 0–1, the cover's color; null = no cover
 
+  /* The glow, and the neon in the same color (a no-op when it already shows it). */
   function applyGlow() {
+    paintNeon();
     if (!glowSource) {
       sea.style.setProperty("--ocean-glow-color", "transparent");
       return;
@@ -389,6 +481,8 @@
     offer: function (songs) {
       if (active()) useSong(latest(songs));
     },
+    /* Settings › Album light, 0–100: each step of a drag and each stored value. */
+    setLight: setLight,
   };
 
   if (active()) enter();
