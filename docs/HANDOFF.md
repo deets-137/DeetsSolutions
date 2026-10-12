@@ -62,10 +62,10 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-11 — Ocean's album light on the site: BUILT, uncommitted.** The app's neon crests
+**2026-10-11 — Ocean's album light on the site: COMMITTED (855f413), not pushed; his visual pass done.** The app's neon crests
 + stronger glow, a Settings › Album light slider (default 80), and Ocean's edges now default
-Soft. [deetsmusic-page-pass.md](deetsmusic-page-pass.md) §7f. Owed: his visual pass, the
-weak-machine check, and the slider hint's `[ph]`.
+Soft. [deetsmusic-page-pass.md](deetsmusic-page-pass.md) §7f. Owed: the weak-machine
+check and the slider hint's `[ph]`.
 
 **2026-10-06 — The DeetsMusic page's product pass, and the site's Ocean: SHIPPED (pushed to master).**
 Two reviews by another AI agent (a page review and a market read) were checked against the app;
