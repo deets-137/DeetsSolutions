@@ -262,7 +262,11 @@ steps 4, 6 and 8). Built by `controls.js`'s `buildSettings()`; styles in `chrome
   pair applies again under the cover.
 - **Defaults are tuned per first-visit pair** (his call, 2026-09-15): Glass › Canvas glow
   74, Dim canvas 21, Backlight 65, Tint 26. Ocean › **soft** edges (sand width 20 when he
-  picks Sand) and **Album light 80** (his call, 2026-10-11; it was sand before). The CSS
+  picks Sand), **Card opacity 60** and **Album light 80** (his calls, 2026-10-11; edges
+  were sand before, cards solid). Card opacity is the app's row: `--ocean-card-opacity`
+  mixes `--ocean-card` (the card fill and the sand fill) toward transparent, so the
+  swell shows through. The tiles inside a home card (`.project`, `.song`) are cards
+  too, so they stack (60 over 60 ≈ 84%) and read a touch darker than their card. The CSS
   `var()` fallbacks (`--ocean-light, 80` in chrome.css) and the opt-in sand selector
   (`[data-ocean-edges="sand"]`) mirror them, so the first frame matches before
   `controls.js` runs. A visitor whose stored `deets-settings` already holds

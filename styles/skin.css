@@ -310,7 +310,11 @@
   --fs-title:   1.5rem;      /* all-caps reads large; size down */
 
   --radius-card: 14px;       /* softer, water-smoothed corners */
-  --ocean-card:  color-mix(in srgb, var(--surface), black 18%);   /* the recessed card, also the sand fill */
+  /* the recessed card, also the sand fill. Settings › Card opacity sets
+     --ocean-card-opacity (0–100) on <html>; the fallback is the default.
+     100 is the solid sunken card, lower lets the swell through (the app's
+     --panel). */
+  --ocean-card:  color-mix(in srgb, color-mix(in srgb, var(--surface), black 18%) calc(var(--ocean-card-opacity, 60) * 1%), transparent);
   --card:        var(--ocean-card);
 
   /* look change — cards come up from beneath the surface: long, deep, unhurried */

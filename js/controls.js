@@ -122,6 +122,8 @@
     soft: "Soft",
     oceanSand: "Sand width",
     oceanSandHint: "Ocean only. How far the sand reaches into each card",
+    oceanCards: "Card opacity",      // DeetsMusic's row label and hint
+    oceanCardsHint: "Ocean only. How solid the sunken cards are. Lower: the sea shows through",
     oceanLight: "Album light",       // DeetsMusic's row label
     oceanLightHint: "[ph] Ocean only. How strongly today's Song of the Day cover lights the sea. High: the waves glow like neon, and cost more on a PC without a graphics card",
     glassCanvas: "Canvas glow",
@@ -154,7 +156,7 @@
     { theme: "lilac", skin: "glass", label: S.lightLook, icon: "sun",
       keys: ["glassCanvasGlow", "glassCanvasDim", "glassBacklight", "glassTint"] },
     { theme: "moonlight", skin: "ocean", label: S.darkLook, icon: "moon",
-      keys: ["oceanEdges", "oceanSand", "oceanLight"] },
+      keys: ["oceanCardOpacity", "oceanEdges", "oceanSand", "oceanLight"] },
   ];
   function osPair() { return LOOK_PAIRS[prefersDark() ? 1 : 0]; }
 
@@ -168,15 +170,16 @@
   var FOLDS_KEY = "deets-settings-folds";
   // The site's first-visit look is tuned (his call, 2026-09-15): Glass × Lilac
   // on light ships with his slider values, Ocean × Moonlight on dark with
-  // soft edges and the album light at 80 (his call, 2026-10-11, his app's
-  // value). The CSS var() fallbacks and the sand selector mirror these, so
+  // soft edges, cards at 60% and the album light at 80 (his calls,
+  // 2026-10-11; 80 is his app's value). The CSS var() fallbacks and the sand selector mirror these, so
   // the first frame (before this deferred script runs) already matches.
   var DEFAULTS = {
     appearanceMotion: true,    // theme/skin changes play the cover; OS reduced motion still wins
     backgroundMotion: "on",    // ambient layers: on = 30 fps, reduced = 15, off = still (storm hides)
     oceanEdges: "soft",        // Ocean: "sand" breaks the card edges into grains; "soft" is the glow
     oceanSand: 20,             // Ocean sand: 0–100 across --sand-reach-min…max
-    oceanLight: 80,            // Ocean album light: 0 = the plain sea, 100 = neon crests (js/ocean.js)
+    oceanCardOpacity: 60,      // Ocean, 0–100: how solid the sunken cards are (100 = solid)
+    oceanLight: 80,           // Ocean album light: 0 = the plain sea, 100 = neon crests (js/ocean.js)
     glassCanvasGlow: 74,       // Glass, 0–100: aurora strength (50 = as the skin writes it)
     glassCanvasDim: 21,        // Glass, 0–100: darkens the canvas; the cards undo it
     glassBacklight: 65,        // Glass, 0–100: the light behind each card
@@ -219,7 +222,8 @@
     glassCanvasGlow: ["--glass-canvas", ""],
     glassCanvasDim:  ["--glass-canvas-dim", ""],
     oceanSand:       ["--ocean-sand", ""],
-    oceanLight:      ["--ocean-light", ""],
+    oceanCardOpacity: ["--ocean-card-opacity", ""],
+    oceanLight:     ["--ocean-light", ""],
   };
   function clamp100(v) { return Math.max(0, Math.min(100, Math.round(Number(v) || 0))); }
   // Show a slider value without writing the store (a drag). The album light
@@ -432,7 +436,9 @@
         { kind: "toggle", id: "motion", label: S.motion, hint: S.motionHint, key: "appearanceMotion" },
         { kind: "choice", id: "bgmotion", label: S.bgMotion, hint: S.bgMotionHint, key: "backgroundMotion",
           options: [["on", S.on], ["reduced", S.reduced], ["off", S.off]] },
-        // Ocean: the app's order (its settings-card.ts), the light above the edges.
+        // Ocean: the app's order (its settings-card.ts): cards, light, edges.
+        { kind: "range", id: "oceancards", label: S.oceanCards, hint: S.oceanCardsHint, key: "oceanCardOpacity", unit: "%",
+          when: function () { return skinIs("ocean"); } },
         { kind: "range", id: "oceanlight", label: S.oceanLight, hint: S.oceanLightHint, key: "oceanLight", unit: "%",
           when: function () { return skinIs("ocean"); } },
         { kind: "choice", id: "oceanedges", label: S.oceanEdges, hint: S.oceanEdgesHint, key: "oceanEdges",
