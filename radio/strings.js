@@ -13,7 +13,7 @@ window.RADIO_STRINGS = {
   /* bar + meta */
   tuneInPlaceholder: "Radio Room Code",
   yourStations:      "Recents",
-  metaIdle:          "Type in the Radio Room Code to tune in to a room (duh).",
+  metaIdle:          "Type in the Radio Room Code to tune in to a room (duh). This is what DeetsMusic's Friends feature used to be haha",
 
   /* peek / create gate (below the bar, pre-join) */
   peekLive:     "On the air: {title} — {artist} · {n} listening",
