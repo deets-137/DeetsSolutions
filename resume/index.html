@@ -6,7 +6,7 @@
     <title>Resume — Aditya Sundaram</title>
     <meta
       name="description"
-      content="Resume of Aditya Sundaram — Technical Support Engineer for enterprise SaaS, UCLA Computational & Systems Biology."
+      content="Resume of Aditya Sundaram - Technical Solutions Engineer for enterprise healthcare software, UCLA Computational & Systems Biology."
     />
     <link rel="icon" href="../assets/favicon.png" type="image/png" />
     <script>
@@ -60,7 +60,10 @@
       /* The page is sized in rem throughout, so the print ROOT size is the
          one density knob: shrinking it scales type and spacing together
          until the document lands on one page, like the source resume. */
-      html { font-size: 9pt; scrollbar-gutter: auto; }
+      /* Paper is light whatever the printer's OS mode: a dark theme's
+         color-scheme otherwise fills the @page margins with the browser's
+         dark canvas (#121212), which framed every PDF before 10/2026. */
+      html { font-size: 9pt; scrollbar-gutter: auto; color-scheme: light !important; background: white; }
       body { background: white; }
       body::before, .ocean, .storm, .site-header, .page-bar__actions, .page-meta { display: none !important; }
       .site-main { max-width: none; padding: 0; }
@@ -132,21 +135,19 @@
           <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/">LinkedIn ↗</a>
         </div>
       </header>
-      <p class="page-meta">Resume - updated 8/19/2026</p>
+      <p class="page-meta">Resume - updated 10/11/2026</p>
       <p class="resume__print-contact">linkedin.com/in/aditya-sundaram · deets.solutions</p>
 
       <div class="resume__sheet">
       <section class="resume__block">
         <h2 class="resume__section">Summary</h2>
         <p class="resume__summary">
-          Technical support engineer for enterprise software, serving as
-          primary technical contact for 3 health systems, tackling 250+ Epic
-          Beaker tickets, and owning after-hours escalations across cloud
-          migrations, third-party integrations, and security failures. Took
-          ownership of the Microbiology product area, 1 of Beaker&rsquo;s 13
-          product areas, within a year, growing the technical solutions
-          engineer team from 3 to 9 and shaping product roadmap priorities
-          from clinical user feedback and recurring pain points.
+          Technical solutions engineer who turned recurring customer pain
+          points into committed R&amp;D hours and took ownership of the
+          Microbiology product area within a year, growing its team from 3 to
+          9. Primary technical contact for Epic's Beaker lab system at 3
+          health systems (25+ hospitals), tackling 250+ tickets across HL7v2
+          integrations, security failures, and cloud migrations.
         </p>
       </section>
 
@@ -166,56 +167,23 @@
             </div>
             <ul class="resume__list">
               <li>
-                Served as primary technical contact for Beaker LIS teams at 3
-                health systems spanning 25+ hospitals and 30+ clinical labs
-                across FL, CA, MN, and ND, presenting issues, solutions, and
-                upgrades to CMIOs, IT directors, and pathologists
+                Secured dedicated R&amp;D hours for isolate-level PCR testing
+                and automation line integration on the Microbiology roadmap,
+                backed by 50+ bug reports and enhancement requests filed from
+                friction seen in production
               </li>
               <li>
-                Debugged and resolved cross-team issues live on customer calls
-                regarding security misconfigurations, corrupted data, and
-                malformed HL7v2 payloads by reproducing in shadow
-                non-production environments and isolating root cause
+                Took ownership of the Microbiology subject area in July 2025;
+                recruited internally to rebuild the team from 3 to 9 solutions
+                engineers, restructured the support model, launched
+                documentation initiatives, and ran onboarding workshops;
+                recognized with the leadership-selected Beaker Spirit Award
               </li>
               <li>
-                Resolved show-stopping after-hours escalations, including cloud
-                migration, third-party integration, and security failures,
-                while serving as the go-to Microbiology subject-matter expert
-                to 3-5 customer and implementation teams weekly
-              </li>
-              <li>
-                Traced user-reported latency to configuration errors
-                overloading system components, often resolving directly, or
-                triaging and escalating to appropriate owning team with
-                reproduction steps
-              </li>
-              <li>
-                Filed 50+ bug reports and enhancement requests to R&amp;D
-                documenting ideal user workflows and friction observed in
-                production across customers
-              </li>
-              <li>
-                Embedded as senior technical resource for Beaker go-lives at 6
-                command centers and as extra support at 11 hospital labs;
-                triaged incoming tickets with IT and resolved real-time
-                escalations floating between labs and emergency rooms
-              </li>
-              <li>
-                Took ownership of the Microbiology subject area for Beaker in
-                July 2025; recruited internally to rebuild the team from 3 to 9
-                solutions engineers, restructured the support model, and
-                launched new development and documentation initiatives
-              </li>
-              <li>
-                Championed reprioritization of isolate-level PCR testing and
-                automation line integration on the Microbiology roadmap,
-                translating recurring customer pain points into R&amp;D
-                commitments that secured dedicated development hours
-              </li>
-              <li>
-                Built a retrieval-augmented (RAG) system over Microbiology
-                development and documentation to draft first-pass responses to
-                customer questions
+                Led Beaker TS Fun, the team's culture group, solo from Aug
+                2025; created the Cell Fair, where product areas recruited from
+                ~400 customer-facing staff (helped grow Microbiology from 3 to
+                6), and led a 180-person team retreat
               </li>
               <li>
                 Represented Beaker Microbiology in early partnership
@@ -225,8 +193,24 @@
                 toward faster implementations at rural and low-resource labs
               </li>
               <li>
-                Ran technical workshops to train and bring new Technical
-                Solutions Engineers up to speed on Microbiology
+                Served as primary technical contact for Beaker LIS teams at 3
+                health systems spanning 25+ hospitals and 30+ clinical labs
+                across FL, CA, MN, and ND, presenting issues, solutions, and
+                upgrades to CMIOs, IT directors, and pathologists
+              </li>
+              <li>
+                Debugged cross-team issues live on customer calls, including
+                security misconfigurations, corrupted data, malformed HL7v2
+                payloads, and system latency, by writing SQL queries and
+                database searches to isolate affected records, reproducing in
+                non-production, then resolving directly or escalating with
+                reproduction steps
+              </li>
+              <li>
+                Embedded as senior technical resource for Beaker go-lives at 6
+                command centers and as extra support at 11 hospital labs;
+                triaged incoming tickets with IT and resolved real-time
+                escalations while floating between labs and ERs
               </li>
             </ul>
           </div>
@@ -271,27 +255,14 @@
       </section>
 
       <section class="resume__block">
-        <h2 class="resume__section">Education</h2>
-        <article class="resume__entry">
-          <div class="resume__row">
-            <h3 class="resume__org">University of California, Los Angeles (UCLA)</h3>
-            <span class="resume__loc">Los Angeles, CA</span>
-          </div>
-          <div class="resume__row">
-            <p class="resume__role">B.S. Computational &amp; Systems Biology, Dynamical Modeling concentration | GPA: 3.65/4.0</p>
-            <span class="resume__dates">June 2024</span>
-          </div>
-        </article>
-      </section>
-
-      <section class="resume__block">
         <h2 class="resume__section">Personal Projects</h2>
         <article class="resume__entry">
           <div class="resume__row">
             <h3 class="resume__org">Deets.Solutions</h3>
           </div>
           <div class="resume__row">
-            <p class="resume__role">Website | github.com/deets-137 | Portfolio of native Windows, macOS, iOS, and Web Applications</p>
+            <p class="resume__role">Website | github.com/deets-137 | Native and web app portfolio, built with Claude Code</p>
+            <span class="resume__dates">April 2026 - Present</span>
           </div>
           <ul class="resume__list">
             <li>
@@ -315,21 +286,41 @@
               rate limits
             </li>
             <li>
-              Shipped native apps across Swift/SwiftUI, Rust/Tauri, and
-              TypeScript - including an Apple Music client for Windows with
-              DRM playback and a live-synced gapless queue
+              Designed DeetsMusic, a Windows Apple Music player built with
+              Claude Code under my direction, and the release and support
+              tooling around it: signed installers, verified auto-updates,
+              in-app bug reporting, and a public support board; live demo at
+              deets.solutions/deetsmusic
+            </li>
+            <li>
+              Scoped an 18-tool MCP server and CLI so AI agents (Claude,
+              Cursor, small local models) can search, queue, and control
+              playback
             </li>
           </ul>
         </article>
       </section>
 
       <section class="resume__block">
+        <h2 class="resume__section">Education</h2>
+        <article class="resume__entry">
+          <div class="resume__row">
+            <h3 class="resume__org">University of California, Los Angeles (UCLA)</h3>
+            <span class="resume__loc">Los Angeles, CA</span>
+          </div>
+          <div class="resume__row">
+            <p class="resume__role">B.S. Computational &amp; Systems Biology, Dynamical Modeling concentration | GPA: 3.65/4.0</p>
+            <span class="resume__dates">June 2024</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="resume__block">
         <h2 class="resume__section">Skills</h2>
         <ul class="resume__list">
-          <li>Python, R, SQL, M (MUMPS)</li>
-          <li>Claude Code</li>
-          <li>HL7v2, FHIR</li>
-          <li>HIPAA</li>
+          <li>Languages: Python, R, SQL, M (MUMPS)</li>
+          <li>Healthcare standards: HL7v2, FHIR, HIPAA</li>
+          <li>Tools: Claude Code, ServiceNow, Jira</li>
         </ul>
       </section>
       </div>
