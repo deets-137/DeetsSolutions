@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DeetsMusic — Deets</title>
+    <meta name="description" content="Free. Lightweight. Uniquely Deets. An Apple Music player for Windows 11 with full playback, library sync, themes, and an MCP server so Claude can drive it." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Deets.Solutions" />
+    <meta property="og:title" content="DeetsMusic — an Apple Music player for Windows" />
+    <meta property="og:description" content="Free. Lightweight. Uniquely Deets. Signed installer, auto-updates, and an MCP server so Claude can drive it." />
+    <meta property="og:url" content="https://deets.solutions/deetsmusic/" />
+    <meta property="og:image" content="https://deets.solutions/assets/deetsmusic/og.jpg?v=2026-10-12" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The DeetsMusic player on Windows, with the Deets and Happy pixel sprites and a few music notes" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="../assets/favicon.png" type="image/png" />
     <script>
       (function () {
@@ -22,22 +33,13 @@
         } catch (e) {}
       })();
     </script>
-    <!-- ?v= on the assets this page's board logic depends on. `_headers` is
-         meant to hold CSS/JS at max-age=0, and on 2026-09-15 it was found not
-         to be applying at all (see _headers), so a returning visitor keeps a
-         four-hour-old copy. That is harmless for most changes and was NOT
-         harmless for the board-threads deploy: the worker now sends a post's
-         pid instead of its code, and the previous deetsmusic.js looks for a
-         code, so its up-arrow fails. index.html is max-age=0 either way, so a
-         stamped URL is one the visitor's cache has never seen and is fetched
-         at once. Bump the date when this page's JS or CSS changes, and drop
-         the whole scheme once _headers works. -->
+    <!-- ?v= stamps: bump when this page's JS or CSS changes (docs/architecture.md, "Local dev & deploy"). -->
     <link rel="stylesheet" href="../styles/chrome.css?v=2026-10-11" />
     <link rel="stylesheet" href="../styles/main.css?v=2026-10-11" />
     <script src="../js/controls.js?v=2026-10-11" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
-    <script src="./strings.js?v=2026-10-06d" defer></script>
+    <script src="./strings.js?v=2026-10-12" defer></script>
     <script src="./mock.js?v=2026-09-15" defer></script>
     <script src="./deetsmusic.js?v=2026-10-06b" defer></script>
     <script src="../js/walkers.js" defer></script>
@@ -90,10 +92,6 @@
       <span class="settings" data-settings></span>
     </header>
 
-    <!-- DeetsMusic — the Windows app's front door (docs/support.md, "The
-         page"). DRAFT: Claude's first-pass layout, Aditya leads the design.
-         Every string is filled from strings.js via data-s / data-s-ph;
-         the markup holds no copy. ?mock runs it on deetsmusic/mock.js. -->
     <main class="site-main" data-dm>
       <header class="page-bar">
         <h1 class="page-bar__title">DeetsMusic</h1>
@@ -105,8 +103,10 @@
         </div>
       </header>
       <!-- The tagline: the site's line under a page bar (.page-meta, as on
-           Cool Stuff and Resume). Product pass 1, deetsmusic-page-pass.md §3a. -->
-      <p class="page-meta dm-tagline" data-s="tagline"></p>
+           Cool Stuff and Resume). Product pass 1, deetsmusic-page-pass.md §3a.
+           Static fallback for no-JS readers: keep it equal to strings.js's
+           tagline, so fillStatic's swap is invisible. -->
+      <p class="page-meta dm-tagline" data-s="tagline">Free. Lightweight. Uniquely Deets. An Apple Music player for Windows.</p>
 
       <div data-dm-home>
         <div class="dm-notice" data-dm-notice role="status" hidden>

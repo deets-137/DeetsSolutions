@@ -41,7 +41,7 @@ window.DM_STRINGS = {
      "not code-signed yet" line). The page shows the visitor's own browser, and
      "Other browsers" shows the rest. Edge and Firefox were tested on his PC with
      0.6.0; Chrome was not. */
-  installSigned:        "Installer's signed by Aditya Sundaram but not commonly downloaded, so  there will be a browser warning for now rip. ",
+  installSigned:        "Installer's signed by Aditya Sundaram but not commonly downloaded, so there will be a browser warning for now rip. ",
   /* the ⓘ note beside installSigned: label and text approved by Aditya in chat, 2026-09-15 */
   installWhyLabel:      "Why the warning?",
   installWhy:           "Why the warning? Browsers trust a file more as more people download it safely. Each new version of DeetsMusic starts with no download history, so the warning shows less often as more people download that version.",

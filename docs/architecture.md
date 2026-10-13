@@ -380,6 +380,15 @@ header carries this warning.
   is on the visitor's disk, not at the edge); and the globs match by
   extension, not directory, so per-tab and per-game assets are covered too.
   The generated JSONs are deliberately left on the default.
+- **`?v=` stamps on the DeetsMusic page's assets** (moved here from a comment
+  in `deetsmusic/index.html`, 2026-10-12). On 2026-09-15 `_headers` was found
+  not to be applying at all, so a returning visitor keeps a four-hour-old
+  copy of each CSS/JS file. Harmless for most changes, but not for the
+  board-threads deploy: the worker began sending a post's pid instead of its
+  code, and the previous `deetsmusic.js` looked for a code, so its up-arrow
+  failed. `index.html` is `max-age=0` either way, so a stamped URL is one the
+  visitor's cache has never seen and is fetched at once. Bump the date when
+  that page's JS or CSS changes; drop the scheme once `_headers` works.
 - After editing resume content, `powershell -File
   scripts/build-resume-pdf.ps1` restamps the updated-on date and reprints
   the downloadable PDF; commit the page and PDF together.

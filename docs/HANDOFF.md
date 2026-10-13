@@ -62,6 +62,14 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-12 — DeetsMusic link previews: SHIPPED (pushed to master).** `/deetsmusic/` and
+`/deetsmusic/demo/` carry a meta description + Open Graph/Twitter tags (his copy, approved in
+chat), a `summary_large_image` card `assets/deetsmusic/og.jpg` (1200×630, built by
+`scripts/build-deetsmusic-og.py` from a shots screenshot + the DM icon + Deets and Happy), and
+the tagline as a static HTML fallback for no-JS readers. Owed: a LinkedIn Post Inspector check.
+Open: sweeping home, Cool Stuff, resume and the games for the same gap (list only; he said SOTD-only
+back in July). If he hands over his own 1200×630 screenshot, swap it in and bump `?v=` on og:image.
+
 **2026-10-11 — Ocean's album light on the site: COMMITTED (855f413), not pushed; his visual pass done.** The app's neon crests
 + stronger glow, a Settings › Album light slider (default 80), and Ocean's edges now default
 Soft. [deetsmusic-page-pass.md](deetsmusic-page-pass.md) §7f. Owed: the weak-machine
