@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-13T05:21:31Z",
+  "generated_at": "2026-10-13T06:41:02Z",
   "channel": "song-of-the-day",
-  "count": 443,
+  "count": 444,
   "songs": [
     {
       "post_id": 1,
@@ -10191,6 +10191,29 @@
       "apple_music_url": "https://music.apple.com/us/album/nevada/1475401492?i=1475401862&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3d/50/62/3d506237-0e3f-cf5d-ae40-a1168e9836d1/mzaf_17290364755757297143.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/be/47/63/be476332-a32e-4f48-8703-0dc229c1582f/859733915798_cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 24692,
+      "posted_at": "2026-10-13T06:33:14.857000+00:00",
+      "date": "2026-10-12",
+      "day": "Mon",
+      "month": "10_2026",
+      "track_name": "Vénus",
+      "artist_name": "DjeuhDjoah & Lieutenant Nicholson",
+      "album": "Aimez ces airs",
+      "genre": "Funk",
+      "duration": "4:52",
+      "duration_sec": 292,
+      "release_date": "2019-03-08",
+      "release_year": 2019,
+      "age_yrs": 7,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1449980021",
+      "apple_music_url": "https://music.apple.com/us/album/v%C3%A9nus/1449979804?i=1449980021&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ee/e2/18/eee218ae-00b2-56ff-428e-27ef5880b1f5/mzaf_15277523768891478158.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/d8/1d/9b/d81d9b06-4a19-b64f-03dd-3fda5a76e62d/3516628274220.jpg/600x600bb.jpg"
     }
   ]
 }
