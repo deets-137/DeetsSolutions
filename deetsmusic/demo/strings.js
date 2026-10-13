@@ -26,4 +26,8 @@ window.DMD_STRINGS = {
   surfaceMini:   "Mini",
   surfaceMidi:   "Midi",
   surfaceMax:    "Max",
+
+  /* [ph] 2026-10-12: the Apple Music panel beside the frame (DeetsMusic WEB-DEMO.md §15.5).
+     The badge image is Apple's own and carries its own words; this is its alt text. */
+  listenBadge:   "Listen on Apple Music",
 };

@@ -4462,7 +4462,32 @@ button.dm-poll__opt:hover { border-color: var(--title); }
 .dmd-quick { align-items: center; }
 .dmd-cluster { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .dmd-sep { color: var(--subtext); padding-inline: var(--space-1); }
-.dmd-stage { display: flex; justify-content: center; min-width: 0; }
+.dmd-stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-width: 0;
+}
+/* The Apple Music panel (WEB-DEMO.md §15.5): Apple's badge for the song in the app, then the
+   song, artist and album. demo.js keeps it beside the frame when both fit, else below. */
+.dmd-listen {
+  width: 12rem;
+  gap: var(--space-1);
+}
+.dmd-listen[hidden] { display: none; }
+.dmd-listen__badge { display: block; margin-block-end: var(--space-2); }
+.dmd-listen__badge img { display: block; }
+.dmd-listen__title,
+.dmd-listen__meta {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.dmd-listen__title { color: var(--title); font-weight: 600; }
+.dmd-listen__meta { color: var(--subtext); font-size: 0.85rem; }
 .dmd-frame {
   padding: var(--space-2);
   overflow: hidden;

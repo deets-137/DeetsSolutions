@@ -4,6 +4,8 @@
      resize {w, h}  — the app set its window size (a surface change, the launch)
      min {w, h}     — the app's smallest window for that surface
      appearance     — the app changed its theme or skin: its box follows it
+     nowplaying     — the song in the app ({title, artist, album, playing, url}, or null):
+                      the Apple Music panel beside the frame shows it with Apple's badge
    Both sides check the origin: the frame is same-origin. */
 (function () {
   "use strict";
@@ -15,19 +17,27 @@
   root.querySelectorAll("[data-s]").forEach(function (el) { el.textContent = S[el.dataset.s] || ""; });
   root.querySelectorAll("[data-s-label]").forEach(function (el) { el.setAttribute("aria-label", S[el.dataset.sLabel] || ""); });
   root.querySelectorAll("[data-s-title]").forEach(function (el) { el.setAttribute("title", S[el.dataset.sTitle] || ""); });
+  root.querySelectorAll("[data-s-alt]").forEach(function (el) { el.setAttribute("alt", S[el.dataset.sAlt] || ""); });
 
   var stage = root.querySelector("[data-dmd-stage]");
   var frame = root.querySelector("[data-dmd-frame]");
   var app = root.querySelector("[data-dmd-app]");
+  var listen = root.querySelector("[data-dmd-listen]");
 
   // The app's own launch size until it names one (tauri.conf.json: 480 × 864).
   var size = { w: 480, h: 864 };
 
   // The app keeps its own size; a frame narrower than the page scales it down, so a
-  // phone still sees the whole window.
+  // phone still sees the whole window. The Apple Music panel sits beside the frame when
+  // the app fits beside it at full size, else it wraps below and the frame takes the row.
   function layout() {
     var pad = frame.offsetWidth - frame.clientWidth + parseFloat(getComputedStyle(frame).paddingLeft) * 2;
-    var room = Math.max(1, stage.clientWidth - pad);
+    var side = 0;
+    if (listen && !listen.hidden) {
+      side = listen.offsetWidth + parseFloat(getComputedStyle(stage).columnGap || "0");
+      if (stage.clientWidth - side - pad < size.w) side = 0;
+    }
+    var room = Math.max(1, stage.clientWidth - side - pad);
     var k = Math.min(1, room / size.w);
     app.style.width = size.w + "px";
     app.style.height = size.h + "px";
@@ -47,10 +57,31 @@
       // The app's look reaches its own box only. The site's tokens hang on any
       // [data-theme] / [data-skin] element, so the box re-scopes them; the rest of
       // the page and the site's saved choice stay as they are.
-      if (d.look.theme) frame.setAttribute("data-theme", d.look.theme);
-      if (d.look.skin) frame.setAttribute("data-skin", d.look.skin);
+      [frame, listen].forEach(function (box) {
+        if (!box) return;
+        if (d.look.theme) box.setAttribute("data-theme", d.look.theme);
+        if (d.look.skin) box.setAttribute("data-skin", d.look.skin);
+      });
+    } else if (d.kind === "nowplaying") {
+      showSong(d.song);
     }
   });
+
+  // ── The Apple Music panel ──
+  // Apple's previews may play only next to a store link, so the panel names the song in
+  // the app and links Apple's badge to it. No song: the panel goes.
+  function showSong(song) {
+    if (!listen) return;
+    var was = listen.hidden;
+    listen.hidden = !song;
+    if (song) {
+      listen.querySelector("[data-dmd-listen-link]").href = song.url;
+      listen.querySelector("[data-dmd-listen-title]").textContent = song.title || "";
+      listen.querySelector("[data-dmd-listen-artist]").textContent = song.artist || "";
+      listen.querySelector("[data-dmd-listen-album]").textContent = song.album || "";
+    }
+    if (was !== listen.hidden) layout();
+  }
 
   // The quick clusters: Look 1–4 (a theme + skin pair) and the Surfaces (Player, Mini,
   // Midi, Max). Each presses the app's own title-menu items (same-origin frame), so a

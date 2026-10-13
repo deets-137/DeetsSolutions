@@ -34,7 +34,7 @@
       })();
     </script>
     <link rel="stylesheet" href="../../styles/chrome.css?v=2026-10-11" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-11" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-12" />
     <script src="../../js/controls.js?v=2026-10-11" defer></script>
     <script src="./strings.js?v=2026-09-21e" defer></script>
     <script src="./demo.js?v=2026-09-21e" defer></script>
@@ -89,7 +89,7 @@
 
     <!-- The DeetsMusic web demo (DeetsMusic repo: docs/features/WEB-DEMO.md). The real
          app's UI, built by `npm run demo:build` in the DeetsMusic repo and copied to app/,
-         runs in the frame below with mock songs. The frame follows the app's own window
+         runs in the frame below with the owner's Songs of the Day (/sotd/songs.json). The frame follows the app's own window
          size: a surface change in the app resizes it. Every string comes from strings.js. -->
     <main class="site-main" data-dmd>
       <header class="page-bar">
@@ -126,10 +126,22 @@
         </div>
       </div>
 
+      <!-- The songs are the owner's Songs of the Day, and a song plays Apple's 30-second
+           preview. Apple lets a preview play only next to a store link, so the panel beside
+           the frame holds Apple's own badge for the song in the app (demo.js "nowplaying").
+           It wraps below the frame when the page is too narrow for both. -->
       <div class="dmd-stage" data-dmd-stage>
         <div class="dm-box dmd-frame" data-dmd-frame>
-          <iframe class="dmd-app" data-dmd-app src="./app/index.html" data-s-title="frameTitle"></iframe>
+          <iframe class="dmd-app" data-dmd-app src="./app/index.html" data-s-title="frameTitle" allow="autoplay"></iframe>
         </div>
+        <aside class="dm-box dmd-listen" data-dmd-listen hidden>
+          <a class="dmd-listen__badge" data-dmd-listen-link href="https://music.apple.com/" target="_blank" rel="noopener">
+            <img src="./listen-on-apple-music.svg" width="140" height="41" data-s-alt="listenBadge" alt="" />
+          </a>
+          <p class="dmd-listen__title" data-dmd-listen-title></p>
+          <p class="dmd-listen__meta" data-dmd-listen-artist></p>
+          <p class="dmd-listen__meta" data-dmd-listen-album></p>
+        </aside>
       </div>
     </main>
   </body>
