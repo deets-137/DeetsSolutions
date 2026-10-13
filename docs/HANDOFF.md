@@ -62,13 +62,15 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-12 — DeetsMusic link previews: SHIPPED (pushed to master).** `/deetsmusic/` and
-`/deetsmusic/demo/` carry a meta description + Open Graph/Twitter tags (his copy, approved in
-chat), a `summary_large_image` card `assets/deetsmusic/og.jpg` (1200×630, built by
-`scripts/build-deetsmusic-og.py` from a shots screenshot + the DM icon + Deets and Happy), and
-the tagline as a static HTML fallback for no-JS readers. Owed: a LinkedIn Post Inspector check.
-Open: sweeping home, Cool Stuff, resume and the games for the same gap (list only; he said SOTD-only
-back in July). If he hands over his own 1200×630 screenshot, swap it in and bump `?v=` on og:image.
+**2026-10-12 — Link previews on every section.** DeetsMusic + its demo SHIPPED first (his
+copy, LinkedIn Post Inspector confirmed by him). Then home, Cool Stuff, resume, Movies, League,
+Radio and the four games got the same set: description, Open Graph/Twitter tags, and a
+1200×630 `summary_large_image` card in `assets/og/`. All cards come from one builder,
+`scripts/build-og-cards.py` (screenshot window + emblem tile + Deets and Happy + a pixel
+flourish); `node scripts/capture-og-shots.js` re-shoots the pages from production in headless
+Edge, playing the games on `?mock` with bots. SOTD keeps its own nightly `build-sotd-og.py`.
+After rebuilding a card, bump its `?v=`. Profile and the two privacy pages have no card (not
+worth sharing). If he hands over his own DeetsMusic screenshot, add it as that card's `shot`.
 
 **2026-10-11 — Ocean's album light on the site: PUSHED (855f413); his visual pass done.** The app's neon crests
 + stronger glow, a Settings › Album light slider (default 80), and Ocean's edges now default
