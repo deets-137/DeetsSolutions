@@ -70,11 +70,11 @@ the tagline as a static HTML fallback for no-JS readers. Owed: a LinkedIn Post I
 Open: sweeping home, Cool Stuff, resume and the games for the same gap (list only; he said SOTD-only
 back in July). If he hands over his own 1200×630 screenshot, swap it in and bump `?v=` on og:image.
 
-**2026-10-11 — Ocean's album light on the site: COMMITTED (855f413), not pushed; his visual pass done.** The app's neon crests
+**2026-10-11 — Ocean's album light on the site: PUSHED (855f413); his visual pass done.** The app's neon crests
 + stronger glow, a Settings › Album light slider (default 80), and Ocean's edges now default
 Soft. [deetsmusic-page-pass.md](deetsmusic-page-pass.md) §7f. Owed: the weak-machine
 check and the slider hint's `[ph]`. **Then the same day:** Settings › Card opacity (the
-app's row, default 60%), committed, not pushed; his visual pass owed (the nested home-card tiles
+app's row, default 60%), pushed (d13a3ff); his visual pass owed (the nested home-card tiles
 stack a touch darker).
 
 **2026-10-06 — The DeetsMusic page's product pass, and the site's Ocean: SHIPPED (pushed to master).**
