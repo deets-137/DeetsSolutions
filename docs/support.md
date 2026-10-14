@@ -330,6 +330,44 @@ with it).
   every visitor plays the owner. The real check only runs on
   deets.solutions, in the worker.
 
+### The admin page — LIVE 2026-10-14 (the worker routes and D1 tables too)
+
+`deetsmusic/admin/` (`index.html`, `admin.js`), the owner's own page. His call, 2026-10-14:
+"put all the admin stuff in a separate deets.solutions/deetsmusic/admin page", then **only the
+usage numbers move**: post, comment and poll moderation stay inline on the boards and threads
+as above. Owner mode on the DeetsMusic page shows an **Admin** button at the end of the page
+bar (`[data-dm-admin-link]`, toggled in `setOwner`). The page carries `noindex`.
+
+- **The gate.** `admin.js` asks `GET /admin/me` once the account is known and shows nothing
+  until the worker says yes. Signed out reads "Sign in as the owner…"; any other account, or
+  localhost (the cookie never arrives), reads "for the owner only". Every `/admin/*` route
+  checks again in the worker. On `?mock` a signed-in mock account is the owner.
+- **Self-contained.** It loads `../strings.js` and `../mock.js`, not `deetsmusic.js`: it carries
+  its own copy of the few helpers and the pill kit (`makePill`, `optButton`, `togglePop`). A fix
+  to that kit in `deetsmusic.js` is mirrored here.
+- A new page, so its head carries the pre-paint script and its `R` map: that makes **18** pages
+  with it, not the 15 the docs count (17 before this one).
+
+**The usage box** on it: DeetsMusic's anonymous usage counts (DeetsMusic repo
+`docs/features/USAGE-COUNTS.md`; the worker routes are `../DeetsSupport/src/usage.js`),
+`#usage` / `[data-dm-usage]`. It reads `GET /admin/usage?channel=&week=` and, for the
+cross-check, `&a=&b=&from=<week>&to=<week>`. Counts only; the worker never sends a
+raw settings row. Real numbers, no small-group limit (his call, 2026-10-13).
+
+- **Pickers** (the boards' pill kit, single choice): channel (Live / Beta / Dev) and
+  week in the head; a setting for the shares; two settings for the cross-check; a
+  version for the health table.
+- **Today / This week / This month / Settings reports**, the active installs per UTC
+  day for 60 days (a hand-drawn SVG line in `--title`: the site loads no chart
+  library), the version mix of the week, the shares of one setting, the
+  cross-check table, and **every** health metric (his call, 2026-10-14): the four
+  plain ones and all 48 Apple group × class cells always, plus each log area some
+  install counted. The worker stores a count only above 0, so the "0" column is the
+  week's reports minus the other ranges.
+- `?mock` answers `/admin/usage` from `mockUsage` in `mock.js` (fixed made-up counts).
+- The strings are in `strings.js` (the admin + usage block), approved by him 2026-10-14.
+  Metric names and setting keys show as the worker stores them.
+
 ---
 
 ## Threads — planned 2026-09-15; steps 1–4 BUILT, none deployed

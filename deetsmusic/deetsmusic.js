@@ -685,7 +685,12 @@
     ROOT.classList.toggle("is-owner", yes);
     closeMenu();
     loadBoards();
+    /* The usage numbers live on their own page (/deetsmusic/admin/, his call
+       2026-10-14); owner mode only shows the link to it. */
+    var adminLink = $("[data-dm-admin-link]");
+    if (adminLink) adminLink.hidden = !yes;
   }
+
 
   var menuEl = null;
   function closeMenu() {

@@ -525,6 +525,7 @@
     if (p === "/admin/me" && method === "GET") return res(200, { owner: isOwnerMock() });
     if (p.indexOf("/admin/") === 0) {
       if (!isOwnerMock()) return res(403, { error: "owner" });
+      if (p === "/admin/usage" && method === "GET") return res(200, mockUsage(u.searchParams));
       if (p === "/admin/posts" && method === "GET") {
         var akind = u.searchParams.get("kind");
         return res(200, { posts: db.posts.filter(function (x) { return !akind || x.kind === akind; })
@@ -766,6 +767,93 @@
     }
 
     return res(404, { error: "route" });
+  }
+
+  /* The worker's GET /admin/usage (DeetsSupport src/usage.js), in its exact
+     shapes, from made-up counts: a few thousand live installs, fewer on beta,
+     a handful on dev. Same numbers on every load (no Math.random). */
+  function mockUsage(q) {
+    var scale = { live: 1, beta: 0.04, dev: 0.003 }[q.get("channel") || "live"] || 1;
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    var day = function (d) { return d.toISOString().slice(0, 10); };
+    var isoWeek = function (d) {
+      var t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+      var y = t.getUTCFullYear();
+      return y + "-W" + pad(Math.ceil(((t - Date.UTC(y, 0, 1)) / 86400000 + 1) / 7));
+    };
+    var now = new Date();
+    var VERS = [["0.28.0", 0.58], ["0.27.0", 0.29], ["0.26.1", 0.09], ["0.25.4", 0.04]];
+    var n = function (x) { return Math.max(0, Math.round(x * scale)); };
+    var active = [], weeks = [], w;
+    for (var i = 0; i < 90; i++) {
+      var d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
+      var base = 1300 - i * 5 + Math.round(Math.sin(i / 1.3) * 80) + (d.getUTCDay() % 6 === 0 ? 140 : 0);
+      VERS.forEach(function (v) { if (n(base * v[1])) active.push({ period: day(d), v: v[0], n: n(base * v[1]) }); });
+    }
+    for (var k = 0; k < 6; k++) {
+      w = isoWeek(new Date(now.getTime() - k * 7 * 86400000));
+      var wn = 3300 - k * 120;
+      VERS.forEach(function (v) { if (n(wn * v[1])) active.push({ period: w, v: v[0], n: n(wn * v[1]) }); });
+      weeks.push({ week: w, n: n(wn * 0.86) });
+    }
+    var mon = day(now).slice(0, 7);
+    VERS.forEach(function (v) { active.push({ period: mon, v: v[0], n: n(5600 * v[1]) }); });
+    active.sort(function (a, b) { return a.period < b.period ? 1 : -1; });
+    var week = q.get("week") || weeks[0].week;
+    var rep = (weeks.filter(function (x) { return x.week === week; })[0] || { n: 0 }).n;
+    var SH = {
+      skin: { glass: 0.41, ocean: 0.22, press: 0.17, cyber: 0.13, vanilla: 0.07 },
+      theme: { dusk: 0.29, "black-red": 0.21, lilac: 0.18, sand: 0.17, mint: 0.15 },
+      surface: { midi: 0.46, max: 0.31, mini: 0.18, player: 0.05 },
+      maxCards: { "4": 0.61, "2cols": 0.21, "2rows": 0.11, "1": 0.07 },
+      backgroundMotion: { on: 0.74, reduced: 0.19, off: 0.07 },
+      lastfmScrobble: { off: 0.72, on: 0.28 },
+      shareActivityDiscord: { off: 0.81, on: 0.19 },
+      soundEqPreset: { flat: 0.66, bass: 0.14, vocal: 0.08, user: 0.07, other: 0.05 },
+      updateMode: { auto: 0.83, ask: 0.14, off: 0.03 },
+    };
+    var a = q.get("a"), b = q.get("b");
+    if (a || b) {
+      if (!SH[a] || !SH[b]) return { channel: q.get("channel") || "live", a: a, b: b, rows: [] };
+      var rows = [];
+      Object.keys(SH[a]).forEach(function (av) {
+        Object.keys(SH[b]).forEach(function (bv) {
+          var c = a === b ? (av === bv ? rep * SH[a][av] : 0) : rep * SH[a][av] * SH[b][bv];
+          if (Math.round(c)) rows.push({ a: av, b: bv, n: Math.round(c) });
+        });
+      });
+      rows.sort(function (x, y) { return y.n - x.n; });
+      return { channel: q.get("channel") || "live", a: a, b: b, from: q.get("from"), to: q.get("to"), rows: rows };
+    }
+    var shares = [];
+    Object.keys(SH).forEach(function (key) {
+      Object.keys(SH[key]).forEach(function (val) { shares.push({ key: key, value: val, n: Math.round(rep * SH[key][val]) }); });
+    });
+    var HEALTH = {
+      "apple.library.2xx": [0, 0.08, 0.6, 0.31, 0.01], "apple.catalog.2xx": [0, 0.05, 0.51, 0.42, 0.02],
+      "apple.me.2xx": [0, 0.21, 0.74, 0.05, 0], "apple.search.2xx": [0.22, 0.58, 0.19, 0.01, 0],
+      "apple.catalog.404": [0.71, 0.27, 0.02, 0, 0], "apple.library.net": [0.6, 0.33, 0.07, 0, 0],
+      "apple.search.429": [0.96, 0.04, 0, 0, 0], "backoffArms": [0.95, 0.05, 0, 0, 0],
+      "freezes": [0.97, 0.03, 0, 0, 0], "panics": [0.995, 0.005, 0, 0, 0], "dbWriteFails": [0.99, 0.01, 0, 0, 0],
+      "log.error.fe": [0.55, 0.36, 0.08, 0.01, 0], "log.warn.fe": [0.31, 0.49, 0.18, 0.02, 0],
+      "log.error.lastfm": [0.9, 0.09, 0.01, 0, 0], "log.warn.sign-in": [0.82, 0.17, 0.01, 0, 0],
+      "log.warn.apple": [0.7, 0.26, 0.04, 0, 0], "log.error.other": [0.93, 0.07, 0, 0, 0],
+    };
+    var BK = ["0", "1-9", "10-99", "100-999", "1000+"];
+    var health = [];
+    VERS.forEach(function (v) {
+      var r = Math.round(rep * v[1]);
+      if (!r) return;
+      health.push({ v: v[0], metric: "reports", bucket: "", n: r });
+      Object.keys(HEALTH).forEach(function (m) {
+        HEALTH[m].forEach(function (share, i) {
+          var c = Math.round(r * share);
+          if (i && c) health.push({ v: v[0], metric: m, bucket: BK[i], n: c });
+        });
+      });
+    });
+    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health };
   }
 
   window.DM_MOCK = {

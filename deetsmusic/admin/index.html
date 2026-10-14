@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="cyber">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsMusic admin — Deets</title>
+    <!-- The owner's page (DeetsSolutions docs/support.md, "The admin page"). The worker
+         answers its data only to the owner; a search engine has nothing to index here. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="../../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "cyber", "retro-future": "cyber" };
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "moonlight" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "ocean" : "glass"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
+        } catch (e) {}
+      })();
+    </script>
+    <!-- ?v= stamps: bump when this page's JS or CSS changes (docs/architecture.md, "Local dev & deploy"). -->
+    <link rel="stylesheet" href="../../styles/chrome.css?v=2026-10-11" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-14" />
+    <script src="../../js/controls.js?v=2026-10-11" defer></script>
+    <script src="../../js/account.js" defer></script>
+    <script src="../../js/toast.js" defer></script>
+    <script src="../strings.js?v=2026-10-14" defer></script>
+    <script src="../mock.js?v=2026-10-14" defer></script>
+    <script src="./admin.js?v=2026-10-14" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <a class="nav-group__label" href="/deetsmusic/" aria-haspopup="true">DeetsMusic<span class="nav-group__caret" aria-hidden="true">&#9662;</span></a>
+          <div class="nav-group__menu" role="menu">
+            <a href="/deetsmusic/" role="menuitem">App</a>
+            <a href="/deetsmusic/demo/" role="menuitem">Demo</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
+            <a href="/poker/" role="menuitem">DeetsPoker</a>
+            <a href="/tanks/" role="menuitem">DeetsTanks</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main" data-dm-admin>
+      <header class="page-bar">
+        <h1 class="page-bar__title" data-s="adminTitle"></h1>
+        <div class="page-bar__actions">
+          <span class="dm-chip" data-tone="mock" data-dm-mock data-s="mockBadge" hidden></span>
+        </div>
+      </header>
+
+      <!-- Who you are: the worker's call (GET /admin/me), never this page's. -->
+      <p class="dm-lead dm-admin__gate" data-dm-admin-gate data-s="adminChecking"></p>
+
+      <div class="dm-grid">
+        <!-- Usage (DeetsMusic USAGE-COUNTS.md §6): GET /admin/usage. Counts only, never a raw row. -->
+        <section class="dm-box dm-box--wide dm-usage" id="usage" data-dm-usage aria-labelledby="dm-usage-title" hidden>
+          <div class="dm-box__head">
+            <h2 class="dm-box__title" id="dm-usage-title" data-s="usageTitle"></h2>
+            <div class="dm-board__tools" data-dm-usage-tools></div>
+          </div>
+          <p class="dm-lead" data-dm-usage-state></p>
+          <div class="dm-usage__body" data-dm-usage-body hidden>
+            <div class="dm-usage__kpis" data-dm-usage-kpis></div>
+            <h3 class="dm-usage__sub" data-s="usageDaily"></h3>
+            <div class="dm-usage__chart" data-dm-usage-daily></div>
+            <h3 class="dm-usage__sub" data-s="usageVersions"></h3>
+            <div class="dm-usage__bars" data-dm-usage-versions></div>
+            <div class="dm-usage__subhead">
+              <h3 class="dm-usage__sub" data-s="usageSettings"></h3>
+              <div class="dm-board__tools" data-dm-usage-settool></div>
+            </div>
+            <div class="dm-usage__bars" data-dm-usage-shares></div>
+            <div class="dm-usage__subhead">
+              <h3 class="dm-usage__sub" data-s="usageCross"></h3>
+              <div class="dm-board__tools" data-dm-usage-crosstools></div>
+            </div>
+            <p class="dm-hint" data-s="usageCrossLead"></p>
+            <div class="dm-usage__table" data-dm-usage-cross></div>
+            <div class="dm-usage__subhead">
+              <h3 class="dm-usage__sub" data-s="usageHealth"></h3>
+              <div class="dm-board__tools" data-dm-usage-healthtool></div>
+            </div>
+            <p class="dm-hint" data-dm-usage-healthlead></p>
+            <div class="dm-usage__table" data-dm-usage-health></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

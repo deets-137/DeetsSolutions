@@ -62,6 +62,15 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-14 — DeetsMusic admin page: LIVE.** `deetsmusic/admin/`, owner only (gated on
+`GET /admin/me`, `noindex`): DeetsMusic's anonymous usage counts (installs per day / week /
+month, the version mix, setting shares, a two-setting cross-check, every health metric). Owner
+mode on `/deetsmusic/` shows an **Admin** button in the page bar; moderation stays inline. His
+strings (approved 2026-10-14). The worker routes and the D1 tables went live the same day
+(DeetsSupport `src/usage.js`). The numbers fill once an app release that sends them ships.
+[support.md](support.md) › "The admin page". Note: 18 pages now carry the pre-paint script, and
+CLAUDE.md and architecture.md still say 15.
+
 **2026-10-14 — DeetsMusic Rooms replaces the Radio tab: DESIGNED, his calls made, site page
 not built.** The Radio tab becomes the DeetsMusic app's own cards in a browser, on the
 DeetsMusicRooms worker, so a friend on a Mac can join an app room. YouTube, the Match Desk and

@@ -3451,6 +3451,90 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   letter-spacing: 0.03em;
 }
 
+/* ── Usage (owner only; DeetsMusic USAGE-COUNTS.md §6) ─────────────
+   The Status box's family: its strip track for the bars, its legend voice
+   for the axis line, the boards' pills for the pickers. The line is the
+   title color, so it follows all 30 theme × skin combos. */
+.dm-usage__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-self: stretch;
+  min-width: 0;
+}
+.dm-usage__body[hidden] { display: none; }
+.dm-usage__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-2);
+}
+.dm-usage__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border-radius: var(--radius-control);
+}
+.dm-usage__num {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.dm-usage__sub {
+  margin: var(--space-2) 0 0;
+  font-size: 0.95rem;
+  font-weight: var(--fw-title);
+  color: var(--text);
+}
+.dm-usage__subhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.dm-usage__chart { display: flex; flex-direction: column; gap: var(--space-1); }
+.dm-usage__svg { display: block; inline-size: 100%; block-size: 8rem; overflow: visible; }
+.dm-usage__line { fill: none; stroke: var(--title); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.dm-usage__area { fill: var(--title); fill-opacity: 0.1; stroke: none; }
+.dm-usage__hit { fill: transparent; }
+.dm-usage__hit:hover { fill: var(--surface-hover); }
+.dm-usage__bars { display: flex; flex-direction: column; gap: var(--space-1); }
+.dm-usage__bar {
+  display: grid;
+  grid-template-columns: minmax(5rem, 9rem) minmax(0, 1fr) minmax(6rem, auto);
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+}
+.dm-usage__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.dm-usage__track { block-size: 0.6rem; background: var(--surface); border-radius: calc(var(--radius-control) / 4); overflow: hidden; }
+.dm-usage__fill { display: block; block-size: 100%; background: var(--title); border-radius: inherit; }
+.dm-usage__count { color: var(--subtext); text-align: end; font-variant-numeric: tabular-nums; }
+.dm-usage__table { overflow-x: auto; }
+.dm-usage__grid {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.dm-usage__grid th, .dm-usage__grid td {
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--border);
+  text-align: end;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.dm-usage__grid thead th { color: var(--subtext); }
+.dm-usage__grid th[scope="row"], .dm-usage__grid thead th:first-child { text-align: start; color: var(--text); }
+.dm-usage__grid .is-zero { color: var(--subtext); }
+.dm-usage .tb-pop { max-block-size: 18rem; overflow-y: auto; }
+/* The boards' tools are a two-pill grid; here a row holds one or two pills, flush right. */
+.dm-usage .dm-board__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; align-self: auto; margin-inline-start: auto; }
+
 /* ── Product pass 1 (docs/deetsmusic-page-pass.md §3): tagline, features,
    screenshots, requirements + trust. `.dm-pitch` because `.dm-feats` is
    the release notes' two-pane. Items are the earlier-release cards'
