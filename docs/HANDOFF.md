@@ -62,6 +62,14 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-14 — DeetsMusic Rooms replaces the Radio tab: DESIGNED, his calls made, site page
+not built.** The Radio tab becomes the DeetsMusic app's own cards in a browser, on the
+DeetsMusicRooms worker, so a friend on a Mac can join an app room. YouTube, the Match Desk and
+the crew panel go; the site-shell stays; the name is "DeetsMusic Rooms". The app side is built
+in the DeetsMusic repo (`docs/features/WebRooms.md` §10). Design for this repo:
+**[rooms-web.md](rooms-web.md)**. **First step:** his two forks (§4: how the two looks share one
+page; his entry field). This replaces the 2026-09-16 "PARKED" entry below.
+
 **2026-10-12 — Link previews on every section.** DeetsMusic + its demo SHIPPED first (his
 copy, LinkedIn Post Inspector confirmed by him). Then home, Cool Stuff, resume, Movies, League,
 Radio and the four games got the same set: description, Open Graph/Twitter tags, and a

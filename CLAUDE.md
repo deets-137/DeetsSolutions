@@ -55,6 +55,7 @@ Start at [README.md](README.md). Then:
 | **DeetsMusic page's product pass** (tagline, features, screenshots, requirements + trust; later items; the tip jar; the site's Ocean brought up to the app's sea) — planned 2026-10-06, not built | [deetsmusic-page-pass.md](docs/deetsmusic-page-pass.md) |
 | DeetsMusic web demo (`deetsmusic/demo/`): the real app UI in an iframe with mock songs. `app/` is a build copied from the DeetsMusic repo (`npm run demo:publish`) — never hand-edit it | DeetsMusic repo `docs/features/WEB-DEMO.md` |
 | A Status row for DeetsMusic's listening-rooms worker (`rooms.deets.solutions`): one D1 insert, one markup block, one `[ph]` string — designed 2026-09-17, not built | [rooms-status.md](docs/rooms-status.md) |
+| **DeetsMusic Rooms on the site**: the Radio tab rebuilt as the app's own Search / Queue / History / Now Playing cards on the rooms worker (a friend on a Mac listens in a browser); YouTube and the Match Desk out. His calls made 2026-10-13; the app side built; the site page NOT built; 2 forks open (§4) | **[rooms-web.md](docs/rooms-web.md)** |
 
 ## CSS
 
