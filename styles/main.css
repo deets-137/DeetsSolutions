@@ -820,6 +820,9 @@
   height: 3.5rem;
   flex: none;
   border-radius: var(--radius-control);
+  /* The Deets head is pixel art, served at this exact size per density (srcset);
+     any other density scales it by whole pixels, not smoothed. */
+  image-rendering: pixelated;
 }
 .dm-homecard__id {
   display: flex;
@@ -3320,6 +3323,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   height: 4.5rem;
   flex: none;
   border-radius: var(--radius-card);
+  image-rendering: pixelated; /* pixel art: see .dm-homecard__icon */
 }
 .dm-install__id {
   display: flex;

@@ -87,7 +87,10 @@ CARDS = {
     "deetsmusic": {
         "shot": ASSETS / "deetsmusic" / "shots" / "max-full-player.lilac-glass.webp",
         "out": ASSETS / "deetsmusic" / "og.jpg",
-        "emblem": ([ASSETS / "deetsmusic" / "icon.png"], False),
+        # The Deets head (2026-10-15) is pixel art with a white headband and ear cups, which
+        # vanish on the white tile; a dark tile, as on the Windows taskbar, keeps them.
+        "emblem": ([ASSETS / "deetsmusic" / "icon.png"], True),
+        "tile": (32, 32, 32, 255),
         "flourish": "notes",
     },
     "home":       {"flourish": "sparkles"},
@@ -126,14 +129,15 @@ def paste_with_shadow(card, img, pos, radius, blur=18, offset=(0, 10), alpha=110
     card.paste(img, pos, mask)
 
 
-def emblem_tile(layers, pixel, size=132):
-    # A white tile holding the emblem: an app icon fills it, a game sprite
-    # sits inside it at a whole-number NEAREST scale so its pixels stay crisp.
-    # Layers stack bottom-up (the tank's hull, then its turret).
+def emblem_tile(layers, pixel, size=132, color=(255, 255, 255, 255)):
+    # A tile (white unless the card names a color) holding the emblem: an app
+    # icon fills it, a game sprite sits inside it at a whole-number NEAREST
+    # scale so its pixels stay crisp. Layers stack bottom-up (the tank's hull,
+    # then its turret).
     art = Image.open(layers[0]).convert("RGBA")
     for layer in layers[1:]:
         art.alpha_composite(Image.open(layer).convert("RGBA"))
-    tile = Image.new("RGBA", (size, size), (255, 255, 255, 255))
+    tile = Image.new("RGBA", (size, size), color)
     if pixel:
         art = art.crop(art.getbbox())
         k = max(1, int(size * 0.72 // max(art.size)))
@@ -172,7 +176,7 @@ def compose(shot, spec):
     paste_with_shadow(card, window, (wx, wy), radius=18)
 
     if spec.get("emblem"):
-        tile = emblem_tile(*spec["emblem"])
+        tile = emblem_tile(*spec["emblem"], **({"color": spec["tile"]} if "tile" in spec else {}))
         paste_with_shadow(card, tile, (wx - 52, wy - 30), radius=26, blur=12, offset=(0, 6))
 
     # Deets standing, Happy sitting beside Deets, on the canvas floor.

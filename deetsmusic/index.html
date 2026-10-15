@@ -10,7 +10,7 @@
     <meta property="og:title" content="DeetsMusic — an Apple Music player for Windows" />
     <meta property="og:description" content="Free. Lightweight. Uniquely Deets. Signed installer, auto-updates, and an MCP server so Claude can drive it." />
     <meta property="og:url" content="https://deets.solutions/deetsmusic/" />
-    <meta property="og:image" content="https://deets.solutions/assets/deetsmusic/og.jpg?v=2026-10-12" />
+    <meta property="og:image" content="https://deets.solutions/assets/deetsmusic/og.jpg?v=2026-10-15" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="The DeetsMusic player on Windows, with the Deets and Happy pixel sprites and a few music notes" />
@@ -35,7 +35,7 @@
     </script>
     <!-- ?v= stamps: bump when this page's JS or CSS changes (docs/architecture.md, "Local dev & deploy"). -->
     <link rel="stylesheet" href="../styles/chrome.css?v=2026-10-11" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-10-14" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-10-15" />
     <script src="../js/controls.js?v=2026-10-11" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
@@ -120,7 +120,7 @@
           <!-- Install: the probably-only public download point. The file
                comes straight from R2 through the worker's /update/ route. -->
           <section class="dm-box dm-install" id="install" aria-labelledby="dm-install-name">
-            <img class="dm-install__icon" src="../assets/deetsmusic/icon.png" alt="" width="80" height="80" />
+            <img class="dm-install__icon" src="../assets/deetsmusic/icon-72.png" srcset="../assets/deetsmusic/icon-72.png 1x, ../assets/deetsmusic/icon-108.png 1.5x, ../assets/deetsmusic/icon-144.png 2x" alt="" width="72" height="72" />
             <div class="dm-install__id">
               <h2 class="dm-install__name" id="dm-install-name" data-s="installName"></h2>
               <p class="dm-install__ver" data-dm-install-ver></p>
