@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-17T02:00:15Z",
+  "generated_at": "2026-10-18T02:00:16Z",
   "channel": "song-of-the-day",
-  "count": 448,
+  "count": 449,
   "songs": [
     {
       "post_id": 1,
@@ -10306,6 +10306,29 @@
       "apple_music_url": "https://music.apple.com/us/album/sisters-with-me/1868437787?i=1868437921&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5b/e0/5c/5be05ccd-ce7b-e9ff-837e-7700b93a61a7/mzaf_12139230883112559389.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/5c/b6/65/5cb6652a-dc9d-73f7-eecd-108c4c237af6/199806550625.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 26925,
+      "posted_at": "2026-10-17T22:23:57.474000+00:00",
+      "date": "2026-10-17",
+      "day": "Sat",
+      "month": "10_2026",
+      "track_name": "La Source_Valentines Day",
+      "artist_name": "David Norland, Dark Bardo & Nat Vazer",
+      "album": "La Source",
+      "genre": "Indie Rock",
+      "duration": "4:16",
+      "duration_sec": 256,
+      "release_date": "2026-04-10",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6796147226",
+      "apple_music_url": "https://music.apple.com/us/album/la-source-valentines-day/6796146721?i=6796147226&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3d/09/71/3d0971d8-08ea-22f8-bd3a-7bdf72f0813d/mzaf_13780996236991822112.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/6a/fa/28/6afa2814-eb95-40e3-5984-761f55c418b2/129020.jpg/600x600bb.jpg"
     }
   ]
 }
