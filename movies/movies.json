@@ -1,8 +1,56 @@
 {
- "generated_at": "2026-10-13T05:21:32Z",
+ "generated_at": "2026-10-19T02:00:22Z",
  "source": "letterboxd",
- "count": 320,
+ "count": 322,
  "movies": [
+  {
+   "name": "Sacrifice",
+   "year": 2025,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/sacrifice-2025/",
+   "logged_date": "2026-10-19",
+   "watched_date": "2026-10-18",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 2.5,
+   "liked": true,
+   "review": "Boutta sacrifice my Netflix account after that one.",
+   "review_date": "2026-10-19",
+   "watches": [
+    {
+     "date": "2026-10-18",
+     "rating": 2.5,
+     "rewatch": false,
+     "review": "Boutta sacrifice my Netflix account after that one."
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/nLKejp8AUnvcxDPPuWxecvEqeZJ.jpg"
+  },
+  {
+   "name": "Tenzing",
+   "year": 2026,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/tenzing/",
+   "logged_date": "2026-10-18",
+   "watched_date": "2026-10-17",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.0,
+   "liked": true,
+   "review": "Visual breadth and music were peak (pun intended)",
+   "review_date": "2026-10-18",
+   "watches": [
+    {
+     "date": "2026-10-17",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": "Visual breadth and music were peak (pun intended)"
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/eI0QW02PYqhnmIvLRdn9vrfVVP7.jpg"
+  },
   {
    "name": "Now You See Me: Now You Don't",
    "year": 2025,
