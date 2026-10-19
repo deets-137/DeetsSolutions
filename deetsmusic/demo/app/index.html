@@ -37,6 +37,15 @@
 </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Apple's image hosts (UX-COVERUPS.md §7.4 part 5): connect while the page boots, so the
+         first cover on screen does not pay the DNS and TLS set-up. `crossorigin` too: the
+         mosaic worker's fetches are CORS requests and take a connection of their own. -->
+    <link rel="preconnect" href="https://is1-ssl.mzstatic.com" />
+    <link rel="preconnect" href="https://is2-ssl.mzstatic.com" />
+    <link rel="preconnect" href="https://is3-ssl.mzstatic.com" />
+    <link rel="preconnect" href="https://is4-ssl.mzstatic.com" />
+    <link rel="preconnect" href="https://is5-ssl.mzstatic.com" />
+    <link rel="preconnect" href="https://is1-ssl.mzstatic.com" crossorigin />
     <!-- Appearance pre-paint. The attributes above are the light-mode
          defaults; this resolves the REAL choice (saved id, retired-id
          migration, or the OS light/dark preference) before the stylesheet
@@ -113,9 +122,9 @@
          loopback auth page loads. `player.ts` configures it lazily on first play.
          A launch with no network fails this load; the flag lets player.ts load it again
          (TOASTS.md §5, the Apple health offline row). -->
-    <script type="module" crossorigin src="./assets/main-C7_oVkvd.js"></script>
+    <script type="module" crossorigin src="./assets/main-hu9Z5VX6.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-Ct5FWWRu.js">
-    <link rel="stylesheet" crossorigin href="./assets/main-CAo8uJOH.css">
+    <link rel="stylesheet" crossorigin href="./assets/main-qP7R5dHM.css">
   </head>
 
   <body>
