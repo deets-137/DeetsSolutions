@@ -88,6 +88,11 @@
         // layout.ts sets it again with a rule's value, once the rules have loaded.
         var M = S && S.maxCards;
         document.documentElement.setAttribute("data-max-cards", /^(4|2cols|2rows|1)$/.test(M) ? M : "4");
+        // Reduce motion (GRAPHICS-FALLBACK.md §10.4): Windows' setting or your row, so the first
+        // paint already holds still. reduce-motion.ts sets it again with the graphics rule's value.
+        var reduced = S && S.reduceMotion === true;
+        try { reduced = reduced || window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+        if (reduced) document.documentElement.setAttribute("data-motion", "reduced");
       })();
     </script>
     <title>DeetsMusic</title>
@@ -122,9 +127,9 @@
          loopback auth page loads. `player.ts` configures it lazily on first play.
          A launch with no network fails this load; the flag lets player.ts load it again
          (TOASTS.md §5, the Apple health offline row). -->
-    <script type="module" crossorigin src="./assets/main-hu9Z5VX6.js"></script>
+    <script type="module" crossorigin src="./assets/main-pW5_h_xZ.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-Ct5FWWRu.js">
-    <link rel="stylesheet" crossorigin href="./assets/main-qP7R5dHM.css">
+    <link rel="stylesheet" crossorigin href="./assets/main-BsACc3z0.css">
   </head>
 
   <body>
@@ -172,6 +177,7 @@
               <button class="flyout__item" type="button" role="menuitemradio" data-skin="ocean"        data-skin-choice="ocean"        title="Cards on rolling waves, with a serif">Ocean</button>
               <button class="flyout__item" type="button" role="menuitemradio" data-skin="glass"        data-skin-choice="glass"        title="Frosted panels over a soft glow">Glass</button>
               <button class="flyout__item" type="button" role="menuitemradio" data-skin="cyber" data-skin-choice="cyber" title="Lightning behind the cards, machined type">Cyber</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-skin="metal" data-skin-choice="metal" title="Brushed steel panels with sharp edges. Covers turn on a drum">Metal</button>
             </div>
           </div>
 
@@ -285,6 +291,27 @@
         </div>
       </div>
 
+      <!-- The Rewind button (docs/features/listening-time.md): right of the updates button, Max
+           only (styles/rewind-top.css). The hourglass from his drawing (2026-10-19): a flat top
+           and base, the sand as dots; it turns a half turn, the same way, on each open and close
+           (rewind-btn.ts). The panel: Today's
+           minutes, then Top Listens and SOTD, each sliding its list in below. src/rewind-btn.ts. -->
+      <div class="rewind-top" id="rewind-top">
+        <button class="rewind-top__btn" id="rewind-open" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Rewind" title="Rewind: what you listened to today, your top listens and your Songs of the Day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5H17V6.4C17 9.2 12.7 10.6 12.7 12C12.7 13.4 17.5 15.4 17.5 20.5H6.5C6.5 15.4 11.3 13.4 11.3 12C11.3 10.6 7 9.2 7 6.4Z"/><g class="rewind-top__sand"><circle cx="10" cy="7.4" r=".65"/><circle cx="12" cy="8.6" r=".65"/><circle cx="14" cy="7.4" r=".65"/><circle cx="12" cy="15.9" r=".65"/><circle cx="10.6" cy="17.5" r=".65"/><circle cx="13.4" cy="17.5" r=".65"/><circle cx="9.2" cy="18.9" r=".65"/><circle cx="12" cy="18.9" r=".65"/><circle cx="14.8" cy="18.9" r=".65"/></g></svg></button>
+        <div class="rewind-top__panel pop" id="rewind-panel" role="group" aria-label="Rewind" data-frames="rewind-top" data-tauri-drag-region="false" hidden></div>
+      </div>
+
+      <!-- The Network button (docs/features/speedtest.md): right of the Rewind button, Max only
+           (styles/net.css). The car from his drawing (2026-10-19): straight lines, a rear wing,
+           two wheels of one size. The open drives it off to the right as the next one drives in
+           from the left; the close, the other way (net.ts). It takes the Bad color while the
+           network is Bad.
+           The panel: "Network: Good", a bar per link for the last hour, the Test row. src/net.ts. -->
+      <div class="net" id="net" hidden>
+        <button class="net__btn" id="net-open" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Network" title="Network: how steady the connection has been"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="net__car"><path d="M5.1 16H2.8V12.8H6.4L8 9.8H15.8L17.8 12.8H20.8L21.4 16H19.3M15.9 16H8.7"/><circle cx="6.9" cy="16" r="1.7"/><circle cx="17.6" cy="16" r="1.7"/><path d="M3.9 12.8V10.3M2.6 10.3H5.2"/></g></svg></button>
+        <div class="net__panel pop app-scroll" id="net-panel" role="group" aria-label="Network" data-frames="net" data-tauri-drag-region="false" hidden></div>
+      </div>
+
       <div class="drag-region" data-tauri-drag-region></div>
 
       <!-- The Compass (COMPASS.md): the bar Ctrl+Space drops under the title bar, in every
@@ -353,6 +380,7 @@
           ></button>
 
           <div class="sleep__panel pop" id="sleep-panel" role="group" aria-label="Sleep timer" data-tauri-drag-region="false" hidden>
+            <div class="sleep__title">Sleep Timer</div>
             <div class="sleep__dial" id="sleep-dial" role="slider" tabindex="0" aria-label="Minutes until sleep"
                  aria-valuemin="0" aria-valuemax="120" aria-valuenow="0"
                  title="Turn the timer to set the minutes. Music pauses when it runs out">
@@ -370,7 +398,7 @@
             </div>
             <div class="sleep__chips">
               <button class="sleep__chip" type="button" data-sleep-mode="song" aria-pressed="false" title="Pauses when this song ends">End of song</button>
-              <button class="sleep__chip" type="button" data-sleep-mode="queue" aria-pressed="false" title="Pauses when Up Next runs out">End of Up Next</button>
+              <button class="sleep__chip" type="button" data-sleep-mode="queue" aria-pressed="false" title="Pauses when the queue runs out">End of Queue</button>
             </div>
             <!-- These four are ALSO rows of Settings › Sleep (2026-09-18). Both controls write
                  the same store key and both repaint on onSettingsChange, so neither can drift.
