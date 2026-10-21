@@ -68,4 +68,31 @@
   --paint-amber-wax:           #E0B100; /* deep amber (pause) */
   --paint-straw:               #D8C97A; /* muted yellow (text-dim / stop) */
   --paint-paper-warm:          #ECE6CF; /* warm off-white (body text) */
+
+  /* Metal (the sixth skin, ported from DeetsMusic 0.31.0's palette.css): each theme's metal and
+     the floor under it. Dark themes are steels, light themes aluminum, Sepia a dark brass. */
+  --paint-dark-steel:          #242426; /* Black & Yellow's cards under Metal */
+  --paint-dark-steel-floor:    #161617;
+  --paint-gold-leaf:           #E8C773; /* Black & Yellow's titles under Metal: gold, not hi-vis */
+  --paint-blackened-steel:     #231F20; /* Black & Red */
+  --paint-blackened-floor:     #141213;
+  --paint-blue-steel:          #2B3340; /* Moonlight */
+  --paint-blue-steel-floor:    #1A202A;
+  --paint-lilac-aluminum:      #DEDCE6; /* Lilac */
+  --paint-lilac-aluminum-floor:#C4C1CF;
+  --paint-green-aluminum:      #DBDFD6; /* Green */
+  --paint-green-aluminum-floor:#C3C9BD;
+  --paint-brass:               #3A3019; /* Sepia's cards under Metal: brushed brass */
+  --paint-brass-floor:         #2C2414;
+  --paint-brass-gold:          #F2D488; /* its titles */
+  --paint-brass-cream:         #F7EED8; /* its text */
+  --paint-brass-sand:          #E8DBB6; /* its subtext */
+  /* Metal's text roles where a theme's own fall short on the brushed plates */
+  --paint-moon-steel-text:     #E4ECF7; /* Moonlight */
+  --paint-moon-steel-subtext:  #C8D4E6;
+  --paint-anodized-red:        #FF8A80; /* Black & Red: red anodized, light enough on steel */
+  --paint-anodized-red-subtext:#E9A79F;
+  --paint-lilac-metal-subtext: #484260; /* Lilac */
+  --paint-green-metal-text:    #32412A; /* Green */
+  --paint-green-metal-subtext: #3E4B34;
 }

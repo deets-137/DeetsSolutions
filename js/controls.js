@@ -42,6 +42,7 @@
         { id: "ocean",        label: "Ocean" },
         { id: "glass",        label: "Glass" },
         { id: "cyber", label: "Cyber" },
+        { id: "metal",        label: "Metal" },
       ],
     },
   };
@@ -261,6 +262,7 @@
     ocean: ['12px "Cinzel"', '12px "Spectral"'],
     glass: [],
     "cyber": ['12px "Orbitron"', '12px "Rajdhani"'],
+    metal: ['12px "Bahnschrift"'],   // Windows' own face: nothing bundled, only warmed
   };
   var cover = { phase: null, jobs: [], timer: 0 };
   // A time token ("0.8s" / "70ms") in ms.

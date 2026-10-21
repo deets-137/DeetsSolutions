@@ -999,7 +999,7 @@ it sees only what the app showed them first.
 `DeetsSolutions/deetsmusic/`, served at `deets.solutions/deetsmusic/`,
 with a nav entry. A normal site tab: `chrome.css` → `main.css`, tokens
 for every colour and every measurement, strings in
-`deetsmusic/strings.js`, and all 30 theme×skin combos must survive. A
+`deetsmusic/strings.js`, and all 36 theme×skin combos must survive. A
 new page carries the pre-paint head script, so the `R` map count in
 CLAUDE.md ("all 14 pre-paint head scripts") goes up by one.
 

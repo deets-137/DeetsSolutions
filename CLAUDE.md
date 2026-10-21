@@ -13,7 +13,7 @@ served flat.
 - **Never write a hex code or hardcoded geometry into a site rule.** Use the
   semantic tokens from `themes.css` (color) and `skin.css` (shape/type/motion).
   If the value has no token, add a role to the right tier. Every component
-  must survive all 30 theme×skin combos. Game art carve-outs are the only
+  must survive all 36 theme×skin combos. Game art carve-outs are the only
   exception (`--pk*`, `--mj*`, cities' fixed board palette).
 - **Never edit a string that lacks a `[ph]` prefix.** Those are Aditya's
   words. See "Copy" below.

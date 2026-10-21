@@ -62,6 +62,14 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-20 — Metal, the sixth skin: SHIPPED** (his OK, with DeetsMusic 0.31.0). Ported from the
+app: the paints (`palette.css`), the light and shade roles and each theme's metal and floor
+(`themes.css`, "Metal"; Sepia turns brass), and `[data-skin="metal"]` in `skin.css` (the app draws
+its grain in a canvas; here a static SVG noise, white and black streaks over the theme's metal).
+Picker row and Bahnschrift warm-up in `controls.js`. The CSS/JS `?v=` stamps went to 2026-10-20 on
+every page but the resume (its PDF rule). 6 × 6 = 36 combos now. Left: the DeetsMusic page's
+feature card still says "6 themes × 4 skins / 24 looks" (his words, no `[ph]`).
+
 **2026-10-14 — DeetsMusic admin page: LIVE.** `deetsmusic/admin/`, owner only (gated on
 `GET /admin/me`, `noindex`): DeetsMusic's anonymous usage counts (installs per day / week /
 month, the version mix, setting shares, a two-setting cross-check, every health metric). Owner

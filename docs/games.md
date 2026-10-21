@@ -764,7 +764,7 @@ Honest list, so the next session doesn't rediscover it:
   log lines are the exception — Claude authors those, rendered from typed
   event records, never sent as prose.
 - **Token discipline, with one carve-out.** Every rule outside the game's art
-  rides the semantic tokens and must survive all 30 theme×skin combos. The
+  rides the semantic tokens and must survive all 36 theme×skin combos. The
   board/felt/tile art is a deliberate carve-out with fixed literals, scoped to
   the game's own root class. **Seat colors are not part of that carve-out** —
   they are the shared `--gseat-0..5` contract in `styles/table.css`, and

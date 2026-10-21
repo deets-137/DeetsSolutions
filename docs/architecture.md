@@ -18,11 +18,11 @@ Two orthogonal axes, ported from the DeetsMusic app:
   named for the color it is rather than a mood it evokes — describing the
   mood is the skin axis's job.
 - **Skin = everything that isn't color** (type, shape, material, motion),
-  set as `data-skin`: Vanilla, Press, Ocean, Glass, Cyber.
+  set as `data-skin`: Vanilla, Press, Ocean, Glass, Cyber, Metal.
 
 Ids are the lowercase slug of the label (`black-yellow`, `cyber`).
 
-Any theme pairs with any skin — 6 × 5 = 30 combos, all of which every
+Any theme pairs with any skin — 6 × 6 = 36 combos, all of which every
 component must survive. That works because tokens cascade in strict tiers:
 
 ```
@@ -185,7 +185,7 @@ Letterboxd data export by `letterboxd_web.py` (also in the DeetsOTD repo) —
 see [data.md](data.md) for the pipeline, poster lookup, and refresh commands.
 
 `movies.js` reuses the `.song__*` card classes and the whole toolbar kit, so
-the three views and all 30 theme×skin combos come from `main.css` for free;
+the three views and all 36 theme×skin combos come from `main.css` for free;
 movie-only styles live in one small `.movie__*` section there. Its state key
 is `deets-movies-state`. Differences from SOTD:
 

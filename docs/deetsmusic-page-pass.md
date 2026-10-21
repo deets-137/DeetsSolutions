@@ -162,7 +162,7 @@ options, your recommendation first.
 - **Forks for him:** which items, their order, the box title, and whether the two items only
   DeetsMusic has (rooms, agent control) lead.
 - **Layout:** follow the page's existing bento anatomy (`dm-` prefix). A grid of small tiles is
-  the likely shape. Every value is a token; it must survive all 30 theme × skin combos.
+  the likely shape. Every value is a token; it must survive all 36 theme × skin combos.
 
 ### 3c. Screenshots
 
@@ -277,7 +277,7 @@ From the app README "Privacy":
 - **Copy:** Claude adds `[ph]` strings only. Never edit an un-prefixed string. Aditya leads the
   page's design (support.md "The page").
 - **No dependencies, no build step.** Plain HTML/CSS/JS.
-- **Tokens only.** No hex, no hard-coded px in a rule. Survive all 30 theme × skin combos.
+- **Tokens only.** No hex, no hard-coded px in a rule. Survive all 36 theme × skin combos.
 - **Run it:** `python -m http.server 8787` (or a free port; see HANDOFF.md "Run it").
   `?mock` gives the page sample data.
 - **Verification is his.** Check the console and the DOM counts, then hand off. Do not run a long

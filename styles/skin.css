@@ -569,6 +569,76 @@
   --set-pill-radius:      2px;
 }
 
+/* ============================================================
+   METAL — finely brushed steel (ported from DeetsMusic 0.31.0's
+   sixth skin, docs/features/metal.md there). Sharp machined
+   corners, Bahnschrift titles, plates lit a little at the top
+   with a crisp contact shadow. Each theme names its metal and
+   floor (themes.css, "Metal"): steels on the dark themes,
+   aluminum on the light ones, brass on Sepia. The app draws its
+   grain in a canvas; here it is a static SVG noise stretched
+   along the brush, white and black streaks at low alpha over the
+   theme's metal, so it recolors per theme while naming no color.
+   ============================================================ */
+[data-skin="metal"] {
+  --font-title: "Bahnschrift", "DIN Alternate", "Segoe UI", system-ui, sans-serif;
+  --font-body:  "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --fw-title:   600;
+  --fs-title:   1.5rem;
+
+  /* shape: sharp, a machined corner barely broken */
+  --radius-control: 2px;
+  --radius-panel:   4px;
+  --radius-card:    4px;
+
+  /* the material: the floor under the plates, controls a step lighter than the metal */
+  --canvas:        var(--metal-floor);
+  --surface:       light-dark(color-mix(in srgb, var(--metal), white 40%), color-mix(in srgb, var(--metal), white 3%));
+  --surface-hover: light-dark(color-mix(in srgb, var(--metal), white 62%), color-mix(in srgb, var(--metal), white 9%));
+  --border:        var(--metal-edge);
+  --menu-surface:  var(--surface);
+
+  /* the brush: one tile of each grain, stretched along x */
+  --metal-grain-hi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003 0.9' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.3 -0.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --metal-grain-lo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.7' numOctaves='3' seed='19' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.26 -0.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+
+  /* cards: the grain over a plate lit a little at the top (no diagonal reflection: the
+     app's "old school app design" call); a lit top edge, a shaded bottom one, a short cast */
+  --card:
+    var(--metal-grain-hi),
+    var(--metal-grain-lo),
+    linear-gradient(180deg, color-mix(in srgb, var(--metal), white 5%), var(--metal) 45%, color-mix(in srgb, var(--metal), black 5%));
+  --card-border-width: 1px;
+  --card-border:       var(--metal-edge);
+  --shadow-card:
+    inset 0 1px 0 var(--metal-edge-hi),
+    inset 0 -1px 0 var(--metal-edge-lo),
+    0 1px 0 var(--metal-contact),
+    0 4px 10px var(--metal-contact);
+  --shadow-panel: 0 1px 0 var(--metal-contact), 0 6px 14px var(--metal-contact), inset 0 1px 0 var(--metal-edge-hi);
+
+  /* canvas: the floor brushed at the same grain, so a card reads as its own plate on it */
+  --canvas-bg:        var(--metal-grain-hi), var(--metal-grain-lo);
+  --canvas-bg-size:   480px 480px;
+  --canvas-bg-repeat: repeat;
+
+  /* micro-motion — short and firm */
+  --dur-fast:   0.12s;
+  --hover-lift: translateY(-1px);
+
+  /* look change — the plates slide a few px into place on the app's drum curve */
+  --boot-dur:     0.56s;
+  --boot-ease:    cubic-bezier(0.65, 0, 0.35, 1);
+  --boot-rise:    translateY(4px);
+  --boot-stagger: 40ms;
+  --cover-in-dur: 0.16s;
+
+  /* slider handle — the app's thumbwheel: a small knurled wheel (evenodd ridges) */
+  --scrubber-handle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M7 2h10v20H7z M9 5.5h6v1.3H9z M9 9h6v1.3H9z M9 12.5h6v1.3H9z M9 16h6v1.3H9z' fill='%23000'/%3E%3C/svg%3E");
+  --scrubber-handle-size: 16px;
+  --set-pill-radius:      2px;
+}
+
 /* Settings › Animate backgrounds: Reduced halves the ambient rate for every
    skin. A user choice, so it outranks the skin's --ambient-fps. */
 :root[data-bg-motion="reduced"] { --ambient-fps: 15; }

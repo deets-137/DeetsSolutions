@@ -13,9 +13,9 @@
    Nothing page-specific belongs here. See docs/ui.md.
    ============================================================ */
 @import "./fonts.css?v=2026-09-17";
-@import "./palette.css?v=2026-09-17";
-@import "./themes.css?v=2026-09-17";
-@import "./skin.css?v=2026-10-11";
+@import "./palette.css?v=2026-10-20";
+@import "./themes.css?v=2026-10-20";
+@import "./skin.css?v=2026-10-20";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */

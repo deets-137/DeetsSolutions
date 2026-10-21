@@ -208,3 +208,42 @@
   --scrollbar:       rgba(255, 43, 43, 0.22);
   --scrollbar-hover: rgba(255, 43, 43, 0.40);
 }
+
+/* ── Metal (the sixth skin; ported from DeetsMusic 0.31.0's themes.css) ─────────────
+   Light and shade on the metal are the same in every theme (light is white, shade is
+   black), stronger on the light aluminums. Each theme names its metal and the floor
+   under it. Only the Metal skin reads these. */
+:root {
+  --metal-edge:     light-dark(rgba(0, 0, 0, 0.22), rgba(255, 255, 255, 0.12));
+  --metal-edge-hi:  light-dark(rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.16));
+  --metal-edge-lo:  light-dark(rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.6));
+  --metal-contact:  rgba(0, 0, 0, 0.3);    /* a card's crisp contact shadow */
+  --metal-cast:     rgba(0, 0, 0, 0.16);   /* its short cast shadow */
+}
+[data-theme="lilac"]        { --metal: var(--paint-lilac-aluminum); --metal-floor: var(--paint-lilac-aluminum-floor); }
+[data-theme="green"]        { --metal: var(--paint-green-aluminum); --metal-floor: var(--paint-green-aluminum-floor); }
+[data-theme="sepia"]        { --metal: var(--paint-brass);          --metal-floor: var(--paint-brass-floor); }
+[data-theme="moonlight"]    { --metal: var(--paint-blue-steel);     --metal-floor: var(--paint-blue-steel-floor); }
+[data-theme="black-yellow"] { --metal: var(--paint-dark-steel);     --metal-floor: var(--paint-dark-steel-floor); }
+[data-theme="black-red"]    { --metal: var(--paint-blackened-steel); --metal-floor: var(--paint-blackened-floor); }
+
+/* Metal's text roles where a theme's own fall short on the brushed plates. Each theme
+   keeps its own hue; only the lightness moves. */
+[data-skin="metal"][data-theme="black-yellow"] { --title: var(--paint-gold-leaf); }
+[data-skin="metal"][data-theme="moonlight"] { --text: var(--paint-moon-steel-text); --subtext: var(--paint-moon-steel-subtext); }
+[data-skin="metal"][data-theme="black-red"] { --title: var(--paint-anodized-red); --subtext: var(--paint-anodized-red-subtext); }
+[data-skin="metal"][data-theme="lilac"] { --subtext: var(--paint-lilac-metal-subtext); }
+[data-skin="metal"][data-theme="green"] { --text: var(--paint-green-metal-text); --subtext: var(--paint-green-metal-subtext); }
+/* Metal over Sepia: brushed brass (his call in the app, 2026-10-20). Under Metal only,
+   Sepia turns dark: the scheme, the plate and floor, and the text roles. */
+[data-skin="metal"][data-theme="sepia"] {
+  color-scheme: dark;
+  --title:   var(--paint-brass-gold);
+  --text:    var(--paint-brass-cream);
+  --subtext: var(--paint-brass-sand);
+  --border:        rgba(243, 231, 201, 0.14);   /* cream @ low alpha */
+  --panel-border:  rgba(243, 231, 201, 0.28);
+  --scrollbar:       rgba(233, 196, 106, 0.26);  /* brass gold @ low alpha */
+  --scrollbar-hover: rgba(233, 196, 106, 0.46);
+  --traffic-glyph: rgba(0, 0, 0, 0.6);
+}

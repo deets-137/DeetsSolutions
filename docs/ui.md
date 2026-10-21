@@ -7,7 +7,7 @@ theme × skin token tiers and the page layout; this one documents the
 interactive chrome that sits on top of them. Start there for the token
 system; come here to change a control.
 
-Every component below must survive all 30 theme × skin combos and reference
+Every component below must survive all 36 theme × skin combos and reference
 only tier-2/3 tokens (no hex codes, no hardcoded geometry) — see the token
 discipline note in [architecture.md](architecture.md#appearance-system-theme--skin).
 

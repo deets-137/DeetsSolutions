@@ -219,7 +219,7 @@ and the backend does no background work when the site is idle.
 
 Follows the sotd.js/movies.js convention — the toolbar/popover kit is
 deliberately duplicated (fix a bug there, mirror it here), tokens only,
-all 30 theme×skin combos.
+all 36 theme×skin combos.
 
 - **The bar**: where the journals put an `<h1>`, a combo-box input styled
   in the title tokens (dashed hem = "editable") that flexes into all the
