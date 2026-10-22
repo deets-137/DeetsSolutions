@@ -46,6 +46,19 @@
     frame.style.height = Math.round(size.h * k + pad) + "px";
   }
 
+  // The ids the site draws, from controls.js's option lists (one source of truth).
+  function siteHas(name, id) {
+    var axes = window.DeetsAppearance && window.DeetsAppearance.axes;
+    var opts = axes && axes[name] ? axes[name].options : [];
+    for (var i = 0; i < opts.length; i++) if (opts[i].id === id) return true;
+    return false;
+  }
+  function follow(box, name, id) {
+    if (!id) return;
+    if (siteHas(name, id)) box.setAttribute("data-" + name, id);
+    else box.removeAttribute("data-" + name);
+  }
+
   window.addEventListener("message", function (e) {
     if (e.origin !== location.origin || e.source !== app.contentWindow) return;
     var d = e.data || {};
@@ -56,11 +69,13 @@
     } else if (d.kind === "appearance" && d.look) {
       // The app's look reaches its own box only. The site's tokens hang on any
       // [data-theme] / [data-skin] element, so the box re-scopes them; the rest of
-      // the page and the site's saved choice stay as they are.
+      // the page and the site's saved choice stay as they are. A theme or skin the
+      // site has no tokens for (Happy until it is ported, a user's own mod) is not
+      // copied: the box drops the attribute and wears the page's own look instead.
       [frame, listen].forEach(function (box) {
         if (!box) return;
-        if (d.look.theme) box.setAttribute("data-theme", d.look.theme);
-        if (d.look.skin) box.setAttribute("data-skin", d.look.skin);
+        follow(box, "theme", d.look.theme);
+        follow(box, "skin", d.look.skin);
       });
     } else if (d.kind === "nowplaying") {
       showSong(d.song);
