@@ -111,6 +111,19 @@
         // and raises the right toast (TOASTS.md §Apple health). Alerts that arrive before
         // player.ts loads wait in a small queue.
         window.__deetsMkAlerts = [];
+        // A failed MusicKit load (no network) sets the flag player.ts reads. A listener, not an
+        // `onerror` attribute: the CSP never allows an inline handler (CSP.md §4). The capture
+        // phase sees a script's load error.
+        var MK = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
+        window.addEventListener("error", function (e) {
+          var t = e.target;
+          if (t && t.tagName === "SCRIPT" && t.src === MK) window.__musicKitFailed = true;
+        }, true);
+        // CSP blocks before main.ts loads wait here; src/csp-watch.ts reads them (CSP.md §6).
+        window.__cspEarly = [];
+        document.addEventListener("securitypolicyviolation", function (e) {
+          if (window.__cspEarly) window.__cspEarly.push(e);
+        });
         window.alert = function (message) {
           var msg = message == null ? "" : String(message);
           if (BENIGN.test(msg)) {
@@ -127,9 +140,9 @@
          loopback auth page loads. `player.ts` configures it lazily on first play.
          A launch with no network fails this load; the flag lets player.ts load it again
          (TOASTS.md §5, the Apple health offline row). -->
-    <script type="module" crossorigin src="./assets/main-pW5_h_xZ.js"></script>
+    <script type="module" crossorigin src="./assets/main-BTFWdLnb.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-Ct5FWWRu.js">
-    <link rel="stylesheet" crossorigin href="./assets/main-BsACc3z0.css">
+    <link rel="stylesheet" crossorigin href="./assets/main-DRdDubT-.css">
   </head>
 
   <body>
@@ -178,6 +191,7 @@
               <button class="flyout__item" type="button" role="menuitemradio" data-skin="glass"        data-skin-choice="glass"        title="Frosted panels over a soft glow">Glass</button>
               <button class="flyout__item" type="button" role="menuitemradio" data-skin="cyber" data-skin-choice="cyber" title="Lightning behind the cards, machined type">Cyber</button>
               <button class="flyout__item" type="button" role="menuitemradio" data-skin="metal" data-skin-choice="metal" title="Brushed steel panels with sharp edges. Covers turn on a drum">Metal</button>
+              <button class="flyout__item" type="button" role="menuitemradio" data-skin="happy" data-skin-choice="happy" title="Happy the puppy on the grass under a sky. He moves the covers for you">Happy</button>
             </div>
           </div>
 
@@ -244,16 +258,16 @@
           <button class="quick__tips" type="button" data-quick-tips title="Opens Settings at Tips">Tips are in the Settings card itself!</button>
           <div class="quick__bar">
             <!-- The logos are filled in by quick-panel.ts (the official files' paths). -->
-            <button class="quick__logo" type="button" data-quick="apple" aria-pressed="false" aria-label="Apple Music" title="Apple Music: your sign-in and the Apple Music settings"></button>
-            <button class="quick__logo" type="button" data-quick="discord" aria-pressed="false" aria-label="Discord" title="Discord: your profile's activity and the Song of the Day channel"></button>
-            <!-- The middle group runs from the fewest rows to the most (QUICK-SETTINGS.md §9): Connections 4, Fun 4–10, Look 5–14, Help 14–16, Window 19. -->
-            <button class="quick__logo" type="button" data-quick="agents" aria-pressed="false" aria-label="Connections" title="Connections: the browser extension and AI agents"></button>
-            <button class="quick__logo" type="button" data-quick="fun" aria-pressed="false" aria-label="Fun things" title="Fun things: Song of the Day and Friends"></button>
+            <button class="quick__logo" type="button" data-quick="apple" aria-pressed="false" aria-label="Apple Music" title="Apple Music: your sign-in, the Apple Music settings, AirPlay and Last.fm"></button>
+            <button class="quick__logo" type="button" data-quick="discord" aria-pressed="false" aria-label="Discord" title="Discord: your profile's activity, the Song of the Day channel, and the pause on sharing"></button>
+            <!-- The middle group runs from the fewest rows to the most (QUICK-SETTINGS.md §9): Connections 4, Look 5–14, Fun 12–18, Help 27–29, Window 40. -->
+            <button class="quick__logo" type="button" data-quick="agents" aria-pressed="false" aria-label="Connections" title="Connections: AI agents and the MCP"></button>
             <button class="quick__logo" type="button" data-quick="look" aria-pressed="false" aria-label="Look" title="Look: the day and night looks, this skin's own settings, and motion"></button>
-            <button class="quick__logo" type="button" data-quick="help" aria-pressed="false" aria-label="Help and playback" title="Help and playback: menus, hints and notices, and how songs play"></button>
-            <button class="quick__logo" type="button" data-quick="window" aria-pressed="false" aria-label="Window" title="Window: the tray, the sizes, keep on top, and growing cards"></button>
+            <button class="quick__logo" type="button" data-quick="fun" aria-pressed="false" aria-label="Fun things" title="Fun things: Song of the Day, Friends, Rewind and Album Reviews"></button>
+            <button class="quick__logo" type="button" data-quick="help" aria-pressed="false" aria-label="Help and playback" title="Help and playback: menus, hints and notices, how songs play, and playlists"></button>
+            <button class="quick__logo" type="button" data-quick="window" aria-pressed="false" aria-label="Window" title="Window: the tray, the sizes, keep on top, growing cards, the cards in the picker, and Home's tiles"></button>
             <!-- The right cluster: the app's own upkeep, then the cog. -->
-            <button class="quick__logo quick__right" type="button" data-quick="bugs" aria-pressed="false" aria-label="Updates and bugs" title="Updates and bugs: how updates arrive, roll back, and send a report"></button>
+            <button class="quick__logo quick__right" type="button" data-quick="bugs" aria-pressed="false" aria-label="Updates and bugs" title="Updates and bugs: how updates arrive, roll back, send a report, and the usage counts"></button>
             <button class="quick__logo" type="button" data-quick="reset" aria-pressed="false" aria-label="Reset" title="Reset: put a group of settings, or all of them, back as they came"></button>
             <!-- The cog's glyph, copied in by quick-panel.ts. -->
             <button class="quick__logo quick__all" type="button" id="quick-all" aria-pressed="false" aria-label="All settings" title="All settings: opens Settings at full size"></button>
@@ -516,6 +530,14 @@
         </div></div>
       </div>
 
+      <!-- Scene, back (--hook-scene; Happy): the sky (two layers, so one part of the day fades
+           into the next) and far clouds drifting behind the cards. scene.ts paints the sky and
+           makes the clouds (--scene-far-clouds of them). -->
+      <div class="scene scene--back" aria-hidden="true">
+        <div class="scene__sky scene__sky--from"></div>
+        <div class="scene__sky scene__sky--to"></div>
+      </div>
+
       <!-- Each .panel is a mount HOST. The layout manager (src/layout.ts) mounts a card into
            each slot from the persisted assignment; the two content slots are swappable via
            their title picker. Now Playing is anchored to the top slot. -->
@@ -538,6 +560,20 @@
         <!-- The full player's History column (Max, a wide card; ideas/fullscreen-player.md §13).
              Not a slot: full-player.ts mounts a History card here while it shows. -->
         <section class="panel fp-history"></section>
+      </div>
+
+      <!-- Scene, front (--hook-scene; Happy, docs/features/happy.md): over the cards, never
+           taking a click — the sun or moon at the top-right card's corner, clouds at card edges,
+           the grass along the bottom, and the floor where pet.ts puts Deets and Happy.
+           scene.ts places the sun and clouds by the cards' boxes. -->
+      <div class="scene scene--front" aria-hidden="true">
+        <div class="scene__sun"><i class="scene__rays"></i><i class="scene__disc"></i><i class="scene__moon"></i></div>
+        <div class="scene__grass"></div>
+      </div>
+      <!-- The floor where pet.ts puts Deets and Happy: a layer of its own, so it alone can rise
+           over the grand opening's card (GRAND-OPENING.md §6) while the sun and clouds stay under it. -->
+      <div class="scene scene--actors" aria-hidden="true">
+        <div class="scene__floor"></div>
       </div>
     </main>
   </body>
