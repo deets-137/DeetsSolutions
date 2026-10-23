@@ -18,16 +18,21 @@
                     hornet: "black-yellow", viper: "black-red",
                     cyberstorm: "cyber", "retro-future": "cyber" };
           var t = localStorage.getItem("deets-theme");
-          if (!t) { t = dark ? "moonlight" : "lilac"; }
+          if (!t) { t = dark ? "black-red" : "lilac"; }
           document.documentElement.setAttribute("data-theme", R[t] || t);
           var s = localStorage.getItem("deets-skin");
-          if (!s) { s = dark ? "ocean" : "glass"; }
+          if (!s) { s = dark ? "ocean" : "press"; }
           document.documentElement.setAttribute("data-skin", R[s] || s);
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-10-20" />
-    <script src="../js/controls.js?v=2026-10-20" defer></script>
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-10-23" />
+    <!-- chrome.css's token imports, fetched beside it rather than after it -->
+    <link rel="preload" href="../styles/fonts.css?v=2026-09-17" as="style" />
+    <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
+    <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
+    <link rel="preload" href="../styles/skin.css?v=2026-10-23" as="style" />
+    <script src="../js/controls.js?v=2026-10-23" defer></script>
     <script src="../js/toast.js" defer></script>
     <script src="../js/account.js" defer></script>
   </head>
@@ -58,7 +63,6 @@
             <a href="../cities/" role="menuitem">DeetsCities</a>
             <a href="../mahjong/" role="menuitem">DeetsMahjong</a>
             <a href="../poker/" role="menuitem">DeetsPoker</a>
-            <a href="../tanks/" role="menuitem">DeetsTanks</a>
           </div>
         </div>
         <div class="nav-group">

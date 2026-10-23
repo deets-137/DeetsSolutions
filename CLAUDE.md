@@ -26,8 +26,10 @@ served flat.
 - **Never edit a vendored file without re-vendoring.** See "Games" below.
 - **Never rename a theme or skin id without a `RETIRED` entry.** The id is a
   contract with every visitor's `localStorage`. Add old → new to `RETIRED` in
-  `controls.js` **and** to the mirrored `R` map in all 15 pre-paint head
-  scripts, or everyone who picked that option silently loses it. Full
+  `controls.js` **and** to the mirrored `R` map in every pre-paint head
+  script (19 pages, `404.html` included), or everyone who picked that option
+  silently loses it. Those scripts stay byte-identical, and any change to them
+  means a new hash in `_headers`' CSP (its comment has the command). Full
   procedure: [architecture.md](docs/architecture.md), "Renaming a theme or
   skin id".
 

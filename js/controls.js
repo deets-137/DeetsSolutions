@@ -14,9 +14,9 @@
       attr: "data-theme",
       key: "deets-theme",
       // No saved choice: follow the OS light/dark preference, landing on
-      // Lilac (light) or Moonlight (dark). Both axes read the SAME
+      // Lilac (light) or Black & Red (dark). Both axes read the SAME
       // preference, so a first visit lands on one of two curated pairs —
-      // Glass × Lilac or Ocean × Moonlight (his call, 2026-09-15). Kept in
+      // Lilac × Press or Black & Red × Ocean (LOOK_PAIRS). Kept in
       // sync with the inline pre-paint script in each page's <head>.
       def: function () { return osPair().theme; },
       options: [
@@ -32,7 +32,7 @@
       attr: "data-skin",
       key: "deets-skin",
       // No saved choice: the skin follows the OS light/dark preference too —
-      // Glass on light, Ocean on dark (his call, 2026-09-15). Pairs with the
+      // Press on light, Ocean on dark (LOOK_PAIRS). Pairs with the
       // theme default above. Kept in sync with the inline pre-paint script in
       // each page's <head>.
       def: function () { return osPair().skin; },
@@ -148,15 +148,16 @@
     tourHint: "[ph] Deets and Happy walk you round the home page, the way they did on your first visit",
   };
 
-  /* The two first-visit looks (his call, 2026-09-15). The OS light/dark
-     default (AXES) and the Vibe menu's sun / moon row both read this table;
-     the inline pre-paint script in each page's <head> mirrors it. `keys` are
-     the settings that belong to the pair's skin: a sun / moon click puts
-     them back to DEFAULTS, so one click lands exactly on the default look. */
+  /* The two first-visit looks: Lilac × Press (light) and Black & Red × Ocean
+     (dark), his call 2026-10-23 (Glass × Lilac and Ocean × Moonlight before).
+     The OS light/dark default (AXES) and the Vibe menu's sun / moon row both
+     read this table; the inline pre-paint script in each page's <head>
+     mirrors it. `keys` are the settings that belong to the pair's skin: a
+     sun / moon click puts them back to DEFAULTS, so one click lands exactly
+     on the default look (Press has none). */
   var LOOK_PAIRS = [
-    { theme: "lilac", skin: "glass", label: S.lightLook, icon: "sun",
-      keys: ["glassCanvasGlow", "glassCanvasDim", "glassBacklight", "glassTint"] },
-    { theme: "moonlight", skin: "ocean", label: S.darkLook, icon: "moon",
+    { theme: "lilac", skin: "press", label: S.lightLook, icon: "sun", keys: [] },
+    { theme: "black-red", skin: "ocean", label: S.darkLook, icon: "moon",
       keys: ["oceanCardOpacity", "oceanEdges", "oceanSand", "oceanLight"] },
   ];
   function osPair() { return LOOK_PAIRS[prefersDark() ? 1 : 0]; }
@@ -169,8 +170,9 @@
      from storage. */
   var SETTINGS_KEY = "deets-settings";
   var FOLDS_KEY = "deets-settings-folds";
-  // The site's first-visit look is tuned (his call, 2026-09-15): Glass × Lilac
-  // on light ships with his slider values, Ocean × Moonlight on dark with
+  // The skins' tuned values (his call, 2026-09-15): Glass ships with his
+  // slider values (a first-visit look until 2026-10-23), Ocean (the dark
+  // first-visit look, now with Black & Red) with
   // soft edges, cards at 60% and the album light at 80 (his calls,
   // 2026-10-11; 80 is his app's value). The CSS var() fallbacks and the sand selector mirror these, so
   // the first frame (before this deferred script runs) already matches.
@@ -615,8 +617,8 @@
 
     // Reset to default — the last row. A first press arms it ("Sure?"), a
     // second within 3 s resets: every setting back to DEFAULTS, and the saved
-    // theme and skin cleared so the OS pair (Glass × Lilac / Ocean ×
-    // Moonlight) applies again, under the look-change cover.
+    // theme and skin cleared so the OS pair (Lilac × Press / Black & Red ×
+    // Ocean) applies again, under the look-change cover.
     var armed = false, armTimer = 0;
     function resetAll() {
       Object.keys(DEFAULTS).forEach(function (k) { setSetting(k, DEFAULTS[k]); });

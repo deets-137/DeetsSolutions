@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The site's public pages. A new tab adds its line here; a page with
+     <meta name="robots" content="noindex"> stays out. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://deets.solutions/</loc></url>
+  <url><loc>https://deets.solutions/resume/</loc></url>
+  <url><loc>https://deets.solutions/cool-stuff/</loc></url>
+  <url><loc>https://deets.solutions/deetsmusic/</loc></url>
+  <url><loc>https://deets.solutions/deetsmusic/demo/</loc></url>
+  <url><loc>https://deets.solutions/sotd/</loc></url>
+  <url><loc>https://deets.solutions/movies/</loc></url>
+  <url><loc>https://deets.solutions/cities/</loc></url>
+  <url><loc>https://deets.solutions/mahjong/</loc></url>
+  <url><loc>https://deets.solutions/poker/</loc></url>
+  <url><loc>https://deets.solutions/radio/</loc></url>
+  <url><loc>https://deets.solutions/league/</loc></url>
+  <url><loc>https://deets.solutions/privacy/</loc></url>
+  <url><loc>https://deets.solutions/privacy/deetsfilm/</loc></url>
+</urlset>

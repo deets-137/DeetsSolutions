@@ -59,8 +59,8 @@ both cases the ink is a theme role and the motion is skin tokens.
 
 Each page resolves both axes inline in `<head>`, before CSS paints, so
 there's no flash of the wrong look. A saved choice wins; otherwise both axes
-follow the OS light/dark preference, landing on **Glass × Lilac** (light) or
-**Ocean × Moonlight** (dark). That default logic lives in two places on purpose — the pre-paint head script on every
+follow the OS light/dark preference, landing on **Lilac × Press** (light) or
+**Black & Red × Ocean** (dark), his call 2026-10-23. That default logic lives in two places on purpose — the pre-paint head script on every
 page and the AXES table in `controls.js` — and they must be kept in sync.
 
 ### Renaming a theme or skin id
@@ -75,7 +75,9 @@ migration, not a find-and-replace. Three things move together:
    resolves through it and `apply()` writes the new id back, so a saved choice
    self-heals on first load instead of silently falling back to the default.
    One map serves both axes, which is safe only while no id appears on both.
-3. The **same map, mirrored into all 15 pre-paint head scripts** — an id
+3. The **same map, mirrored into every pre-paint head script** (19 pages
+   as of 2026-10-23, `404.html` included; they must stay byte-identical, since
+   `_headers`' CSP allows the script by its hash) — an id
    resolved only after `controls.js` runs is exactly the flash of the wrong
    look those blocks exist to prevent.
 
@@ -98,6 +100,19 @@ one deploy instead: every page's `chrome.css` and `controls.js` link, and
 for stylesheet URLs no browser has cached, since `_headers` still does nothing.
 Saved `retro-future` ids migrate through `RETIRED` and each page's pre-paint map.
 Bump the stamp on the next change to a token sheet.
+
+### Token stamps
+
+Since 2026-10-23 every page's `<head>` also **preloads** `chrome.css`'s four
+`@import`s (fonts, palette, themes, skin), so they download beside
+`chrome.css` instead of after it (PageSpeed's render-blocking chain). A preload
+only helps when its URL is exactly the import's, `?v=` included. So a change to
+a token sheet is three edits: its `@import` stamp in `chrome.css`, its preload
+in every head, and `chrome.css`'s own stamp in every head (so a visitor holding
+the old `chrome.css` gets the new imports). A missed preload costs a second
+download, not a broken page. `_headers` does apply (2026-10-23); its
+`max-age=0` is raised to four hours by the zone's Browser Cache TTL until that
+is set to "Respect Existing Headers", so the stamps are what keep a deploy fresh.
 
 ## Sprite walkers
 

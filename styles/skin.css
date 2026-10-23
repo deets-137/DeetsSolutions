@@ -160,6 +160,10 @@
   --pop-scale:   0.97;                /* a panel's size as it starts to arrive */
   --pop-ease:    cubic-bezier(0.2, 0.8, 0.2, 1); /* fast start, soft stop */
 
+  /* -- cover wave: a first screen of covers arrives (js/covers.js, DeetsMusic's) -- */
+  --reveal-cap:  1.5s;                /* the longest the covers are waited for */
+  --reveal-span: 0.5s;                /* the whole wave, first tile to last, at any count */
+
   /* -- settings panel (docs/ui-direction.md; not built yet) --- */
   --set-section-gap: var(--space-3);
   --set-row-h:       1.5rem;          /* one consistent row height */

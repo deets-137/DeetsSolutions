@@ -1,80 +1,45 @@
 # Cloudflare Pages reads this at the site root. Plain text, no build step.
 #
-# ⚠⚠ AS OF 2026-09-15 THIS FILE DOES NOTHING, AND WHY IS UNRESOLVED. ⚠⚠
-# Do not trust it to hold anything at max-age=0. Read "what is actually
-# happening" below before relying on it or editing it.
-#
 # ── what it is FOR ────────────────────────────────────────────────────────
 #
-# Pages' default for static assets is `max-age=14400` — four hours in which a
-# returning visitor's browser serves CSS/JS from disk WITHOUT asking whether it
-# changed. HTML is already `max-age=0`, so a deploy lands new markup against
-# stale styles, and the PAIRING is what breaks: the 2026-08-08 theme rename
-# shipped `data-theme="lilac"` to browsers still holding a themes.css that only
-# knew `fairy`, and those rendered unstyled until the window expired. Mobile,
-# with nothing cached, was fine — which is the tell for this whole class of bug.
+# 1. Cache: CSS and JS revalidate on every load (max-age=0). Pages' default
+#    is four hours, in which a returning visitor's browser serves CSS/JS from
+#    disk WITHOUT asking whether it changed. HTML is already max-age=0, so a
+#    deploy lands new markup against stale styles, and the PAIRING is what
+#    breaks: the 2026-08-08 theme rename shipped `data-theme="lilac"` to
+#    browsers still holding a themes.css that only knew `fairy`.
+# 2. Security headers on every response (below).
 #
-# `must-revalidate` does NOT prevent it. That directive governs what a cache may
-# do once a response is already stale; inside the freshness window the browser
-# never asks at all.
+# ── why the cache rules never showed (found 2026-10-23) ───────────────────
 #
-# Purging the Cloudflare cache does not prevent it either. The stale copy is on
-# the visitor's disk, not at the edge.
+# This file DOES apply. Two things hid it:
 #
-# ── what is actually happening (measured 2026-09-15) ──────────────────────
+#   - The zone's Browser Cache TTL is set to 4 hours (Caching > Configuration
+#     in the dashboard; `cf zones settings get browser_cache_ttl -z
+#     deets.solutions` reads 14400). Cloudflare raises any shorter
+#     Cache-Control to that, so every CSS/JS file came back max-age=14400
+#     whatever this file said. The fix is that setting at "Respect Existing
+#     Headers" (0). Until it is flipped, the ?v= stamps in each page's
+#     <head> are what keep a deploy's CSS and JS fresh.
+#   - The doubled header on /sotd/songs.json is this file's own doing: a URL
+#     that matches two rules gets BOTH rules' headers, joined. A later rule
+#     does not win. To replace a header an earlier rule set, detach it first
+#     with `! Cache-Control` (the feeds below do).
 #
-# Every stylesheet and script on the live site serves
-# `public, max-age=14400, must-revalidate` — the Pages default, not this file.
-# That has evidently been true since the file was written, which means the
-# 2026-08-08 fix never took and the site has been exposed the whole time. It
-# surfaced on the board-threads deploy: a visitor holding the previous
-# deetsmusic.js gets a board whose ▲ fails, because the worker now sends a
-# post's pid and that JS looks for a code.
+# The 2026-09-15 probe header that "never appeared" on /js/controls.js was
+# most likely an edge copy cached before the rule existed (cache_level is
+# aggressive, and CSS/JS are cached at the edge).
 #
-# The original rules were `/*.css` and `/*.js`. Those ARE invalid — a Pages
-# pattern takes a trailing splat — but rewriting them as one rule per directory
-# (`/styles/*`, `/js/*`, …) changed nothing. A probe settled why: a custom
-# header added beside the Cache-Control on `/js/*` never appeared on
-# `/js/controls.js` either, so the rules are not being APPLIED at all, rather
-# than being applied and overridden on Cache-Control alone.
-#
-# The one reading that does not fit: `/sotd/songs.json` comes back with a
-# doubled `public, max-age=0, must-revalidate, public, max-age=14400`. Nothing
-# else does, including `/sotd/sotd.js` in the same directory. Unexplained, and
-# it is the loose thread worth pulling first.
-#
-# Not yet checked, in the order worth checking:
-#   1. The Pages project's build-output directory. If it is not the repo root,
-#      `_headers` is never picked up, which fits every observation here.
-#   2. A zone-level Cache Rule in the dashboard overriding browser TTL, which
-#      would also explain a uniform 14400 on exactly these asset types.
-#   3. Anything setting Pages caching defaults outside the repo.
-#
-# To check after ANY change here — the only way to see it, since a rule that
-# never matches is silent:
+# To check after ANY change here:
 #
 #   curl -sI https://deets.solutions/styles/main.css | grep -i cache-control
 #
-# `max-age=0` is the rule working. `max-age=14400` is it being ignored.
+# ── the cache rules ───────────────────────────────────────────────────────
 #
-# ── the stopgap in the meantime ───────────────────────────────────────────
-#
-# `deetsmusic/index.html` stamps its own assets `?v=<date>`. HTML is max-age=0
-# regardless, so a stamped URL is one the visitor's cache has never seen and is
-# fetched at once. That is the "versioned URLs" alternative this file's first
-# version named as the thing to avoid: strictly faster, strictly easier to
-# forget, since with no build step the stamping is manual. It is on ONE page on
-# purpose — a patch for a live bug, not a scheme to spread before the cause
-# above is found.
-#
-# ── the rules ─────────────────────────────────────────────────────────────
-#
-# Correct syntax, currently inert. One rule per directory that holds CSS or JS;
-# a new tab with its own assets needs a line here. The rules are broader than
-# CSS/JS — `/styles/*` catches everything in that directory — which is fine,
-# since these directories hold code, not media. The sprite and font directories
-# are deliberately absent, so they keep the 4h default. Each match, once this
-# works, costs one conditional request per load, answered with a ~100-byte 304.
+# One rule per directory that holds CSS or JS; a new tab with its own
+# assets needs a line here. The sprite and font directories are left out on
+# purpose, so they keep the 4h default. Each match costs one conditional
+# request per load, answered with a ~100-byte 304.
 
 /styles/*
   Cache-Control: public, max-age=0, must-revalidate
@@ -116,10 +81,50 @@
   Cache-Control: public, max-age=0, must-revalidate
 
 # The generated feeds, back to the 4h default: a once-a-day refresh does not
-# need revalidating on every load. A later rule wins, so these stay below
-# their directories.
+# need revalidating on every load. Detach the directory's header first, or
+# the two join (see above).
 /sotd/songs.json
+  ! Cache-Control
   Cache-Control: public, max-age=14400
 
 /movies/movies.json
+  ! Cache-Control
   Cache-Control: public, max-age=14400
+
+# ── security headers, every response ──────────────────────────────────────
+#
+# HSTS: HTTPS only, here and on every subdomain (every worker host is HTTPS
+# behind Cloudflare). A year, no `preload`: the preload list is slow to
+# leave, so that is a separate call.
+# Frames: only this site may frame its pages (the DeetsMusic demo frames its
+# own app). COOP keeps other sites' windows out of this one; the
+# allow-popups form keeps the sign-in tab working (js/account.js).
+#
+# CSP, REPORT-ONLY for now (as DeetsMusic shipped its own): it blocks
+# nothing, and a visitor's console lists what an enforced policy would
+# block. Inline scripts are allowed by hash: the pre-paint theme script
+# every page shares (byte-identical in all of them; change one and change
+# them all, then this hash), auth/done.html's hand-off, and the tanks
+# designer's. Recompute with:
+#
+#   node -e "const c=require('crypto'),f=require('fs');for(const m of f.readFileSync(process.argv[1],'utf8').matchAll(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/g))console.log('sha256-'+c.createHash('sha256').update(m[1]).digest('base64'))" index.html
+#
+# Known report before it can be enforced: Cloudflare's own bot-detection
+# script, injected inline into every page with per-request values, has no
+# fixed hash. Enforcing needs that detection off for this zone, or a nonce.
+#
+# Styles stay 'unsafe-inline' (pages set inline styles from JS); the policy's
+# weight is on scripts, which is where XSS lives.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'sha256-0glj+0sY5dQZ/S6xReNRGLOQNBcYtj+Kp7zAZFP0s1U=' 'sha256-gWlscfWaveq+uBtGs0u5PMLdDt3dchqf30x8Fg3QOGc=' 'sha256-MdN9NOd5k+orjkui6cg2B2EeQI045zu0MG5Uhtbh62o=' https://www.youtube.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.mzstatic.com https://image.tmdb.org https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://i.ytimg.com; media-src 'self' blob: https://audio-ssl.itunes.apple.com https://*.mzstatic.com; font-src 'self'; connect-src 'self' https://*.deets.solutions wss://*.deets.solutions https://*.mzstatic.com https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://www.googleapis.com https://cloudflareinsights.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+
+# The DeetsMusic demo's app is a build copied from the DeetsMusic repo; its
+# inline scripts change with every copy and the app carries its own CSP
+# design (that repo's docs/architecture/CSP.md). Not this file's policy.
+/deetsmusic/demo/app/*
+  ! Content-Security-Policy-Report-Only

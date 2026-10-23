@@ -75,9 +75,9 @@ right gutter (`.flyout__item::after`).
 `apply(axis, id)` sets `data-theme` / `data-skin` on `<html>` and persists to
 `localStorage` under `deets-theme` / `deets-skin`. A saved choice wins;
 otherwise **both** axes follow the OS light/dark preference, landing on one
-of two curated pairs: **Glass × Lilac** in light, **Ocean × Moonlight** in
-dark (his call, 2026-09-15; it was Press × Lilac / Cyber × Black &
-Red). Each pair ships tuned: the settings defaults carry his Glass slider
+of two curated pairs: **Lilac × Press** in light, **Black & Red × Ocean** in
+dark (his call, 2026-10-23; before that Glass × Lilac / Ocean × Moonlight
+from 2026-09-15, and Press × Lilac / Cyber × Black & Red before that). Each pair ships tuned: the settings defaults carry his Glass slider
 values and Ocean's sand edges. Settings › Reset to default clears the saved
 theme, skin and settings, so the visitor lands back on these.
 

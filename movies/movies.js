@@ -70,6 +70,8 @@
       img.alt = movie.name + " poster";
       img.addEventListener("load", function () { cover.classList.add("has-art"); });
       img.addEventListener("error", function () { img.remove(); card.classList.remove("movie--poster"); });
+      img.sizes = DeetsCovers.journalSizes(effectiveView());   // the size this view draws it
+      img.srcset = DeetsCovers.srcset(movie.poster_url);
       img.src = movie.poster_url;
       cover.appendChild(img);
     }
@@ -274,7 +276,10 @@
       return true;
     });
   }
-  function refresh() {
+  // wave: a first show (the load, a view or grouping switch) waits for the
+  // first screen's posters and waves them in (js/covers.js); a sort, a
+  // filter or a search just redraws.
+  function refresh(wave) {
     var list = sortMovies(visible(), sortByKey(state.sortKey), state.sortDir);
     GRID.setAttribute("data-view", effectiveView());
     GRID.textContent = "";
@@ -283,6 +288,7 @@
         pool().length ? "No films match — try clearing a filter." : "No films yet — check back soon."));
     } else {
       list.forEach(function (m) { GRID.appendChild(buildCard(m)); });
+      if (wave === true) DeetsCovers.reveal(GRID, ".song");
     }
     setMeta(list.length);
   }
@@ -406,7 +412,7 @@
       pop = p;
       VIEWS.forEach(function (v) {
         p.appendChild(optButton(v.label, v.key, v.key === state.view, function () {
-          state.view = v.key; saveState(); mark(); refresh();
+          state.view = v.key; saveState(); mark(); refresh(true);
         }));
       });
       // Rewatches: one card per film vs one per diary sitting. Divided off
@@ -418,7 +424,7 @@
         b.type = "button"; b.dataset.group = g[0];
         if ((g[0] === "all") !== state.grouped) b.classList.add("is-active");
         b.addEventListener("click", function () {
-          state.grouped = g[0] === "grouped"; saveState(); mark(); refresh();
+          state.grouped = g[0] === "grouped"; saveState(); mark(); refresh(true);
         });
         dirs.appendChild(b);
       });
@@ -571,7 +577,7 @@
         .sort(function (a, b) { return b.localeCompare(a); });
       STATUSES = Array.from(new Set(ALL.map(function (m) { return m.status; }))).sort();
       if (TOOLBAR) { buildSortPill(); buildViewPill(); buildFilterPill(); buildSearchPill(); }
-      refresh();
+      refresh(true);
     })
     .catch(function () {
       GRID.textContent = "";

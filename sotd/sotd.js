@@ -82,6 +82,8 @@
       img.alt = song.album ? song.track_name + " — " + song.album : song.track_name;
       img.addEventListener("load", function () { cover.classList.add("has-art"); });
       img.addEventListener("error", function () { img.remove(); });
+      img.sizes = DeetsCovers.journalSizes(effectiveView());   // the size this view draws it
+      img.srcset = DeetsCovers.srcset(song.artwork_url);
       img.src = song.artwork_url;
       cover.appendChild(img);
     }
@@ -287,7 +289,10 @@
       return true;
     });
   }
-  function refresh() {
+  // wave: a first show (the load, a view switch) waits for the first
+  // screen's covers and waves them in (js/covers.js); a sort, a filter or a
+  // search just redraws.
+  function refresh(wave) {
     var list = sortSongs(visible(), sortByKey(state.sortKey), state.sortDir);
     GRID.setAttribute("data-view", effectiveView());
     GRID.textContent = "";
@@ -296,6 +301,7 @@
         TOTAL ? "No songs match — try clearing a filter." : "No songs yet — check back soon."));
     } else {
       list.forEach(function (s) { GRID.appendChild(buildCard(s)); });
+      if (wave === true) DeetsCovers.reveal(GRID, ".song");
     }
     setMeta(list.length);
   }
@@ -414,7 +420,7 @@
       pop = p;
       VIEWS.forEach(function (v) {
         p.appendChild(optButton(v.label, v.key, v.key === state.view, function () {
-          state.view = v.key; saveState(); mark(); refresh();
+          state.view = v.key; saveState(); mark(); refresh(true);
         }));
       });
       mark();
@@ -599,7 +605,7 @@
           return (b.slice(3) + b.slice(0, 2)).localeCompare(a.slice(3) + a.slice(0, 2));
         });
       if (TOOLBAR) { buildSortPill(); buildViewPill(); buildFilterPill(); buildSearchPill(); }
-      refresh();
+      refresh(true);
     })
     .catch(function () {
       GRID.textContent = "";

@@ -11,11 +11,16 @@
    the DeetsMusic app: theme = color, skin = shape/type/motion.
 
    Nothing page-specific belongs here. See docs/ui.md.
+
+   Every page's <head> also PRELOADS these four imports, at these exact
+   URLs, so they download beside this file instead of after it. Change a
+   stamp here and change it in every head too (docs/architecture.md,
+   "Token stamps"); a preload that misses its import downloads twice.
    ============================================================ */
 @import "./fonts.css?v=2026-09-17";
-@import "./palette.css?v=2026-10-20";
-@import "./themes.css?v=2026-10-20";
-@import "./skin.css?v=2026-10-20";
+@import "./palette.css?v=2026-10-23";
+@import "./themes.css?v=2026-10-23";
+@import "./skin.css?v=2026-10-23";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -345,33 +350,57 @@ body::before {
   z-index: 5;
   pointer-events: none;
 }
+/* The sprite is a one-frame window; its ::before carries the whole strip
+   and slides under it a frame at a time. Sliding a layer (transform) runs
+   on the GPU, where stepping background-position repainted every frame. */
 .walker__sprite {
+  position: relative;
+  overflow: hidden;
   width: var(--fw);
   height: var(--fh);
-  background-repeat: repeat-x;
-  background-size: calc(var(--fw) * 4) var(--fh);
-  image-rendering: pixelated;
   /* walkers.js mirrors + scales from here; feet stay on the viewport edge */
   transform-origin: 50% 100%;
-  animation: walker-cycle 0.571s steps(4) infinite;   /* 4 frames / 7 fps */
+  --frames: 4;
 }
+.walker__sprite::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--fw) * var(--frames));
+  height: var(--fh);
+  background-image: var(--strip);
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  animation: walker-frames 0.571s steps(4) infinite;   /* 4 frames / 7 fps */
+}
+@keyframes walker-frames {
+  to { transform: translateX(calc(var(--fw) * -4)); }
+}
+/* The background-position cycle, kept for the first-run walk's sprites
+   (main.css .walk__sprite), which are drawn as plain backgrounds. */
 @keyframes walker-cycle {
   to { background-position-x: calc(var(--fw) * -4); }
 }
 .walker__sprite--deets {
   --fw: 32px;
   --fh: 64px;
-  background-image: url("../assets/sprites/deets/walk_side.png");
+  --strip: url("../assets/sprites/deets/walk_side.png");
 }
 .walker__sprite--happy {
   --fw: 32px;
   --fh: 32px;
-  background-image: url("../assets/sprites/happy/walk_side.png");
+  --strip: url("../assets/sprites/happy/walk_side.png");
 }
+/* Single frames, no cycle: the sit pose and the rides. */
+.walker__sprite--sitting,
+.walker__sprite--boat,
+.walker__sprite--balloon { --frames: 1; }
+.walker__sprite--sitting::before,
+.walker__sprite--boat::before,
+.walker__sprite--balloon::before { animation: none; }
 .walker__sprite--sitting {
-  background-image: url("../assets/sprites/happy/sit_side.png");
-  background-size: var(--fw) var(--fh);   /* single frame, no cycle */
-  animation: none;
+  --strip: url("../assets/sprites/happy/sit_side.png");
 }
 /* Skin rides: single-frame composites (both characters aboard) from
    assets/sprites/vehicles/, graybox until Aditya draws them. Their bob
@@ -381,8 +410,7 @@ body::before {
 .walker__sprite--boat {
   --fw: 96px;
   --fh: 72px;
-  background-image: url("../assets/sprites/vehicles/boat.png");
-  background-size: var(--fw) var(--fh);
+  --strip: url("../assets/sprites/vehicles/boat.png");
   animation: walker-bob 2.6s ease-in-out infinite alternate;
   --bob-y: -4px;
   --bob-tilt: 2deg;
@@ -390,8 +418,7 @@ body::before {
 .walker__sprite--balloon {
   --fw: 64px;
   --fh: 96px;
-  background-image: url("../assets/sprites/vehicles/balloon.png");
-  background-size: var(--fw) var(--fh);
+  --strip: url("../assets/sprites/vehicles/balloon.png");
   animation: walker-bob 3.4s ease-in-out infinite alternate;
   --bob-y: -10px;
   --bob-tilt: 0deg;
@@ -1061,10 +1088,15 @@ body::before {
 /* A row sliding in: set --pop-i on each (capped at 12 by the caller). */
 .pop-enter { animation: pop-row-in var(--pop-in) var(--pop-ease) calc(var(--pop-i, 0) * var(--pop-stagger)) both; }
 @keyframes pop-row-in { from { opacity: 0; transform: translateY(calc(-1 * var(--pop-shift))); } }
+/* The cover wave (js/covers.js): a tile waits in place, unseen, for the
+   first screen's covers, then arrives as a row does, delayed by its place
+   in the wave. */
+.rv-wait { opacity: 0; }
+.rv-in { animation: pop-row-in var(--pop-in) var(--pop-ease) var(--rv-delay, 0ms) both; }
 @media (prefers-reduced-motion: reduce) {
   :is(.menu, .nav-menu, .tb-pop, .flyout, .nav-group__menu) { transition: none; }
   .nav-group__menu { transform: none; }        /* no slide, just appear */
-  .pop-enter { animation: none; }
+  .pop-enter, .rv-in { animation: none; }
 }
 
 /* ── Settings (the Vibe menu's last row; controls.js) ───────────
