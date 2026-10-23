@@ -96,9 +96,10 @@ lines to put back.
 - **A11y:** the strip's "GitHub ↗" links are named with their project (aria-labelledby, no new words).
 - **Walkers:** the frame cycle is a transform now (GPU), not a background-position repaint.
 - **DeetsAccounts:** `GET /me` answers a signed-out visitor `200 null`, not 401 (the console
-  error). Committed there, **not deployed**.
+  error). Deployed 2026-10-23 (below).
 
-**Left, his:** deploy DeetsAccounts; set the zone's Browser Cache TTL to
+DeetsAccounts 479562a is pushed and DEPLOYED (version b0a16ad5, 2026-10-23); `/me` answers
+signed-out visitors `200 null`, checked live. **Left, his:** set the zone's Browser Cache TTL to
 "Respect Existing Headers" (dashboard) so CSS/JS get `max-age=0`; the 404 page's three `[ph]`
 lines. **Before the CSP can be enforced:** Cloudflare's bot-detection script is injected inline
 into every page with per-request values, so it will report on every load. Enforcing needs that
