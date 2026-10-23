@@ -25,10 +25,10 @@
                     hornet: "black-yellow", viper: "black-red",
                     cyberstorm: "cyber", "retro-future": "cyber" };
           var t = localStorage.getItem("deets-theme");
-          if (!t) { t = dark ? "moonlight" : "lilac"; }
+          if (!t) { t = dark ? "black-red" : "lilac"; }
           document.documentElement.setAttribute("data-theme", R[t] || t);
           var s = localStorage.getItem("deets-skin");
-          if (!s) { s = dark ? "ocean" : "glass"; }
+          if (!s) { s = dark ? "ocean" : "press"; }
           document.documentElement.setAttribute("data-skin", R[s] || s);
         } catch (e) {}
       })();
@@ -41,7 +41,7 @@
     <link rel="preload" href="../styles/skin.css?v=2026-10-23" as="style" />
     <link rel="stylesheet" href="../styles/table.css" />
     <link rel="stylesheet" href="./poker.css" />
-    <script src="../js/controls.js?v=2026-10-20" defer></script>
+    <script src="../js/controls.js?v=2026-10-23" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
     <script src="./strings.js" defer></script>

@@ -16,10 +16,10 @@
                     hornet: "black-yellow", viper: "black-red",
                     cyberstorm: "cyber", "retro-future": "cyber" };
           var t = localStorage.getItem("deets-theme");
-          if (!t) { t = dark ? "moonlight" : "lilac"; }
+          if (!t) { t = dark ? "black-red" : "lilac"; }
           document.documentElement.setAttribute("data-theme", R[t] || t);
           var s = localStorage.getItem("deets-skin");
-          if (!s) { s = dark ? "ocean" : "glass"; }
+          if (!s) { s = dark ? "ocean" : "press"; }
           document.documentElement.setAttribute("data-skin", R[s] || s);
         } catch (e) {}
       })();

@@ -59,8 +59,8 @@ both cases the ink is a theme role and the motion is skin tokens.
 
 Each page resolves both axes inline in `<head>`, before CSS paints, so
 there's no flash of the wrong look. A saved choice wins; otherwise both axes
-follow the OS light/dark preference, landing on **Glass × Lilac** (light) or
-**Ocean × Moonlight** (dark). That default logic lives in two places on purpose — the pre-paint head script on every
+follow the OS light/dark preference, landing on **Lilac × Press** (light) or
+**Black & Red × Ocean** (dark), his call 2026-10-23. That default logic lives in two places on purpose — the pre-paint head script on every
 page and the AXES table in `controls.js` — and they must be kept in sync.
 
 ### Renaming a theme or skin id
