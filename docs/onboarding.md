@@ -4,6 +4,27 @@
 > Ported from DeetsMusic's walk (DeetsMusic repo: `src/walk.ts`,
 > `docs/features/ONBOARDING.md` §4). Read that doc for the ideas behind it; this one only
 > covers what the site does differently.
+>
+> **DISABLED 2026-10-23 (his call; he revamps it the week after).** `js/walk.js` stays on
+> disk, untracked. Its two hooks came out of the working tree, so nothing loads it and
+> `?tour` does nothing. To turn it back on, put both back:
+>
+> - `index.html`, after the `walkers.js` script tag:
+>   `<script src="js/walk.js?v=2026-09-24" defer></script>`
+> - `js/controls.js`, a section after the one that ends with the `toasts` row:
+>
+>   ```js
+>   {
+>     // The first-run walk lives on the home page (js/walk.js); ?tour starts
+>     // it from step 1 whichever page this row was pressed on.
+>     title: S.tips,
+>     defaultOpen: true,
+>     rows: [
+>       { kind: "action", id: "tour", label: S.tour, hint: S.tourHint,
+>         run: function () { location.href = "/?tour"; } },
+>     ],
+>   },
+>   ```
 
 Deets and Happy, the sprites that stroll along the bottom of every page (`js/walkers.js`),
 walk to the thing each step names and stand beside it. A speech card in the toast material

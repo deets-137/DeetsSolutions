@@ -63,6 +63,13 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-23 — DeetsTanks hidden; the first-run walk off (his calls).** DeetsTanks is out of
+every page's Games menu and the sitemap; `/tanks/` still loads by URL, and Cool Stuff's tanks
+card still has its "Play ↗" link. To bring it back, restore the menu line on each page (git
+history of this commit). The walk is off until his revamp the following week: its two hooks are
+out of the working tree, `js/walk.js` stays on disk, and [onboarding.md](onboarding.md) has the
+lines to put back.
+
 **2026-10-23 — PageSpeed fixes and DeetsMusic's readability + cover wave: BUILT on branch
 `site-quality`, not pushed; his visual pass owed.** From his desktop PageSpeed run (Performance
 91, Accessibility 96, Best Practices 96, SEO 92). Built:
