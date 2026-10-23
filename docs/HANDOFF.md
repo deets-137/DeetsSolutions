@@ -63,6 +63,11 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-23 — New first-visit looks: Lilac × Press (light), Black & Red × Ocean (dark).**
+His call; SHIPPED with the two entries below (branch `site-quality` merged to `master` and
+pushed the same day). The pre-paint script on all 19 pages, `LOOK_PAIRS` in `controls.js` and
+the CSP hash in `_headers` all changed together.
+
 **2026-10-23 — DeetsTanks hidden; the first-run walk off (his calls).** DeetsTanks is out of
 every page's Games menu and the sitemap; `/tanks/` still loads by URL, and Cool Stuff's tanks
 card still has its "Play ↗" link. To bring it back, restore the menu line on each page (git
@@ -70,8 +75,8 @@ history of this commit). The walk is off until his revamp the following week: it
 out of the working tree, `js/walk.js` stays on disk, and [onboarding.md](onboarding.md) has the
 lines to put back.
 
-**2026-10-23 — PageSpeed fixes and DeetsMusic's readability + cover wave: BUILT on branch
-`site-quality`, not pushed; his visual pass owed.** From his desktop PageSpeed run (Performance
+**2026-10-23 — PageSpeed fixes and DeetsMusic's readability + cover wave: SHIPPED** (branch
+`site-quality`, merged to `master` and pushed on his ask the same day). From his desktop PageSpeed run (Performance
 91, Accessibility 96, Best Practices 96, SEO 92). Built:
 - **Readability:** the app's 2026-10-14 text paints (Lilac, Green, Sepia, Moonlight inks; Black-Red's
   siren `#FF4D45`) in `palette.css` / `themes.css`. The flagged `--subtext` chips now read 5.4–9.3:1.
@@ -93,7 +98,7 @@ lines to put back.
 - **DeetsAccounts:** `GET /me` answers a signed-out visitor `200 null`, not 401 (the console
   error). Committed there, **not deployed**.
 
-**Left, his:** visual pass, then push; deploy DeetsAccounts; set the zone's Browser Cache TTL to
+**Left, his:** deploy DeetsAccounts; set the zone's Browser Cache TTL to
 "Respect Existing Headers" (dashboard) so CSS/JS get `max-age=0`; the 404 page's three `[ph]`
 lines. **Before the CSP can be enforced:** Cloudflare's bot-detection script is injected inline
 into every page with per-request values, so it will report on every load. Enforcing needs that
