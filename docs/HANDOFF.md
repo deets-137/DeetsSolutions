@@ -11,8 +11,9 @@
 > own nav tab left of Blog; its release notes are two-pane (headliners left, notes right),
 > the newest release collapsible and remembered, earlier ones a row of cards; Home leads
 > with a DeetsMusic card (icon, version, date). Design in [support.md](support.md),
-> "The page". **Top of the docket next
-> session: `_headers` has never applied** — first item under [Next up](#next-up).
+> "The page". **2026-10-23:** why `_headers` never showed is found (a zone setting, his to
+> flip), and the PageSpeed + readability work waits on branch `site-quality` — top of
+> [Next up](#next-up).
 
 **What a "what's next?" should answer from:** the [Next up](#next-up) list below, top
 down. When a session plans, finishes, or parks something, it updates this file in the same
@@ -61,6 +62,35 @@ python -m http.server 8787
 ## Next up
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
+
+**2026-10-23 — PageSpeed fixes and DeetsMusic's readability + cover wave: BUILT on branch
+`site-quality`, not pushed; his visual pass owed.** From his desktop PageSpeed run (Performance
+91, Accessibility 96, Best Practices 96, SEO 92). Built:
+- **Readability:** the app's 2026-10-14 text paints (Lilac, Green, Sepia, Moonlight inks; Black-Red's
+  siren `#FF4D45`) in `palette.css` / `themes.css`. The flagged `--subtext` chips now read 5.4–9.3:1.
+- **Covers:** `js/covers.js` (new shared chrome): covers fetched at the size drawn, as WebP
+  (`srcset`; home, SOTD, Movies), and the app's hold-then-diagonal-wave reveal (cap 1.5 s,
+  `--reveal-cap` / `--reveal-span` in `skin.css`) on the home strips, the calendar and both
+  journal grids. The home hero never waits (it is the page's largest picture) and is fetched
+  first; `songs.json` is preloaded in the home `<head>`.
+- **Layout shift (0.112 → 0 locally):** each home strip holds an invisible ghost card from the first paint.
+- **Stylesheets:** every head preloads `chrome.css`'s four imports (same `?v=`), so they no
+  longer download one after another. All CSS/JS stamps went to 2026-10-23.
+- **SEO:** `robots.txt`, `sitemap.xml`, and a real `404.html` (all `[ph]` copy) — before it,
+  every unknown path, `robots.txt` included, served the home page with a 200.
+- **`_headers`: the cause found** (zone Browser Cache TTL at 4 h; see its comment), the
+  songs.json double header fixed, and security headers added: HSTS, X-Frame-Options, nosniff,
+  COOP, and a **report-only** CSP (clean on every page locally).
+- **A11y:** the strip's "GitHub ↗" links are named with their project (aria-labelledby, no new words).
+- **Walkers:** the frame cycle is a transform now (GPU), not a background-position repaint.
+- **DeetsAccounts:** `GET /me` answers a signed-out visitor `200 null`, not 401 (the console
+  error). Committed there, **not deployed**.
+
+**Left, his:** visual pass, then push; deploy DeetsAccounts; set the zone's Browser Cache TTL to
+"Respect Existing Headers" (dashboard) so CSS/JS get `max-age=0`; the 404 page's three `[ph]`
+lines. **Before the CSP can be enforced:** Cloudflare's bot-detection script is injected inline
+into every page with per-request values, so it will report on every load. Enforcing needs that
+detection off for the zone, or a nonce. Not run: the resume PDF rebuild (only its `<head>` changed).
 
 **2026-10-20 — Metal, the sixth skin: SHIPPED** (his OK, with DeetsMusic 0.31.0). Ported from the
 app: the paints (`palette.css`), the light and shade roles and each theme's metal and floor
@@ -167,6 +197,11 @@ that worker, it starts from ROOMS.md as it stands and is this repo's session to 
 old differences (rooms that live on when empty, free-form names, preview listeners, YouTube
 entries, a browser host) are all still open, and the first two are settled the other way in the
 app's design.
+
+**2026-10-23: CAUSE FOUND** — the file does apply; the zone's Browser Cache TTL (4 h) raises
+every CSS/JS Cache-Control to 14400, and the songs.json double header is two of the file's own
+rules joining. The fix is a dashboard setting (entry above; the `_headers` comment has it all).
+The history below is kept for the record.
 
 **⚠ 2026-09-15 — `_headers` has never applied: ON THE DOCKET, first thing next session.**
 Found while checking the board-threads deploy, and it is a site-wide bug, not a DeetsMusic
@@ -326,15 +361,12 @@ Last recorded state, from session memory — **verify against git before acting.
 - **Mocks don't model disconnects** — rejoin behavior is only testable live.
 - **A same-document hash navigation doesn't reload.** Use `location.reload()` when testing
   a page in the browser pane.
-- **⚠ `_headers` has never applied — unresolved (2026-09-15).** Every stylesheet and
-  script on the live site serves Pages' `max-age=14400`, not the `max-age=0` that file
-  says, so a returning visitor can hold four-hour-old CSS/JS. The 2026-08-08 theme-rename
-  breakage it was written to prevent can therefore still happen. Its old `/*.css` rules
-  were genuinely invalid, but per-directory rules changed nothing, and a probe showed the
-  rules are not applied AT ALL. `deetsmusic/index.html` stamps its own assets `?v=` as a
-  stopgap. **The full findings and the three things to check are in the `_headers` comment
-  itself** — first being the Pages project's build-output directory. Until this is fixed,
-  assume a deploy reaches returning visitors up to four hours late, and stamp by hand if
-  that would break something.
+- **CSS/JS reach returning visitors up to four hours late** until the zone's Browser Cache
+  TTL is "Respect Existing Headers" (found 2026-10-23: that setting, at 4 h, raises
+  `_headers`' `max-age=0`). Until then, **bump the `?v=` stamps** on whatever you change:
+  the page's own CSS/JS link, and for a token sheet, `chrome.css`'s `@import` AND the
+  matching preload in every head (architecture.md, "Token stamps").
+- **A URL matching two `_headers` rules gets both rules' headers, joined.** To replace
+  one, detach it first with `! Header-Name` (the feeds do).
 - **A re-vendor can strip live features.** Check what the deployed workers carry before
   re-vendoring `games/table-do.js` while a games branch sits unmerged.

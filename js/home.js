@@ -117,6 +117,11 @@
         img.alt = song.album ? song.track_name + " — " + song.album : song.track_name;
         img.addEventListener("load", function () { cover.classList.add("has-art"); });
         img.addEventListener("error", function () { img.remove(); });
+        // The page's largest picture: fetched first, at the size it is drawn
+        // (12rem, or the column's width once the hero stacks).
+        img.fetchPriority = "high";
+        img.sizes = "(max-width: 30rem) 100vw, 12rem";
+        img.srcset = DeetsCovers.srcset(song.artwork_url);
         img.src = song.artwork_url;
         cover.appendChild(img);
       }
@@ -305,6 +310,8 @@
             thumb.loading = "lazy";
             thumb.alt = "";
             // Apple artwork URLs encode their size; ask for a thumb, not 600px.
+            thumb.sizes = "5rem";
+            thumb.srcset = DeetsCovers.srcset(pick.artwork_url);
             thumb.src = pick.artwork_url.replace("600x600bb", "160x160bb");
             thumb.addEventListener("error", function (e) { e.target.remove(); });
             cell.appendChild(thumb);
@@ -327,6 +334,7 @@
       if (view.m < 1) { view.m = 12; view.y--; }
       if (view.m > 12) { view.m = 1; view.y++; }
       renderCal();
+      DeetsCovers.reveal(calGrid, ".sotd-cal__day");
     }
     prevBtn.addEventListener("click", function () { step(-1); });
     nextBtn.addEventListener("click", function () { step(1); });
@@ -455,6 +463,9 @@
     renderHero(byDate[latestDate]);
     renderCal();
     hub.hidden = false;
+    // The hero shows at once (it is the page's first picture); the
+    // calendar's covers wait and wave in, measured now the hub has a box.
+    DeetsCovers.reveal(calGrid, ".sotd-cal__day");
     return true;
   }
 
@@ -470,13 +481,23 @@
   /* ── Side strips ───────────────────────────────────────────────
      Each side card carries a sideways-scrolling strip of that tab's
      real cards, newest on the left, so a visitor gets a taste before
-     clicking through. A strip stays hidden until it has cards. */
+     clicking through. Each strip holds its row from the first paint with
+     one invisible ghost card (index.html), so nothing below it jumps when
+     the cards land; the cards then wave in once the first screen's covers
+     are ready. A strip with nothing to show folds away. */
   var STRIP_MAX = 12;
+  function stripFor(key) { return document.querySelector('[data-strip="' + key + '"]'); }
   function showStrip(key, cards) {
-    var strip = document.querySelector('[data-strip="' + key + '"]');
-    if (!strip || !cards.length) return;
+    var strip = stripFor(key);
+    if (!strip) return;
+    if (!cards.length) { dropStrip(key); return; }
+    strip.textContent = "";
     cards.forEach(function (c) { strip.appendChild(c); });
-    strip.hidden = false;
+    DeetsCovers.reveal(strip, ".song, .project");
+  }
+  function dropStrip(key) {
+    var strip = stripFor(key);
+    if (strip) strip.hidden = true;
   }
 
   /* Film card — the DOM movies/movies.js builds (.song.movie), cut for a
@@ -505,6 +526,8 @@
       img.alt = movie.name + " poster";
       img.addEventListener("load", function () { cover.classList.add("has-art"); });
       img.addEventListener("error", function () { img.remove(); card.classList.remove("movie--poster"); });
+      img.sizes = "11rem";   // the strip's card width (main.css)
+      img.srcset = DeetsCovers.srcset(movie.poster_url);
       img.src = movie.poster_url;
       cover.appendChild(img);
     }
@@ -549,7 +572,7 @@
         return m.status === "watched";
       });
       var last = latestBy(movies, "watched_date");
-      if (!last) return;
+      if (!last) { dropStrip("movies"); return; }
       var s = stars(last.rating);
       fill(
         "movies",
@@ -562,7 +585,7 @@
       }).slice(0, STRIP_MAX);
       showStrip("movies", recent.map(buildMovieCard));
     })
-    .catch(function () {});
+    .catch(function () { dropStrip("movies"); });
 
   /* Project strip — the portfolio is static HTML, so the cards are lifted
      straight out of cool-stuff/index.html (one source of truth: edit a
@@ -592,8 +615,18 @@
       });
       // Each card gets a one-line footer — last-commit date left, the
       // card's own links right — so the strip's cards share one anatomy.
-      showStrip("cool", items.slice(0, STRIP_MAX).map(function (it) {
+      showStrip("cool", items.slice(0, STRIP_MAX).map(function (it, i) {
         var card = document.importNode(it.node, true);
+        // Every card's link reads "GitHub ↗", so a screen reader hears the
+        // project's name with it: the link's own words, then the card's title.
+        var nameEl = card.querySelector(".project__name");
+        if (nameEl) {
+          nameEl.id = "strip-cool-" + i;
+          card.querySelectorAll(".project__link").forEach(function (a, j) {
+            a.id = "strip-cool-" + i + "-link-" + j;
+            a.setAttribute("aria-labelledby", a.id + " " + nameEl.id);
+          });
+        }
         var foot = el("div", "project__foot");
         var when = el("span", "project__updated", it.updated ? shortDate(it.updated) : "");
         if (it.updated) when.title = "Last commit " + prettyDate(it.updated);
@@ -604,7 +637,7 @@
         return card;
       }));
     })
-    .catch(function () {});
+    .catch(function () { dropStrip("cool"); });
 
   /* DeetsMusic card — the latest release's version + date, in the DeetsMusic
      page's install-box format, read from the same route its release notes

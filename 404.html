@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="cyber">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Cloudflare Pages serves this, with a 404 status, for any path with no
+         file behind it (before it existed, every such path got the home page
+         with a 200, robots.txt included). It answers at any depth, so every
+         URL here is absolute. -->
+    <title>Not found — Deets.Solutions</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "cyber", "retro-future": "cyber" };
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "moonlight" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "ocean" : "glass"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles/chrome.css?v=2026-10-23" />
+    <!-- chrome.css's token imports, fetched beside it rather than after it -->
+    <link rel="preload" href="/styles/fonts.css?v=2026-09-17" as="style" />
+    <link rel="preload" href="/styles/palette.css?v=2026-10-23" as="style" />
+    <link rel="preload" href="/styles/themes.css?v=2026-10-23" as="style" />
+    <link rel="preload" href="/styles/skin.css?v=2026-10-23" as="style" />
+    <link rel="stylesheet" href="/styles/main.css?v=2026-10-23" />
+    <script src="/js/controls.js?v=2026-10-20" defer></script>
+    <script src="/js/toast.js" defer></script>
+    <script src="/js/account.js" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets</a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <div class="nav-group">
+          <a class="nav-group__label" href="/deetsmusic/" aria-haspopup="true">DeetsMusic<span class="nav-group__caret" aria-hidden="true">&#9662;</span></a>
+          <div class="nav-group__menu" role="menu">
+            <a href="/deetsmusic/" role="menuitem">App</a>
+            <a href="/deetsmusic/demo/" role="menuitem">Demo</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
+            <a href="/poker/" role="menuitem">DeetsPoker</a>
+            <a href="/tanks/" role="menuitem">DeetsTanks</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Utilities<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/radio/" role="menuitem">DeetsRadio</a>
+            <a href="/league/" role="menuitem">League</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cool-stuff/" role="menuitem" data-nav-core>Cool Stuff I Did</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <span class="settings" data-settings></span>
+    </header>
+
+    <main class="site-main">
+      <section class="page-bar">
+        <h1 class="page-bar__title">[ph] Nothing here</h1>
+        <div class="page-bar__actions">
+          <a class="home__cta" href="/">[ph] Back home</a>
+        </div>
+      </section>
+
+      <p class="page-meta">
+        [ph] This page doesn't exist, or it moved. The menu above has everything that does.
+      </p>
+    </main>
+  </body>
+</html>

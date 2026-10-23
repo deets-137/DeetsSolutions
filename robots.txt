@@ -1,0 +1,7 @@
+# deets.solutions. Every public page may be crawled; the pages that should
+# stay out of search (profile, sign-in, admin, the tanks designer) carry
+# their own <meta name="robots" content="noindex">.
+User-agent: *
+Allow: /
+
+Sitemap: https://deets.solutions/sitemap.xml

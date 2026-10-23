@@ -865,6 +865,9 @@
   scroll-snap-align: start;
   min-width: 0;
 }
+/* The strip's place-holder (index.html): one card of the real anatomy, so
+   the row is its final height from the first paint, unseen and unread. */
+.home-strip__ghost { visibility: hidden; }
 /* Cards ride on the section's own card plate: flatten to the surface so
    the strip reads as a shelf, not cards-on-a-card. Their hover lift stays. */
 .home-strip .project,

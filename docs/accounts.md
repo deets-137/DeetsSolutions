@@ -66,7 +66,7 @@ Objects. Sibling repo, deployed with `npx wrangler deploy`, exactly like
 |---|---|
 | `GET /login?return=` | 302 to Google, PKCE challenge |
 | `GET /cb` | exchange code, upsert user, set cookie, 302 to `auth/done.html` |
-| `GET /me` | `{id, name, color}` or 401 |
+| `GET /me` | `{id, name, color}`, or `null` (200) when signed out (a 401 until 2026-10-23, which logged a console error for every signed-out visitor) |
 | `PATCH /me` | update `name` / `color` |
 | `POST /logout` | clear the cookie |
 | `POST /ingest` | a finished game from a game worker — see [stats.md](stats.md) |
