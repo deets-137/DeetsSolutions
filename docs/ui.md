@@ -146,10 +146,15 @@ wordmark's `position: relative` anchor). Two decisions keep it honest:
 - **Links are cloned from the live `.site-nav`**, so the destinations and each
   page's `aria-current` stay defined in one place — the page's own markup —
   rather than re-listed in JS. A "Home" link is prepended (the wordmark no
-  longer navigates on mobile). Only links marked **`data-nav-core`** are
-  cloned (currently SOTD + Cool Stuff, on every page's nav): the deep-cut
-  tabs — Movies, DeetsRadio, League, Resume — are desktop-only by design.
-  A page with no marked links falls back to cloning them all.
+  longer navigates on mobile). **Every tab rides it, grouped like the
+  desktop dropdowns** (2026-10-24): each `.nav-group`'s label becomes a
+  small heading (`.nav-menu__group`) over clones of that group's links.
+  It used to clone only `data-nav-core` links (SOTD + Cool Stuff); that
+  attribute is still in the markup but no longer read. Links marked
+  **`data-nav-desktop`** stay off it — DeetsRadio and League, which he is
+  retiring and not keeping up for phones — and a group left with no links
+  (Utilities) drops its heading. The menu caps at
+  the viewport height and scrolls, for landscape phones.
 - **The wordmark serves both roles from one element.** Its click handler
   checks `matchMedia("(max-width: 56rem)")`: when narrow it opens the menu
   (`preventDefault`), on desktop it follows the `/` link. `syncMode()` (run on

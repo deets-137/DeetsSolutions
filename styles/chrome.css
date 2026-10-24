@@ -621,8 +621,30 @@ body::before {
   z-index: 20;
   display: flex;
   flex-direction: column;
+  /* Every tab now rides this menu, which outgrows a landscape phone. */
+  max-height: calc(100dvh - var(--header-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .nav-menu[hidden] { display: none; }
+/* Group headings, one per desktop dropdown (DeetsMusic, Blog, ...). */
+.nav-menu__group {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--subtext);
+}
+.nav-menu__group ~ .nav-menu__item { padding-left: var(--space-4); }
+/* account.js appends Sign in last; rule it off so it doesn't read as an
+   About Me link. */
+.nav-menu__group ~ .account-btn {
+  padding-left: var(--space-3);
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
 .nav-menu__item {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-control);

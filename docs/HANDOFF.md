@@ -68,8 +68,13 @@ Newest plan first. Each entry: status, the doc that holds the design, the first 
 from 56rem to ~70rem (right-anchored there, `chrome.css`); page titles wrap below 41rem; the
 desktop sign-in pill leaking into the narrow header (a later base rule out-ranked the hide);
 phone gutters 2rem → 1rem; Movies fits three posters at 41–56rem. Desktop screenshots at
-1100/1280/1440 unchanged. **Next:** the mobile nav menu (only SOTD + Cool Stuff are
-`data-nav-core`; ui.md "The mobile nav menu"), then the games at phone width.
+1100/1280/1440 unchanged.
+
+**2026-10-24 — Mobile nav carries every tab, grouped like desktop: SHIPPED.**
+`buildNavMenu()` in `controls.js` (ui.md, "The mobile nav menu"). DeetsRadio and League stay
+desktop-only (`data-nav-desktop`): he is retiring both and not maintaining them.
+**Next, pages newly reachable on phones:** Resume's job title squeezed beside its dates; the
+three games need a real phone play-through (only their lobbies were seen).
 
 **2026-10-23 — New first-visit looks: Lilac × Press (light), Black & Red × Ocean (dark).**
 His call; SHIPPED with the two entries below (branch `site-quality` merged to `master` and

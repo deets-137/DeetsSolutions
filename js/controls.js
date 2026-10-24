@@ -846,15 +846,36 @@
     home.textContent = "Home";
     menu.appendChild(home);
 
-    var links = nav.querySelectorAll("a[data-nav-core]");
-    if (!links.length) links = nav.querySelectorAll("a");
-    links.forEach(function (link) {
+    function addItem(link) {
       var item = link.cloneNode(true);
       item.className = "nav-menu__item";
       item.setAttribute("role", "menuitem");
       item.removeAttribute("data-nav-core");
       menu.appendChild(item);
-    });
+    }
+    // Mirrors the desktop groups: each .nav-group's label becomes a heading
+    // over its menu's links, so the phone menu reaches every tab the
+    // desktop nav does, in the same order and under the same names.
+    // Links marked data-nav-desktop (Radio, League: retiring, not kept up
+    // for phones) stay off it, and a group left empty drops its heading.
+    // A nav without groups falls back to its plain links.
+    var SHOWN = "a:not([data-nav-desktop])";
+    var groups = nav.querySelectorAll(".nav-group");
+    if (groups.length) {
+      groups.forEach(function (group) {
+        var links = group.querySelectorAll(".nav-group__menu " + SHOWN);
+        if (!links.length) return;
+        var label = group.querySelector(".nav-group__label");
+        var head = document.createElement("div");
+        head.className = "nav-menu__group";
+        head.setAttribute("role", "presentation");
+        head.textContent = label ? label.firstChild.textContent.trim() : "";
+        menu.appendChild(head);
+        links.forEach(addItem);
+      });
+    } else {
+      nav.querySelectorAll(SHOWN).forEach(addItem);
+    }
     brand.appendChild(menu);
 
     // Mirrors the CSS nav-collapse breakpoint (56rem), which is wider than
