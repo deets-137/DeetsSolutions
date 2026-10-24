@@ -589,6 +589,18 @@ body::before {
 }
 .nav-group__menu a:hover { background: var(--surface-hover); color: var(--title); }
 .nav-group__menu a[aria-current="page"] { color: var(--title); }
+/* Until the viewport clears --content-max (68rem) plus a menu's width, the
+   header runs edge to edge and the last group's left-anchored menu hangs
+   past the window — invisible, but it still widens the page into a sideways
+   scroll (a half-width window on a 1920 screen). There, anchor it right.
+   Wider screens keep the left anchor: the header's side margin absorbs it. */
+@media (max-width: 80rem) {
+  .nav-group:last-child .nav-group__menu {
+    left: auto;
+    right: 0;
+    transform-origin: top right;
+  }
+}
 
 /* ── Mobile nav menu ──────────────────────────────────────────────
    Below the breakpoint the inline nav can't fit, so the wordmark becomes a
@@ -660,7 +672,9 @@ body::before {
 @media (max-width: 56rem) {
   .site-nav { display: none; }
   .settings { margin-left: auto; }
-  .header-account { display: none; }   /* the wordmark menu's copy takes over */
+  /* The wordmark menu's copy takes over. Scoped to .site-header so it
+     outranks the base `.header-account { display: flex }` further down. */
+  .site-header > .header-account { display: none; }
   .wordmark[aria-haspopup]::after {
     content: "▾";
     margin-left: var(--space-1);
@@ -864,6 +878,12 @@ body::before {
   margin: 0 auto;
   padding: var(--space-6);
 }
+/* Phones: the desktop gutter ate a sixth of a 375px screen. The header
+   follows so the wordmark stays flush with the content edge. */
+@media (max-width: 41rem) {
+  .site-main { padding: var(--space-5) var(--space-4); }
+  .site-header { padding: 0 var(--space-4); }
+}
 
 /* ── Page bar ───────────────────────────────────────────────────
    The shared page header: title left, optional action pills right,
@@ -896,6 +916,11 @@ body::before {
   text-decoration-line: var(--title-underline);
   text-decoration-thickness: var(--title-underline-w);
   text-underline-offset: var(--title-underline-offset);
+}
+/* Phones: a long title ("Aditya Sundaram [AKA Deets]") outruns the screen
+   on one line, so let it wrap. .sotd__title gets the same below. */
+@media (max-width: 41rem) {
+  .page-bar__title { white-space: normal; min-width: 0; overflow-wrap: break-word; }
 }
 .page-bar__actions {
   display: flex;
@@ -989,6 +1014,9 @@ body::before {
   text-decoration-line: var(--title-underline);
   text-decoration-thickness: var(--title-underline-w);
   text-underline-offset: var(--title-underline-offset);
+}
+@media (max-width: 41rem) {
+  .sotd__title { white-space: normal; min-width: 0; overflow-wrap: break-word; }
 }
 .sotd__meta {
   margin: 0 0 var(--space-5);

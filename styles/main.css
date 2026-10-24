@@ -419,6 +419,16 @@
 .sotd__grid--movies .song__cover { aspect-ratio: 21 / 9; }
 .sotd__grid--movies .movie--poster .song__cover { aspect-ratio: 2 / 3; }
 .sotd__grid--movies .song__mono  { font-size: 2.2rem; }
+/* Half-width windows: at the 15rem minimum two 2:3 posters filled the
+   screen, one film per scroll. A narrower minimum fits a third column.
+   Capped at the nav breakpoint so desktop keeps its columns. */
+@media (min-width: 41rem) and (max-width: 56rem) {
+  .sotd__grid.sotd__grid--movies:not([data-view="line"]):not([data-view="small"]) { grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+  /* The narrower card can't hold "Watched" and the date on one line; drop
+     the date whole onto the next line instead of breaking it mid-phrase. */
+  .sotd__grid.sotd__grid--movies:not([data-view="line"]) .song__foot { flex-wrap: wrap; }
+  .sotd__grid.sotd__grid--movies:not([data-view="line"]) .song__date { white-space: nowrap; }
+}
 
 /* TMDB attribution — their API terms require a visible credit. */
 .movie__credit {
