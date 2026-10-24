@@ -73,8 +73,9 @@ phone gutters 2rem → 1rem; Movies fits three posters at 41–56rem. Desktop sc
 **2026-10-24 — Mobile nav carries every tab, grouped like desktop: SHIPPED.**
 `buildNavMenu()` in `controls.js` (ui.md, "The mobile nav menu"). DeetsRadio and League stay
 desktop-only (`data-nav-desktop`): he is retiring both and not maintaining them.
-**Next, pages newly reachable on phones:** Resume's job title squeezed beside its dates; the
-three games need a real phone play-through (only their lobbies were seen).
+Resume fixed for phones the same day (role rows wrap, dates drop under the role; CSS only, so
+no PDF rebuild). **Next:** a real phone play-through of the three games (only their lobbies
+were seen); `npm run dev` now works on the Mac (wrangler installed locally, gitignored).
 
 **2026-10-23 — New first-visit looks: Lilac × Press (light), Black & Red × Ocean (dark).**
 His call; SHIPPED with the two entries below (branch `site-quality` merged to `master` and

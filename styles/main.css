@@ -1257,6 +1257,13 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .resume__dates { flex: 0 0 auto; color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
 /* One company, several roles: each role + its bullets is a group. */
 .resume__role-group { margin-top: var(--space-3); }
+/* Phones: a long role beside its dates squeezed to a word a line. Let the
+   row wrap so the dates drop under the role instead, and give the sheet
+   back some of its desktop padding. */
+@media (max-width: 41rem) {
+  .resume__sheet { padding: var(--space-5) var(--space-4); }
+  .resume__row { flex-wrap: wrap; gap: 0 var(--space-4); }
+}
 .resume__list {
   margin-top: var(--space-2);
   padding-left: 1.1rem;
