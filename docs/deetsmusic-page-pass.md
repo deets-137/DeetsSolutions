@@ -203,11 +203,26 @@ options, your recommendation first.
      app repo. Every page then fails with `504 (Outdated Optimize Dep)`, and every shot comes out
      as a blank, flat-colored frame. Give the scratch copy its own cache: add
      `cacheDir: ".vite-shots-cache"` to its `vite.demo.config.ts` (scratch only, never commit).
-  3. `node scripts/shots.mjs --only max-overview,max-full-player --look <the 24 looks> --out
-     <scratch>/shots` (without `--look` it also shoots Vanilla, which the page does not use).
+  2a. **The second trap (2026-10-21):** the demo reads his Songs of the Day from
+     `../DeetsSolutions/sotd/songs.json`, beside the checkout. In a scratch folder that path is
+     missing, the demo has no songs (a 404, then a `durationMs` error in every console file),
+     and every shot is an empty app. Make a junction `<scratch>/DeetsSolutions` to this repo.
+  3. `node scripts/shots.mjs --only max-overview,max-full-player --look <the 30 looks> --out
+     <scratch>/shots` (6 themes × Press, Ocean, Glass, Cyber, Metal; without `--look` it also
+     shoots Vanilla, which the page does not use).
   4. Convert with Pillow (dev-time only): resize to the widths above (Max 960 px, the full
      player 1200 px), save WebP q82, and reject any frame whose pixels barely vary (a blank
-     one). Copy the 48 files over the old ones.
+     one). Copy the 60 files over the old ones.
+  5. **A blank picture (2026-10-21):** one look in 30 came out as one flat color (Lilac × Press,
+     Max). The app's start-up cover (`.boot-cover`) was still up at the 600 ms wait. The blank
+     check in step 4 catches it; take that look again with a 3 s wait.
+  6. Look at a contact sheet of each shot before you copy. On 2026-10-21 it showed the Metal
+     full player's cover as a tall strip in all six themes (an app fault in 0.31.0, the app's
+     metal.md §6.8). His call: the peek kept, the box sized from the square. The 6 pictures were
+     taken from the branch head plus that fix only (a clean checkout, the fix's hunks applied),
+     so they show the fix before the site's demo build does.
+- **As built (2026-10-21):** 2 pictures × 30 looks = **60 files** (6 themes × Press, Ocean, Glass,
+  Cyber, Metal). 54 from app 0.31.0; the 6 Metal full-player ones from the fix above.
 
 ### 3d. Requirements + Trust block
 

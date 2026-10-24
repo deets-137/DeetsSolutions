@@ -2115,7 +2115,7 @@
   // One WebP per shot per theme × skin; the ids are the app's too. The
   // pictures follow <html>'s data-theme / data-skin, which the Vibe menu and
   // the look schedule both write, so a change there swaps them live.
-  // The app's menu offers four skins, not Vanilla, so a Vanilla visitor sees
+  // The app's menu offers five skins, not Vanilla, so a Vanilla visitor sees
   // Press — the app's own light default (his call, 2026-10-06).
   var SHOTS_DIR = "../assets/deetsmusic/shots/";
   var SHOT_SKIN = { vanilla: "press" };
