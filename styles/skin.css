@@ -159,6 +159,7 @@
   --icon-fly:    22px;                /* an arrow's flight: out of the 24-unit box */
   --icon-part:   2px;              /* how far the invite link's two links part */
   --cog-step:    120deg;              /* one click's turn: six teeth, lands on an identical tooth */
+  --icon-swap-turn: 90deg;            /* Close Table: the power glyph turns away as the check draws in */
 
   /* -- pop: floating panels arrive and leave (DeetsMusic's .pop) -- */
   --pop-in:      var(--dur-med);      /* a panel and new rows arriving */

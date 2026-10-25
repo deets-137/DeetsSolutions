@@ -277,8 +277,17 @@ rolled. On desktop the board runs down through the rack's row and the log
 meets it. The seating board takes the stage height outright instead of
 stretching, because the shell's `fitLog` sizes the log to the board's
 bottom and the two would grow together. The toolbar opts into the shell's `iconToolbar`: Invite, Table
-Settings and Leave render as icons (link, cog, door-arrow), their words
-kept as tooltip + accessible name. Glyphs and motion follow
+Settings, Leave and Close Table render as icons (link, cog, door-arrow,
+power), their words kept as tooltip + accessible name. Close Table keeps
+its two steps: the first click turns the power glyph away and draws a
+check in its place (tooltip "Confirm?"); the second closes the table, and
+the 2.6 s disarm runs the check back to power (`--icon-swap-turn`).
+Stand up is an up arrow over a floor line: in the lobby (one step) the
+arrow rises out and then you stand; mid-game (two steps) the arrow rises
+out and the floor bends into the check, a `d` morph (Safari, which can't
+tween `d`, fades the check in instead). Sit down is a line with a down
+arrow under it, which dips on click; mid-game's "Take over for:" pill
+wears the same glyph with its caret. Glyphs and motion follow
 DeetsMusicWindows' title bar (16px, 24-unit grid, 1.6 stroke; the cog is
 its path verbatim and turns `--cog-step` per click, never unwinding; the
 links part and rejoin; the arrow flies out before the table is left).

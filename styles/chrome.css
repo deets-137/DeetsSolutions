@@ -1084,6 +1084,10 @@ body::before {
   fill: none; stroke: currentColor; stroke-width: var(--icon-stroke);
   stroke-linecap: round; stroke-linejoin: round;
 }
+/* Close Table's power glyph turns about its own middle; the check under it
+   starts undrawn (pathLength 1, so the dash is the whole stroke) */
+.tb-pill__icon [data-power] { transform-box: fill-box; transform-origin: center; }
+.tb-pill__icon [data-check] { stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; }
 /* Optional current-value readout inside a pill — "Queue | Arena ▾".
    The divider is the value's left hairline (League's Queue pill). */
 .tb-pill__value {

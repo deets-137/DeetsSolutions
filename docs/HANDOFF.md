@@ -100,6 +100,10 @@ only ~24px wide, so they wait for the phone pass. Below 48rem the board now stac
 (shrunk to fit), then every seat as a row, you first (mahjong.md, "Page layout"). Still open for
 the phone chat: stacked heights don't match the stage, and the rack tiles are tiny at 375–390px. The seating prompt strings `seatingYou` / `seatingWaiting`
 are now unused, so he decides whether they go. Next: his look at it on 8787, then the narrow layout talk.
+UPDATE 2026-10-25 (committed on `maw-jawng`, not pushed): the icon toolbar gained Close Table
+(power → check on arming), Stand up (arrow rises out, floor line bends into the check mid-game)
+and Sit down (line over a down arrow; also "Take over for:"); his look approved. Ship note: bump
+the `?v=` stamps (chrome.css, skin.css via its @import) when this merges.
 
 **2026-10-24 — Phone + half-width pass, round 1: SHIPPED.** No page scrolls sideways at
 375–1440px now (headless audit, every page). Fixed: the About Me menu hanging past the window

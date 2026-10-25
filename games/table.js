@@ -607,8 +607,8 @@
       if (model.settings) TOOLBAR.appendChild(viewSettingsPill());
       (hook("extraPills") ? cfg.extraPills() : []).forEach(function (n) { if (n) TOOLBAR.appendChild(n); });
       if (model.phase === "lobby") {
-        if (mine == null) TOOLBAR.appendChild(pill(S.sitPill, function () { send({ type: "sit" }); }));
-        else TOOLBAR.appendChild(pill(S.standButton, function () { send({ type: "stand" }); }));
+        if (mine == null) TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "sit") : pill)(S.sitPill, function () { send({ type: "sit" }); }));
+        else TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "stand") : pill)(S.standButton, function () { send({ type: "stand" }); }));
       } else if (model.phase !== "over") {
         // mid-game hop-out / hop-in (docs/games.md). Standing releases the
         // seat for good, so it two-steps like Close; sitting in exists only
@@ -666,6 +666,7 @@
        built ONCE and moved into each rebuild's fresh pill, and its motion
        runs as a Web Animation on the node itself, which survives the move. */
     var ICONS = {};
+    var CHECK = "M5 12.5L9.5 17L19 7.5", FLOOR = "M5 19.5L12 19.5L19 19.5";
     function toolbarIcon(name) {
       if (ICONS[name]) return ICONS[name];
       var svg = svgEl("svg", { class: "tb-pill__icon", viewBox: "0 0 24 24", "aria-hidden": "true" });
@@ -690,6 +691,29 @@
         svg.appendChild(svgEl("path", { d: "M9.41 2.96A9.4 9.4 0 0 1 14.59 2.96L14.75 6.11A6.5 6.5 0 0 1 15.73 6.68L18.53 5.24A9.4 9.4 0 0 1 21.12 9.73L18.48 11.43A6.5 6.5 0 0 1 18.48 12.57L21.12 14.27A9.4 9.4 0 0 1 18.53 18.76L15.73 17.32A6.5 6.5 0 0 1 14.75 17.89L14.59 21.04A9.4 9.4 0 0 1 9.41 21.04L9.25 17.89A6.5 6.5 0 0 1 8.27 17.32L5.47 18.76A9.4 9.4 0 0 1 2.88 14.27L5.52 12.57A6.5 6.5 0 0 1 5.52 11.43L2.88 9.73A9.4 9.4 0 0 1 5.47 5.24L8.27 6.68A6.5 6.5 0 0 1 9.25 6.11L9.41 2.96Z" }));
         svg.appendChild(svgEl("circle", { cx: 12, cy: 12, r: 3 }));
         svg._turns = 0;
+      } else if (name === "power") {
+        // Close Table: a power glyph that, once armed, gives way to a check
+        // (the confirm step); both share the box and swap in place
+        var power = svgEl("g", { "data-power": "" });
+        power.appendChild(svgEl("path", { d: "M12 3.5v8" }));
+        power.appendChild(svgEl("path", { d: "M16.95 8.05a7 7 0 1 1-9.9 0" }));
+        svg.appendChild(power);
+        svg.appendChild(svgEl("path", { "data-check": "", d: CHECK, pathLength: 1 }));
+        svg._check = false;
+      } else if (name === "stand") {
+        // an arrow rising off a floor line; armed, the arrow leaves up and
+        // the floor bends into the check (three points each, so it morphs)
+        var up = svgEl("g", { "data-up": "" });
+        up.appendChild(svgEl("path", { d: "M12 15V4M8 8l4-4 4 4" }));
+        svg.appendChild(up);
+        svg.appendChild(svgEl("path", { "data-floor": "", d: FLOOR }));
+        svg._check = false;
+      } else if (name === "sit") {
+        // the line on top, a down arrow under it
+        svg.appendChild(svgEl("path", { d: "M5 4.5h14" }));
+        var down = svgEl("g", { "data-down": "" });
+        down.appendChild(svgEl("path", { d: "M12 9v11M8 16l4 4 4-4" }));
+        svg.appendChild(down);
       }
       ICONS[name] = svg;
       return svg;
@@ -742,6 +766,69 @@
       ], { duration: m.ms * 0.6, easing: "ease-in", fill: "forwards" });
       a.onfinish = function () { leaving = false; a.cancel(); then(); };
     }
+    // A two-step icon's swap (Close Table's power, Stand up's arrow):
+    // arming sends the glyph's mover away and brings the check in;
+    // disarming (the timeout, or the table moving on) runs it back. Called
+    // on every build with the pill's armed state, so it only moves when that
+    // state actually flips; `instant` resets it unseen (the pill is gone).
+    var MORPH = (function () { try { return CSS.supports("d", "path('M0 0')"); } catch (e) { return false; } })();
+    function swapGlyph(svg, check, instant) {
+      if (svg._check === check) return;
+      svg._check = check;
+      var power = svg.querySelector("[data-power]");
+      var mover = power || svg.querySelector("[data-up]");
+      // power turns and shrinks away; the stand arrow rises out of the box
+      var off = power ? "rotate(" + pxToken("--icon-swap-turn") + "deg) scale(0.4)"
+                      : "translateY(-" + pxToken("--icon-fly") + "px)";
+      var p = check ? [{ transform: "none", opacity: 1 }, { transform: off, opacity: 0 }]
+                    : [{ transform: off, opacity: 0 }, { transform: "none", opacity: 1 }];
+      mover.style.transform = p[1].transform; mover.style.opacity = p[1].opacity;
+      // power's check draws in over the empty box; stand's floor bends into it
+      var tick = svg.querySelector("[data-check]"), floor = svg.querySelector("[data-floor]"), t;
+      if (tick) {
+        t = check ? [{ strokeDashoffset: 1, opacity: 0 }, { strokeDashoffset: 0, opacity: 1 }]
+                  : [{ strokeDashoffset: 0, opacity: 1 }, { strokeDashoffset: 1, opacity: 0 }];
+        tick.style.strokeDashoffset = t[1].strokeDashoffset; tick.style.opacity = t[1].opacity;
+      } else {
+        var to = check ? CHECK : FLOOR;
+        t = [{ d: "path('" + (check ? FLOOR : CHECK) + "')" }, { d: "path('" + to + "')" }];
+        floor.setAttribute("d", to);
+      }
+      if (instant || reducedMotion() || !svg.animate) return;
+      var m = motionToken("--icon-spring");
+      // the glyph leaving goes quickly and plainly; the one arriving takes
+      // the spring (the check's draw stays ease-out — overshoot past 0
+      // would open a gap at its start)
+      mover.animate(p, check ? { duration: m.ms * 0.6, easing: "ease-in" } : { duration: m.ms, easing: m.easing });
+      if (tick) tick.animate(t, check ? { duration: m.ms, delay: m.ms * 0.2, easing: "ease-out", fill: "backwards" }
+                                      : { duration: m.ms * 0.5, easing: "ease-in" });
+      // a browser that can't tween `d` (Safari) gets a quick fade instead
+      else if (MORPH) floor.animate(t, { duration: m.ms, easing: m.easing });
+      else floor.animate([{ opacity: 0 }, { opacity: 1 }], { duration: m.ms * 0.5, easing: "ease-out" });
+    }
+    // Stand up in the lobby (no confirm there): the arrow rises out, THEN
+    // the seat is given up — the pill turns into Sit down on that render
+    function riseOut(svg, then) {
+      if (leaving) return;
+      if (reducedMotion() || !svg.animate) { then(); return; }
+      leaving = true;
+      var m = motionToken("--icon-spring");
+      var a = svg.querySelector("[data-up]").animate([
+        { transform: "translateY(0)", opacity: 1 },
+        { transform: "translateY(-" + pxToken("--icon-fly") + "px)", opacity: 0 }
+      ], { duration: m.ms * 0.6, easing: "ease-in", fill: "forwards" });
+      a.onfinish = function () { leaving = false; a.cancel(); then(); };
+    }
+    // Sit down: the arrow dips toward the seat and springs back
+    function dipDown(svg) {
+      if (reducedMotion() || !svg.animate) return;
+      var m = motionToken("--icon-spring"), d = pxToken("--icon-part");
+      svg.querySelector("[data-down]").animate([
+        { transform: "translateY(0)", easing: "ease-out" },
+        { transform: "translateY(" + d + "px)", offset: 0.35, easing: m.easing },
+        { transform: "translateY(0)" }
+      ], { duration: m.ms * 1.4 });
+    }
     function iconPill(icon, label, onClick) {
       var b = el("button", "tb-pill tb-pill--icon"); b.type = "button";
       b.title = label; b.setAttribute("aria-label", label);
@@ -749,7 +836,9 @@
       b.appendChild(svg);
       b.addEventListener("click", function () {
         if (icon === "leave") return flyOut(svg, onClick);
+        if (icon === "stand") return riseOut(svg, onClick);
         if (icon === "link") partLinks(svg);
+        if (icon === "sit") dipDown(svg);
         onClick();
       });
       return b;
@@ -769,12 +858,30 @@
     }
     function confirmPill(key, label, confirmLabel, onGo) {
       var armed = !!ARMED[key];
+      var glyph = cfg.iconToolbar && { close: "power", stand: "stand" }[key];
       var b = pill(armed ? confirmLabel : label, function () {
-        if (ARMED[key]) { disarm(key); onGo(); return; }
+        if (ARMED[key]) {
+          disarm(key);
+          // the pill goes away on this send; put its glyph back unseen so
+          // its next appearance doesn't open by running the swap backwards
+          if (glyph) swapGlyph(toolbarIcon(glyph), false, true);
+          onGo(); return;
+        }
         ARMED[key] = setTimeout(function () { disarm(key); render(); }, 2600);
         render();
       });
       if (armed) b.classList.add("is-active");
+      if (glyph) {
+        // icon-only: the words stay the tooltip + accessible name, and the
+        // glyph itself shows which step you're on (→ check)
+        var word = armed ? confirmLabel : label;
+        b.textContent = "";
+        b.classList.add("tb-pill--icon");
+        b.title = word; b.setAttribute("aria-label", word);
+        var svg = toolbarIcon(glyph);
+        b.appendChild(svg);
+        swapGlyph(svg, armed);
+      }
       return b;
     }
     // Hover = transient peek; click = pin open through the popover kit (so
@@ -827,7 +934,12 @@
       var wrap = el("span", "tb-ctrl");
       var b = el("button", "tb-pill"); b.type = "button";
       b.setAttribute("aria-haspopup", "true"); b.setAttribute("aria-expanded", "false");
-      b.appendChild(el("span", "tb-pill__label", S.sitDownPill));
+      if (cfg.iconToolbar) {
+        // the sit glyph, still with its caret: it opens the seat list
+        b.title = S.sitDownPill; b.setAttribute("aria-label", S.sitDownPill);
+        b.appendChild(toolbarIcon("sit"));
+        b.addEventListener("click", function () { dipDown(toolbarIcon("sit")); });
+      } else b.appendChild(el("span", "tb-pill__label", S.sitDownPill));
       b.appendChild(el("span", "tb-pill__caret", "▾"));
       wrap.appendChild(b);
       // no tb-pop__head: the pill's own label ("Take over for:") reads
