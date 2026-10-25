@@ -63,6 +63,15 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-24 — Mahjong at narrow widths (branch `maw-jawng`).** Headless audit 375–1920:
+no sideways scroll anywhere. FIXED: from ~1010px down to 56rem the fixed-size felt covered
+the right seat; below 64rem the bento now stacks (board, rack, then dice/wall | players |
+log), and `fitLog` (`games/table.js`) drops its lock when the log sits under the board
+(mahjong.md, "Page layout"). OPEN: (1) below 56rem a phone can type a code, sit, and only
+then get "needs a wider screen", holding a live seat that never turns bot; with the timer Off
+the table waits forever. Shared shell, so every game has it. (2) The phone/narrow layout
+itself: next, in chat with him: what's optional, what wraps, what folds into collapsibles.
+
 **2026-10-24 — Phone + half-width pass, round 1: SHIPPED.** No page scrolls sideways at
 375–1440px now (headless audit, every page). Fixed: the About Me menu hanging past the window
 from 56rem to ~70rem (right-anchored there, `chrome.css`); page titles wrap below 41rem; the

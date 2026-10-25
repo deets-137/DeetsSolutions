@@ -580,11 +580,13 @@
     // Lock the log's height to the space left under the board, so the right
     // column bottom-aligns with the board tile instead of overflowing past it
     // (CSS grid 1fr can't do this on its own — an indefinite-height grid sizes
-    // a 1fr track to max-content).
+    // a 1fr track to max-content). A stacked layout puts the log BELOW the
+    // board (mahjong under 64rem); there the lock is dropped and CSS sizes it.
     function fitLog(listSel) {
       if (!BIG || !LOG || TABLE.hidden) return;
       var avail = BIG.getBoundingClientRect().bottom - LOG.getBoundingClientRect().top;
       if (avail > 60) LOG.style.height = Math.floor(avail) + "px";
+      else if (avail <= 0) LOG.style.height = "";
       var list = LOG.querySelector(listSel);
       if (list) list.scrollTop = list.scrollHeight;
     }

@@ -207,7 +207,13 @@ disconnect behavior against the worker.
 ## Page layout — the bento
 
 Cities' grid verbatim (big 42rem + dice / players / log right column +
-full-width role row). Contents:
+full-width role row). **Below 64rem** that right column no longer leaves
+the board room for the fixed-size felt plus both side zones (the felt
+slid over the right seat from ~1010px down), so the bento re-flows:
+board full width, the rack under it, then dice/wall | players | log as a
+row. The tile rectangle stays fixed; the shell's `fitLog` drops its
+height lock once the log sits below the board. Below 56rem the table is
+still swapped for the "needs a wider screen" note (shared shell). Contents:
 
 - **Big tile**: lobby settings → seating dice pads → the table: four
   seat zones rotated so YOUR seat is the bottom (turn order runs

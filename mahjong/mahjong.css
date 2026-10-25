@@ -605,6 +605,26 @@
 @media (max-width: 56rem) {
   .mj-bento { display: none; }
 }
+/* below 64rem the board column can't hold the fixed-size felt plus both
+   side zones (felt ≈ 26rem + 2 × 7rem zones), and the felt slid over the
+   right seat. Rather than shrink the one tile rectangle, the right column
+   drops under the rack: board full width, rack beneath it, then
+   dice/wall | players | log as a row. The claim dock still docks on big. */
+@media (max-width: 64rem) {
+  .mj-bento {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* the flexible dice row soaks up players' extra height, so the wall
+       panel sits flush under the dice instead of halfway down */
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "big big big"
+      "role role role"
+      "dice players log"
+      "wall players log";
+  }
+  .mj-tile--dice { align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+  .mj-tile--log { align-self: stretch; }
+}
 /* near-win hint on the rack title line (right-aligned, reserved style) */
 .mj-rack__hint { color: var(--subtext); font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
