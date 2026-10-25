@@ -71,6 +71,15 @@ log), and `fitLog` (`games/table.js`) drops its lock when the log sits under the
 then get "needs a wider screen", holding a live seat that never turns bot; with the timer Off
 the table waits forever. Shared shell, so every game has it. (2) The phone/narrow layout
 itself: next, in chat with him: what's optional, what wraps, what folds into collapsibles.
+UPDATE 2026-10-25 (uncommitted on `maw-jawng`): mahjong's minimum width lifted (`narrowOk`);
+icon toolbar (`iconToolbar`: link / cog / door, DeetsMusicWindows' glyph + motion standard);
+"Art" deck pill; the rack merges into your seat zone below 64rem; the narrow lobby sheds its
+side tiles; faan cap row removed (fixed 13); mock stand-in players (`standIns`); and the
+**Beginner chick** (mahjong.md, "Decisions"). Worker PORTED, NOT DEPLOYED (uncommitted in
+`../DeetsMahjong` on `master`, pulled 2026-10-25): engine + table-do re-vendored (table-do brings
+cities' inert `deadlineBonusMs`), `setBeginner` / view `beginner` / `createGame(seated)`
+`beginners`; smoke-tested against a local `wrangler dev`. Ship order: commit the worker,
+`npx wrangler deploy`, then deploy the site — the live page's chick would error before it.
 
 **2026-10-24 — Phone + half-width pass, round 1: SHIPPED.** No page scrolls sideways at
 375–1440px now (headless audit, every page). Fixed: the About Me menu hanging past the window

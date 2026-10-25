@@ -59,6 +59,8 @@
     rootSel: ".mj",
     capacity: 4,
     minSeats: 4,
+    narrowOk: true,   // WIP: no desktop-only note while the narrow layout is designed
+    iconToolbar: true,   // Invite / Settings / Leave as icons (games/table.js)
     startNeedsHint: S.startNeedsFour,
     errExtra: { loc: S.errLoc },
     /* fields the worker omits when absent must clear, not linger */
@@ -80,12 +82,12 @@
     onLeave: onLeave,
     onRematch: resetGameUi,
     extraPills: function () { return [deckPill()]; },
+    seatExtra: beginnerToggle,
     lobbySettings: lobbySettings,
     settingsRows: function () {
       var st = model.settings;
       return [
         [S.minFaanLabel, String(st.minFaan)],
-        [S.capFaanLabel, String(st.capFaan)],
         [S.windsLabel, st.winds === 4 ? S.windsFour : (st.winds === 0 ? S.windsHand : S.windsOne)],
         [S.timerLabel, st.timerSec ? fmt(S.timerSecs, { n: st.timerSec }) : S.timerOff]
       ];
@@ -281,6 +283,7 @@
   /* the shell's render frame calls this once the toolbar, the desktop-only
      guard and the gate/table visibility are settled (games/table.js) */
   function paint() {
+    TABLE.dataset.phase = model.phase;   // CSS hook: the narrow lobby sheds the side tiles
     renderBig();
     renderDice();
     renderPlayers();
@@ -310,6 +313,102 @@
   /* two live faces from a deck, for the chips + popover options. Only
      sprites that actually loaded show — a bare placeholder deck reads as
      its name alone rather than two broken frames. */
+  /* ── Beginner: the chick ─────────────────────────────────────────
+     A Beginner wins at 0 faan (engine minFaanFor). Every human seat in the
+     lobby shows the chick, outlined when off; the host may flip any seat
+     and a player their own (friends moderate), lobby only. In play it rides
+     beside a beginner's name as a static badge. The glyph follows the
+     toolbar icons' standard (24-unit grid, --icon-stroke) and the toggle's
+     flap rides --icon-spring. Lobby rows rebuild on every broadcast, so
+     each seat's glyph is built ONCE and moved into each new row — its Web
+     Animation survives the move. */
+  var CHICKS = {};
+  function chickSvg(key) {
+    if (key != null && CHICKS[key]) return CHICKS[key];
+    function s(name, attrs, parent) {
+      var n = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (var k in attrs) n.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(n);
+      return n;
+    }
+    var svg = s("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" });
+    s("circle", { "class": "mj-chick__body", cx: 12, cy: 13, r: 6.5 }, svg);
+    s("path", { d: "M11.2 6.7q.4-1.8 1.6-1.2q.2-1.4 1.4-.6" }, svg);              // tuft
+    s("circle", { "class": "mj-chick__eye", cx: 13.8, cy: 10.6, r: 0.65 }, svg);
+    s("path", { d: "M18.3 11.6L20.6 12.4L18.4 13.3" }, svg);                      // beak
+    var wing = s("g", { "class": "mj-chick__wing" }, svg);
+    s("path", { d: "M7.6 13.4C8.4 12 10.4 11.9 11.2 13.2C10.6 14.9 8.7 15.3 7.6 13.4Z" }, wing);
+    s("path", { d: "M10.4 19.4V21M13.6 19.4V21M9.4 21h2M12.6 21h2" }, svg);      // feet
+    if (key != null) CHICKS[key] = svg;
+    return svg;
+  }
+  // every press answers: ON is the full double flap and hop; OFF is one
+  // small tuck of the wing as the chick settles back down
+  function flapChick(svg, on) {
+    try { if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; } catch (e) {}
+    if (!svg.animate) return;
+    var v = getComputedStyle(document.documentElement).getPropertyValue("--icon-spring").trim();
+    var ms = (parseFloat(v) || 0.42) * (/^[\d.]+ms/.test(v) ? 1 : 1000) * 1.5;
+    var ease = v.replace(/^\S+\s*/, "") || "ease";
+    if (!on) {
+      svg.querySelector(".mj-chick__wing").animate([
+        { transform: "rotate(0deg)" }, { transform: "rotate(-14deg)", offset: 0.35 }, { transform: "rotate(0deg)" }
+      ], { duration: ms * 0.6, easing: ease });
+      svg.animate([
+        { transform: "translateY(0)" }, { transform: "translateY(1px)", offset: 0.35 }, { transform: "translateY(0)" }
+      ], { duration: ms * 0.6, easing: ease });
+      return;
+    }
+    svg.querySelector(".mj-chick__wing").animate([
+      { transform: "rotate(0deg)" }, { transform: "rotate(-34deg)", offset: 0.22 },
+      { transform: "rotate(6deg)", offset: 0.44 }, { transform: "rotate(-24deg)", offset: 0.66 },
+      { transform: "rotate(0deg)" }
+    ], { duration: ms, easing: ease });
+    svg.animate([
+      { transform: "translateY(0)" }, { transform: "translateY(-1.5px)", offset: 0.3 }, { transform: "translateY(0)" }
+    ], { duration: ms, easing: ease });
+  }
+  // the lobby seat row's chick (the shell's seatExtra hook) — humans only
+  // A press flips the chick at once and remembers what it asked for, so a
+  // second press before the broadcast lands flips it BACK (not re-sends the
+  // same value off a stale row); the entry clears once the model agrees.
+  var chickPending = {};
+  function beginnerToggle(s, i) {
+    if (s.bot || s.phantom) return null;
+    if (chickPending[i] === !!s.beginner) delete chickPending[i];
+    var on = i in chickPending ? chickPending[i] : !!s.beginner;
+    var can = i === mySeat() || model.host;
+    var b = el(can ? "button" : "span", "mj-chick mj-chick--toggle" + (on ? " is-on" : ""));
+    var label = on ? S.beginnerOn : S.beginnerOff;
+    b.title = label;
+    b.setAttribute("aria-label", label);
+    var svg = chickSvg("seat" + i);
+    b.appendChild(svg);
+    if (can) {
+      b.type = "button";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.addEventListener("click", function () {
+        var next = !(i in chickPending ? chickPending[i] : !!(model.seats[i] && model.seats[i].beginner));
+        chickPending[i] = next;
+        b.classList.toggle("is-on", next);
+        b.setAttribute("aria-pressed", next ? "true" : "false");
+        flapChick(svg, next);
+        send({ type: "setBeginner", seat: i, on: next });
+      });
+    }
+    return b;
+  }
+  // the static badge beside a beginner's name in play
+  function chickBadge(seat) {
+    var sv = model.seats && model.seats[seat];
+    if (!sv || !sv.beginner) return null;
+    var b = el("span", "mj-chick is-on");
+    b.title = S.beginnerOn;
+    b.setAttribute("aria-label", S.beginnerOn);
+    b.appendChild(chickSvg(null));
+    return b;
+  }
+
   function deckSamples(d, node) {
     ["tile-p5", "tile-s3"].forEach(function (name) {
       if (!sprites[d][name]) return;
@@ -326,8 +425,10 @@
     var wrap = el("span", "tb-ctrl");
     var b = el("button", "tb-pill"); b.type = "button";
     b.setAttribute("aria-haspopup", "true"); b.setAttribute("aria-expanded", "false");
-    b.appendChild(el("span", "tb-pill__label", S.deckLabel));
-    b.appendChild(el("span", "tb-pill__value", deckName(curDeck())));
+    b.appendChild(el("span", "tb-pill__label", S.deckPillLabel));
+    var val = el("span", "tb-pill__value", curDeck() === "traditional" ? S.deckTraditionalShort : S.deckNumeralShort);
+    b.title = S.deckLabel + ": " + deckName(curDeck());
+    b.appendChild(val);
     b.appendChild(el("span", "tb-pill__caret", "▾"));
     wrap.appendChild(b);
     var pop = el("div", "tb-pop mj-deck__pop"); pop.hidden = true;
@@ -395,8 +496,8 @@
     mfRow.opts.appendChild(custom);
     wrap.appendChild(mfRow);
 
-    wrap.appendChild(TBL.choiceRow(S.capFaanLabel, "capFaan",
-      [[8, "8"], [10, "10"], [13, "13"]], st.capFaan));
+    // no faan-cap row (his call, 2026-10-25): the cap is fixed at the
+    // engine's default 13, which only ever bites on limit hands
     // match length: one hand, one wind (default), or four winds
     wrap.appendChild(TBL.choiceRow(S.windsLabel, "winds",
       [[0, S.windsHand], [1, S.windsOne], [4, S.windsFour]], st.winds));
@@ -479,6 +580,7 @@
       var head = el("div", "mj-zone__head");
       head.appendChild(seatDot(seat));
       head.appendChild(el("span", "mj-zone__name", seatName(seat) + (seat === mySeat() ? " ·" : "")));
+      var zck = chickBadge(seat); if (zck) head.appendChild(zck);
       var w = seatWind(seat);
       if (w != null) {
         var wt = el("span", "mj-zone__wind" + (w === 0 ? " is-dealer" : ""), HONOR_GLYPH[Engine.WINDS[w]]);
@@ -980,6 +1082,7 @@
       head.appendChild(isActive && timed && model.turnEndsAt ? TBL.timerRing(i) : seatDot(i));
       var nm = (s.bot || s.phantom) ? fmt(S.botSeatTag, { name: seatName(i) }) : seatName(i);
       head.appendChild(el("span", "mj-pstrip__name", nm + (i === mySeat() ? " ·" : "")));
+      var pck = chickBadge(i); if (pck) head.appendChild(pck);
       body.appendChild(head);
       // wind + dealer tag row (ghosted pre-game so Start doesn't reflow)
       var tags = el("div", "mj-pstrip__tags");
@@ -1096,9 +1199,22 @@
     return model.phase === "play" && model.turn && model.turn.seat === mySeat() &&
            !model.claims && !model.handOver && !model.needBreak;
   }
+  /* Below 64rem (the stacked bento) the rack merges into MY seat zone on
+     the board instead of its own tile under it: one "you" section, no
+     duplicate name strip. Only while the board is up — seating's Roll and
+     the lobby keep the role tile. */
+  var MERGE_MQ = window.matchMedia("(max-width: 64rem)");
+  MERGE_MQ.addEventListener("change", function () { if (model) render(); });
+  function mergedZone() {
+    if (!MERGE_MQ.matches || mySeat() == null) return null;
+    return BIG.querySelector('.mj-zone[data-zone="' + mySeat() + '"]');
+  }
+  function rackRow() { return document.querySelector(".mj [data-rack]"); }
   function renderRole() {
     ROLE.textContent = "";
     var seat = mySeat();
+    var zone = mergedZone();
+    ROLE.hidden = !!zone;
     if (seat == null) { ROLE.appendChild(el("p", "mj-role__note", S.spectatingNote)); return; }
     var play = el("div", "mj-play");
     var rack = el("div", "mj-rack");
@@ -1215,7 +1331,13 @@
       ctrl.appendChild(guideP);
     }
     play.appendChild(ctrl);
-    ROLE.appendChild(play);
+    if (zone) {
+      // the prompt rides the zone's name line, just left of the wind chip
+      zone.classList.add("has-rack");
+      var zh = zone.querySelector(".mj-zone__head");
+      zh.insertBefore(head, zh.querySelector(".mj-zone__wind"));
+      zone.appendChild(play);
+    } else ROLE.appendChild(play);
   }
   function wrapPills(list) {
     var w = el("div", "mj-actions");
@@ -1274,7 +1396,7 @@
     btn.addEventListener("pointerdown", function (ev) {
       if (ev.button != null && ev.button !== 0) return;
       ev.preventDefault();
-      var row = ROLE.querySelector("[data-rack]");
+      var row = rackRow();
       if (!row) return;
       var felt = document.querySelector("[data-mj-center]");
       var canDiscard = myTurnToDiscard();
@@ -1398,7 +1520,7 @@
   function centerPoint() { return rectPoint(BIG.querySelector("[data-mj-center]")) || rectPoint(BIG); }
   function wallFrontPoint() { return rectPoint(BIG.querySelector("[data-wall-front]")) || centerPoint(); }
   function wallBackPoint() { return rectPoint(BIG.querySelector("[data-wall-back]")) || centerPoint(); }
-  function rackPoint() { return rectPoint(ROLE.querySelector("[data-rack]")); }
+  function rackPoint() { return rectPoint(rackRow()); }
   function stripPoint(seat) { return rectPoint(PLAYERS.querySelector('.mj-pstrip[data-seat="' + seat + '"]')) || rectPoint(PLAYERS); }
   function seatSpot(seat) {
     if (seat === mySeat()) return rackPoint() || stripPoint(seat);

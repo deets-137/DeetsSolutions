@@ -62,6 +62,14 @@ window.MAHJONG_STRINGS = {
    deckLabel: "Tile art",
    deckNumeral: "Numerals",
    deckTraditional: "Traditional",
+   /* the toolbar's deck pill, short: Aditya's words, chat 2026-10-25 —
+      # for Numerals, 萬 (the character-suit glyph) for Traditional */
+   /* the Beginner chick (lobby seat rows; a badge in play) */
+   beginnerOn: "[ph]Beginner: wins at 0 faan",
+   beginnerOff: "[ph]Beginner: off",
+   deckPillLabel: "Art",
+   deckNumeralShort: "#",
+   deckTraditionalShort: "萬",
    startButton: "Start game",
    shufflePill: "Shuffle",
    startHint: "Dice roll on press for seating.",

@@ -151,6 +151,15 @@
   --ease-ui:  cubic-bezier(0.2, 0, 0.2, 1);
   --hover-lift: none;                 /* nav links / chips rise on hover; a skin opts in */
 
+  /* -- toolbar icons: DeetsMusic's title-bar glyph standard (DeetsMusicWindows
+        styles.css › The cog; styles/updates.css) -- */
+  --icon-glyph:  1rem;                /* 16px — DeetsMusic's --traffic-size */
+  --icon-stroke: 1.6;                 /* in the glyph's 24-unit grid */
+  --icon-spring: 0.42s cubic-bezier(0.34, 1.26, 0.64, 1); /* DeetsMusic's --cog-spin / --updates-roll */
+  --icon-fly:    22px;                /* an arrow's flight: out of the 24-unit box */
+  --icon-part:   2px;              /* how far the invite link's two links part */
+  --cog-step:    120deg;              /* one click's turn: six teeth, lands on an identical tooth */
+
   /* -- pop: floating panels arrive and leave (DeetsMusic's .pop) -- */
   --pop-in:      var(--dur-med);      /* a panel and new rows arriving */
   --pop-out:     var(--dur-fast);     /* a panel leaving */

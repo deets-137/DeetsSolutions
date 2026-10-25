@@ -1071,6 +1071,19 @@ body::before {
 .tb-pill:hover { background: var(--surface-hover); color: var(--title); }
 .tb-pill.is-active { color: var(--title); border-color: var(--title); }
 .tb-pill__caret { color: var(--subtext); font-size: 0.7em; }
+/* Icon-only pill (games' iconToolbar): DeetsMusic's title-bar glyph — 16px,
+   stroked in the pill's ink, round caps, no fill. The block margin pads the
+   glyph out to one text line (1lh) so the pill stands as tall as its worded
+   neighbors. Motion lives in games/table.js (Web Animations, so a toolbar
+   rebuild mid-turn doesn't cut it short). */
+.tb-pill--icon { padding-left: var(--space-2); padding-right: var(--space-2); }
+.tb-pill__icon {
+  width: var(--icon-glyph); height: var(--icon-glyph);
+  margin-block: calc((1lh - var(--icon-glyph)) / 2);
+  flex: none; display: block;
+  fill: none; stroke: currentColor; stroke-width: var(--icon-stroke);
+  stroke-linecap: round; stroke-linejoin: round;
+}
 /* Optional current-value readout inside a pill — "Queue | Arena ▾".
    The divider is the value's left hairline (League's Queue pill). */
 .tb-pill__value {

@@ -520,7 +520,7 @@
       var caret = snapFocus(TABLE);
       buildToolbar();
       // desktop-only guard
-      var narrow = window.matchMedia("(max-width: 56rem)").matches;
+      var narrow = !cfg.narrowOk && window.matchMedia("(max-width: 56rem)").matches;
       if (narrow) { TABLE.hidden = true; DESKTOP.hidden = false; DESKTOP.textContent = S.desktopOnly; return; }
       DESKTOP.hidden = true; TABLE.hidden = false; GATE.hidden = true;
       cfg.render();
@@ -596,7 +596,7 @@
       TOOLBAR.textContent = "";
       if (!joined || !model) return;
       var mine = mySeat();
-      TOOLBAR.appendChild(pill(S.invitePill, function () {
+      TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "link") : pill)(S.invitePill, function () {
         var url = location.origin + location.pathname + (T.kind === "mock" ? "?mock" : "") + "#" + code;
         try { navigator.clipboard.writeText(url); toast(S.shareToast, "success"); } catch (e) { toast(url, "info"); }
       }));
@@ -639,7 +639,7 @@
           else ui.sitPinned = false;
         }
       }
-      TOOLBAR.appendChild(pill(S.leavePill, function () { leaveTable(); }));
+      TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "leave") : pill)(S.leavePill, function () { leaveTable(); }));
       if (model.host) {
         TOOLBAR.appendChild(confirmPill("close", S.closePill, S.closeConfirm,
           function () { send({ type: "closeTable" }); }));
@@ -649,6 +649,105 @@
       var b = el("button", "tb-pill"); b.type = "button";
       b.appendChild(el("span", "tb-pill__label", label));
       b.addEventListener("click", onClick);
+      return b;
+    }
+    /* Icon-only toolbar pills (cfg.iconToolbar — mahjong first, to free
+       the title bar at narrow widths). The pill's words stay its tooltip
+       and its accessible name, so no new copy rides along. Glyphs follow
+       DeetsMusic's title-bar standard (24-unit grid, 1.6 stroke, round caps
+       — the stroke itself is chrome.css's .tb-pill__icon).
+
+       The toolbar is rebuilt on every render, and a bot acts every ~700 ms,
+       so a CSS transition would be cut off mid-turn. Instead each glyph is
+       built ONCE and moved into each rebuild's fresh pill, and its motion
+       runs as a Web Animation on the node itself, which survives the move. */
+    var ICONS = {};
+    function toolbarIcon(name) {
+      if (ICONS[name]) return ICONS[name];
+      var svg = svgEl("svg", { class: "tb-pill__icon", viewBox: "0 0 24 24", "aria-hidden": "true" });
+      if (name === "link") {
+        // two rounded links on the diagonal; each <g> slides along the
+        // links' own axis when they part
+        var chain = svgEl("g", { transform: "rotate(-45 12 12)" });
+        [[3, "a"], [11.5, "b"]].forEach(function (p) {
+          var g = svgEl("g", { "data-link": p[1] });
+          g.appendChild(svgEl("rect", { x: p[0], y: 7.25, width: 9.5, height: 9.5, rx: 3.5 }));
+          chain.appendChild(g);
+        });
+        svg.appendChild(chain);
+      } else if (name === "leave") {
+        // a door; the arrow walks out through its right side
+        svg.appendChild(svgEl("rect", { x: 4, y: 4, width: 9.5, height: 16, rx: 1.5 }));
+        var arrow = svgEl("g", { "data-arrow": "" });
+        arrow.appendChild(svgEl("path", { d: "M9 12h11.5M17 8.5l3.5 3.5-3.5 3.5" }));
+        svg.appendChild(arrow);
+      } else if (name === "cog") {
+        // DeetsMusicWindows' cog, verbatim (index.html #cog-open): six teeth
+        svg.appendChild(svgEl("path", { d: "M9.41 2.96A9.4 9.4 0 0 1 14.59 2.96L14.75 6.11A6.5 6.5 0 0 1 15.73 6.68L18.53 5.24A9.4 9.4 0 0 1 21.12 9.73L18.48 11.43A6.5 6.5 0 0 1 18.48 12.57L21.12 14.27A9.4 9.4 0 0 1 18.53 18.76L15.73 17.32A6.5 6.5 0 0 1 14.75 17.89L14.59 21.04A9.4 9.4 0 0 1 9.41 21.04L9.25 17.89A6.5 6.5 0 0 1 8.27 17.32L5.47 18.76A9.4 9.4 0 0 1 2.88 14.27L5.52 12.57A6.5 6.5 0 0 1 5.52 11.43L2.88 9.73A9.4 9.4 0 0 1 5.47 5.24L8.27 6.68A6.5 6.5 0 0 1 9.25 6.11L9.41 2.96Z" }));
+        svg.appendChild(svgEl("circle", { cx: 12, cy: 12, r: 3 }));
+        svg._turns = 0;
+      }
+      ICONS[name] = svg;
+      return svg;
+    }
+    // "0.42s cubic-bezier(…)" → { ms, easing }, read off the skin tokens
+    function motionToken(name) {
+      var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      var n = parseFloat(v);
+      return { ms: isFinite(n) ? (/^[\d.]+ms/.test(v) ? n : n * 1000) : 0, easing: v.replace(/^\S+\s*/, "") || "ease" };
+    }
+    function pxToken(name) { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0; }
+    function reducedMotion() {
+      try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+    }
+    // The cog keeps its turn (DeetsMusic): every press adds --cog-step, open
+    // or shut, and nothing unwinds — six teeth, so it never rests crooked.
+    function spinCog(svg) {
+      var step = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cog-step")) || 120;
+      var from = svg._turns * step, to = (++svg._turns) * step;
+      svg.style.transform = "rotate(" + to + "deg)";
+      if (reducedMotion() || !svg.animate) return;
+      var m = motionToken("--icon-spring");
+      svg.animate([{ transform: "rotate(" + from + "deg)" }, { transform: "rotate(" + to + "deg)" }],
+        { duration: m.ms, easing: m.easing });
+    }
+    // Invite: the two links part along their axis and snap back together
+    function partLinks(svg) {
+      if (reducedMotion() || !svg.animate) return;
+      var m = motionToken("--icon-spring"), d = pxToken("--icon-part");
+      [["a", -1], ["b", 1]].forEach(function (p) {
+        var g = svg.querySelector('[data-link="' + p[0] + '"]');
+        g.animate([
+          { transform: "translateX(0)", easing: "ease-out" },
+          { transform: "translateX(" + p[1] * d + "px)", offset: 0.35, easing: m.easing },
+          { transform: "translateX(0)" }
+        ], { duration: m.ms * 1.4 });
+      });
+    }
+    // Leave: the arrow flies out the door's right side, THEN the table is
+    // left (the toolbar empties on leave, so the flight has to come first)
+    var leaving = false;
+    function flyOut(svg, then) {
+      if (leaving) return;
+      if (reducedMotion() || !svg.animate) { then(); return; }
+      leaving = true;
+      var m = motionToken("--icon-spring");
+      var a = svg.querySelector("[data-arrow]").animate([
+        { transform: "translateX(0)", opacity: 1 },
+        { transform: "translateX(" + pxToken("--icon-fly") + "px)", opacity: 0 }
+      ], { duration: m.ms * 0.6, easing: "ease-in", fill: "forwards" });
+      a.onfinish = function () { leaving = false; a.cancel(); then(); };
+    }
+    function iconPill(icon, label, onClick) {
+      var b = el("button", "tb-pill tb-pill--icon"); b.type = "button";
+      b.title = label; b.setAttribute("aria-label", label);
+      var svg = toolbarIcon(icon);
+      b.appendChild(svg);
+      b.addEventListener("click", function () {
+        if (icon === "leave") return flyOut(svg, onClick);
+        if (icon === "link") partLinks(svg);
+        onClick();
+      });
       return b;
     }
     /* A two-step pill (click → "Confirm?" → click). The armed flag used to
@@ -680,7 +779,12 @@
     function viewSettingsPill() {
       var wrap = el("span", "gt-setth");
       var b = el("button", "tb-pill"); b.type = "button"; b.setAttribute("aria-haspopup", "true");
-      b.appendChild(el("span", "tb-pill__label", S.settingsPill));
+      if (cfg.iconToolbar) {
+        b.classList.add("tb-pill--icon");
+        b.setAttribute("aria-label", S.settingsPill);
+        b.appendChild(toolbarIcon("cog"));
+        b.addEventListener("click", function () { spinCog(toolbarIcon("cog")); });
+      } else b.appendChild(el("span", "tb-pill__label", S.settingsPill));
       wrap.appendChild(b);
       var pop = el("div", "tb-pop gt-setth__pop"); pop.hidden = true;
       pop.appendChild(el("div", "tb-pop__head", S.lobbyTitle));
@@ -827,12 +931,22 @@
           nameBtn.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = s.name; ui.botFocus = true; render(); });
           row.appendChild(nameBtn);
         } else row.appendChild(el("span", "gt-seat__name", label));
-        if (model.hostSeat === i) row.appendChild(el("span", "gt-seat__badge", S.hostBadge));
+        // a game's own per-seat control or badge (mahjong: the Beginner
+        // chick) sits left of everything trailing, which then rides one
+        // .gt-seat__tail per row — widths equalized below, so the extras
+        // line up in a column whether a row ends in HOST, ✕ or Add Bot
+        var tail = row;
+        if (hook("seatExtra")) {
+          var sx = s.empty ? null : cfg.seatExtra(s, i);
+          row.appendChild(sx || el("span", "gt-seat__extra-gap"));
+          tail = el("span", "gt-seat__tail");
+        }
+        if (model.hostSeat === i) tail.appendChild(el("span", "gt-seat__badge", S.hostBadge));
         // a bot's difficulty is public — you should know what you're facing.
         // It stays a LIVE control after the add: everyone sees E/M/H, but
         // only the host's clicks land (re-adding at the seat re-tiers it)
-        if (isBot && botTiers().length > 1) row.appendChild(tierPicker(i, true));
-        if (cfg.teams && !s.empty && isCaptain) row.appendChild(el("span", "gt-seat__badge", S.captainBadge));
+        if (isBot && botTiers().length > 1) tail.appendChild(tierPicker(i, true));
+        if (cfg.teams && !s.empty && isCaptain) tail.appendChild(el("span", "gt-seat__badge", S.captainBadge));
         if (s.empty && cfg.teams && mySeat() !== i) {
           // sitting here IS joining this side; moving sides is stand + sit
           var sit = el("button", "gt-seat__addbot", S.sitHereButton); sit.type = "button";
@@ -840,19 +954,20 @@
             if (mySeat() != null) send({ type: "stand" });
             send({ type: "sit", seat: i });
           });
-          row.appendChild(sit);
+          tail.appendChild(sit);
         }
         if (host && s.empty) {
           var add = el("button", "gt-seat__addbot", S.addBotButton); add.type = "button";
           add.addEventListener("click", function () { ui.botEdit = i; ui.botDraft = null; ui.botFocus = true; render(); });
-          row.appendChild(add);
+          tail.appendChild(add);
         }
         if (host && !s.empty && s.seat !== mySeat()) {
           var kick = el("button", "gt-seat__kick", "✕"); kick.type = "button";
           kick.setAttribute("aria-label", fmt(S.kickSeatAria, { name: s.name || "" }));
           kick.addEventListener("click", function () { send({ type: "kickSeat", seat: i }); });
-          row.appendChild(kick);
+          tail.appendChild(kick);
         }
+        if (tail !== row) row.appendChild(tail);
         seatInto(row, s);
         if (editable) seatInto(colorPicker(s, i), s);
       });
@@ -903,6 +1018,10 @@
         }
       }
       (into || BIG).appendChild(wrap);
+      // seatExtra's column: every row's tail takes the widest tail's width
+      var tails = wrap.querySelectorAll(".gt-seat__tail"), tw = 0;
+      for (var ti2 = 0; ti2 < tails.length; ti2++) tw = Math.max(tw, tails[ti2].getBoundingClientRect().width);
+      for (var tj = 0; tj < tails.length; tj++) tails[tj].style.minWidth = Math.ceil(tw) + "px";
     }
     function seatDot(i) { var d = el("span", "gt-dot"); d.style.background = "var(--gseat-" + i + ")"; return d; }
 

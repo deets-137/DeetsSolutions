@@ -79,7 +79,10 @@
         minFaan: settings.minFaan != null ? settings.minFaan : 3,
         capFaan: settings.capFaan != null ? settings.capFaan : 13,
         winds: settings.winds === 4 ? 4 : (settings.winds === 0 ? 0 : 1),
-        timerSec: settings.timerSec || 0
+        timerSec: settings.timerSec || 0,
+        // per-seat Beginner flags (the lobby's chick, stamped at Start in
+        // seat order): a beginner wins at 0 faan — chicken hands count
+        beginners: [0, 1, 2, 3].map(function (i) { return !!(settings.beginners && settings.beginners[i]); })
       },
       // seating: each seat rolls two dice; ranking assigns winds (highest =
       // East = first dealer). Ties re-roll among the tied seats only.
@@ -464,11 +467,15 @@
     if (extra != null) tiles.push(extra);
     return tiles;
   }
+  // the faan a seat needs to win: 0 for a Beginner, else the table minimum
+  function minFaanFor(g, seat) {
+    return g.settings.beginners && g.settings.beginners[seat] ? 0 : g.settings.minFaan;
+  }
   function winCheck(g, seat, extra, winCtx) {
     var tiles = winningTilesFor(g, seat, extra);
     if (!isWinningTiles(tiles, g.players[seat].melds.length)) return null;
     var sc = scoreHand(g, seat, tiles, winCtx);
-    if (!sc || sc.faan < g.settings.minFaan) return null;
+    if (!sc || sc.faan < minFaanFor(g, seat)) return null;
     sc.tiles = tiles;
     return sc;
   }
@@ -1102,6 +1109,7 @@
     claimOptions: claimOptions,
     isWinningTiles: isWinningTiles,
     winCheck: winCheck,
+    minFaanFor: minFaanFor,
     scoreHand: scoreHand,
     scoreProgress: scoreProgress,
     standings: standings,
@@ -1187,6 +1195,28 @@
       ok(g.results.length >= 5, "idle soak completes hands (" + g.results.length + ")");
       var totals = g.players.reduce(function (a, p) { return a + p.score; }, 0);
       eq(totals, 0, "scores are zero-sum");
+    })();
+
+    /* Beginner: the same 2-faan discard win is legal for a beginner seat
+       only (table minimum 3) */
+    (function () {
+      var g = createGame({ settings: { minFaan: 3, capFaan: 13, winds: 1, beginners: [true, false, false, false] } }, ctx);
+      g.phase = "play";
+      g.order = [0, 1, 2, 3];
+      g.round = { prevailing: 0, dealerIdx: 0, hand: 1 };
+      g.wall = ["m9", "m9", "m9"];
+      var low = ["m1","m2","m3","p4","p5","p6","s7","s8","s9","m5","m5","m5","p9"];
+      function wc(seat) {
+        g.players[seat].hand = low.slice(); g.players[seat].flowers = [];
+        return winCheck(g, seat, "p9", { seat: seat, selfDraw: false, discarder: 2, robbing: false,
+                                         lastWall: false, replacement: false, firstTurn: false });
+      }
+      var b = wc(0);
+      ok(b && b.faan < 3, "a beginner wins under the table minimum (" + (b && b.faan) + " faan)");
+      eq(wc(1), null, "the same hand can't win for a non-beginner");
+      eq(minFaanFor(g, 0), 0, "a beginner's minimum is 0");
+      eq(minFaanFor(g, 1), 3, "everyone else keeps the table minimum");
+      eq(createGame({ settings: {} }, ctx).settings.beginners.join(), "false,false,false,false", "no beginners by default");
     })();
 
     /* deterministic: a rigged self-draw win → settlement → rotation → over */

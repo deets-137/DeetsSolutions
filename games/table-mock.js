@@ -213,8 +213,14 @@
             connected: s.phantom ? true : tokenConnected(t, s.token),
             phantom: !!s.phantom, bot: !!s.bot
           };
+          // a STAND-IN (spec.standIns, mock only): a seat the drive plays
+          // exactly like a bot, but the view presents it as a connected
+          // human — so per-player UI (anything a real friend would see on
+          // their own seat) can be tried without four browsers. Nothing
+          // past this view knows the difference; the worker has no such seat.
+          if (s.standIn) { o.phantom = false; o.bot = false; }
           // difficulty is public — you should know what you're sitting across
-          if ((s.phantom || s.bot) && BOT_TIERS().length) o.tier = botTier(s.tier);
+          else if ((s.phantom || s.bot) && BOT_TIERS().length) o.tier = botTier(s.tier);
           if (s.conceded) o.conceded = true;
           if (s.away) o.away = true;
           return o;
@@ -519,7 +525,7 @@
           else {
             var bocc = t.seats.map(function (s, si) { return s && si !== bi ? s.color : null; });
             t.seats[bi] = { token: "phantom:" + uid(), name: bname, color: Colors.freeColor(bocc),
-                            connected: true, phantom: true, tier: btier };
+                            connected: true, phantom: true, tier: btier, standIn: !!spec.standIns };
           }
           resizeSeats(t);
           return broadcast(t, []);

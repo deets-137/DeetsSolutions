@@ -168,6 +168,11 @@
 }
 .gt-seat--empty { opacity: 0.6; border-style: dashed; }
 .gt-seat__name { flex: 1 1 auto; color: var(--text); }
+/* a game's seatExtra column (games/table.js): everything after it rides one
+   right-aligned tail whose width the shell equalizes across rows; an empty
+   seat holds the column with a gap the size of the game's control */
+.gt-seat__tail { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); flex: none; }
+.gt-seat__extra-gap { flex: none; width: var(--seat-extra-w, 0); }
 .gt-seat__badge {
   font-size: inherit; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--title); border: 1px solid var(--border); border-radius: var(--radius-control);

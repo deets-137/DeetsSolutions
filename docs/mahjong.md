@@ -23,8 +23,25 @@ vendors the engine verbatim. **The worker is built and deployed, and
 - **Flowers are in** (8 bonus tiles, replacement draws, flower faan).
 - **Minimum faan is a host table setting**: quick picks 0 / 1 / 3
   (default **3**) plus a custom text box (0–13).
-- **Faan cap is a host setting**: 8 / 10 / 13, default **13**. Limit
-  hands score the cap outright.
+- **Faan cap is fixed at 13** (the engine's default). It was a host
+  setting (8 / 10 / 13) until 2026-10-25, when he dropped the row as
+  never used; `capFaan` stays in the engine and worker settings, so no
+  re-vendor. Limit hands score the cap outright.
+- **Beginner (the chick), his design 2026-10-25.** A per-seat flag: a
+  beginner wins at **0 faan** (chicken hands count) while everyone else
+  keeps the table minimum — `Engine.minFaanFor(g, seat)`, the one gate
+  `winCheck` reads. Human seats only (bots never). Every human seat in
+  the lobby shows the chick (outlined off, filled on); the host may flip
+  any seat and a player their own — a casual table, friends moderate.
+  Lobby only: `setBeginner {seat, on}` (an `extraCommand`) sets
+  `seat.beginner`, views carry `beginner: true`, and Start stamps the
+  flags into `settings.beginners` in seat order. In play a static chick
+  rides the beginner's Players strip and seat zone. In the lobby the chick
+  is boxed like a toolbar pill and sits in a column left of HOST / ✕: the
+  shell's `seatExtra` hook, with the trailing controls in one
+  `.gt-seat__tail` the shell equalizes across rows. A seat dealt in as a
+  bot at Start drops its flag. The worker port is written but **not yet
+  deployed** (docs/HANDOFF.md).
 - **Settlement is HK-classic half-spread**, integer-doubled so no
   half-points exist: with `v = 2^min(faan, cap)` chips,
   - win by discard → the discarder pays `2v`, the other two pay `v`
@@ -204,6 +221,13 @@ grace, no takeover-on-disconnect, no reconnect, and its `onStatus` is a
 no-op — a dropped mock connection just goes silently dead. Test
 disconnect behavior against the worker.
 
+**Stand-ins (mock only).** Mahjong's mock sets `standIns: true`, so the
+lobby's Add Bot seats a stand-in "real" player: the drive plays it with
+the engine's bot brain exactly like a bot, but `baseView`
+(`games/table-mock.js`) sends it as a connected human — no `(bot)` tag,
+no tier. It exists to try per-player UI (the Beginner toggle) on one
+browser. The worker has no such seat.
+
 ## Page layout — the bento
 
 Cities' grid verbatim (big 42rem + dice / players / log right column +
@@ -211,7 +235,19 @@ full-width role row). **Below 64rem** that right column no longer leaves
 the board room for the fixed-size felt plus both side zones (the felt
 slid over the right seat from ~1010px down), so the bento re-flows:
 board full width, the rack under it, then dice/wall | players | log as a
-row. The tile rectangle stays fixed; the shell's `fitLog` drops its
+row. While the board is up, the rack also **merges into your own seat
+zone** there (`mergedZone()` in mahjong.js): the prompt rides the zone's
+name line, the zone's own meld row yields to the rack's, the role tile
+hides, the board drops its fixed height, and rack tiles shrink to fit one
+row (capped at 2rem). Seating and the lobby keep the role tile. (WIP —
+his polish pass pending.) The toolbar opts into the shell's `iconToolbar`: Invite, Table
+Settings and Leave render as icons (link, cog, door-arrow), their words
+kept as tooltip + accessible name. Glyphs and motion follow
+DeetsMusicWindows' title bar (16px, 24-unit grid, 1.6 stroke; the cog is
+its path verbatim and turns `--cog-step` per click, never unwinding; the
+links part and rejoin; the arrow flies out before the table is left).
+Tokens: `--icon-*` / `--cog-step` in `skin.css`. Glyph nodes are built
+once and moved into each toolbar rebuild so a Web Animation survives it. The tile rectangle stays fixed; the shell's `fitLog` drops its
 height lock once the log sits below the board. Below 56rem the table is
 still swapped for the "needs a wider screen" note (shared shell). Contents:
 
@@ -317,7 +353,8 @@ table one (`deets-mahjong-deck` in localStorage, `"numeral"` default) —
 tile art is a legibility call, so no host picks it for anyone else and it
 never touches the wire. Two mirrored controls write it: the lobby chips
 (live for guests, unlike the host-only faan/winds/timer rows above them)
-and a "Tile art" toolbar pill whose popover is open in **every** phase,
+and an "Art" toolbar pill (value `#` = Numerals, `萬` = Traditional; his
+words, 2026-10-25) whose popover is open in **every** phase,
 so an unreadable deck is swappable mid-hand. Neither carries a "yours
 only" caption — the pill's own value readout says which deck you're on,
 and that's enough (his call).

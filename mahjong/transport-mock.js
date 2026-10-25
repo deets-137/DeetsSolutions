@@ -79,6 +79,10 @@
     Engine: Engine,
     Colors: Colors,
     gameVerbs: { rollSeat: 1, rollBreak: 1, discard: 1, win: 1, kong: 1, claim: 1, nextHand: 1 },
+    // Add Bot seats a stand-in "real" player (table-mock.js baseView): the
+    // bot brain plays it, the table sees a human — for designing per-player
+    // options (the Beginner toggle) on the demo table
+    standIns: true,
 
     defaultSettings: function () { return { minFaan: 3, capFaan: 13, winds: 1, timerSec: 0 }; },
     minSeats: function () { return 4; },
@@ -86,6 +90,8 @@
 
     /* the view's game half (the core built code/phase/settings/seats/you) */
     buildView: function (view, t, conn, seat) {
+      // the Beginner chick is public: everyone sees who wins at 0 faan
+      view.seats.forEach(function (vs, i) { if (t.seats[i] && t.seats[i].beginner) vs.beginner = true; });
       var g = t.game;
       if (!g) return view;
       var phase = g.phase;
@@ -144,7 +150,7 @@
             var nwTiles = p.hand.concat([g.turn.drawn]);
             if (Engine.isWinningTiles(nwTiles, p.melds.length)) {
               var nwSc = Engine.scoreHand(g, seat, nwTiles, winCtx);
-              if (nwSc) view.you.nearWin = { faan: nwSc.faan, need: g.settings.minFaan };
+              if (nwSc) view.you.nearWin = { faan: nwSc.faan, need: Engine.minFaanFor(g, seat) };
             }
           }
         }
@@ -209,11 +215,26 @@
       if (msg.timerSec != null && (msg.timerSec | 0) === msg.timerSec && msg.timerSec >= 0 && msg.timerSec <= 600) t.settings.timerSec = msg.timerSec;
       return null;
     },
+    // Beginner (the lobby's chick): the host flips any human seat, a player
+    // their own. Lobby only — the flags are stamped into the game at Start.
+    // Bots never carry one; a stand-in is a "human" here on purpose.
+    extraCommand: function (t, conn, msg, H) {
+      if (msg.type !== "setBeginner") return false;
+      if (t.game) { H.errTo(conn, "phase"); return true; }
+      var bs = t.seats[msg.seat | 0];
+      if (!bs || (bs.phantom && !bs.standIn)) { H.errTo(conn, "perm"); return true; }
+      var own = H.seatOfToken(t, conn.token) === (msg.seat | 0);
+      if (!own && !H.isHost(t, conn.token)) { H.errTo(conn, "perm"); return true; }
+      if (msg.on) bs.beginner = true; else delete bs.beginner;
+      H.broadcast(t, []);
+      return true;
+    },
     createGame: function (t, seated, ctx) {
       return Engine.createGame({
         settings: {
           minFaan: t.settings.minFaan, capFaan: t.settings.capFaan,
-          winds: t.settings.winds, timerSec: t.settings.timerSec
+          winds: t.settings.winds, timerSec: t.settings.timerSec,
+          beginners: seated.map(function (s) { return !!(s.beginner && (s.standIn || !s.phantom)); })
         }
       }, ctx);
     },
