@@ -107,8 +107,19 @@ stays down rather than ping-ponging), `4409` name-taken, `4429` full.
 
 A device's `token` (localStorage, per game) is the identity. A seat record
 holds the token, so a returning player repossesses their seat from the bot
-that took it over — whichever gate pill they pressed. `name` is display only,
-and must be unique among live connections and seats.
+that took it over — whichever gate pill they pressed.
+
+**Seat name and player name are two names.** A *player* name (the one typed
+at the gate) is unique among live connections; a *seat* name is unique among
+seats. Neither blocks the other: when Aditya stands up mid-game, the bot keeps
+his seat as "Aditya" and he can still rejoin as "Aditya". A seat keeps the
+name it was dealt under (names lock at Start), so whoever sits in it under a
+different name — an adopter at an "anyone" table, a player back under a new
+name — rides beside it as the view's `player` field, read live off their
+connection, and every display goes through the shell's `seatLabel` /
+`seatName`: "Ozan (Aditya)". A dark seat or a bot shows no player. A lobby
+`sit` names a new seat after its player, so it refuses `name-taken` when a
+seat already has that name. The ledger's span records the player's name.
 
 **Signed in, a seat also carries the account `uid`** — and the identity
 becomes portable across devices. The `ds_sess` cookie is scoped to
@@ -125,9 +136,7 @@ and the join handler):
   seat** (grace, bot, or lobby-disconnected). A seat whose token still
   has a live socket is never pulled out from under its session: hop out
   on one device, then in on the other.
-- A uid reclaim **adopts the new device's token** onto the seat, and the
-  name-taken check skips the seat being reclaimed — same name + same
-  verified identity is you returning, not an imposter.
+- A uid reclaim **adopts the new device's token** onto the seat.
 - **Kick deletes the uid alongside the token**, so a kicked player can't
   uid-waltz back in.
 - **`uid` never rides a view or broadcast** — identity is hidden info

@@ -63,6 +63,16 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-25 — Seat name and player name split (shared table, all games).** Standing up
+mid-game left a bot holding your name, so rejoining as yourself got "name taken". Now a
+player name is unique among live connections and a seat name among seats; neither blocks the
+other, and a seat whose occupant joined under another name shows "Seat (Player)" via the
+view's `player` + the shell's `seatLabel` (games.md, "Identity and rejoin"). DONE in
+`games/table-do.js`, `table-mock.js`, `table.js`, tanks' roster; mock-tested. Re-vendored to
+`../DeetsMahjong` (uncommitted, not deployed). OPEN: DeetsCities (on `accounts`), DeetsPoker
+and DeetsShips run table-do copies several revisions behind, so they need a full catch-up
+re-vendor (archive, away seats, `timerBonus` come along), not a one-file copy.
+
 **2026-10-24 — Mahjong at narrow widths (branch `maw-jawng`).** Headless audit 375–1920:
 no sideways scroll anywhere. FIXED: from ~1010px down to 56rem the fixed-size felt covered
 the right seat; below 64rem the bento now stacks (board, rack, then dice/wall | players |
@@ -80,6 +90,16 @@ on `../DeetsMahjong`'s own `maw-jawng` branch, cut from `master` 2026-10-25): en
 cities' inert `deadlineBonusMs`), `setBeginner` / view `beginner` / `createGame(seated)`
 `beginners`; smoke-tested against a local `wrangler dev`. Ship order: commit the worker,
 `npx wrangler deploy`, then deploy the site — the live page's chick would error before it.
+UPDATE 2026-10-25 (later, uncommitted): every phase now fills one stage size (`--mjstageh`), so
+lobby → seating → play no longer resizes; seating drops the hand panel and Roll moves onto your
+own pad (mahjong.md, "Page layout"). Below 64rem the dice/players/log row is gone: a bar
+above the board carries tiles left + round and four seat boxes (dealer leftmost, color + points),
+and the narrow stage shrank 1100 → 818px. The bar ends in a Log dropdown (label `logPill` "Log", approved);
+seat boxes drop "pts" and the bar drops the round line as it narrows. At 375px the seat boxes are
+only ~24px wide, so they wait for the phone pass. Below 48rem the board now stacks: felt on top
+(shrunk to fit), then every seat as a row, you first (mahjong.md, "Page layout"). Still open for
+the phone chat: stacked heights don't match the stage, and the rack tiles are tiny at 375–390px. The seating prompt strings `seatingYou` / `seatingWaiting`
+are now unused, so he decides whether they go. Next: his look at it on 8787, then the narrow layout talk.
 
 **2026-10-24 — Phone + half-width pass, round 1: SHIPPED.** No page scrolls sideways at
 375–1440px now (headless audit, every page). Fixed: the About Me menu hanging past the window

@@ -171,7 +171,7 @@
       seatAccent(row, i);
       row.appendChild(seatDot(i));
       row.appendChild(el("span", "tk-pstrip__name",
-        s.empty ? S.seatOpen : (s.seat === mySeat() ? fmt(S.seatYou, { name: s.name }) : s.name)));
+        s.empty ? S.seatOpen : (s.seat === mySeat() ? fmt(S.seatYou, { name: TBL.seatLabel(s) }) : TBL.seatLabel(s))));
       var right = el("span", "tk-pstrip__nums");
       var lives = g ? g.lives[i] : (model.settings ? model.settings.lives : 3);
       var hearts = el("span", "tk-hearts");

@@ -223,6 +223,12 @@
           else if ((s.phantom || s.bot) && BOT_TIERS().length) o.tier = botTier(s.tier);
           if (s.conceded) o.conceded = true;
           if (s.away) o.away = true;
+          // the player sitting in it, when their name isn't the seat's
+          // (display: "Seat (Player)"), read live off the connection
+          if (!s.phantom && !s.bot && s.token) {
+            var pc = t.conns.filter(function (c) { return c.token === s.token && !c.closed; })[0];
+            if (pc && pc.name && pc.name !== s.name) o.player = pc.name;
+          }
           return o;
         }),
         spectators: spectatorCount(t),
@@ -454,10 +460,8 @@
         var aseat = asi != null ? t.seats[asi] : null;
         // a bot-held seat, or an away seat nobody is sitting in
         if (!aseat || !(aseat.bot || aseat.phantom || aseat.away)) return errTo(conn, "full");
-        var alower = String(conn.name || "").toLowerCase();
-        var ataken = t.seats.some(function (x, xi) { return x && xi !== asi && x.name.toLowerCase() === alower; });
-        if (ataken) return errTo(conn, "name-taken");
-        aseat.name = conn.name; aseat.token = token;
+        // the seat keeps its own name; the adopter shows beside it (baseView)
+        aseat.token = token;
         aseat.bot = false; aseat.phantom = false;
         // an away seat comes back to life with its stake intact (poker)
         var adev = [];
@@ -480,6 +484,9 @@
           if (msg.seat != null && !t.seats[msg.seat]) idx = msg.seat;
           else idx = openSeatIndex(t);
           if (idx < 0) return errTo(conn, "full");
+          // the new seat takes the player's name, so it must be free among seats
+          var slower = String(conn.name || "").toLowerCase();
+          if (t.seats.some(function (s) { return s && s.name.toLowerCase() === slower; })) return errTo(conn, "name-taken");
           var occupied = t.seats.map(function (s, si) { return s && si !== idx ? s.color : null; });
           t.seats[idx] = { token: token, name: conn.name, color: Colors.freeColor(occupied), connected: true, phantom: false };
           resizeSeats(t);
@@ -676,10 +683,9 @@
             t.conns.slice().forEach(function (c) {
               if (token && c.token === token) { c.closed = true; t.conns.splice(t.conns.indexOf(c), 1); }
             });
-            // unique display names among live connections AND host-added bot
-            // seats (a returning token's own seat doesn't block its reclaim)
-            var clash = t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === name.toLowerCase() && c.token !== token; }) ||
-                        t.seats.some(function (s) { return s && s.token !== token && s.name.toLowerCase() === name.toLowerCase(); });
+            // a PLAYER name is unique among live connections only — seat
+            // names are their own namespace, checked where a seat is named
+            var clash = t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === name.toLowerCase() && c.token !== token; });
             if (clash) return reject({ code: "name-taken" });
             if (t.conns.filter(function (c) { return !c.closed; }).length >= MAX_CONNS) return reject({ code: "full" });
 

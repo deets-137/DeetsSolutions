@@ -178,7 +178,11 @@
 
     function send(msg) { if (conn) conn.send(msg); }
     function mySeat() { return model && model.you ? model.you.seat : null; }
-    function seatName(i) { return (model && model.seats && model.seats[i] && model.seats[i].name) || ("Seat " + (i + 1)); }
+    // A seat's name and its player's are two names: a seat keeps the name it
+    // was dealt under, and whoever sits in it now rides beside it as
+    // `player` (only when the two differ) — "Ozan (Aditya)".
+    function seatLabel(s) { return s.player ? s.name + " (" + s.player + ")" : s.name; }
+    function seatName(i) { var s = model && model.seats && model.seats[i]; return (s && s.name) ? seatLabel(s) : ("Seat " + (i + 1)); }
     function seatedCount() { return ((model && model.seats) || []).filter(function (s) { return s && !s.empty; }).length; }
 
     /* ── "your turn" title flash ───────────────────────────────────
@@ -922,7 +926,7 @@
         var row = el("div", "gt-seat" + (s.empty ? " gt-seat--empty" : ""));
         var editable = !s.empty && isCaptain && (isMe || (host && s.phantom));
         row.appendChild(editable ? dotButton(s, i) : seatDot(i));
-        var label = s.empty ? S.seatOpen : isMe ? fmt(S.seatYou, { name: s.name }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : s.name;
+        var label = s.empty ? S.seatOpen : isMe ? fmt(S.seatYou, { name: seatLabel(s) }) : isBot ? fmt(S.botSeatTag, { name: s.name }) : seatLabel(s);
         if ((host && isBot) || isMe) {
           // the name is the rename affordance (lobby-only — names lock at
           // Start like colors): a bot's name for the host, yours for you
@@ -963,7 +967,7 @@
         }
         if (host && !s.empty && s.seat !== mySeat()) {
           var kick = el("button", "gt-seat__kick", "✕"); kick.type = "button";
-          kick.setAttribute("aria-label", fmt(S.kickSeatAria, { name: s.name || "" }));
+          kick.setAttribute("aria-label", fmt(S.kickSeatAria, { name: s.name ? seatLabel(s) : "" }));
           kick.addEventListener("click", function () { send({ type: "kickSeat", seat: i }); });
           tail.appendChild(kick);
         }
@@ -1473,7 +1477,7 @@
       leave: leaveTable,
       // seats
       mySeat: mySeat,
-      seatName: seatName,
+      seatName: seatName, seatLabel: seatLabel,
       seatedCount: seatedCount,
       seatDot: seatDot,
       seatAccent: seatAccent,

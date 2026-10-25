@@ -195,12 +195,14 @@ export class GameTable {
     if (!st) return null;
     return st.turns != null ? st.turns : (st.hands != null ? st.hands : null);
   }
-  openSpan(i, via) {
+  // `who` is the player's name when it can differ from the seat's (an
+  // adopter or a returning player sits under the seat name they joined to)
+  openSpan(i, via, who) {
     const s = this.t.seats[i];
     if (!s || !this.t.game) return;
     const n = this.t.spans.filter((x) => x.seat === i).length;
     this.t.spans.push({
-      seat: i, span: n, uid: s.uid || null, name: s.name, kind: this.seatKind(s),
+      seat: i, span: n, uid: s.uid || null, name: who || s.name, kind: this.seatKind(s),
       via, exit: null,
       joinedAt: Date.now(), leftAt: null, joinedTurn: this.clock(), leftTurn: null,
     });
@@ -552,6 +554,13 @@ export class GameTable {
         if (s.conceded) o.conceded = true;
         if (s.away) o.away = true;   // public, exactly like conceded is
         if (s.graceUntil) o.graceUntil = s.graceUntil;
+        // the player sitting in it, when their name isn't the seat's
+        // (display: "Seat (Player)"). Read live off the connection: a dark
+        // seat or a bot has no player to show.
+        if (!this.isBot(s)) {
+          const pc = this.socketsForToken(s.token)[0];
+          if (pc && pc.att.name && pc.att.name !== s.name) o.player = pc.att.name;
+        }
         return o;
       }),
       spectators: this.spectatorCount(),
@@ -829,9 +838,8 @@ export class GameTable {
       const as = ai != null ? t.seats[ai] : null;
       // a bot-held seat, or an away seat nobody is sitting in
       if (!as || !(this.isBot(as) || as.away)) return this.errTo(ws, "full");
-      const alower = String(att.name || "").toLowerCase();
-      const ataken = t.seats.some((x, xi) => x && xi !== ai && x.name.toLowerCase() === alower);
-      if (ataken) return this.errTo(ws, "name-taken");   // connections were checked at join
+      // the seat keeps its own name — the adopter shows beside it as the
+      // player ("Ozan (Aditya)"), read live off their connection in baseView
       // an away seat comes back to life with its stake intact (poker) — the
       // engine deals it in again, the roster hands it to its new occupant
       let aev = [];
@@ -841,10 +849,10 @@ export class GameTable {
         aev = ar.events || [];
       }
       this.closeSpan(ai, "adopted");   // the bot's (or the leaver's) span ends here
-      as.name = att.name; as.token = token;
+      as.token = token;
       if (att.uid) as.uid = att.uid; else delete as.uid;
       delete as.bot; delete as.graceUntil; delete as.phantom; delete as.away;
-      this.openSpan(ai, "adopt");
+      this.openSpan(ai, "adopt", att.name);
       await this.broadcast(aev.concat([{ t: "adopted", seat: ai }]));
       this.armAlarm();
       return;
@@ -860,6 +868,9 @@ export class GameTable {
         if (msg.seat != null && !t.seats[msg.seat]) idx = msg.seat;
         else idx = this.openSeatIndex();
         if (idx < 0) return this.errTo(ws, "full");
+        // the new seat takes the player's name, so it must be free among seats
+        const slower = String(att.name || "").toLowerCase();
+        if (t.seats.some((s) => s && s.name.toLowerCase() === slower)) return this.errTo(ws, "name-taken");
         const occupied = t.seats.map((s, si) => (s && si !== idx) ? s.color : null);
         t.seats[idx] = { token, name: att.name, color: this.Colors.freeColor(occupied) };
         if (att.uid) t.seats[idx].uid = att.uid;   // account seat: uid-reclaim from any device
@@ -1163,11 +1174,11 @@ export class GameTable {
           if (s && s.uid === uid && !this.tokenConnected(s.token)) { reclaim = i; break; }
         }
       }
-      // clash vs live connections AND seats — the seat being reclaimed doesn't
-      // block its own return (same name + same verified identity is you
-      // coming back, not an imposter)
-      if (others.some((s) => s.att.name.toLowerCase() === name.toLowerCase()) ||
-          t.seats.some((s, si) => s && si !== reclaim && s.token !== token && s.name.toLowerCase() === name.toLowerCase())) {
+      // A PLAYER name is unique among live connections only. Seat names are
+      // their own namespace (unique among seats, checked where a seat is
+      // named): a seat keeps the name it was dealt under, so a bot holding
+      // "Aditya" after he stood up must not lock Aditya out of the table.
+      if (others.some((s) => s.att.name.toLowerCase() === name.toLowerCase())) {
         this.errTo(ws, "name-taken");
         try { ws.close(4409, "name-taken"); } catch (e) {}
         return;
@@ -1214,7 +1225,7 @@ export class GameTable {
           delete rs.bot; delete rs.graceUntil;
           revents.push({ t: "returned", seat });
         }
-        if (wasBot) this.openSpan(seat, "reclaim");
+        if (wasBot) this.openSpan(seat, "reclaim", name);
       }
       t.emptyAt = null;
       this.onJoined(token);
