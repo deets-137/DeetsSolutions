@@ -326,7 +326,13 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   with the tile palette; hand dividers.
 - **Role tile**: my rack — 13 sorted tiles + the drawn tile standing
   apart with a gold edge; click a tile to discard (hover lifts it);
-  melds + flowers beneath; glowing **Mahjong!** / **Kong** pills. When a
+  melds + flowers beneath. The controls column ends in one split button,
+  **Mahjong! | Scoring**, cut by a hairline: Mahjong! stays greyed until
+  a win is on and then glows alone, and Scoring opens the guide. A
+  **Kong** pill shows above it only while a kong is declarable (his
+  calls, 2026-10-25). Below 48rem the controls leave the column for a
+  row under the hand: the split button and Kong on the left, Auto-Arrange
+  on the right, so the tiles get the zone's full width. When a
   drawn hand wins structurally but misses the faan minimum, a
   right-aligned hint on the "Your hand" title line (and the disabled
   Mahjong pill's tooltip) says how many faan it scores vs. the minimum

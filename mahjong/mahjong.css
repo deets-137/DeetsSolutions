@@ -735,6 +735,27 @@
     --mjwallh: calc(var(--mjwallw) * 1.36);
   }
   .mj-board--stacked .mj-feltwrap { flex: none; }
+  /* phones: the controls leave the column beside the hand for a row under
+     it, so the tiles get the zone's full width. The rack box dissolves
+     (display: contents) so its tiles, melds and Auto-Arrange foot join the
+     play grid: tiles, melds, then [split · Kong] left, Auto-Arrange right.
+     The tile-size container moves from the rack to the play grid. */
+  .mj-zone.has-rack .mj-play {
+    container-type: inline-size;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "tiles tiles" "melds melds" "ctrl foot";
+    row-gap: var(--space-2);
+  }
+  .mj-zone.has-rack .mj-rack { display: contents; container-type: normal; }
+  .mj-zone.has-rack .mj-rack__tiles { grid-area: tiles; }
+  .mj-zone.has-rack .mj-rack__melds { grid-area: melds; }
+  .mj-zone.has-rack .mj-rack__foot { grid-area: foot; margin-top: 0; padding-top: 0; align-self: center; }
+  .mj-zone.has-rack .mj-play__ctrl {
+    grid-area: ctrl; flex-direction: row; flex-wrap: wrap; align-items: center;
+    border-left: 0; padding-left: 0;
+  }
+  .mj-zone.has-rack .mj-actions { flex-direction: row; }
+  .mj-zone.has-rack .mj-split { order: -1; margin-top: 0; align-self: center; }
 }
 .mj-tile--role[hidden] { display: none; }   /* display:flex would beat the UA hidden rule */
 /* the lobby, at every width, is one card: its settings + seats. The empty
@@ -787,7 +808,13 @@ button.mj-chick--toggle:hover { background: var(--surface-hover); border-color: 
    the controls column's bottom right */
 .mj-act--quiet { color: var(--subtext); }
 .mj-act--quiet:hover { color: var(--title); border-color: var(--title); }
-.mj-act--guide { margin-top: auto; align-self: flex-end; }
+/* the split button: Mahjong! | Scoring, one pill cut by a hairline (the
+   Mahjong half's own right border). Each half is its own tap target; the
+   glow rides the Mahjong half alone, lifted so it paints over Scoring. */
+.mj-split { display: inline-flex; margin-top: auto; align-self: flex-end; }
+.mj-split > .mj-act:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.mj-split > .mj-act + .mj-act { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-width: 0; }
+.mj-split > .mj-act.is-glow { position: relative; z-index: 1; }
 
 /* ── scoring guide (handover-style overlay on the board tile) ────
    Deliberately no entrance animation and INSTANT (transition-free)

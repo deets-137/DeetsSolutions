@@ -1389,14 +1389,16 @@
       else if (canDiscard && model.you && model.you.nearWin) {
         winP.title = fmt(S.nearWinLine, { n: model.you.nearWin.faan, min: model.you.nearWin.need });
       }
-      pills.push(winP);
+      // Kong only shows while one is declarable (his call, 2026-10-25): it's
+      // rare, and a standing disabled pill crowded the narrow rack
       var kongs = (canDiscard && model.you && model.you.kongs) || [];
-      var kongP = actionPill(S.pillKong, kongs.length > 0, function () {
-        if (kongs.length === 1) { send({ type: "kong", tile: kongs[0] }); ui.kongPick = false; }
-        else { ui.kongPick = !ui.kongPick; render(); }
-      }, ui.kongPick);
-      pills.push(kongP);
-      ctrl.appendChild(wrapPills(pills));
+      if (kongs.length) {
+        pills.push(actionPill(S.pillKong, true, function () {
+          if (kongs.length === 1) { send({ type: "kong", tile: kongs[0] }); ui.kongPick = false; }
+          else { ui.kongPick = !ui.kongPick; render(); }
+        }, ui.kongPick));
+      }
+      if (pills.length) ctrl.appendChild(wrapPills(pills));
       if (ui.kongPick && kongs.length > 1) {
         var krow = el("div", "mj-kongpick");
         krow.appendChild(el("p", "mj-claimbox__lbl", S.kongPick));
@@ -1409,10 +1411,15 @@
         ctrl.appendChild(krow);
       }
       if (!canDiscard) ui.kongPick = false;
-      // the quiet Scoring pill sits alone at the column's bottom right
+      // Mahjong! and the quiet Scoring share one split button at the
+      // column's bottom right (his call, 2026-10-25): Mahjong! greys out
+      // until a win is on and glows alone when it is; Scoring opens the guide
       var guideP = actionPill(S.pillGuide, true, function () { ui.guideOpen = true; render(); });
-      guideP.classList.add("mj-act--quiet", "mj-act--guide");
-      ctrl.appendChild(guideP);
+      guideP.classList.add("mj-act--quiet");
+      var split = el("div", "mj-split");
+      split.appendChild(winP);
+      split.appendChild(guideP);
+      ctrl.appendChild(split);
     }
     play.appendChild(ctrl);
     if (zone) {
