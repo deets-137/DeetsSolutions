@@ -104,7 +104,7 @@
   function fitLog() { TBL.fitLog(".mj-log__list"); }
 
   /* ── rack / table state (this game's own) ─────────────────────── */
-  ui.deckPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
+  ui.deckPinned = false; ui.logPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
   ui.autoArrange = load(ARRANGE_KEY, true); ui.handOrder = null;
   ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
   var spinUntil = 0, spinDice = 2;
@@ -302,12 +302,78 @@
     var inHand = model.round != null && (model.phase === "play" || model.phase === "over");
     WALL.hidden = !inHand;
     if (!inHand) return;
-    WALL.title = fmt(S.wallLeftTip, { n: model.wallLeft != null ? model.wallLeft : 0 });
-    WALL.appendChild(backEl("mini"));
+    // the tiles-left tip covers the wall readout only — as the narrow bar
+    // the tile also carries the seat boxes and Log, each with its own
+    var tip = fmt(S.wallLeftTip, { n: model.wallLeft != null ? model.wallLeft : 0 });
+    var bar = MERGE_MQ.matches;
+    WALL.title = bar ? "" : tip;
+    var back = backEl("mini");
+    if (bar) back.title = tip;
+    WALL.appendChild(back);
     var col = el("div", "mj-wallpanel");
+    if (bar) col.title = tip;
     col.appendChild(el("div", "mj-wallpanel__count", model.wallLeft != null ? fmt(S.wallLeft, { n: model.wallLeft }) : "–"));
     col.appendChild(el("div", "mj-wallpanel__round", fmt(S.roundLine, { wind: windLabel(model.round.prevailing), n: model.round.hand })));
     WALL.appendChild(col);
+    if (MERGE_MQ.matches) { WALL.appendChild(barSeats()); WALL.appendChild(barLog()); }
+  }
+  /* below 64rem the wall panel is the BAR above the board: after a divider,
+     one box per seat in play order from the dealer (leftmost), each its
+     seat color with the score. It stands in for the players tile, which
+     sits out the narrow layout with the dice and the log. */
+  function barSeats() {
+    var wrap = el("div", "mj-wallbar__seats");
+    var active = activeSeats();
+    var order = model.order || [0, 1, 2, 3];
+    var from = model.order ? model.round.dealerIdx : 0;
+    for (var k = 0; k < order.length; k++) {
+      var i = order[(from + k) % order.length];
+      var s = model.seats && model.seats[i];
+      if (!s || s.empty) continue;
+      var p = model.players && model.players[i];
+      var box = el("div", "mj-wallbar__seat" + (active.indexOf(i) >= 0 ? " is-active" : "") + (!s.connected ? " is-away" : ""));
+      TBL.seatAccent(box, i);
+      box.title = seatName(i);
+      box.setAttribute("aria-label", seatName(i));
+      box.appendChild(seatDot(i));
+      // the full "{n} pts" and the bare number; the box's width picks one
+      box.appendChild(el("span", "mj-wallbar__pts", fmt(S.scoreShort, { n: p ? p.score : 0 })));
+      box.appendChild(el("span", "mj-wallbar__num", String(p ? p.score : 0)));
+      wrap.appendChild(box);
+    }
+    return wrap;
+  }
+  /* the bar's last control: Log, after a divider. Its popover is the
+     toolbar Settings pill's (the shell's pop kit): hover peeks, a click
+     pins it open across re-renders, outside click / Escape closes. */
+  function barLog() {
+    var wrap = el("span", "mj-wallbar__logctl");
+    var b = el("button", "tb-pill"); b.type = "button";
+    b.setAttribute("aria-haspopup", "true");
+    b.appendChild(el("span", "tb-pill__label", S.logPill));
+    wrap.appendChild(b);
+    var pop = el("div", "tb-pop mj-logpop"); pop.hidden = true;
+    var list = el("div", "mj-log__list");
+    logLines.slice(-50).forEach(function (entry) { list.appendChild(logLineEl(entry)); });
+    pop.appendChild(list);
+    wrap.appendChild(pop);
+    function show() { pop.hidden = false; list.scrollTop = list.scrollHeight; }
+    var entry = { ctrl: wrap, pill: b, pop: pop, kind: "mjlog" };
+    function peek() { if (TBL.pop.current() !== entry) show(); }
+    function unpeek() { if (TBL.pop.current() !== entry) pop.hidden = true; }
+    wrap.addEventListener("mouseenter", peek);
+    wrap.addEventListener("mouseleave", unpeek);
+    b.addEventListener("focus", peek);
+    b.addEventListener("blur", unpeek);
+    b.addEventListener("click", function () {
+      TBL.pop.toggle(entry);
+      ui.logPinned = TBL.pop.current() === entry;
+      if (ui.logPinned) show();
+    });
+    var cur = TBL.pop.current();
+    if (ui.logPinned && cur && cur.kind === "mjlog") { TBL.pop.open(entry); show(); }
+    else ui.logPinned = false;
+    return wrap;
   }
 
   /* two live faces from a deck, for the chips + popover options. Only
@@ -548,6 +614,16 @@
         diceRow.appendChild(el("div", "mj-die mj-die--small", "–"));
         diceRow.appendChild(el("div", "mj-die mj-die--small", "–"));
       }
+      // my Roll rides my own pad, right of the dice (the role tile sits
+      // out the seating roll); it stays after I roll, disabled, so the pad
+      // never changes shape
+      if (i === mySeat()) {
+        var mustRoll = scope.indexOf(i) >= 0 && !st.rolls[i];
+        var rollP = actionPill(S.rollPill, mustRoll, function () { send({ type: "rollSeat" }); });
+        rollP.classList.add("mj-act--roll", "mj-seating__roll");
+        if (mustRoll) rollP.classList.add("is-glow");
+        diceRow.appendChild(rollP);
+      }
       pad.appendChild(diceRow);
       grid.appendChild(pad);
     });
@@ -565,13 +641,21 @@
     return (orderIdx(seat) - orderIdx(anchor) + 4) % 4;
   }
   var POS_CLS = ["bottom", "right", "top", "left"];
+  /* too narrow for side seats beside the felt (phones, small windows): the
+     felt goes on top and shrinks to fit, and every seat stacks under it as
+     a full-width row, me first, then the rest in play order. Mirrors the
+     48rem query in mahjong.css. */
+  var STACK_MQ = window.matchMedia("(max-width: 48rem)");
+  STACK_MQ.addEventListener("change", function () { if (model) render(); });
   function renderTable() {
-    var board = el("div", "mj-board");
+    var stacked = STACK_MQ.matches;
+    var board = el("div", "mj-board" + (stacked ? " mj-board--stacked" : ""));
     board.setAttribute("data-mj-board", "");
     var active = activeSeats();
+    var zones = [];
     for (var seat = 0; seat < 4; seat++) {
       var pos = POS_CLS[displayPos(seat)];
-      var zone = el("div", "mj-zone mj-zone--" + pos + (active.indexOf(seat) >= 0 ? " is-active" : ""));
+      var zone = el("div", "mj-zone mj-zone--" + (stacked ? "row" : pos) + (active.indexOf(seat) >= 0 ? " is-active" : ""));
       zone.setAttribute("data-zone", seat);
       TBL.seatAccent(zone, seat);
       var p = model.players[seat];
@@ -591,7 +675,7 @@
 
       // concealed hand: face-down backs for others, nothing for me (the rack
       // tile shows my tiles); spectators see backs all around
-      var isSide = pos === "left" || pos === "right";
+      var isSide = !stacked && (pos === "left" || pos === "right");
       var dir = pos === "left" ? "l" : "r";
       var backs = null;
       if (seat !== mySeat()) {
@@ -618,10 +702,16 @@
         zone.appendChild(mrow);
       }
 
-      board.appendChild(zone);
+      zones[displayPos(seat)] = zone;
     }
 
-    board.appendChild(renderFelt());
+    if (stacked) {
+      board.appendChild(renderFelt());
+      zones.forEach(function (z) { board.appendChild(z); });
+    } else {
+      zones.forEach(function (z) { board.appendChild(z); });
+      board.appendChild(renderFelt());
+    }
     BIG.appendChild(board);
   }
 
@@ -1214,7 +1304,9 @@
     ROLE.textContent = "";
     var seat = mySeat();
     var zone = mergedZone();
-    ROLE.hidden = !!zone;
+    // the seating roll has no hand yet: Roll lives on my pad (renderSeating)
+    ROLE.hidden = !!zone || model.phase === "seating";
+    if (model.phase === "seating") return;
     if (seat == null) { ROLE.appendChild(el("p", "mj-role__note", S.spectatingNote)); return; }
     var play = el("div", "mj-play");
     var rack = el("div", "mj-rack");
@@ -1272,15 +1364,7 @@
     // controls column: action pills only — the prompt rode off to the title
     // line above, so on your turn the pills sit level with the title row.
     var ctrl = el("div", "mj-play__ctrl");
-    if (model.phase === "seating") {
-      var scope = (model.seating && model.seating.reroll) || [0, 1, 2, 3];
-      var mustRoll = scope.indexOf(seat) >= 0 && !(model.seating && model.seating.rolls[seat]);
-      headNote(mustRoll ? S.seatingYou : fmt(S.seatingWaiting, { names: activeSeats().map(seatName).join(", ") }));
-      var rollP = actionPill(S.rollPill, mustRoll, function () { send({ type: "rollSeat" }); });
-      rollP.classList.add("mj-act--roll");
-      if (mustRoll) rollP.classList.add("is-glow");
-      ctrl.appendChild(wrapPills([rollP]));
-    } else if (model.needBreak) {
+    if (model.needBreak) {
       var meBreaks = dealerSeat() === seat;
       headNote(meBreaks ? S.breakPromptYou : fmt(S.breakPrompt, { name: seatName(dealerSeat()) }));
       var bp = actionPill(S.rollPill, meBreaks, function () { send({ type: "rollBreak" }); });
@@ -1593,7 +1677,7 @@
   function resetGameUi() {
     clearFlights();
     seen = null; lastDice = null; lastActor = null;
-    ui.deckPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
+    ui.deckPinned = false; ui.logPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
     ui.handOrder = null; ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
     dragActive = false;
   }

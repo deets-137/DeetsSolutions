@@ -37,6 +37,16 @@
      and every tile on the table reads as the same physical object */
   --mjwallw: 1.25rem;
   --mjwallh: 1.7rem;
+  /* the STAGE: lobby, seating, play and the stats reveal all fill one
+     footprint, so moving between them never resizes the page. It's the
+     play layout's: the board, a gap, the rack. --mjrackh is the rack's
+     tallest natural height across all six skins (measured 2026-10-25,
+     max 183px) plus slack; the narrow board's likewise (735px). If the
+     rack or the merged narrow board grows, raise these with it. */
+  --mjboardh: 42rem;
+  --mjrackh: 11.5rem;
+  --mjplayersh: 21.25rem;
+  --mjstageh: calc(var(--mjboardh) + var(--space-3) + var(--mjrackh));
 }
 
 
@@ -44,7 +54,7 @@
 .mj-bento {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 15rem;
-  grid-template-rows: auto auto auto minmax(6rem, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(6rem, 1fr) minmax(var(--mjrackh), auto);
   grid-template-areas:
     "big dice"
     "big players"
@@ -54,6 +64,7 @@
   gap: var(--space-3);
   position: relative;
   align-items: start;
+  min-height: var(--mjstageh);
 }
 .mj-tile {
   background: var(--menu-surface);
@@ -67,16 +78,16 @@
 /* scrollbar-gutter: stable reserves the scrollbar's width whether or not one is
    showing, so a scrollbar appearing (e.g. a tall meld pile) can't narrow the
    board and slide the fixed-size felt sideways */
-.mj-tile--big { grid-area: big; height: 42rem; position: relative; display: flex; overflow-y: auto; scrollbar-gutter: stable; }
+.mj-tile--big { grid-area: big; height: var(--mjboardh); position: relative; display: flex; overflow-y: auto; scrollbar-gutter: stable; }
 .mj-tile--dice { grid-area: dice; }
-.mj-tile--players { grid-area: players; height: 21.25rem; overflow-y: auto; position: relative; }
+.mj-tile--players { grid-area: players; height: var(--mjplayersh); overflow-y: auto; position: relative; }
 .mj-tile--wall { grid-area: wall; display: flex; align-items: center; gap: var(--space-3); }
 .mj-tile--wall[hidden] { display: none; }   /* display:flex would beat the UA hidden rule */
 .mj-tile--log { grid-area: log; min-height: 0; display: flex; overflow: hidden; }
 /* the wall panel: a back icon + the live count, round line beneath */
 .mj-wallpanel__count { color: var(--title); font: 700 1.3rem/1 var(--font-body); font-variant-numeric: tabular-nums; }
 .mj-wallpanel__round { color: var(--subtext); font-size: 0.85rem; }
-.mj-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+.mj-tile--role { grid-area: role; align-self: stretch; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* ── tile faces (the carve-out) ───────────────────────────────── */
 .mj-tilef {
@@ -182,7 +193,7 @@
    felt: reserve one tile-row from the start so the first meld/flower doesn't
    push the row taller and slide the centered felt. Side seats grow within the
    fixed-height center row, so they don't move the felt and keep min-height:0. */
-.mj-zone--top .mj-zone__melds, .mj-zone--bottom .mj-zone__melds { min-height: var(--mjwallh); }
+.mj-zone--top .mj-zone__melds, .mj-zone--bottom .mj-zone__melds, .mj-zone--row .mj-zone__melds { min-height: var(--mjwallh); }
 .mj-meld { display: inline-flex; gap: 1px; }
 /* side seats sit AT the table: hand column on the left, melds +
    flowers running down a second column beside it, every tile sideways */
@@ -282,6 +293,7 @@
 .mj-seating__name { color: var(--text); }
 .mj-seating__dice { display: flex; align-items: center; gap: var(--space-2); }
 .mj-seating__sum { color: var(--title); font-weight: 700; margin-left: var(--space-2); }
+.mj-seating__roll { margin-left: auto; }
 
 /* ── hand-over settlement (overlays the board tile) ───────────── */
 .mj-handover {
@@ -600,6 +612,20 @@
 .mj-over__vp { color: var(--title); font-weight: 700; }
 .mj-over__rematch { align-self: flex-start; cursor: pointer; }
 
+/* the seating roll has no hand yet (Roll rides my own pad), so the board
+   runs down through the rack's row and the log stretches to meet it —
+   same stage, no rack. The board takes the stage height outright rather
+   than stretching: the shell's fitLog sizes the log to the board's
+   bottom, so a stretching board would grow with its own log. */
+[data-phase="seating"] .mj-bento {
+  grid-template-rows: auto auto minmax(6rem, 1fr);
+  grid-template-areas:
+    "big dice"
+    "big players"
+    "big log";
+}
+[data-phase="seating"] .mj-tile--big { height: var(--mjstageh); }
+
 /* ── desktop-only guard ───────────────────────────────────────── */
 .mj-desktop-note { color: var(--subtext); padding: var(--space-6) 0; font-size: 1rem; }
 /* below 64rem the board column can't hold the fixed-size felt plus both
@@ -608,22 +634,74 @@
    drops under the rack: board full width, rack beneath it, then
    dice/wall | players | log as a row. The claim dock still docks on big. */
 @media (max-width: 64rem) {
-  .mj-bento {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* the flexible dice row soaks up players' extra height, so the wall
-       panel sits flush under the dice instead of halfway down */
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "big big big"
-      "role role role"
-      "dice players log"
-      "wall players log";
+  /* the narrow stage: the BAR (the wall panel, carrying the seats), a gap,
+     then the board with the rack merged in. The dice, players and log
+     tiles sit out: the bar's seat boxes stand in for players, and the
+     narrow layout goes without the log and the wall-break dice. */
+  .mj {
+    --mjboardh: 46rem;
+    --mjbarh: 4.375rem;   /* the wall panel's own height at desktop */
+    --mjstageh: calc(var(--mjbarh) + var(--space-3) + var(--mjboardh));
   }
-  .mj-tile--dice { align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
-  .mj-tile--log { align-self: stretch; }
+  .mj-bento {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "wall"
+      "big";
+  }
+  /* no named row: an empty one would still add a gap under the board. A
+     spectator's role tile auto-places into a row of its own instead. */
+  .mj-tile--role { grid-area: auto; }
+  .mj-tile--dice, .mj-tile--players, .mj-tile--log { display: none; }
+  /* the bar sits above the board, so its Log popover must paint over it */
+  .mj-tile--wall {
+    height: var(--mjbarh); position: relative; z-index: 30;
+    container: mjbar / inline-size;
+  }
+  .mj-wallpanel { flex: none; }
+  .mj-wallbar__seats {
+    flex: 1 1 auto; min-width: 0; align-self: stretch;
+    display: flex; gap: var(--space-2);
+    border-left: 1px solid var(--border); padding-left: var(--space-3);
+  }
+  /* dot left, points right: the space between is what gives first as the
+     box narrows, then "pts" drops to the bare number */
+  .mj-wallbar__seat {
+    flex: 1 1 0; min-width: 0;
+    container-type: inline-size;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-1);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gseat, var(--border));
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--gseat, var(--border)) 14%, transparent);
+  }
+  .mj-wallbar__seat.is-active { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+  .mj-wallbar__seat.is-away { opacity: 0.5; }
+  .mj-wallbar__pts, .mj-wallbar__num { color: var(--title); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mj-wallbar__num { display: none; }
+  @container (max-width: 4.75rem) {
+    .mj-wallbar__pts { display: none; }
+    .mj-wallbar__num { display: inline; }
+  }
+  /* tight bar: the round line goes, the tile icon + count stay */
+  @container mjbar (max-width: 46rem) {
+    .mj-wallpanel__round { display: none; }
+  }
+  .mj-wallbar__logctl {
+    position: relative; flex: none; align-self: stretch;
+    display: flex; align-items: center;
+    border-left: 1px solid var(--border); padding-left: var(--space-3);
+  }
+  .mj-logpop {
+    width: min(20rem, 80vw); height: var(--mjplayersh);
+    padding: var(--space-2); display: flex; --pop-origin: top right;
+  }
+  .mj-logpop[hidden] { display: none; }   /* display:flex would beat the UA hidden rule */
   /* the rack merges into my seat zone (mahjong.js mergedZone): the board
      grows to hold it instead of keeping the fixed 42rem */
-  .mj-tile--big { height: auto; }
+  .mj-tile--big { height: auto; min-height: var(--mjboardh); }
   .mj-zone.has-rack > .mj-zone__melds { display: none; }   /* the rack's own melds row shows them */
   .mj-zone.has-rack .mj-rack__title { display: none; }      /* the zone's name line says whose */
   .mj-zone__head .mj-rack__head { margin-left: auto; }
@@ -631,10 +709,10 @@
   .mj-zone.has-rack .mj-play { grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); }
   .mj-zone.has-rack .mj-play__ctrl { padding-left: var(--space-3); }
   .mj-zone.has-rack .mj-actions { flex-direction: column; align-items: stretch; }
-  /* the seating roll: the pads already show every roll and who's up; the
-     Roll button stays (the role tile) */
-  [data-phase="seating"] .mj-tile--dice, [data-phase="seating"] .mj-tile--players,
-  [data-phase="seating"] .mj-tile--wall, [data-phase="seating"] .mj-tile--log { display: none; }
+  /* the seating roll: the pads already show every roll and who's up, so
+     the board is the one panel and fills the stage */
+  [data-phase="seating"] .mj-tile--wall { display: none; }
+  [data-phase="seating"] .mj-bento { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "big"; }
   /* shrink to fit: the 13 + drawn tile share one row of the rack's width,
      capped at the desktop 2rem (14 tiles, 13 gaps, the drawn tile's gap) */
   .mj-zone.has-rack .mj-rack { container-type: inline-size; }
@@ -643,13 +721,28 @@
     height: auto; aspect-ratio: 2 / 2.7;
   }
 }
+/* the stacked board (mahjong.js STACK_MQ, same 48rem): too narrow for the
+   side seats, so the felt sits on top and every seat is a full-width row
+   under it, me first, then play order. The board is the size container,
+   and the ONE tile rectangle shrinks until the felt's side (19.36 short
+   sides + 17 seams + its two pads) fits the board's width: every board
+   tile shrinks with it, so they all stay the same physical object. */
+@media (max-width: 48rem) {
+  .mj-board--stacked {
+    display: flex; flex-direction: column;
+    container-type: inline-size;
+    --mjwallw: min(1.25rem, (100cqw - 17px - 2 * var(--space-2)) / 19.36);
+    --mjwallh: calc(var(--mjwallw) * 1.36);
+  }
+  .mj-board--stacked .mj-feltwrap { flex: none; }
+}
 .mj-tile--role[hidden] { display: none; }   /* display:flex would beat the UA hidden rule */
 /* the lobby, at every width, is one card: its settings + seats. The empty
    hand, the unrolled dice, the players (the seat list already says who),
    and the empty log have nothing to say yet, so the board tile takes the
-   whole bento and sizes to its content instead of the fixed 42rem. */
-[data-phase="lobby"] .mj-bento { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "big"; }
-[data-phase="lobby"] .mj-tile--big { height: auto; }
+   whole bento and stretches to fill the stage. */
+[data-phase="lobby"] .mj-bento { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "big"; }
+[data-phase="lobby"] .mj-tile--big { height: auto; align-self: stretch; }
 [data-phase="lobby"] .mj-tile--role, [data-phase="lobby"] .mj-tile--dice,
 [data-phase="lobby"] .mj-tile--players, [data-phase="lobby"] .mj-tile--wall,
 [data-phase="lobby"] .mj-tile--log { display: none; }

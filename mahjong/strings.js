@@ -164,6 +164,7 @@ window.MAHJONG_STRINGS = {
    wallLeft: "{n}",
    wallLeftTip: "{n} tiles left in the wall",
    roundLine: "{wind} round · hand {n}",
+   logPill: "Log",   // approved by Aditya in chat 2026-10-25
    pondTip: "{name} discarded this",
    dealerTag: "Dealer",
    yourTurnToast: "Your turn!",

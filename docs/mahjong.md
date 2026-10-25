@@ -233,14 +233,50 @@ browser. The worker has no such seat.
 Cities' grid verbatim (big 42rem + dice / players / log right column +
 full-width role row). **Below 64rem** that right column no longer leaves
 the board room for the fixed-size felt plus both side zones (the felt
-slid over the right seat from ~1010px down), so the bento re-flows:
-board full width, the rack under it, then dice/wall | players | log as a
-row. While the board is up, the rack also **merges into your own seat
+slid over the right seat from ~1010px down), so the bento re-flows into
+one column: the **bar** on top, the board under it (his call, 2026-10-25).
+The bar is the wall panel stretched full width: tiles left + round line,
+a divider, then one box per seat in play order from the dealer (leftmost),
+each tinted its seat color, dot left and score right (name on hover;
+the active seat outlined, an away seat dimmed), then a divider and a
+**Log** pill whose dropdown is the toolbar Settings pill's (the shell's
+pop kit: hover peeks, click pins across re-renders). As the bar narrows,
+the space in each seat box gives first, then "pts" drops to the bare
+number (a container query per box, under 4.75rem), and under a 46rem bar
+the round line drops, leaving the tile icon and count. The dice, players
+and log tiles sit out the narrow layout entirely, so there are no
+wall-break dice.
+
+**Below 48rem the board stacks** (his call, 2026-10-25): too narrow for
+side seats beside the felt, so the felt goes on top and every seat is a
+full-width row under it: you first (with the rack merged in), then the
+others in play order. Side seats render as rows there (no sideways
+backs). The board becomes a size container and the one tile rectangle
+(`--mjwallw`/`--mjwallh`) shrinks until the felt fits its width, so
+every board tile shrinks together. `STACK_MQ` in mahjong.js and the CSS
+query must stay at the same width. OPEN for the phone pass: the stacked
+play board is taller than the 818px stage (≈900–1040px depending on
+width), and so is the lobby below ~430px, so the phases don't match
+there yet. The rack tiles are also very small at 375–390px. While the board is up, the rack also **merges into your own seat
 zone** there (`mergedZone()` in mahjong.js): the prompt rides the zone's
 name line, the zone's own meld row yields to the rack's, the role tile
 hides, the board drops its fixed height, and rack tiles shrink to fit one
-row (capped at 2rem). Seating and the lobby keep the role tile. (WIP —
-his polish pass pending.) The toolbar opts into the shell's `iconToolbar`: Invite, Table
+row (capped at 2rem). (WIP — his polish pass pending.)
+
+**One stage for every phase** (his call, 2026-10-25: switching screens
+shouldn't jitter). Lobby, seating, play and the stats reveal all fill the
+play layout's footprint, `--mjstageh` in mahjong.css: board + gap + rack
+on desktop, bar + gap + merged board below 64rem (`--mjbarh` is the
+desktop wall panel's height). `--mjrackh` and the
+narrow `--mjboardh` are the measured maxima across all six skins plus
+slack. Raise them if the rack or merged board grows. A phase with one
+panel stretches it to fill: the lobby at every width, and seating below
+64rem. Seating has no role tile at any width. Your **Roll** sits on your
+own seating pad, right of your dice, and stays there disabled once you've
+rolled. On desktop the board runs down through the rack's row and the log
+meets it. The seating board takes the stage height outright instead of
+stretching, because the shell's `fitLog` sizes the log to the board's
+bottom and the two would grow together. The toolbar opts into the shell's `iconToolbar`: Invite, Table
 Settings and Leave render as icons (link, cog, door-arrow), their words
 kept as tooltip + accessible name. Glyphs and motion follow
 DeetsMusicWindows' title bar (16px, 24-unit grid, 1.6 stroke; the cog is
