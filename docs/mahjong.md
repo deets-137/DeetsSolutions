@@ -269,7 +269,41 @@ play layout's footprint, `--mjstageh` in mahjong.css: board + gap + rack
 on desktop, bar + gap + merged board below 64rem (`--mjbarh` is the
 desktop wall panel's height). `--mjrackh` and the
 narrow `--mjboardh` are the measured maxima across all six skins plus
-slack. Raise them if the rack or merged board grows. A phase with one
+slack. Raise them if the rack or merged board grows. A phase change
+moves only the dividers (`seamShift` in mahjong.js, 2026-10-25): each
+panel whose rect changes is cloned just before the render (a ghost,
+its CSS animations landed on their end state and its scroll kept) and
+laid over the new layout at its old rect. The ghosts' contents fade
+first, then the ghosts themselves, so a divider opening across one old
+panel dissolves out of its surface while the new contents come up
+through it. A panel spanning an old divider starts with it cut out (an
+SVG mask of the old rects, alpha `--seam-a`) and fills in. Shadows move
+on a layer under the tiles, old to new with `plus-lighter`, so a shared
+edge never dims. `--seam-shift` / `--seam-ease` in skin.css. A phase
+that moves no divider (play → over) doesn't animate; leaving a table
+resets it; reduced motion skips it.
+
+**Waves** (`waveStart` / `waveApply` in mahjong.js, his call
+2026-10-25): the pieces inside the panels arrive in nested waves at three
+moments. A **phase change** waves every panel's contents, starting as the
+dividers are half dissolved. A **new hand** builds the wall, side by side
+from the dealer. **The break** deals the hands seat by seat from the dealer
+(my rack in my turn), tile by tile. Siblings step apart, each level at
+`WAVE_NEST` (0.6) of its parent's step, and the whole tree is fitted to the
+skin's `--wave-span` (Press 0.35s, Ocean 0.7s, else 0.5s). Each piece rises
+by the skin's `--boot-rise` over `--boot-dur` / `--boot-ease` (the look
+change's own arrival), on `translate` / `scale` so a side seat's rotation
+is untouched, to an implicit end keyframe so a dimmed piece lands on its
+own opacity. `waveApply` runs after every paint and anchors each piece to
+the wave's start, so a piece rebuilt mid-wave (bots act at once) joins at
+the point its wave has reached. Scroll boxes with nothing to scroll are
+held at `overflow: hidden` for the wave (a rising piece would flash a
+scrollbar); in one that already scrolls (a long log) pieces only fade.
+While a wave runs, the stats reveal's own `mj-overin` is cancelled.
+The lobby's pieces are shell-rendered (`gt-`) nodes; the wave only
+animates them from mahjong.js and never restyles them.
+
+A phase with one
 panel stretches it to fill: the lobby at every width, and seating below
 64rem. Seating has no role tile at any width. Your **Roll** sits on your
 own seating pad, right of your dice, and stays there disabled once you've

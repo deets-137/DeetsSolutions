@@ -88,6 +88,26 @@
 .mj-wallpanel__count { color: var(--title); font: 700 1.3rem/1 var(--font-body); font-variant-numeric: tabular-nums; }
 .mj-wallpanel__round { color: var(--subtext); font-size: 0.85rem; }
 .mj-tile--role { grid-area: role; align-self: stretch; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+/* ── phase seams (mahjong.js seamShift) ──────────────────────────
+   While the dividers move, the bento isolates so the shade layer can sit
+   under every tile, and the tiles hand their shadows to it. Ghosts (the
+   old panels, cloned) sit over everything, the narrow bar (z 30)
+   included. Their contents' entrance motion is skipped to its end state
+   in JS (a settled die keeps its pips), never restarted or stripped. */
+@property --seam-a { syntax: "<number>"; inherits: false; initial-value: 1; }
+.mj-bento.is-seaming { isolation: isolate; }
+.mj-bento.is-seaming > .mj-tile { box-shadow: none; }
+.mj-seam-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none; isolation: isolate; }
+.mj-seam-shade__set { position: absolute; inset: 0; mix-blend-mode: plus-lighter; }
+.mj-seam-shade__set > div { position: absolute; border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+.mj-seam-ghost { position: absolute; z-index: 35; margin: 0; pointer-events: none; }
+.mj-seam-ghost, .mj-seam-ghost * { transition: none !important; }
+/* a panel spanning an old divider: --seam-cut is the old panels' shape,
+   and the solid layer's alpha (--seam-a, 0 → 1) fills the rest in */
+.mj-tile.is-seam-cut {
+  -webkit-mask: linear-gradient(rgb(0 0 0 / var(--seam-a)) 0 0), var(--seam-cut) 0 0 / 100% 100% no-repeat;
+  mask: linear-gradient(rgb(0 0 0 / var(--seam-a)) 0 0), var(--seam-cut) 0 0 / 100% 100% no-repeat;
+}
 
 /* ── tile faces (the carve-out) ───────────────────────────────── */
 .mj-tilef {

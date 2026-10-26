@@ -150,6 +150,9 @@
   --dur-spin: 0.9s;   /* busy spinners (radio account button) */
   --ease-ui:  cubic-bezier(0.2, 0, 0.2, 1);
   --hover-lift: none;                 /* nav links / chips rise on hover; a skin opts in */
+  --seam-shift: 0.5s;                 /* a phase change's dividers dissolving open or filling in (mahjong) */
+  --seam-ease:  cubic-bezier(0.37, 0, 0.63, 1); /* sine in-out: no edge to the start or the stop */
+  --wave-span:  0.5s;                 /* a phase change's or deal's nested wave, first piece to last (mahjong) */
 
   /* -- toolbar icons: DeetsMusic's title-bar glyph standard (DeetsMusicWindows
         styles.css › The cog; styles/updates.css) -- */
@@ -304,6 +307,7 @@
   --boot-ease:    cubic-bezier(0.3, 0, 0.1, 1);
   --boot-rise:    translateY(6px);
   --boot-stagger: 40ms;
+  --wave-span:    0.35s;          /* the table's pieces too: tight order */
   --cover-in-dur: 0.16s;
 
   /* slider handle — a trimmed block riding the rail, corners square */
@@ -336,6 +340,7 @@
   --boot-ease:     cubic-bezier(0.25, 0.8, 0.35, 1);
   --boot-rise:     translateY(22px) scale(0.99);
   --boot-stagger:  95ms;
+  --wave-span:     0.7s;           /* the table's pieces surface one after another, unhurried */
   --cover-in-dur:  0.3s;
   --cover-in-ease: cubic-bezier(0.37, 0, 0.63, 1);
 

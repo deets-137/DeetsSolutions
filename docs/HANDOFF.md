@@ -63,6 +63,17 @@ python -m http.server 8787
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-25 — Mahjong phase seams + nested waves (branch `maw-jawng`).** Every phase fills
+one stage, so a phase change now moves only the dividers: ghosts of the old panels dissolve
+over the new layout, a panel spanning an old divider fills it in, shadows crossfade under
+the tiles. The pieces inside then arrive in nested waves (panels, seats from the dealer,
+tiles), and so do each new hand's wall and the deal at the break. Per-skin `--wave-span`
+plus the skin's own `--boot-*` arrival (mahjong.md, "One stage for every phase" and
+"Waves"). DONE and committed on `maw-jawng`, stepped frame by frame on Press and Ocean
+with the dev driver (four phase changes, the deal; footprint, overflow and end-state
+checked). OPEN: his full-speed feel pass at localhost:8787; the narrow layouts (<64rem)
+not yet stepped; a second hand's wall build not stepped (same trigger as the deal).
+
 **2026-10-25 — Seat name and player name split (shared table, all games).** Standing up
 mid-game left a bot holding your name, so rejoining as yourself got "name taken". Now a
 player name is unique among live connections and a seat name among seats; neither blocks the
