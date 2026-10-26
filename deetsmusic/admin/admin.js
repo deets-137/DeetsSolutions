@@ -183,6 +183,14 @@
     });
     return lastOwner < 0 || lastPoster > lastOwner;
   }
+  // meta is whatever string the sender wrote: JSON from the app and the form, but read leniently.
+  function parseMeta(meta) {
+    if (!meta) return null;
+    try {
+      var m = typeof meta === "string" ? JSON.parse(meta) : meta;
+      return m && typeof m === "object" ? m : null;
+    } catch (e) { return null; }
+  }
   function lastActivity(p) {
     var t = inbox.threads[p.code] || [];
     return t.reduce(function (m, r) { return Math.max(m, r.created_at); }, p.created_at);
@@ -243,6 +251,12 @@
       inbox.threads[p.code] = Array.isArray(res.data.replies) ? res.data.replies : [];
       if (res.data.post && res.data.post.state) p.state = res.data.post.state;
       if (res.data.post && typeof res.data.post.public === "boolean") p.public = res.data.post.public;
+      // Only the thread read carries these (the list does not): where the post came from,
+      // and what it sent with it — the version, and an app bug's log tail.
+      if (res.data.post) {
+        p.source = res.data.post.source;
+        p.meta = parseMeta(res.data.post.meta);
+      }
       renderInbox();
     });
   }
@@ -293,6 +307,7 @@
     h.appendChild(link);
     head.appendChild(h);
     head.appendChild(chip(s("ticketKind_" + p.kind)));
+    if (p.source === "app" || p.source === "web") head.appendChild(chip(s("inboxFrom_" + p.source)));
     head.appendChild(chip(s("state_" + p.state), p.state));
     if (isWaiting(p)) head.appendChild(chip(s("inboxWaiting"), "waiting"));
     if (p.public === false) head.appendChild(chip(s("tagHidden"), "hidden"));
@@ -302,9 +317,19 @@
 
     var foot = el("div", "dm-post__foot");
     foot.appendChild(el("span", null, fmtUnix(p.created_at)));
-    if (p.version) foot.appendChild(el("span", null, "v" + p.version));
+    var version = (p.meta && p.meta.version) || p.version;
+    if (version) foot.appendChild(el("span", null, version === "all" ? s("ticketVersionAll") : "v" + version));
     foot.appendChild(el("span", null, s("inboxInterest", { n: p.interest || 0 })));
     main.appendChild(foot);
+
+    // An app bug's log tail (report.rs: the area the user picked, scrubbed). Folded: it is long.
+    if (p.meta && typeof p.meta.log === "string" && p.meta.log) {
+      var lines = p.meta.log.split("\n").length;
+      var det = el("details", "dm-inbox__log");
+      det.appendChild(el("summary", null, s(lines === 1 ? "inboxLogOne" : "inboxLogMany", { n: lines })));
+      det.appendChild(el("pre", "dm-inbox__logtext", p.meta.log));
+      main.appendChild(det);
+    }
 
     var t = inbox.threads[p.code];
     if (t && t.length) {

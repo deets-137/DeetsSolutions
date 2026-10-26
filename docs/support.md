@@ -384,7 +384,10 @@ stays as it is, so the Inbox is a second way in.
   his cookie, so the hidden rows come too. The writes are the boards' owner routes:
   `POST /admin/posts/<code>/replies` and `PATCH /admin/posts/<code>` `{state}`.
 - **Each post** is a board card with the whole text (no clamp, not a link), its chips (kind,
-  state, *Waiting on you*, Hidden), the date, the version and ▲, the whole thread, a
+  *From the app* / *From the website* (`source`), state, *Waiting on you*, Hidden), the date,
+  the version (`meta.version`, else the list's) and ▲, an app bug's log tail folded under
+  *App log (N lines)* (`meta.log`; his ask 2026-10-26: only the thread read carries `source`
+  and `meta`, so the list did not change), the whole thread, a
   *Reply as Aditya* box with Reply, and a Status pill. The title opens the thread page
   (`../#t=<code>`) in a new tab.
 - **Waiting on you** = a post not fixed, won't fix or closed, with no reply from him, or with a

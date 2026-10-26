@@ -3579,6 +3579,21 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-inbox__reply .dm-form__actions { align-items: center; }
 .dm-inbox__status { margin-inline-start: 0; justify-content: flex-start; }
 .dm-chip[data-tone="waiting"] { color: var(--title); border-color: var(--pause); }
+.dm-inbox__log { color: var(--subtext); font-size: 0.75rem; }
+.dm-inbox__log summary { cursor: pointer; }
+.dm-inbox__logtext {
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2);
+  max-block-size: 18rem;
+  overflow: auto;
+  color: var(--text);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre;
+}
 /* Your posts: Aditya replied since this browser last opened the thread (deetsmusic.js checkMine). */
 .dm-chip[data-tone="reply"] { color: var(--title); border-color: var(--go); }
 
