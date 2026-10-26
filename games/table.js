@@ -241,10 +241,23 @@
         var slug = slugify(BAR_INPUT.value);
         BAR_INPUT.setAttribute("data-slug", slug && slug !== BAR_INPUT.value ? slug : "");
         // a changed code is an unread one: back to the closed +
-        if (GO) setGo(go.peek && go.peek.code === slug ? modeOf(go.peek.p) : "open", false);
+        if (GO) {
+          go.reading = null; go.thenGo = false;
+          setGo(go.peek && go.peek.code === slug ? modeOf(go.peek.p) : "open", false);
+        }
       });
       BAR_INPUT.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") { e.preventDefault(); commitCode(BAR_INPUT.value); BAR_INPUT.blur(); }
+        if (e.key === "Enter" && GO) {
+          // Enter twice = the button: the first reads the code and opens
+          // the words out, the second presses it (even before the read is
+          // back — it's queued). Focus stays in the box for the second.
+          e.preventDefault();
+          var s = slugify(BAR_INPUT.value);
+          if (s && go.open && go.peek && go.peek.code === s) goClick();
+          else if (s && go.reading === s) go.thenGo = true;
+          else commitCode(BAR_INPUT.value);
+        }
+        else if (e.key === "Enter") { e.preventDefault(); commitCode(BAR_INPUT.value); BAR_INPUT.blur(); }
         else if (e.key === "Escape" && GO && go.open) setGo(go.mode, false);
       });
     }
@@ -273,7 +286,14 @@
       if (joining || (joined && c === code)) { if (GO) setGo("open", false); return; }
       // the open button reads the code and opens out; nothing is left or
       // joined until it's clicked
-      if (GO) { peekCode(c, function (p) { setGo(modeOf(p), true); }); return; }
+      if (GO) {
+        go.reading = c; go.thenGo = false;
+        peekCode(c, function (p) {
+          go.reading = null; setGo(modeOf(p), true);
+          if (go.thenGo) { go.thenGo = false; goClick(); }
+        });
+        return;
+      }
       if (joined) leaveTable();
       var seq = ++peekSeq;
       T.peek(c).then(function (p) {
@@ -356,7 +376,7 @@
        opens under S.guestName; a taken name comes in as "Name 2". Either
        way a seated arrival lands in its seat's rename editor. */
     var GO = null, goText = null, goSvg = null;
-    var go = { mode: "open", open: false, peek: null, busy: false };
+    var go = { mode: "open", open: false, peek: null, busy: false, reading: null, thenGo: false };
     var renameOnSeat = false, nameBase = "", nameTry = 0;
     var entrance = null;     // the unfurl + wave, while it plays
     // made-up codes: word-word, read aloud easily, never a table that exists
@@ -410,7 +430,7 @@
         if (seq !== peekSeq || joining) return;
         go.peek = { code: c, p: p };
         then(p);
-      }).catch(function () { if (seq === peekSeq) toast(S.peekFailed, "error"); });
+      }).catch(function () { go.reading = null; go.thenGo = false; if (seq === peekSeq) toast(S.peekFailed, "error"); });
     }
     function freshCode(tries) {
       var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
@@ -426,13 +446,14 @@
       var c = slugify(BAR_INPUT.value);
       if (joined && c === code) return;
       go.busy = true; peekSeq++;     // any Enter read still in flight is moot
+      go.reading = null; go.thenGo = false;
       var read = c ? T.peek(c).then(function (p) { return { c: c, p: p }; })
                    : freshCode().then(function (fc) { return { c: fc, p: null }; });
       var moved = new Promise(function (res) { goMotion(go.mode, res); });
       var done = function () { go.busy = false; if (!joined) entrance = null; };
       Promise.all([read, moved]).then(function (r) {
         var cc = r[0].c, mode = modeOf(r[0].p);
-        BAR_INPUT.value = cc;
+        BAR_INPUT.value = cc; BAR_INPUT.blur();   // the caret leaves the title once you go
         if (joined) leaveTable();
         var who = storedName();
         nameBase = who || S.guestName; nameTry = 1;
