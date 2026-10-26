@@ -89,6 +89,37 @@
 .gt-code__input::placeholder { color: var(--subtext); opacity: 0.7; }
 .gt-code__input:focus { border-bottom-color: var(--title); }
 .gt-code__pop { top: calc(100% + var(--space-1)); left: 0; min-width: 12rem; --pop-origin: top left; }
+/* the open button (cfg.openButton): + for a new table, the sit glyph for
+   one that exists. It sits right-aligned in the bar, just left of the
+   toolbar (an empty toolbar steps out so the button is flush right), and
+   hides inside a table. Its words open out to the glyph's left on Enter
+   — a 0fr → 1fr slide whose hairline divider lives inside the clip, so
+   nothing of it shows while shut. */
+.gt-go { flex: none; gap: 0; margin-left: auto; }
+.gt-go[hidden] { display: none; }
+.gt-go ~ .sotd-toolbar:empty { display: none; }
+.gt-go__say {
+  display: grid; grid-template-columns: 0fr; opacity: 0;
+  transition: grid-template-columns var(--pop-in) var(--pop-ease), opacity var(--pop-in) var(--pop-ease);
+}
+.gt-go.is-open .gt-go__say { grid-template-columns: 1fr; opacity: 1; }
+.gt-go__clip { overflow: hidden; min-width: 0; }
+.gt-go__text {
+  display: block; white-space: nowrap;
+  margin-right: var(--space-2); padding: 0 var(--space-2) 0 var(--space-1);
+  border-right: 1px solid var(--border);
+}
+.gt-go.is-open { color: var(--title); border-color: var(--title); }
+.gt-go__icon [data-plus], .gt-go__icon [data-sit] {
+  transform-box: fill-box; transform-origin: center;
+  transition: opacity var(--dur-fast) var(--ease-ui), transform var(--pop-in) var(--pop-ease);
+}
+.gt-go__icon [data-spin] { transform-box: fill-box; transform-origin: center; }
+.gt-go[data-mode="open"] [data-sit],
+.gt-go[data-mode="sit"] [data-plus] { opacity: 0; transform: scale(0.4); }
+@media (prefers-reduced-motion: reduce) {
+  .gt-go__say, .gt-go__icon [data-plus], .gt-go__icon [data-sit] { transition: none; }
+}
 /* Look-change cover (chrome.css): a game board never rises; it only gets
    the veil. */
 .site-main { --boot-from-opacity: 1; --boot-from: none; }

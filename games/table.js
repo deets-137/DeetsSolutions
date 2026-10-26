@@ -240,9 +240,12 @@
       BAR_INPUT.addEventListener("input", function () {
         var slug = slugify(BAR_INPUT.value);
         BAR_INPUT.setAttribute("data-slug", slug && slug !== BAR_INPUT.value ? slug : "");
+        // a changed code is an unread one: back to the closed +
+        if (GO) setGo(go.peek && go.peek.code === slug ? modeOf(go.peek.p) : "open", false);
       });
       BAR_INPUT.addEventListener("keydown", function (e) {
         if (e.key === "Enter") { e.preventDefault(); commitCode(BAR_INPUT.value); BAR_INPUT.blur(); }
+        else if (e.key === "Escape" && GO && go.open) setGo(go.mode, false);
       });
     }
     var codeEntry = { ctrl: els.codeCtrl, pill: null, pop: CODE_POP };
@@ -267,7 +270,10 @@
       closePop();
       BAR_INPUT.value = c;
       BAR_INPUT.setAttribute("data-slug", "");
-      if (joining || (joined && c === code)) return;
+      if (joining || (joined && c === code)) { if (GO) setGo("open", false); return; }
+      // the open button reads the code and opens out; nothing is left or
+      // joined until it's clicked
+      if (GO) { peekCode(c, function (p) { setGo(modeOf(p), true); }); return; }
       if (joined) leaveTable();
       var seq = ++peekSeq;
       T.peek(c).then(function (p) {
@@ -334,12 +340,163 @@
       });
     }
 
+    /* ═══ OPEN BUTTON (cfg.openButton — mahjong first) ═════════════
+       One button beside the code stands in for the gate. Its glyph says
+       what Enter found: + for a code nobody holds, the sit glyph (line,
+       down arrow) for a table that exists — "Sit down" with a seat open,
+       "Spectate" without one (the worker still hands a returning token
+       its seat, as the gate's Rejoin did). Enter opens the words out
+       beside the glyph: that is the marker that the code was read. A
+       click acts: the + spins (the sit arrow dips), then the table
+       unfurls top-down and the lobby's rows arrive in a wave.
+
+       Inside a table the button is gone (the toolbar owns the bar); Enter
+       on a different code brings it back already open, and its click
+       moves you. An empty box makes up a fresh code. A guest with no name
+       opens under S.guestName; a taken name comes in as "Name 2". Either
+       way a seated arrival lands in its seat's rename editor. */
+    var GO = null, goText = null, goSvg = null;
+    var go = { mode: "open", open: false, peek: null, busy: false };
+    var renameOnSeat = false, nameBase = "", nameTry = 0;
+    var entrance = null;     // the unfurl + wave, while it plays
+    // made-up codes: word-word, read aloud easily, never a table that exists
+    var CODE_WORDS = [
+      ["jade", "amber", "coral", "ivory", "misty", "lucky", "quiet", "brisk", "sunny", "plum", "teal", "rusty"],
+      ["heron", "otter", "lotus", "maple", "comet", "harbor", "lantern", "pebble", "willow", "crane", "tiger", "finch"]
+    ];
+    function buildGo() {
+      GO = el("button", "tb-pill tb-pill--icon gt-go"); GO.type = "button";
+      var say = el("span", "gt-go__say");
+      var clip = el("span", "gt-go__clip");
+      goText = el("span", "gt-go__text");
+      clip.appendChild(goText); say.appendChild(clip); GO.appendChild(say);
+      goSvg = svgEl("svg", { class: "tb-pill__icon gt-go__icon", viewBox: "0 0 24 24", "aria-hidden": "true" });
+      var plus = svgEl("g", { "data-plus": "" }), spin = svgEl("g", { "data-spin": "" });
+      spin.appendChild(svgEl("path", { d: "M12 5v14M5 12h14" }));
+      plus.appendChild(spin); goSvg.appendChild(plus);
+      // the toolbar's sit glyph, drawn again: toolbar glyphs move between pills
+      var sit = svgEl("g", { "data-sit": "" });
+      sit.appendChild(svgEl("path", { d: "M5 4.5h14" }));
+      var down = svgEl("g", { "data-down": "" });
+      down.appendChild(svgEl("path", { d: "M12 9v11M8 16l4 4 4-4" }));
+      sit.appendChild(down); goSvg.appendChild(sit);
+      goSvg._turns = 0;
+      GO.appendChild(goSvg);
+      GO.addEventListener("click", goClick);
+      // right-aligned in the bar, just left of the toolbar (table.css)
+      TOOLBAR.parentNode.insertBefore(GO, TOOLBAR);
+      setGo("open", false);
+    }
+    if (cfg.openButton && BAR_INPUT && TOOLBAR) buildGo();
+    function modeOf(p) {
+      if (!p || !p.exists) return "open";
+      return p.phase === "lobby" && p.seated < p.capacity ? "sit" : "watch";
+    }
+    function setGo(mode, open) {
+      if (!GO) return;
+      go.mode = mode; go.open = !!open;
+      GO.setAttribute("data-mode", mode === "open" ? "open" : "sit");
+      GO.classList.toggle("is-open", go.open);
+      // inside a table the toolbar owns the bar; the button comes back only
+      // when Enter reads a DIFFERENT code (open, so one click moves you)
+      GO.hidden = joined && !go.open;
+      var word = mode === "sit" ? S.sitButton : mode === "watch" ? S.watchButton : S.openPrompt;
+      goText.textContent = word;
+      GO.title = word; GO.setAttribute("aria-label", word);
+    }
+    function peekCode(c, then) {
+      var seq = ++peekSeq;
+      T.peek(c).then(function (p) {
+        if (seq !== peekSeq || joining) return;
+        go.peek = { code: c, p: p };
+        then(p);
+      }).catch(function () { if (seq === peekSeq) toast(S.peekFailed, "error"); });
+    }
+    function freshCode(tries) {
+      var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+      var c = pick(CODE_WORDS[0]) + "-" + pick(CODE_WORDS[1]);
+      return T.peek(c).then(function (p) { return p.exists && (tries || 0) < 6 ? freshCode((tries || 0) + 1) : c; });
+    }
+    /* A click always reads the code AFRESH, alongside the glyph's motion:
+       a remembered read goes stale (the table closed since Enter, or the
+       code is the one left in the box after leaving), and acting on one
+       tried to JOIN a table that was gone — "No such table." */
+    function goClick() {
+      if (go.busy || joining) return;
+      var c = slugify(BAR_INPUT.value);
+      if (joined && c === code) return;
+      go.busy = true; peekSeq++;     // any Enter read still in flight is moot
+      var read = c ? T.peek(c).then(function (p) { return { c: c, p: p }; })
+                   : freshCode().then(function (fc) { return { c: fc, p: null }; });
+      var moved = new Promise(function (res) { goMotion(go.mode, res); });
+      var done = function () { go.busy = false; if (!joined) entrance = null; };
+      Promise.all([read, moved]).then(function (r) {
+        var cc = r[0].c, mode = modeOf(r[0].p);
+        BAR_INPUT.value = cc;
+        if (joined) leaveTable();
+        var who = storedName();
+        nameBase = who || S.guestName; nameTry = 1;
+        renameOnSeat = !who && mode !== "watch";
+        entrance = { pending: true };
+        return joinTable(cc, nameBase, mode === "open", mode === "watch");
+      }).then(done, function () { done(); toast(S.peekFailed, "error"); });
+    }
+    // + turns a quarter and keeps it (four arms: it always rests square);
+    // the sit arrow dips toward the seat. The table comes after either.
+    function goMotion(mode, then) {
+      if (reducedMotion() || !goSvg.animate) { then(); return; }
+      var m = motionToken("--icon-spring"), a;
+      if (mode === "open") {
+        var g = goSvg.querySelector("[data-spin]");
+        var from = goSvg._turns * 90, to = (++goSvg._turns) * 90;
+        g.style.transform = "rotate(" + to + "deg)";
+        a = g.animate([{ transform: "rotate(" + from + "deg)" }, { transform: "rotate(" + to + "deg)" }],
+          { duration: m.ms, easing: m.easing });
+      } else {
+        a = goSvg.querySelector("[data-down]").animate([
+          { transform: "translateY(0)", easing: "ease-out" },
+          { transform: "translateY(" + pxToken("--icon-part") + "px)", offset: 0.35, easing: m.easing },
+          { transform: "translateY(0)" }
+        ], { duration: m.ms * 1.4 });
+      }
+      a.onfinish = then;
+    }
+    /* The arrival, run from render(): the table unfurls top-down (a clip
+       opening), then the lobby's rows arrive one after the next. Every
+       broadcast rebuilds the lobby, so each pass gives the NEW rows the
+       same animations pinned to the same start time — a rebuild
+       mid-wave picks up exactly where the old nodes were. */
+    function runEntrance() {
+      if (entrance.pending) {
+        entrance.pending = false;
+        if (reducedMotion() || !TABLE.animate || !document.timeline) { entrance = null; return; }
+        var u = motionToken("--unfurl");
+        entrance.t0 = document.timeline.currentTime;
+        entrance.unfurl = u.ms;
+        TABLE.animate([{ clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0 0)" }],
+          { duration: u.ms, easing: u.easing });
+      }
+      var items = TABLE.querySelectorAll(".gt-lobby > :not(.gt-lobby__seats), .gt-lobby__seats > *");
+      var w = motionToken("--wave-in"), step = motionToken("--wave-step").ms, shift = pxToken("--pop-shift");
+      if (document.timeline.currentTime - entrance.t0 > entrance.unfurl + items.length * step + w.ms) { entrance = null; return; }
+      // ONE keyframe: each row eases to its OWN resting look. An explicit
+      // opacity:1 end lit the dimmed rows (open seats, a disabled Start)
+      // and then snapped them back — a second wave of light behind the first
+      Array.prototype.forEach.call(items, function (n, k) {
+        var a = n.animate([
+          { opacity: 0, transform: "translateY(-" + shift + "px)", offset: 0 }
+        ], { duration: w.ms, easing: w.easing, delay: entrance.unfurl + k * step, fill: "backwards" });
+        a.startTime = entrance.t0;
+      });
+    }
+
     /* ── join / leave ─────────────────────────────────────────────── */
     function joinTable(c, who, create, asSpectator) {
       if (joining || (joined && c === code)) return Promise.resolve();
       joining = true; peekSeq++;
       return T.connect(c, { name: who, create: !!create, token: deviceToken() }).then(function (cn) {
         joining = false; conn = cn; code = c; joined = true; logLines.length = 0;
+        nameTry = 0; setGo("open", false);
         cn.onMessage(onMessage);
         if (cn.onStatus) cn.onStatus(function (s) {
           if (!joined) return;
@@ -355,6 +512,15 @@
       }).catch(function (err) {
         joining = false;
         var ec = err && err.code;
+        // the open button never stops at a taken name: it lets you in as
+        // "Name 2" (then 3, …) and, if you're sitting, opens your seat's
+        // rename editor so you fix it in place — arrival animation and all
+        if (ec === "name-taken" && nameTry && nameTry < 9) {
+          nameTry++;
+          if (!asSpectator) renameOnSeat = true;
+          return joinTable(c, nameBase + " " + nameTry, create, asSpectator);
+        }
+        nameTry = 0;
         if (ec === "name-taken") { renderGate(c, { exists: true, phase: "lobby", seated: 0, capacity: cfg.capacity, spectators: 0 }, true); return; }
         if (ec === "replaced") { toast(S.replacedToast, "error", { sticky: true }); return; }
         toast(ec === "no-table" ? S.noTable : ec === "full" ? S.tableFull : S.peekFailed, "error");
@@ -366,7 +532,8 @@
       if (connToast) { connToast.dismiss(); connToast = null; }
       clearGraceToasts();
       stopTitleFlash();     // the tab is nobody's turn now — give the title back
-      wantSit = false; createdTable = false;
+      wantSit = false; createdTable = false; renameOnSeat = false;
+      setGo("open", false);     // out of the table: the button is back
       ui.colorOpen = ui.colorDraft = ui.botEdit = ui.botDraft = null;
       ui.botFocus = false; ui.settingsPinned = false;
       if (hook("onLeave")) cfg.onLeave();
@@ -428,6 +595,11 @@
       // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator in
       // the lobby; take a seat once (the toolbar's Sit/Stand governs after)
       if (wantSit && model.phase === "lobby" && mySeat() == null) { wantSit = false; send({ type: "sit" }); }
+      // a guest opened under the stand-in name: once seated, their own
+      // rename editor is open and focused (the open button's arrival)
+      if (renameOnSeat && model.phase === "lobby" && mySeat() != null) {
+        renameOnSeat = false; ui.botEdit = mySeat(); ui.botDraft = null; ui.botFocus = true;
+      }
       // sticky rejoin pref: a table I just created adopts my remembered
       // policy once — the host can still flip it in the lobby afterwards
       if (createdTable && model.phase === "lobby" && model.host) {
@@ -528,6 +700,7 @@
       if (narrow) { TABLE.hidden = true; DESKTOP.hidden = false; DESKTOP.textContent = S.desktopOnly; return; }
       DESKTOP.hidden = true; TABLE.hidden = false; GATE.hidden = true;
       cfg.render();
+      if (entrance) runEntrance();
       restoreScroll(TABLE, top);
       restoreFocus(TABLE, caret);
     }

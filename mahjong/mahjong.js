@@ -61,6 +61,7 @@
     minSeats: 4,
     narrowOk: true,   // WIP: no desktop-only note while the narrow layout is designed
     iconToolbar: true,   // Invite / Settings / Leave as icons (games/table.js)
+    openButton: true,    // the code's + / sit button stands in for the gate (games/table.js)
     startNeedsHint: S.startNeedsFour,
     errExtra: { loc: S.errLoc },
     /* fields the worker omits when absent must clear, not linger */

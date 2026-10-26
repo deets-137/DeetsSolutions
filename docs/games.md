@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, styles/table.css]
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 # Deets games — the shared foundation
 
@@ -827,6 +827,10 @@ What you should NOT have to write: identity, recents, the code combobox, the
 gate, join/leave, reconnect, version resync, the lobby, bots, seat colors,
 the seat accent, the turn timer and its readouts, kick, host fallback, the
 toolbar, grace countdowns, the alarm, the fuse, or any of their CSS.
+Two opt-in flags restyle that chrome: `iconToolbar` (icon pills) and
+`openButton` (one + / sit button beside the code in place of the gate, with
+the unfurl-and-wave arrival). Mahjong uses both; see
+[mahjong.md](mahjong.md), "The open button".
 
 If you catch yourself writing one of those, the answer is already in
 `games/table.js`, `games/table-do.js` or `styles/table.css` — go find it

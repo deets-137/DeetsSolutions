@@ -331,7 +331,29 @@ DeetsMusicWindows' title bar (16px, 24-unit grid, 1.6 stroke; the cog is
 its path verbatim and turns `--cog-step` per click, never unwinding; the
 links part and rejoin; the arrow flies out before the table is left).
 Tokens: `--icon-*` / `--cog-step` in `skin.css`. Glyph nodes are built
-once and moved into each toolbar rebuild so a Web Animation survives it. The tile rectangle stays fixed; the shell's `fitLog` drops its
+once and moved into each toolbar rebuild so a Web Animation survives it.
+
+**The open button (2026-10-26, his design).** Mahjong opts into the shell's
+`openButton`, which replaces the gate with one button, right-aligned in the
+bar. It shows **+** for a code nobody holds and the sit glyph for a table that
+exists. Inside a table it is gone (the toolbar owns the bar) until Enter reads
+a different code.
+Enter reads the code and opens the words out to the glyph's left: "Open
+table?", "Sit down", or "Spectate" when no seat is open (the worker still
+hands a returning token its seat). A click spins the + a quarter turn (the
+sit arrow dips instead). Then the table unfurls top-down (`--unfurl`) and the
+lobby's rows wave in (`--wave-in`, `--wave-step`). Each rebuild pins the new
+rows' animations to the same start time, so a broadcast mid-wave doesn't
+restart it. Each row animates from one keyframe to its own resting opacity:
+an explicit `opacity: 1` end once lit the dimmed rows (open seats, a disabled
+Start) and snapped them back, a second wave. A click always reads the code
+again: a remembered read went stale after a table closed, and the + tried to
+join it ("No such table."). An empty box makes up a word-word code
+(`jade-heron`). A guest with no name opens as "Guest". A taken name comes in
+as "Name 2" (then 3, …). Either way, a seated arrival lands with its seat's
+rename editor open.
+
+The tile rectangle stays fixed; the shell's `fitLog` drops its
 height lock once the log sits below the board. Below 56rem the table is
 still swapped for the "needs a wider screen" note (shared shell). Contents:
 

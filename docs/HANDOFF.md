@@ -69,6 +69,13 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-26 — BUILT on `maw-polish` (unpushed): mahjong's open button + the seat-row
+height fix.** Seat rows hold one height through Add Bot / Confirm in every skin
+(8a98f8e). The gate is replaced by a + / sit button beside the code, with spin →
+unfurl → wave ([mahjong.md](mahjong.md), "The open button"). `skin.css` gained
+`--unfurl` / `--wave-*`, so the skin and chrome stamps moved to 2026-10-26. Next: his
+visual pass, then merge. Other games keep the gate until they opt into `openButton`.
+
 **2026-10-26 — SHIPPED: mahjong tile flights + headless dev tooling, `tile-flights`
 fast-forwarded into `master` (0914315) and pushed. His visual pass is done (looks good,
 same day).** Discards,

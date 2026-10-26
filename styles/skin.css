@@ -185,6 +185,12 @@
   --pop-scale:   0.97;                /* a panel's size as it starts to arrive */
   --pop-ease:    cubic-bezier(0.2, 0.8, 0.2, 1); /* fast start, soft stop */
 
+  /* -- a table arriving (games/table.js, the open button): the panel
+        unfurls top-down, then its rows come in one after the next -- */
+  --unfurl:      0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --wave-in:     0.36s cubic-bezier(0.2, 0.8, 0.2, 1); /* one row arriving */
+  --wave-step:   0.045s;              /* the next row's head start */
+
   /* -- cover wave: a first screen of covers arrives (js/covers.js, DeetsMusic's) -- */
   --reveal-cap:  1.5s;                /* the longest the covers are waited for */
   --reveal-span: 0.5s;                /* the whole wave, first tile to last, at any count */
