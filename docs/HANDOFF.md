@@ -69,6 +69,15 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-25 — SHIPPED: `maw-jawng` merged to `master` (758dc33) and the worker deployed.**
+The site's whole branch is live (Pages): the narrow-width work, Beginner chick, one stage,
+seams and waves below, plus the dev driver (tooling.md). `deets-mahjong` deployed from the
+worker's `maw-jawng` (384ec06, version `1c02e608`) after re-vendoring `table-do.js` (the
+seat/player name split; the earlier "uncommitted" re-vendor had not survived);
+`vendor.mjs --check` clean, engine 80/80, live peek 200. OPEN: the worker repo's own
+`master` is still at 2f7b2c0 — fast-forward it to `maw-jawng` and push (my push to it was
+blocked; his call). Next session: his polish pass on the seams and waves.
+
 **2026-10-25 — Mahjong phase seams + nested waves (branch `maw-jawng`).** Every phase fills
 one stage, so a phase change now moves only the dividers: ghosts of the old panels dissolve
 over the new layout, a panel spanning an old divider fills it in, shadows crossfade under
@@ -86,7 +95,7 @@ player name is unique among live connections and a seat name among seats; neithe
 other, and a seat whose occupant joined under another name shows "Seat (Player)" via the
 view's `player` + the shell's `seatLabel` (games.md, "Identity and rejoin"). DONE in
 `games/table-do.js`, `table-mock.js`, `table.js`, tanks' roster; mock-tested. Re-vendored to
-`../DeetsMahjong` (uncommitted, not deployed). OPEN: DeetsCities (on `accounts`), DeetsPoker
+`../DeetsMahjong` and DEPLOYED 2026-10-25 (see the entry above). OPEN: DeetsCities (on `accounts`), DeetsPoker
 and DeetsShips run table-do copies several revisions behind, so they need a full catch-up
 re-vendor (archive, away seats, `timerBonus` come along), not a one-file copy.
 
@@ -98,11 +107,11 @@ log), and `fitLog` (`games/table.js`) drops its lock when the log sits under the
 then get "needs a wider screen", holding a live seat that never turns bot; with the timer Off
 the table waits forever. Shared shell, so every game has it. (2) The phone/narrow layout
 itself: next, in chat with him: what's optional, what wraps, what folds into collapsibles.
-UPDATE 2026-10-25 (committed + pushed on `maw-jawng`, not merged): mahjong's minimum width lifted (`narrowOk`);
+UPDATE 2026-10-25 (merged to `master` and live, worker deployed — see the top entry): mahjong's minimum width lifted (`narrowOk`);
 icon toolbar (`iconToolbar`: link / cog / door, DeetsMusicWindows' glyph + motion standard);
 "Art" deck pill; the rack merges into your seat zone below 64rem; the narrow lobby sheds its
 side tiles; faan cap row removed (fixed 13); mock stand-in players (`standIns`); and the
-**Beginner chick** (mahjong.md, "Decisions"). Worker PORTED, NOT DEPLOYED (committed + pushed
+**Beginner chick** (mahjong.md, "Decisions"). Worker PORTED, DEPLOYED 2026-10-25 (committed + pushed
 on `../DeetsMahjong`'s own `maw-jawng` branch, cut from `master` 2026-10-25): engine + table-do re-vendored (table-do brings
 cities' inert `deadlineBonusMs`), `setBeginner` / view `beginner` / `createGame(seated)`
 `beginners`; smoke-tested against a local `wrangler dev`. Ship order: commit the worker,
