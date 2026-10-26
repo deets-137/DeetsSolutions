@@ -74,9 +74,9 @@ The site's whole branch is live (Pages): the narrow-width work, Beginner chick, 
 seams and waves below, plus the dev driver (tooling.md). `deets-mahjong` deployed from the
 worker's `maw-jawng` (384ec06, version `1c02e608`) after re-vendoring `table-do.js` (the
 seat/player name split; the earlier "uncommitted" re-vendor had not survived);
-`vendor.mjs --check` clean, engine 80/80, live peek 200. OPEN: the worker repo's own
-`master` is still at 2f7b2c0 — fast-forward it to `maw-jawng` and push (my push to it was
-blocked; his call). Next session: his polish pass on the seams and waves.
+`vendor.mjs --check` clean, engine 80/80, live peek 200. The worker repo's `master` is
+fast-forwarded to it too (384ec06, pushed). Next session: his polish pass on the seams
+and waves.
 
 **2026-10-25 — Mahjong phase seams + nested waves (branch `maw-jawng`).** Every phase fills
 one stage, so a phase change now moves only the dividers: ghosts of the old panels dissolve
