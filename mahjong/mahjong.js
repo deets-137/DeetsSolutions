@@ -73,12 +73,18 @@
       toolbar: TOOLBAR, gate: GATE, table: TABLE, big: BIG, log: LOG, desktop: DESKTOP
     },
     onModel: function (m) { model = m; },
-    beforeMerge: function (isSnapshot) { if (isSnapshot) seen = null; },
+    beforeMerge: function (isSnapshot) { if (isSnapshot) { TQ.batch = []; tqFinish(false); } },
     onEvent: handleEvent,
-    logLine: logLine,
+    logLine: function (e) {
+      var line = logLine(e);
+      if (line && e._hold) line.hold = e._hold;   // shown once its tile lands (tile flights)
+      return line;
+    },
+    postEvents: function () { choreograph(); },   // the batch's steps hold their pieces BEFORE the render
     blockRender: function () { return dragActive; },   // a rack drag owns the DOM until it drops
     render: paint,
-    postRender: function () { FLY.flush(); },   // chips launch AFTER render: their targets exist now
+    // chips and tile flights launch AFTER render: their targets exist now
+    postRender: function () { FLY.flush(); tqPump(); },
     onLeave: onLeave,
     onRematch: resetGameUi,
     extraPills: function () { return [deckPill()]; },
@@ -111,7 +117,6 @@
   var lastActor = null;
   var tumbleHandle = null, nextHandTick = null;
   var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
-  var seen = null;        // previous render's ponds/melds/flowers — new pieces animate in
   var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
 
 
@@ -284,6 +289,10 @@
      guard and the gate/table visibility are settled (games/table.js) */
   function paint() {
     var wasPhase = paintedPhase;
+    // the rack as it stood, so the tiles that stay can slide to their new places
+    var rackWas = wasPhase === model.phase && !TQ.noFlip ? snapRack() : null;
+    TQ.noFlip = false;
+    HOLD = tqHolds();
     var before = seamBefore();
     TABLE.dataset.phase = model.phase;   // CSS hook: the narrow lobby sheds the side tiles
     renderBig();
@@ -295,10 +304,11 @@
     renderRole();
     renderGuide();
     fitLog();
+    flipRack(rackWas);
+    tqSweep();
     seamShift(before);
     waveStart(wasPhase);
     waveApply();
-    snapshotSeen();
   }
   /* ── phase seams: every phase fills one stage, so lobby → seating →
      play → over → lobby only moves the dividers between panels. The
@@ -633,8 +643,10 @@
     WALL.hidden = !inHand;
     if (!inHand) return;
     // the tiles-left tip covers the wall readout only — as the narrow bar
-    // the tile also carries the seat boxes and Log, each with its own
-    var tip = fmt(S.wallLeftTip, { n: model.wallLeft != null ? model.wallLeft : 0 });
+    // the tile also carries the seat boxes and Log, each with its own.
+    // A tile still waiting to lift off the wall still counts (tile flights).
+    var left = model.wallLeft != null ? model.wallLeft + HOLD.front + HOLD.back : null;
+    var tip = fmt(S.wallLeftTip, { n: left != null ? left : 0 });
     var bar = MERGE_MQ.matches;
     WALL.title = bar ? "" : tip;
     var back = backEl("mini");
@@ -642,7 +654,7 @@
     WALL.appendChild(back);
     var col = el("div", "mj-wallpanel");
     if (bar) col.title = tip;
-    col.appendChild(el("div", "mj-wallpanel__count", model.wallLeft != null ? fmt(S.wallLeft, { n: model.wallLeft }) : "–"));
+    col.appendChild(el("div", "mj-wallpanel__count", left != null ? fmt(S.wallLeft, { n: left }) : "–"));
     col.appendChild(el("div", "mj-wallpanel__round", fmt(S.roundLine, { wind: windLabel(model.round.prevailing), n: model.round.hand })));
     WALL.appendChild(col);
     if (MERGE_MQ.matches) { WALL.appendChild(barSeats()); WALL.appendChild(barLog()); }
@@ -684,7 +696,7 @@
     wrap.appendChild(b);
     var pop = el("div", "tb-pop mj-logpop"); pop.hidden = true;
     var list = el("div", "mj-log__list");
-    logLines.slice(-50).forEach(function (entry) { list.appendChild(logLineEl(entry)); });
+    shownLines().forEach(function (entry) { list.appendChild(logLineEl(entry)); });
     pop.appendChild(list);
     wrap.appendChild(pop);
     function show() { pop.hidden = false; list.scrollTop = list.scrollHeight; }
@@ -1009,19 +1021,23 @@
       var dir = pos === "left" ? "l" : "r";
       var backs = null;
       if (seat !== mySeat()) {
+        // a tile on its way out still sits in the hand; one on its way in
+        // keeps a hidden slot at the end of the row (tile flights)
         backs = el("div", "mj-zone__backs");
-        for (var i = 0; i < p.handCount; i++) backs.appendChild(backEl("mini"));
+        var incoming = HOLD.into[seat] || [];
+        var nb = p.handCount + (HOLD.out[seat] || 0);
+        for (var i = 0; i < nb; i++) {
+          var bk = backEl("mini");
+          var inIdx = i - (nb - incoming.length);
+          if (inIdx >= 0) pending(bk, incoming[inIdx]);
+          backs.appendChild(bk);
+        }
       }
 
       // melds + flowers, face up — side seats sit AT the table: everything
       // sideways, melds running down a second column beside the hand
       var mrow = el("div", "mj-zone__melds" + (isSide ? " mj-zone__melds--side" : ""));
-      p.melds.forEach(function (m) { mrow.appendChild(meldEl(m, "mini", isSide ? dir : null)); });
-      p.flowers.forEach(function (f) {
-        var fe = tileEl(f, "mini");
-        fe.classList.add("mj-tilef--flower");
-        mrow.appendChild(isSide ? rotWrap(fe, dir) : fe);
-      });
+      appendMeldsFlowers(mrow, seat, isSide ? dir : null);
       if (isSide) {
         var body = el("div", "mj-zone__sidebody");
         if (backs) body.appendChild(backs);
@@ -1070,8 +1086,9 @@
     wrap.appendChild(felt);
     felt.setAttribute("data-mj-center", "");
     var drawn = model.wallLeft != null ? 144 - model.wallLeft : 0;
-    var rear = model.wallLeft != null ? (model.wallBack || 0) : 0;
-    var front = drawn - rear;
+    var rear = model.wallLeft != null ? Math.max(0, (model.wallBack || 0) - HOLD.back) : 0;
+    // a draw still waiting its turn leaves its tile on the wall (tile flights)
+    var front = Math.max(0, drawn - (model.wallBack || 0) - HOLD.front);
     var brk = breakStackIndex();
     var sides = {};
     SIDE_ORDER.forEach(function (pos) { sides[pos] = el("div", "mj-wall__side mj-wall__side--" + pos); });
@@ -1097,15 +1114,22 @@
     // the shared pond: every discard in play order; hover names the thrower
     var pond = el("div", "mj-felt__pond");
     pond.setAttribute("data-mj-pond", "");
+    // A discard in flight keeps a hidden slot; a claimed tile stays in the
+    // pond until it lifts off toward the claimant's melds (tile flights).
     var entries = model.pond || [];
     entries.forEach(function (d, idx) {
       var te = tileEl(d.tile, "mini");
       te.title = fmt(S.pondTip, { name: seatName(d.seat) });
       var isNewest = idx === entries.length - 1;
-      if (isNewest && !(seen && seen.pondN != null && idx < seen.pondN)) te.classList.add("is-fresh");
       if (isNewest && model.claims && model.claims.from === d.seat && !model.claims.robbing) te.classList.add("is-hot");
+      if (HOLD.pond[idx]) pending(te, HOLD.pond[idx]);
       pond.appendChild(te);
     });
+    if (HOLD.claim) {
+      var ct = tileEl(HOLD.claim.tile, "mini");
+      ct.setAttribute("data-step-from", HOLD.claim.id);
+      pond.appendChild(ct);
+    }
     if (model.needBreak) {
       pond.appendChild(el("p", "mj-felt__note",
         dealerSeat() === mySeat() ? S.breakPromptYou : fmt(S.breakPrompt, { name: seatName(dealerSeat()) })));
@@ -1138,15 +1162,23 @@
     for (var k = 0; k < n; k++) put(tileEl(m.tile, size));
     return wrap;
   }
-  // pond/meld/flower counts snapshot — the next render's "what's new" diff
-  function snapshotSeen() {
-    if (!model || !model.players) { seen = null; return; }
-    var s = { pondN: (model.pond || []).length, melds: {}, flowers: {} };
-    model.players.forEach(function (p, i) {
-      s.melds[i] = p.melds.length;
-      s.flowers[i] = p.flowers.length;
+  // a seat's face-up melds then flowers, into a zone's row or my rack's.
+  // One still in flight keeps its place hidden until it lands (tile flights).
+  function appendMeldsFlowers(row, seat, dir) {
+    var p = model.players[seat];
+    var hm = HOLD.meld[seat] || {}, hf = HOLD.flower[seat] || {};
+    p.melds.forEach(function (m, i) {
+      var me = meldEl(m, "mini", dir);
+      if (hm[i]) pending(me, hm[i]);
+      row.appendChild(me);
     });
-    seen = s;
+    p.flowers.forEach(function (f, i) {
+      var fe = tileEl(f, "mini");
+      fe.classList.add("mj-tilef--flower");
+      var node = dir ? rotWrap(fe, dir) : fe;
+      if (hf[i]) pending(node, hf[i]);
+      row.appendChild(node);
+    });
   }
 
   /* ── hand-over settlement (overlays the board tile) ───────────── */
@@ -1515,7 +1547,7 @@
       var stat = el("div", "mj-pstrip__stat" + (model.players ? "" : " is-ghost"));
       var p = model.players && model.players[i];
       stat.appendChild(el("span", "mj-pstrip__vp", fmt(S.scoreShort, { n: p ? p.score : 0 })));
-      stat.appendChild(el("span", "mj-pstrip__cards", fmt(S.tilesShort, { n: p ? p.handCount : 0 })));
+      stat.appendChild(el("span", "mj-pstrip__cards", fmt(S.tilesShort, { n: p ? shownCount(i) : 0 })));
       strip.appendChild(stat);
       PLAYERS.appendChild(strip);
     });
@@ -1536,10 +1568,14 @@
   function renderLog() {
     LOG.textContent = "";
     var list = el("div", "mj-log__list");
-    logLines.slice(-50).forEach(function (entry) { list.appendChild(logLineEl(entry)); });
+    shownLines().forEach(function (entry) { list.appendChild(logLineEl(entry)); });
     LOG.appendChild(list);
     list.scrollTop = list.scrollHeight;
     requestAnimationFrame(function () { list.scrollTop = list.scrollHeight; });
+  }
+  // a discard's, flower's or claim's line waits for its tile to land
+  function shownLines() {
+    return logLines.filter(function (entry) { return !(entry.hold && entry.hold.pending); }).slice(-50);
   }
   function logLineEl(entry) {
     if (entry.divider) return el("div", "mj-log__turn", entry.divider);
@@ -1560,7 +1596,8 @@
     if (!CLAIM) return;
     var cl = model.claims;
     var my = model.you && model.you.claims;
-    if (!cl || model.phase !== "play") { CLAIM.hidden = true; CLAIM.textContent = ""; return; }
+    // the dock opens once the discard has landed in the pond (tile flights)
+    if (!cl || model.phase !== "play" || HOLD.discard) { CLAIM.hidden = true; CLAIM.textContent = ""; return; }
     CLAIM.hidden = false; CLAIM.textContent = "";
     var box = el("div", "mj-claimbox" + (my ? " is-incoming" : ""));
     var title = el("h3", "mj-claimbox__title",
@@ -1663,23 +1700,18 @@
     ui.handOrder = manual ? order : null;
     order.forEach(function (t) { row.appendChild(rackTile(t, { tap: canDiscard && !manual, drag: manual, isDrawn: false })); });
     if (model.you && model.you.drawn != null) {
-      row.appendChild(rackTile(model.you.drawn, { tap: canDiscard && !manual, drag: manual, isDrawn: true }));
+      var dt = rackTile(model.you.drawn, { tap: canDiscard && !manual, drag: manual, isDrawn: true });
+      // still in flight from the wall: its slot waits, already tappable
+      if (HOLD.drawn) pending(dt, HOLD.drawn);
+      row.appendChild(dt);
     }
     rack.appendChild(row);
 
     // my melds + flowers under the hand — the row is ALWAYS present (its CSS
     // reserves one mini-tile row) so the rack doesn't grow when the first
     // flower or meld of the hand lands
-    var p = model.players && model.players[seat];
     var mrow = el("div", "mj-rack__melds");
-    if (p) {
-      p.melds.forEach(function (m) { mrow.appendChild(meldEl(m, "mini")); });
-      p.flowers.forEach(function (f) {
-        var fe = tileEl(f, "mini");
-        fe.classList.add("mj-tilef--flower");
-        mrow.appendChild(fe);
-      });
-    }
+    if (model.players && model.players[seat]) appendMeldsFlowers(mrow, seat, null);
     rack.appendChild(mrow);
 
     // Auto-Arrange toggle, bottom-right of the hand section — only while there's
@@ -1778,7 +1810,10 @@
     b.appendChild(tileEl(t, ""));
     b.title = tileName(t);
     b.disabled = !(o.tap || o.drag);
-    if (o.tap) b.addEventListener("click", function () { send({ type: "discard", tile: t }); });
+    if (o.tap) b.addEventListener("click", function () {
+      b.classList.add("is-lifting");   // rises at once; the flight takes it from here
+      send({ type: "discard", tile: t });
+    });
     if (o.drag) attachTileDrag(b, t, o.isDrawn);
     return b;
   }
@@ -1882,6 +1917,8 @@
         var srcIdx = wasEngaged && !isDrawn ? Array.prototype.filter.call(
           row.querySelectorAll(".mj-racktile"),
           function (n) { return !n.classList.contains("mj-racktile--drawn"); }).indexOf(btn) : -1;
+        // a tile dropped on the felt flies on from where it was let go
+        if (doDiscard) TQ.dropAt = { t: Date.now(), end: endOf(ghost, true) };
         dragActive = false;
         cleanup();
         if (!wasEngaged) return;                              // never crossed the threshold — a no-op tap
@@ -1917,17 +1954,26 @@
     return b;
   }
 
-  /* ── tile fly-ins (the shared chip layer, tile edition) ─────────
-     Client-only theater derived from the same typed events the log
-     consumes: a discard flies rack/zone → pond, a claimed tile pond →
-     the claimant's melds, a settlement flies score chips losers →
-     winner. The layer, the steering and the ease are games/flights.js;
-     what stays here is which events fly and where a seat's tiles are.
-     Mahjong runs a shorter, tighter flight than cities — a tile crosses
-     one table, not a whole page — and takes NO catch bump: the pond's
-     own is-fresh pop and the re-rendered zone already say "caught", and
-     bumping the container scaled a whole panel, which read as a flinch
-     every bot turn. */
+  /* ── tile flights: the table plays one move at a time ───────────
+     docs/mahjong.md, "Tile flights". A broadcast still renders the
+     instant it arrives; what it MOVED is presented in order. Each
+     discard, draw, flower and claimed tile becomes a step in TQ. While a
+     step waits, its origin keeps the tile (a back in the hand, a stack
+     on the wall, the claimed tile in the pond) and its destination keeps
+     a hidden slot; the renderers read both from HOLD (tqHolds). Then the
+     step lifts the tile, glides a copy of it from the tile's own
+     rectangle to its slot's, sets it down, and reveals the slot on the
+     frame the copy goes. Counts and log lines follow the landing. My own
+     discard or claim never waits: it finishes whatever is still playing
+     and goes at once. Client-only theater — the engine, the wire and the
+     model never wait for it.
+
+     The copy runs on Web Animations (transform and opacity only), so it
+     stays smooth while a bot's broadcast rebuilds the board under it. A
+     tile keeps its size: it lifts, rides a small hop (a scale-up for its
+     height off the table, with its shadow), and settles. The settlement's
+     score chips still ride the shared chip layer, pop and shrink and all
+     (games/flights.js). */
   var FLY = GameFlights.create({
     section: "section.mj",
     layerClass: "mj-flylayer",
@@ -1935,61 +1981,353 @@
     alive: function () { return !!model; }
   });
   var FLY_STEP = FLY.STEP;
-  var rectPoint = FLY.point;
-  function zonePoint(seat) { return rectPoint(BIG.querySelector('[data-zone="' + seat + '"]')); }
-  function pondPoint() { return rectPoint(BIG.querySelector("[data-mj-pond]")) || centerPoint(); }
-  function centerPoint() { return rectPoint(BIG.querySelector("[data-mj-center]")) || rectPoint(BIG); }
-  function wallFrontPoint() { return rectPoint(BIG.querySelector("[data-wall-front]")) || centerPoint(); }
-  function wallBackPoint() { return rectPoint(BIG.querySelector("[data-wall-back]")) || centerPoint(); }
-  function rackPoint() { return rectPoint(rackRow()); }
-  function stripPoint(seat) { return rectPoint(PLAYERS.querySelector('.mj-pstrip[data-seat="' + seat + '"]')) || rectPoint(PLAYERS); }
-  function seatSpot(seat) {
-    if (seat === mySeat()) return rackPoint() || stripPoint(seat);
-    return zonePoint(seat) || stripPoint(seat);
-  }
-  function chipTile(t) {
-    var c = el("span", "mj-flychip");
-    c.appendChild(t ? tileEl(t, "mini") : backEl("mini"));
-    return c;
-  }
+  function stripPoint(seat) { return FLY.point(PLAYERS.querySelector('.mj-pstrip[data-seat="' + seat + '"]')) || FLY.point(PLAYERS); }
   function chipScore() { return el("span", "mj-flychip mj-flychip--score"); }
   var launchChip = FLY.launch;
   var clearFlights = FLY.clear;
+
+  var TQ = {
+    steps: [],       // steps not yet landed, in play order
+    batch: [],       // this broadcast's events, until postEvents turns them into steps
+    running: null,   // the step in the air
+    beat: null,      // the pause after a landing, before the next step
+    seq: 0,
+    landed: [],      // copies whose slot is revealed; the next paint removes them
+    dropAt: null,    // where a dragged discard was let go
+    pondTail: null,  // the pond's newest tile (a chow's event names its low tile, not the claimed one)
+    noFlip: false    // a new hand: the rack arrives with the wave, not sliding
+  };
+  var HOLD = tqHolds();
+  var DRAW_K = [0.6, 0.7, 0.6];   // a draw's lift, glide and settle against a discard's
+  function flightsOn() {
+    return motionOk() && !document.hidden && !!model && model.phase === "play" && !!model.players;
+  }
+  function tokenPx(name) { return parseFloat(seamToken(name)) || 0; }
+  function pending(node, id) { node.classList.add("is-pending"); node.setAttribute("data-step", id); }
+  function release(e) { if (e._hold) e._hold.pending = false; }
+
+  /* what the waiting and flying steps keep back from the model's picture */
+  function tqHolds() {
+    var me = TQ.steps.length ? mySeat() : null;
+    var h = { front: 0, back: 0, pond: {}, claim: null, out: {}, into: {}, meld: {}, flower: {}, drawn: null, discard: false };
+    TQ.steps.forEach(function (s) {
+      var wait = s.state === "wait";
+      if (s.kind === "discard") {
+        h.pond[s.at] = s.id; h.discard = true;
+        if (wait && s.seat !== me) h.out[s.seat] = (h.out[s.seat] || 0) + 1;
+        return;
+      }
+      if (s.kind === "meld") {
+        if (wait) h.claim = { tile: s.tile, id: s.id };
+        (h.meld[s.seat] = h.meld[s.seat] || {})[s.at] = s.id;
+        // the claimant's own tiles leave the hand when the meld lands
+        if (s.seat !== me) h.out[s.seat] = (h.out[s.seat] || 0) + s.fromHand;
+        return;
+      }
+      if (wait) h[s.src]++;
+      if (s.kind === "flower") (h.flower[s.seat] = h.flower[s.seat] || {})[s.at] = s.id;
+      else if (s.seat === me) h.drawn = s.id;
+      else (h.into[s.seat] = h.into[s.seat] || []).push(s.id);
+    });
+    return h;
+  }
+  // a seat's tile count as the board shows it right now
+  function shownCount(seat) {
+    var n = model.players[seat].handCount + (HOLD.out[seat] || 0) - (HOLD.into[seat] || []).length;
+    return seat === mySeat() && HOLD.drawn ? n - 1 : n;
+  }
+
+  /* postEvents: this broadcast's moves become steps, before the render
+     that would otherwise show them all at once */
+  function choreograph() {
+    var evs = TQ.batch; TQ.batch = [];
+    var tail = TQ.pondTail;
+    var pond = (model && model.pond) || [];
+    TQ.pondTail = pond.length ? pond[pond.length - 1].tile : null;
+    if (!evs.length) return;
+    var me = mySeat();
+    var fresh = evs.some(function (e) { return /^(deal|nextHand|handOver|gameOver)$/.test(e.t); });
+    if (fresh || !flightsOn()) {
+      // a new hand (its wave carries it), a settlement, or no motion: as it stands
+      evs.forEach(release); tqFinish(false);
+      if (fresh) TQ.noFlip = true;
+      return;
+    }
+    if (me != null && evs.some(function (e) {
+      return e.seat === me && (e.t === "discard" || (e.t === "meld" && e.from != null));
+    })) tqFinish(false);
+    // where each piece lands: walk the model back to before this batch
+    var pondN = pond.length, fl = {}, md = {};
+    model.players.forEach(function (p, i) { fl[i] = p.flowers.length; md[i] = p.melds.length; });
+    evs.forEach(function (e) {
+      if (e.t === "discard") pondN--;
+      if (e.t === "flower") fl[e.seat]--;
+      if (e.t === "meld" && e.from != null) { pondN++; md[e.seat]--; }
+    });
+    // a turn's first draw comes off the front; a flower or a kong sends the next to the back
+    var fromBack = false;
+    evs.forEach(function (e) {
+      var s = null;
+      if (e.t === "discard") {
+        s = { kind: "discard", seat: e.seat, tile: e.tile, at: pondN++ };
+        if (e.seat === me) s.from = myDiscardFrom(e.tile);
+        tail = e.tile;
+      } else if (e.t === "draw") {
+        s = { kind: "draw", seat: e.seat, src: fromBack ? "back" : "front",
+              tile: e.seat === me && model.you ? model.you.drawn : null };
+        fromBack = false;
+      } else if (e.t === "flower") {
+        s = { kind: "flower", seat: e.seat, tile: e.tile, src: fromBack ? "back" : "front", at: fl[e.seat]++ };
+        fromBack = true;
+      } else if (e.t === "meld") {
+        if (/kong/.test(e.kind)) fromBack = true;
+        if (e.from != null && tail) {
+          s = { kind: "meld", seat: e.seat, tile: tail, fromHand: e.kind === "kong" ? 3 : 2,
+                at: md[e.seat]++ };
+          pondN--;
+          tail = pondN > 0 && pond[pondN - 1] ? pond[pondN - 1].tile : null;
+        }
+      }
+      if (!s) { release(e); return; }
+      s.id = "tq" + (++TQ.seq); s.state = "wait"; s.hold = e._hold || null;
+      TQ.steps.push(s);
+    });
+    TQ.dropAt = null;
+  }
+  // my discard leaves from the tile I tapped (risen already) or let go of
+  function myDiscardFrom(tile) {
+    if (TQ.dropAt && Date.now() - TQ.dropAt.t < 5000) return TQ.dropAt.end;
+    var row = rackRow();
+    if (!row) return null;
+    var sel = '[data-tile="' + tile + '"]';
+    var pick = row.querySelector(".mj-racktile.is-lifting " + sel) || row.querySelector(".mj-racktile--drawn " + sel);
+    if (!pick) { var all = row.querySelectorAll(".mj-racktile " + sel); pick = all[all.length - 1]; }
+    return endOf(pick);
+  }
+
+  /* a tile's place on screen: its centre, its upright size, its turn, and
+     how far it already stands off the table. Anything lying sideways (a
+     side seat's backs, a side wall's stacks) is an upright tile turned a
+     quarter, so a flight can turn it on the way. */
+  function endOf(node, airborne) {
+    if (!node) return null;
+    var t = node.classList.contains("mj-tilef") ? node : node.querySelector(".mj-tilef");
+    if (!t) return null;
+    var r = t.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var rot = 0, turned = t.closest(".mj-rots");
+    if (turned) rot = turned.classList.contains("mj-rots--r") ? -90 : 90;
+    else if (r.width > r.height) rot = t.closest(".mj-zone--right, .mj-wall__side--right") ? -90 : 90;
+    var lift = 0, btn = t.closest(".mj-racktile");
+    if (airborne) lift = Infinity;
+    else if (btn) {
+      var m = getComputedStyle(btn).transform;
+      if (m && m !== "none") lift = Math.max(0, -new DOMMatrixReadOnly(m).m42);
+    }
+    var cs = getComputedStyle(t);
+    return {
+      x: r.left + r.width / 2, y: r.top + r.height / 2,
+      w: rot ? r.height : r.width, h: rot ? r.width : r.height, rot: rot, lift: lift,
+      back: t.classList.contains("mj-tilef--back"),
+      mini: t.classList.contains("mj-tilef--mini") || t.classList.contains("mj-tilef--wall"),
+      radius: cs.borderRadius, edge: cs.borderBottomWidth
+    };
+  }
+  function tqFrom(s) {
+    if (s.kind === "discard") {   // a seat's hand: the last back still showing
+      var bs = BIG.querySelectorAll('.mj-zone[data-zone="' + s.seat + '"] .mj-zone__backs > .mj-tilef:not(.is-pending)');
+      return endOf(bs[bs.length - 1]);
+    }
+    if (s.kind === "meld") return endOf(BIG.querySelector('[data-step-from="' + s.id + '"]'));
+    return endOf(BIG.querySelector(s.src === "back" ? "[data-wall-back]" : "[data-wall-front]"));
+  }
+  function tqTo(s) {
+    var n = document.querySelector('.mj [data-step="' + s.id + '"]');
+    if (n && s.kind === "meld") n = n.querySelector('[data-tile="' + s.tile + '"]') || n.querySelector(".mj-tilef");
+    return endOf(n);
+  }
+
+  function tqPump() {
+    if (TQ.running || TQ.beat) return;
+    var waiting = TQ.steps.filter(function (s) { return s.state === "wait"; });
+    if (!waiting.length) return;
+    if (!flightsOn() || waiting.length > 8) { tqFinish(true); return; }
+    // more than a turn behind (a claim chain, a tab catching up): double time
+    tqRun(waiting[0], waiting.length > 2 ? 2 : 1);
+  }
+  function tqRun(s, rate) {
+    var from = s.from || tqFrom(s), to = tqTo(s);
+    if (!from || !to) { tqLand(s); return; }
+    var k = s.kind === "draw" || s.kind === "flower" ? DRAW_K : [1, 1, 1];
+    var m = { rise: tokenPx("--tile-rise"), drop: tokenPx("--tile-drop"), hop: tokenPx("--tile-hop") };
+    // a tile already partway up (tapped, dragged) only finishes its rise
+    var still = m.rise > 0 ? Math.max(0, 1 - from.lift / m.rise) : 1;
+    m.L = Math.max(1, tokenMs("--tile-lift") * k[0] / rate * still);
+    m.G = tokenMs("--tile-glide") * k[1] / rate;
+    m.S = tokenMs("--tile-settle") * k[2] / rate;
+    var c = tqCopy(from, to, s.tile);
+    FLY.layer().appendChild(c.node);
+    s.copy = c.node;
+    s.anims = tqAnimate(c, from, to, m);
+    s.state = "fly"; TQ.running = s;
+    // the origin lets go as the copy rises (my discard's tile is already gone)
+    if (!(s.kind === "discard" && s.seat === mySeat())) render();
+    s.anims[0].finished.then(function () { if (s.state === "fly") tqLand(s); }, function () {});
+    // A window Chrome has stopped rendering (covered, not "hidden") lets an
+    // animation reach its end without settling its promise, which would
+    // stall the queue. Timers still run there, so one checks in. A copy
+    // paused on purpose (the dev driver's stepped clock) is left alone.
+    (function watch() {
+      s.watch = setTimeout(function () {
+        if (s.state !== "fly") return;
+        if (s.anims[0].playState === "finished") tqLand(s); else watch();
+      }, m.L + m.G + m.S + 100);
+    })();
+  }
+  function tqLand(s) {
+    var i = TQ.steps.indexOf(s);
+    if (i >= 0) TQ.steps.splice(i, 1);
+    clearTimeout(s.watch);
+    s.state = "done";
+    if (s.hold) s.hold.pending = false;
+    if (s.copy) TQ.landed.push(s.copy);
+    if (TQ.running === s) TQ.running = null;
+    render();   // the slot shows its tile; this paint's sweep takes the copy on the same frame
+    var beat = s.kind === "discard" || s.kind === "meld" ? tokenMs("--tile-beat") : 0;
+    if (beat) TQ.beat = setTimeout(function () { TQ.beat = null; tqPump(); }, beat);
+    else tqPump();
+  }
+  // everything still waiting or flying lands now, as it stands
+  function tqFinish(doRender) {
+    if (TQ.beat) { clearTimeout(TQ.beat); TQ.beat = null; }
+    var had = TQ.steps.length;
+    TQ.steps.forEach(function (s) {
+      clearTimeout(s.watch);
+      s.state = "done";
+      if (s.hold) s.hold.pending = false;
+      if (s.copy) TQ.landed.push(s.copy);
+    });
+    TQ.steps = []; TQ.running = null;
+    if (had && doRender) render();
+  }
+  function tqSweep() {
+    TQ.landed.forEach(function (n) {
+      n.getAnimations({ subtree: true }).forEach(function (a) { a.cancel(); });
+      if (n.parentNode) n.parentNode.removeChild(n);
+    });
+    TQ.landed = [];
+  }
+  // a hidden tab plays nothing: it shows the table as it stands
+  document.addEventListener("visibilitychange", function () { if (document.hidden && TQ.steps.length) tqFinish(true); });
+
+  /* the copy: an upright tile at the larger end's size, scaled and turned
+     to fit either end. A back that becomes a face (a draw into my hand, a
+     flower, another seat's discard) turns over at mid-flight. */
+  function tqCopy(from, to, tile) {
+    var big = from.w * from.h >= to.w * to.h ? from : to;
+    var node = el("div", "mj-fly");
+    node.style.width = big.w + "px"; node.style.height = big.h + "px";
+    var shade = el("div", "mj-fly__shade");
+    shade.style.borderRadius = big.radius;
+    var hop = el("div", "mj-fly__hop");
+    var card = el("div", "mj-fly__card");
+    function face(n) { n.style.borderRadius = big.radius; n.style.borderBottomWidth = big.edge; card.appendChild(n); return n; }
+    var size = big.mini ? "mini" : "";
+    var b = from.back || !tile ? face(backEl(size)) : null;
+    var f = tile ? face(tileEl(tile, size)) : null;
+    hop.appendChild(card);
+    node.appendChild(shade); node.appendChild(hop);
+    return { node: node, shade: shade, hop: hop, card: card, back: b, face: f, W: big.w, H: big.h };
+  }
+  function tqAt(p, dy, W, H) {
+    return "translate(" + (p.x - W / 2).toFixed(1) + "px," + (p.y - H / 2 + dy).toFixed(1) + "px) rotate(" +
+      p.rot + "deg) scale(" + (p.w / W).toFixed(4) + "," + (p.h / H).toFixed(4) + ")";
+  }
+  function tqAnimate(c, from, to, m) {
+    var T = m.L + m.G + m.S, o1 = m.L / T, o2 = (m.L + m.G) / T, mid = (o1 + o2) / 2;
+    var ease = seamToken("--tile-ease") || "ease-in-out", pop = seamToken("--pop-ease") || "ease-out";
+    var opt = { duration: T, fill: "forwards" };
+    var up = Math.min(0, from.lift - m.rise);   // a tile already risen (tapped, dragged) rises no further
+    var dist = Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y));
+    var hop = 1 + m.hop * Math.max(0.4, Math.min(1, dist / 400));   // a short hop stays lower
+    var anims = [
+      c.node.animate([
+        { offset: 0, transform: tqAt(from, 0, c.W, c.H), easing: pop },
+        { offset: o1, transform: tqAt(from, up, c.W, c.H), easing: ease },
+        { offset: o2, transform: tqAt(to, -m.drop, c.W, c.H), easing: "ease-out" },
+        { offset: 1, transform: tqAt(to, 0, c.W, c.H) }
+      ], opt),
+      c.hop.animate([
+        { offset: 0, transform: "scale(1)" },
+        { offset: o1, transform: "scale(1)", easing: "ease-out" },
+        { offset: mid, transform: "scale(" + hop.toFixed(3) + ")", easing: "ease-in" },
+        { offset: o2, transform: "scale(1)" },
+        { offset: 1, transform: "scale(1)" }
+      ], opt),
+      c.shade.animate([
+        { offset: 0, opacity: 0, transform: "none" },
+        { offset: o1, opacity: 0.8, transform: "translateY(" + (m.rise / 2) + "px)" },
+        { offset: mid, opacity: 0.55, transform: "translateY(" + m.rise + "px) scale(1.04)" },
+        { offset: o2, opacity: 0.7, transform: "translateY(" + m.drop + "px)" },
+        { offset: 1, opacity: 0, transform: "none" }
+      ], opt)
+    ];
+    if (c.back && c.face) {
+      var f = (o2 - o1) * 0.18;
+      anims.push(c.card.animate([
+        { offset: 0, transform: "scaleX(1)" },
+        { offset: mid - f, transform: "scaleX(1)", easing: "ease-in" },
+        { offset: mid, transform: "scaleX(0.05)", easing: "ease-out" },
+        { offset: mid + f, transform: "scaleX(1)" },
+        { offset: 1, transform: "scaleX(1)" }
+      ], opt));
+      anims.push(c.face.animate([
+        { offset: 0, opacity: 0 }, { offset: mid, opacity: 0 }, { offset: mid, opacity: 1 }, { offset: 1, opacity: 1 }
+      ], opt));
+    }
+    return anims;
+  }
+
+  /* the rack slides instead of jumping: every tile that stays moves from
+     where it stood to its new place (a discard's gap closing, the drawn
+     tile sorting into the hand). Matched by face and order — identical
+     tiles are interchangeable, so a swap between them can't be seen. */
+  function snapRack() {
+    var row = rackRow();
+    // a wave is still raising the rack's tiles: their rects are mid-rise, not places
+    if (!row || !motionOk() || wave) return null;
+    var seen = {}, out = {};
+    row.querySelectorAll(".mj-racktile").forEach(function (b) {
+      var t = b.querySelector("[data-tile]");
+      if (!t) return;
+      var id = t.getAttribute("data-tile"), n = seen[id] = (seen[id] || 0) + 1;
+      var r = b.getBoundingClientRect();
+      out[id + "#" + n] = { x: r.left, y: r.top };
+    });
+    return out;
+  }
+  function flipRack(was) {
+    var row = was && rackRow();
+    if (!row) return;
+    var seen = {}, dur = tokenMs("--tile-glide") * 0.85, ease = seamToken("--tile-ease") || "ease";
+    row.querySelectorAll(".mj-racktile").forEach(function (b) {
+      var t = b.querySelector("[data-tile]");
+      if (!t) return;
+      var id = t.getAttribute("data-tile"), n = seen[id] = (seen[id] || 0) + 1;
+      var w = was[id + "#" + n];
+      if (!w || b.classList.contains("is-pending")) return;
+      var r = b.getBoundingClientRect(), dx = w.x - r.left, dy = w.y - r.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      b.animate([{ transform: "translate(" + dx.toFixed(1) + "px," + dy.toFixed(1) + "px)" }, { transform: "none" }],
+        { duration: dur, easing: ease });
+    });
+  }
+  // every event joins the batch choreograph() reads; a move that writes a
+  // log line holds it back until its tile lands
   function collectFlight(e) {
+    if (e.t === "discard" || e.t === "flower" || (e.t === "meld" && e.from != null)) e._hold = { pending: true };
+    TQ.batch.push(e);
     if (reduceMotion()) return;
-    if (e.t === "discard") {
-      (function (seat, tile) {
-        FLY.push(function () {
-          launchChip(chipTile(tile), function () { return seatSpot(seat); }, pondPoint, 0);
-        });
-      })(e.seat, e.tile);
-      return;
-    }
-    if (e.t === "draw") {
-      (function (seat) {
-        FLY.push(function () {
-          launchChip(chipTile(null),
-            wallFrontPoint, function () { return seatSpot(seat); }, 0);
-        });
-      })(e.seat);
-      return;
-    }
-    if (e.t === "flower") {
-      (function (seat, tile) {
-        FLY.push(function () {
-          launchChip(chipTile(tile), wallBackPoint, function () { return seatSpot(seat); }, 0);
-        });
-      })(e.seat, e.tile);
-      return;
-    }
-    if (e.t === "meld" && e.from != null) {
-      (function (seat, from, tile) {
-        FLY.push(function () {
-          launchChip(chipTile(tile), pondPoint, function () { return seatSpot(seat); }, 0);
-        });
-      })(e.seat, e.from, e.tile);
-      return;
-    }
     if (e.t === "handOver" && e.summary && e.summary.result === "win") {
       (function (s) {
         FLY.push(function () {
@@ -2013,7 +2351,8 @@
      dropping the table back to the lobby ─────────────────────────── */
   function resetGameUi() {
     clearFlights();
-    seen = null; lastDice = null; lastActor = null;
+    TQ.batch = []; tqFinish(false); tqSweep();
+    lastDice = null; lastActor = null;
     ui.deckPinned = false; ui.logPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};
     ui.handOrder = null; ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
     dragActive = false;

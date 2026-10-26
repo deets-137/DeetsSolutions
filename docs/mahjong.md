@@ -1,7 +1,7 @@
 ---
 status: live
-sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py]
-updated: 2026-10-25
+sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py, styles/skin.css]
+updated: 2026-10-26
 ---
 # DeetsMahjong — the Hong Kong mahjong tab
 
@@ -353,8 +353,8 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   player's right hand), replacement draws eat backwards from it
   (`wallBack`); a half-eaten stack dims. Inside the wall sits the
   shared discard box — every discard in play order from the public
-  `pond`, hover names the thrower, the newest pops and the claimable
-  tile pulses gold. The felt carries no text; the break prompt overlays
+  `pond`, hover names the thrower, and the claimable tile pulses gold
+  (each discard arrives by its flight — see "Tile flights" below). The felt carries no text; the break prompt overlays
   the empty box. `handOver` overlays a settlement panel (revealed hand,
   faan breakdown, payments, Next hand + auto-advance countdown); `over`
   swaps in the stats reveal (superlatives: most wins, biggest hand,
@@ -401,11 +401,70 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   repurposed — the discarded tile writ large, my claim buttons (chow
   variants as tile-pair pickers), Pass; pulses while it awaits me. The
   claimable tile in the pond pulses gold in sympathy.
-- **Fly layer**: cities' steering-chip machinery flying TILES — discards
-  arc into the central pond, claimed tiles hop pond → melds, draws slip
-  out of the wall's live front edge (`data-wall-front`; replacements off
-  the rear edge, `data-wall-back`), and settlement flies gold score
-  chips losers → winner.
+- **Fly layer** (`.mj-flylayer`): the tile flights below, and the
+  settlement's gold score chips losers → winner (those still ride the
+  shared chip layer, `games/flights.js`).
+
+### Tile flights
+
+(Built 2026-10-26 from his contact-sheet review: a perfectly neat pond, no
+sound, everything else as proposed.) Before this, every tile was already in
+its final place when its chip launched, so a copy flew over the real tile;
+chips flew centre to centre, popped in from scale 0 and shrank out; and a
+discard and the next draw left on the same frame, overlapping the next turn.
+
+**The turn plays in order.** A broadcast still renders the instant it
+arrives. What it *moved* becomes steps in a client-side queue (`TQ` in
+mahjong.js): each discard, draw, flower and claimed tile, in event order.
+The shell's `postEvents` hook builds them (`choreograph`) before the
+render, so a waiting step can hold its pieces back:
+
+| While a step… | the origin keeps | the destination keeps |
+| --- | --- | --- |
+| waits | the tile: an extra back in that hand, the stack on the wall (and the wall count), the claimed tile in the pond | a hidden slot (`.is-pending` + `data-step`): the pond slot, the end of that hand's backs, my drawn slot, the meld or flower |
+| flies | nothing (it let go at lift-off) | the hidden slot |
+| has landed | — | the tile, revealed on the frame the copy goes |
+
+Tile counts follow the same holds (`shownCount`); a discard's, flower's or
+claim's log line waits for its landing (`entry.hold`), and the claim dock
+opens once the discard is down. Renderers read all of it from `HOLD`.
+
+**One flight.** A copy of the tile flies from the real tile's rectangle to
+the real slot's (`endOf` reads centre, upright size and quarter-turn), so
+the size and turn blend on the way: a rack tile shrinks to pond size, a
+draw to a side seat turns 90°. Lift (rise `--tile-rise`), glide on
+`--tile-ease`, settle (the last `--tile-drop`). The copy keeps its size;
+height off the table is a small scale-up at mid-flight (`--tile-hop`, less
+for short hops) and a shadow. A back that becomes a face — my draw, a
+flower, another seat's discard — turns over at mid-flight. Web Animations,
+transform and opacity only, so a bot's broadcast re-rendering the board
+doesn't stutter it.
+
+**Timing** (skin tokens, `styles/skin.css`): a discard is lift + glide +
+settle, then `--tile-beat`, then the next draw at 0.6/0.7/0.6 of the same
+three. A whole turn has to fit the worker's 700 ms bot step: base 680 ms,
+Press 550, Ocean 697. If the queue falls more than a turn behind (two
+waiting steps after the current one) it plays at double speed; more than
+eight waiting, it shows the table as it stands.
+
+**My moves never wait.** My discard or claim finishes everything still
+playing and goes at once. A tapped tile rises the moment it's tapped
+(`.is-lifting`) and the flight starts from up there; a dragged one flies
+on from where it was let go. My hand tiles stay live while my draw is in
+the air, and the drawn slot is tappable before it lands. The rack slides
+(`snapRack` / `flipRack`): tiles that stay move from their old place to
+the new one, so a gap closes and the drawn tile sorts into the hand.
+
+**When it doesn't run.** Reduced motion, a hidden tab, a new hand or a
+settlement (the wave carries those), a snapshot (reconnect), and leaving
+the table all show the table as it stands. A window Chrome has stopped
+painting can reach an animation's end without settling its promise, so
+each flight also has a timer that lands it (`s.watch`); a copy paused on
+purpose (the dev driver's stepped clock) is left alone.
+
+To step through a flight: [tooling.md](tooling.md) §3 (`clock/freeze`,
+`clock/step`, `trap`). The tab must be visible: a window behind others
+goes hidden, and hidden tabs don't fly.
 
 Token discipline: chrome rides theme/skin tokens (all 30 combos); the
 **tile faces, backs, dice, and felt are the carve-out** (`--mj*` literals

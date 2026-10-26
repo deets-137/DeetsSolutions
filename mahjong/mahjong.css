@@ -225,12 +225,15 @@
 .mj-rots { flex: none; position: relative; width: var(--mjwallh); height: var(--mjwallw); overflow: hidden; }
 .mj-rots .mj-tilef { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); }
 .mj-rots--r .mj-tilef { transform: translate(-50%, -50%) rotate(-90deg); }
-/* the newest discard pops in; the claimable tile pulses gold */
-.mj-tilef.is-fresh { animation: mj-tilepop 0.32s var(--ease-ui); }
-@keyframes mj-tilepop { 0% { transform: scale(0); } 65% { transform: scale(1.25); } 100% { transform: none; } }
+/* the claimable tile pulses gold */
 .mj-tilef.is-hot { box-shadow: 0 0 0 2px var(--mjglow), 0 0 10px var(--mjglow); animation: mj-tilehot 1.2s var(--ease-ui) infinite; }
 @keyframes mj-tilehot { 50% { box-shadow: 0 0 0 2px var(--mjglow), 0 0 16px 2px var(--mjglow); } }
-@media (prefers-reduced-motion: reduce) { .mj-tilef.is-fresh, .mj-tilef.is-hot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mj-tilef.is-hot { animation: none; } }
+/* a tile on its way here (mahjong.js, tile flights): its slot keeps its
+   place, empty, until the flying copy sets down in it. My drawn tile's
+   slot stays tappable while it waits. */
+.mj .is-pending { visibility: hidden; }
+.mj .mj-racktile.is-pending { visibility: visible; opacity: 0; }
 
 /* ── the felt: pinwheel wall around the shared discard pond ─────
    72 two-tile stacks, 18 a side, each side overhanging the next
@@ -475,6 +478,11 @@
 .mj-rack__tiles.is-live .mj-racktile:not(:disabled) { cursor: pointer; }
 .mj-rack__tiles.is-live .mj-racktile:not(:disabled):hover { transform: translateY(-5px); }
 .mj-rack__tiles.is-live .mj-racktile:not(:disabled):hover .mj-tilef { box-shadow: 0 0 0 2px var(--title); }
+/* tapped to discard: it rises at once, and its flight starts from up there */
+.mj-rack__tiles.is-live .mj-racktile.is-lifting:not(:disabled) {
+  transform: translateY(calc(-1 * var(--tile-rise)));
+  transition-duration: var(--tile-lift);
+}
 .mj-racktile:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
 /* the freshly drawn tile stands apart from the sorted thirteen */
 .mj-racktile--drawn { margin-left: var(--space-3); }
@@ -588,8 +596,16 @@
 .mj-claimbox__waits { display: flex; flex-direction: column; gap: var(--space-1); }
 .mj-claimbox__wait { display: flex; align-items: center; gap: var(--space-2); color: var(--text); font-size: 0.85rem; }
 
-/* ── tile fly layer (cities' steering chips, tile edition) ────── */
+/* ── fly layer: tile flights (mahjong.js) + settlement score chips ── */
 .mj-flylayer { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
+/* a flying tile: an upright copy whose transform (Web Animations) carries
+   it from one tile's rectangle to another's. The hop scales it for its
+   height off the table; the shade is the shadow it casts on the way. */
+.mj-fly { position: absolute; left: 0; top: 0; will-change: transform; }
+.mj-fly__hop, .mj-fly__card { position: absolute; inset: 0; }
+.mj-fly__card > .mj-tilef { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mj-fly__card > .mj-tilef + .mj-tilef { opacity: 0; }   /* the face, shown when the back turns over */
+.mj-fly__shade { position: absolute; inset: 0; opacity: 0; box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.5); }
 .mj-flychip { position: absolute; left: -0.75rem; top: -1rem; will-change: transform; }
 .mj-flychip--score {
   left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%;
