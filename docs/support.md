@@ -419,7 +419,7 @@ worker change: both read `GET /t/<code>` with the code the filer already holds.
   this have no `seen`, so a reply he made earlier shows once as new.
 - A filer on the web who never comes back is not reached. That was the cost of A.
 
-### Read marks — BUILT 2026-10-26, not migrated or deployed; his calls R1 A, R2 B, R3 A
+### Read marks — worker LIVE 2026-10-26 (version 89f4a98e), this site not published; his calls R1 A, R2 B, R3 A
 
 **As built (2026-10-26).** Where this differs from the design below, this is the code.
 - `migrations/2026-10-26-read-marks.sql` adds `replies.seen_at`, `seen_via`, `opened_at` and
@@ -443,8 +443,14 @@ worker change: both read `GET /t/<code>` with the code the filer already holds.
   `seen_via` alone; the hidden owner reply and the reporter's reply got nothing; `read_at`
   was set; the filer's answer had no mark fields; with the columns dropped, a read still
   answered 200. Not tested: the owner's read (it needs his session cookie).
-- **The deploy (his):** the migration, then `npx wrangler deploy` in DeetsSupport, then
-  `/health` and `/token`, then publish this site. `wrangler rollback` if anything is off.
+- **The deploy, 2026-10-26 (his go, run by Claude):** the live worker was the last commit
+  (deployed 11:54, `c85d1f9`), so the deploy shipped this change only. The migration ran on
+  the remote D1 (the four columns checked), then `wrangler deploy` (version 89f4a98e). After
+  it: `/health` on both hosts, `/token`, `/status`, `/posts`, `/config` answered 200, an
+  unknown `/t/` 404. No real ticket was read, so no false mark was made; the first filer
+  read is the live proof (`SELECT count(*) FROM posts WHERE read_at IS NOT NULL`).
+  **Still open:** publish this site — the Inbox marks, `?open=1` and the cookie on the
+  ticket reads, `privacy3`. Until then the app's reads are marked, the page's opens are not.
 
 His ask, 2026-10-26: know whether a reply reached the filer. Today nothing records it: the
 worker writes nothing when `GET /t/<code>` is read, and the only trace is the filer's own log
