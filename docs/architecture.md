@@ -379,6 +379,45 @@ header carries this warning.
   edit mode starts (toggle again to pick it up). Nothing in the served tree
   references it, so it never reaches Pages. It is for Aditya typing his own
   words: the Copy rule for Claude is unchanged.
+- **Dev driver (dev only, 2026-10-25).** The same proxy injects
+  `scripts/dev-driver.js`, so `curl` can drive a real open tab
+  (`scripts/dev-driver-server.js`). Each tab holds an EventSource to a side
+  port and answers relayed `/__dev/*` commands; the reply is the curl
+  response. Both ports bind 127.0.0.1 and check Host/Origin. Locally the
+  proxy also sends JS/CSS as `no-store` (a reload never runs a stale
+  script) and widens the HTML's CSP with the side port plus
+  `'unsafe-eval'` (for `eval`). Pages keeps the real `_headers` and CSP.
+  - **Tab ids.** Each tab gets `t-xxxx` (sessionStorage, so it survives a
+    reload; a duplicated tab is given a fresh one). It is prefixed to the
+    title, `[t-4f2a] DeetsMahjong — Deets`, to match the Chrome tool's tab
+    list. Every command takes `?tab=`. Without it, the command goes to the
+    only connected tab, else the only focused one, else the most recently
+    focused one by a clear margin. Otherwise it refuses (409) with the list,
+    and with no tab it answers 503 at once.
+  - **Commands** (GET query, or POST a JSON body; `eval` also takes a bare
+    body): `tabs`; `info`; `state` (mock table: phase, seats, wallLeft,
+    round, turn, handOver); `table?code=&bots=&tier=&set=k:v,k:v&spectate=1&start=1`
+    (joins through the shell's gate, then sends the same `addBot` / `stand`
+    / `setSettings` / `start` messages its buttons send); `wait?phase=a,b`
+    or `handOver=1|0`, `wallBelow=N`, `until=<js>`, with `timeout=` up to
+    590 s (it polls from the server, so it outlasts any one browser-tool
+    call and survives reloads); `eval`; `reload` (returns once the tab is
+    back, same id); `pace?ms=` (the mock's live bot step); `look?skin=&theme=`
+    (through the settings menu's chips) then `look/restore`;
+    `anims/catch?sel=` (a MutationObserver pauses matching
+    `document.getAnimations()` as they start), `anims/list`,
+    `anims/seek?ms=`, `anims/finish` (or `?play=1`).
+  - **Faster bots:** open the mock as `?mock&mockpace=10` to divide its
+    650 ms bot step by 10 (`games/table-mock.js`; mock only).
+
+  ```bash
+  B=localhost:8787/__dev
+  curl -s $B/tabs
+  curl -s "$B/table?code=drv1&bots=4&spectate=1&start=1&tab=t-4f2a"
+  curl -s "$B/wait?handOver=1&timeout=300000&tab=t-4f2a"
+  curl -s -X POST "$B/eval?tab=t-4f2a" -d 'document.querySelectorAll(".gt-seat").length'
+  curl -s "$B/anims/catch?sel=.mj-tile&tab=t-4f2a"; curl -s "$B/anims/seek?ms=120&tab=t-4f2a"
+  ```
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.
