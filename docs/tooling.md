@@ -81,21 +81,28 @@ Bash call's 600 s).
 | `tabs` | the tab list (no tab needed) |
 | `info` | url, title, code, phase, skin, theme, focus |
 | `state` | the mock table: phase, mySeat, settings, seats (name, bot, tier), spectators, wallLeft, round, turn, handOver, botStep |
-| `table?code=&name=&bots=N&tier=&set=k:v,k:v&spectate=1&start=1` | joins `code` (random if omitted) through the shell's real gate. Then it stands up if `spectate`, adds N bots to open seats, applies settings and starts. It sends the same `stand` / `addBot` / `setSettings` / `start` messages the shell's buttons send, so there's no confirm step to click |
+| `table?code=&name=&bots=N&tier=&set=k:v,k:v&spectate=1&start=1&autoroll=1` | joins `code` (random if omitted) through the shell's real gate. Then it stands up if `spectate`, adds N bots to open seats, applies settings and starts. It sends the same `stand` / `addBot` / `setSettings` / `start` messages the shell's buttons send, so there's no confirm step to click. `autoroll=1` then rolls for your seat (`rolls=`, default mahjong's `rollSeat,rollBreak`, each sent only while the game waits on you for it) and returns once a turn exists |
 | `wait?phase=a,b` · `handOver=1\|0` · `wallBelow=N` · `until=<js>` | polls **from the server** every `every=` ms (default 400) until true, then returns the state; 408 with the last state on timeout. Outlasts any browser-tool call, and survives the tab reloading |
 | `eval` | runs JS in the page. An expression or a body with `return`, awaited, and the result made JSON-safe (elements become `<tag#id.class>`) |
 | `reload` (`?rejoin=1`) | reloads and returns once the tab is back with the **same id**; `rejoin=1` then takes the gate back into the hash's table (`rejoin`) |
 | `rejoin` | clicks the gate's pill (Rejoin / Sit down / Spectate) for the hash's table, and returns once joined |
-| `pace?ms=` | sets the mock's live bot step and **re-arms a step already waiting** (`repace`), returning the previous one. Before 2026-10-25 a long pace stalled the bots until the old step ran out |
+| `pace?ms=` · `hold=1` · `resume=1` | sets the mock's live bot step and **re-arms a step already waiting** (`repace`), returning the previous one. Before 2026-10-25 a long pace stalled the bots until the old step ran out. `hold=1` parks the bots (1 h step); `resume=1` puts back the pace from before the hold |
 | `freeze` / `thaw` | `freeze` holds every message to this tab, so the view stays put while the bots play on; `thaw` delivers the held messages in order. Holding, not dropping, matters: a game waiting on your seat sends nothing more, so dropped messages leave the page stale for good |
 | `look?skin=&theme=` | through the settings menu's own chips (look-change cover and all). It waits until the attribute lands and returns `prev` (values plus the stored keys) |
 | `look/restore` | puts back the tab's first `prev`: attributes, and localStorage keys set or removed |
 | `anims/catch?sel=` | a MutationObserver pauses every `document.getAnimations()` entry whose target matches (or sits inside) `sel` the moment it starts |
 | `anims/until?sel=&until=<js>&do=<js>&freeze=1` | catches a moment in one call: arms `anims/catch`, starts `do` (not awaited, so it may loop), polls `until` **in the page** every 10 ms, and the instant it's true freezes the view (if asked) and seeks to 0. Returns `hit`, `frozen`, `caught`, `doError`. The server's `wait` polls every 400 ms, too late for a 1 s transition |
-| `anims/list` | the caught animations: name, target, currentTime, duration |
+| `anims/list` | the caught animations: name, target, `detached` (a re-render replaced the node, so nobody will ever see it play), currentTime, duration |
 | `anims/seek?ms=` (`&list=1`) | every caught animation to that local time, still paused. Returns once a frame has painted; `painted: false` means a background tab, where a screenshot may lag the seek (seen 2026-10-25) |
 | `anims/sample?at=0,250,500&sel=&box=&each=1` | seeks to each time and reads **computed style**: how many `sel` matches are hidden (opacity < 0.05) or moving (`translate`/`scale` not at rest), and which scroll boxes inside `box` overflow (a flashing scrollbar). Trust this over a background tab's screenshot |
 | `anims/finish` (`?play=1`) | jumps them to the end (or plays them on) and stops watching |
+| `clock/freeze` (`animsel=`, `anims=0`) | **the stepped clock.** Swaps `requestAnimationFrame` and `performance.now` for a clock that moves only on `clock/step`, takes over rAF callbacks already queued, and catches every animation (or `animsel` matches) so they follow the same clock. This is what reaches rAF loops like `games/flights.js`' chips, which `anims/*` alone can't |
+| `clock/step?ms=&by=10` | advances in `by`-ms slices: runs the rAF queue and sets each caught animation's time every slice, and samples the flight log. Returns `t`, `painted` and the last log row |
+| `clock/thaw` · `clock/now` | real time again (queued frames run, caught animations play on) · where the clock stands |
+| `trap?sel=&when=<js>&do=<js>&hold=1&freeze=1` | catches frame 0: the instant a node matching `sel` joins the page (and `when` is true), it freezes the stepped clock, holds the bots (`hold`, default on) and optionally this tab's messages (`freeze=1`). `do` starts the action that causes it. Synchronous on the insertion, unlike `anims/until`'s 10 ms poll |
+| `fly/log?sel=` | records each `sel` match's viewport centre, size, transform and opacity on every clock step (clears the old log); without `sel` it returns the log, `stop=1` ends recording. Plot from this rather than from screenshots |
+| `rect?sel=&shotw=&pad=` | viewport rects of the matches (first 20). With `shotw` (the Chrome tool's screenshot frame width) they come back converted, ready for a `zoom` region. `info` reports `viewport` and `dpr` |
+| `mock/drop?code=` | removes one mock table (its timers, its stored copy) and its code from the recents |
 
 The dev server's console logs one line per command:
 `[dev] t-4f2a anims/seek 14ms ok` (or `FAIL` and the error).
@@ -115,6 +122,18 @@ curl -s -X POST "$B/anims/until?tab=t-4f2a" -d '{"sel":".mj-bento","freeze":"1",
   "until":"document.querySelector(\"[data-mj-table]\").dataset.phase===\"play\""}'
 curl -s "$B/anims/sample?tab=t-4f2a&at=0,300,600,1000&sel=.mj-bento%20*"
 curl -s "$B/thaw?tab=t-4f2a"
+# a tile flight frame by frame: seated table to play in one call, trap your
+# discard's first frame, step the clock, read the numbers, clean up
+curl -s "$B/table?tab=t-4f2a&code=fly1&bots=3&start=1&autoroll=1"
+curl -s "$B/fly/log?tab=t-4f2a&sel=.mj-flychip"
+curl -s -X POST "$B/trap?tab=t-4f2a" -d '{"sel":".mj-flychip",
+  "when":"!!document.querySelector(\".mj-racktile--drawn\")",
+  "do":"document.querySelector(\".mj-racktile--drawn\").click()"}'
+curl -s "$B/rect?tab=t-4f2a&sel=.mj-board&shotw=1293"   # the zoom region
+curl -s "$B/clock/step?tab=t-4f2a&ms=80"                 # screenshot, repeat
+curl -s "$B/fly/log?tab=t-4f2a"
+curl -s "$B/clock/thaw?tab=t-4f2a"; curl -s "$B/pace?tab=t-4f2a&resume=1"
+curl -s "$B/mock/drop?tab=t-4f2a&code=fly1"
 ```
 
 ### Limits
@@ -131,6 +150,14 @@ curl -s "$B/thaw?tab=t-4f2a"
   after a thaw is wherever the bots got to, not the next step. To catch a
   later moment (the deal at the break, say), arm `anims/until` while it is
   still ahead.
+- The stepped clock covers rAF, `performance.now` and animations only.
+  `setTimeout` and `Date.now` stay real, so the mock's bots and the shell's
+  timers keep going: hold them with `pace?hold=1` (`trap` does by default).
+  A claim window waiting on your seat also stops the bots. `trap`'s `when`
+  must allow for it, or the trap waits out its timeout.
+- Keep the tab visible while driving flights. A hidden tab never runs rAF,
+  so a game's frame loop stalls before any freeze (chips pile up unmoved),
+  and `painted` comes back `false`.
 - A page's own time-based work still runs in real time while animations are
   paused (mahjong's wave ends its scroll locks on a timer), so a `sample`
   taken long after the catch can show what a viewer never would.
@@ -147,6 +174,7 @@ disconnects ([games.md](games.md)).
 | `<Game>Transport.phantomStep = ms` | the same, live, from the next bot step on |
 | `<Game>Transport.repace(ms)` | sets it and re-arms a bot step already waiting (what the driver's `pace` calls) |
 | `<Game>Transport.wipe()` | drops every mock table, including its storage key |
+| `<Game>Transport.drop(code)` | drops one table (what the driver's `mock/drop` calls) |
 | `<Game>Transport.tables()` | the live table objects |
 
 **Restore what you change.** A test leaves behind `deets-<game>-mock-v1`,

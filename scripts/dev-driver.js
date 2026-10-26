@@ -95,7 +95,8 @@
       code: s && s.code, phase: s && s.phase,
       skin: root.getAttribute("data-skin"), theme: root.getAttribute("data-theme"),
       focused: document.hasFocus(), visible: document.visibilityState === "visible",
-      activeAt: activeAt || null, frozen: !!held
+      activeAt: activeAt || null, frozen: !!held, clock: !!clk,
+      viewport: [window.innerWidth, window.innerHeight], dpr: window.devicePixelRatio
     };
   }
 
@@ -142,15 +143,25 @@
   // live bot pacing: ms between bot moves (the mock's own .phantomStep knob).
   // repace() also re-arms a bot step already waiting at the old pace, so a
   // long pace can be undone at once instead of waited out
+  // pace?hold=1 parks the bots (a step far beyond any test); pace?resume=1
+  // puts back the pace from before the hold
+  var HOLD_MS = 3600000, heldPace = null;
   C.pace = function (a) {
     var m = mock();
     if (!m) throw new Error("no mock transport on this page (open it with ?mock)");
     var prev = m.api.phantomStep;
+    if (a.hold === "1") {
+      if (heldPace == null) heldPace = prev;
+      a = { ms: HOLD_MS };
+    } else if (a.resume === "1") {
+      a = { ms: heldPace != null ? heldPace : prev };
+      heldPace = null;
+    }
     if (a.ms != null) {
       if (m.api.repace) m.api.repace(a.ms);
       else m.api.phantomStep = Math.max(0, Number(a.ms));
     }
-    return { prev: prev, botStep: m.api.phantomStep };
+    return { prev: prev, botStep: m.api.phantomStep, held: heldPace != null };
   };
 
   // freeze — hold every message to this tab's connection, so the view stays
@@ -241,6 +252,33 @@
       send({ type: "start" });
       await until(function () { return t.game; }, 5000, "the start");
     }
+    // autoroll=1 — roll for this tab's seat through every pre-play roll until
+    // a turn exists. `rolls=` names the message types (default mahjong's
+    // rollSeat,rollBreak); each is sent only while the game is waiting on
+    // this seat for it, where the engine shows that (seating rolls, needBreak)
+    if ((a.autoroll === "1" || a.autoroll === true) && t.game && conn.seat != null) {
+      var types = String(a.rolls || "rollSeat,rollBreak").split(",");
+      var waitsOnMe = function (g, type) {
+        var s = conn.seat;
+        if (type === "rollSeat" && g.phase === "seating") {
+          var scope = (g.seating && g.seating.reroll) || [0, 1, 2, 3];
+          return scope.indexOf(s) >= 0 && !(g.seating && g.seating.rolls && g.seating.rolls[s]);
+        }
+        if (type === "rollBreak") return !!g.needBreak && g.order && g.round && g.order[g.round.dealerIdx] === s;
+        return true;   // a type the driver can't read: send it, the engine rejects if early
+      };
+      var sentAt = {};   // one send per type per 800 ms: the mock answers after ~110 ms
+      await until(function () {
+        var g = t.game;
+        if (!g || g.turn) return true;
+        types.forEach(function (ty) {
+          if (!waitsOnMe(g, ty) || Date.now() - (sentAt[ty] || 0) < 800) return;
+          sentAt[ty] = Date.now(); send({ type: ty });
+        });
+        return false;
+      }, Number(a.rolltimeout) || 20000, "the rolls to reach a turn");
+      await sleep(300);   // the first play broadcast's paint
+    }
     return stateOf();
   };
 
@@ -290,7 +328,8 @@
     var tg = an.effect && an.effect.target, timing = an.effect ? an.effect.getComputedTiming() : {};
     return {
       name: an.animationName || an.transitionProperty || an.id || an.constructor.name,
-      target: tg ? safe(tg) : null, playState: an.playState,
+      // detached: a re-render replaced the node, so this animation will never be seen
+      target: tg ? safe(tg) : null, detached: tg ? !tg.isConnected : null, playState: an.playState,
       currentTime: an.currentTime, duration: timing.duration, endTime: timing.endTime
     };
   }
@@ -299,7 +338,11 @@
       var tg = an.effect && an.effect.target;
       if (!tg || caught.indexOf(an) >= 0) return;
       var el = tg.nodeType === 1 ? tg : tg.parentElement;
-      if (el && (el.matches(catchSel) || el.closest(catchSel))) { an.pause(); caught.push(an); }
+      if (el && (el.matches(catchSel) || el.closest(catchSel))) {
+        an.pause(); caught.push(an);
+        // under the stepped clock, an animation's local time follows the clock from here
+        if (clk) clkAnim.set(an, { at: clk.t, base: an.currentTime || 0 });
+      }
     });
   }
   // anims/catch?sel=.mj-tile — pause matching animations the moment they start
@@ -410,6 +453,183 @@
     });
     caught = []; catchSel = null;
     return { released: out };
+  };
+
+  /* ── the stepped clock: one clock for rAF loops AND animations ──
+     anims/* only reaches Web/CSS Animations. A loop that writes styles
+     every requestAnimationFrame (games/flights.js' chips) ignores them.
+     clock/freeze swaps requestAnimationFrame and performance.now for a
+     clock that only moves on clock/step, and catches every animation
+     (anims/catch) so each one's local time follows the same clock. Page
+     timers (setTimeout, Date.now) stay real: bots and the shell's own
+     timers keep running, so pair it with pace?hold=1. */
+  var clk = null, clkAnim = new WeakMap(), flyLog = [], flySel = null;
+  var realNow = performance.now.bind(performance), realRaf = window.requestAnimationFrame.bind(window);
+  performance.now = function () { return clk ? clk.t : realNow(); };
+  // every real rAF goes through `pend`, so a freeze can take back callbacks
+  // already queued: a loop's next frame belongs to the stepped clock too,
+  // and a hidden tab would never run it at all
+  var pend = new Map(), pendN = 0;
+  window.requestAnimationFrame = function (fn) {
+    if (clk) { clk.q.push(fn); return 1e9 + clk.q.length; }
+    var key = ++pendN;
+    pend.set(key, fn);
+    realRaf(function (ts) { var f = pend.get(key); if (!f) return; pend.delete(key); f(ts); });
+    return key;
+  };
+  var realCancel = window.cancelAnimationFrame.bind(window);
+  window.cancelAnimationFrame = function (h) {
+    if (pend.delete(h)) return;
+    if (clk && h > 1e9) { clk.q[h - 1e9 - 1] = function () {}; return; }
+    realCancel(h);
+  };
+  function clockFreeze(a) {
+    if (clk) return { frozen: true, t: 0, already: true };
+    clk = { t: realNow(), t0: realNow(), q: [] };
+    pend.forEach(function (fn) { clk.q.push(fn); });
+    pend.clear();
+    clkAnim = new WeakMap();
+    if (a.anims !== "0") C["anims/catch"]({ sel: a.animsel || "body" });
+    return { frozen: true, t: 0 };
+  }
+  function clockAdvance(ms) {
+    clk.t += ms;
+    var q = clk.q; clk.q = [];
+    q.forEach(function (fn) { try { fn(clk.t); } catch (e) {} });
+    if (catcher) grab();
+    caught.forEach(function (an) {
+      var k = clkAnim.get(an);
+      if (!k) { k = { at: clk.t - ms, base: an.currentTime || 0 }; clkAnim.set(an, k); }
+      an.currentTime = k.base + (clk.t - k.at);
+    });
+  }
+  // what the flight log records per step: each match's viewport centre,
+  // size, transform and opacity
+  function flySample() {
+    if (!flySel) return;
+    var row = { t: Math.round(clk.t - clk.t0), els: [] };
+    document.querySelectorAll(flySel).forEach(function (e) {
+      var r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+      row.els.push({ x: +(r.left + r.width / 2).toFixed(1), y: +(r.top + r.height / 2).toFixed(1),
+        w: +r.width.toFixed(1), h: +r.height.toFixed(1), transform: cs.transform, opacity: +cs.opacity });
+    });
+    flyLog.push(row);
+  }
+  // clock/freeze (&animsel= limits which animations follow it; anims=0 for none)
+  C["clock/freeze"] = function (a) { return clockFreeze(a); };
+  // clock/step?ms=200&by=10 — advance in `by` slices, each running the rAF
+  // queue and setting every caught animation's time; the flight log (if
+  // armed) samples every slice. Returns once a real frame has painted.
+  C["clock/step"] = async function (a) {
+    if (!clk) throw new Error("the clock isn't frozen (clock/freeze or trap first)");
+    var ms = Number(a.ms) || 0, by = Math.max(1, Number(a.by) || 10), left = ms;
+    while (left > 0) { var d = Math.min(by, left); clockAdvance(d); flySample(); left -= d; }
+    if (!ms) { clockAdvance(0); flySample(); }
+    var p = await new Promise(function (resolve) {
+      var done = false, fin = function (v) { if (!done) { done = true; resolve(v); } };
+      realRaf(function () { realRaf(function () { fin(true); }); });
+      setTimeout(function () { fin(false); }, 250);
+    });
+    return { t: Math.round(clk.t - clk.t0), painted: p, caught: caught.length, last: flyLog.length ? flyLog[flyLog.length - 1] : null };
+  };
+  // clock/thaw — real time again: queued rAF callbacks run on the next real
+  // frame, caught animations play on from where they stand
+  C["clock/thaw"] = function () {
+    if (!clk) return { frozen: false };
+    var q = clk.q, t = Math.round(clk.t - clk.t0);
+    clk = null;
+    q.forEach(function (fn) { window.requestAnimationFrame(fn); });
+    C["anims/finish"]({ play: "1" });
+    return { frozen: false, at: t };
+  };
+  C["clock/now"] = function () { return { frozen: !!clk, t: clk ? Math.round(clk.t - clk.t0) : null, queued: clk ? clk.q.length : 0 }; };
+
+  // fly/log?sel=.mj-flychip — start recording `sel` on every clock step
+  // (clears the old log); fly/log with no sel returns the log so far
+  C["fly/log"] = function (a) {
+    if (a.sel) { flySel = a.sel; flyLog = []; if (clk) flySample(); return { recording: flySel }; }
+    if (a.stop === "1") flySel = null;
+    return { recording: flySel, steps: flyLog.length, log: flyLog };
+  };
+
+  // trap?sel=.mj-flychip&when=<js>&do=<js>&hold=1&freeze=1 — the instant a
+  // node matching `sel` joins the page (and `when`, if given, is true),
+  // freeze the stepped clock, hold the bots (hold=1, default on) and
+  // optionally the tab's messages (freeze=1). `do` starts the action that
+  // causes it. Synchronous on the insertion, so frame 0 is caught; rAF
+  // callbacks already queued move onto the stepped clock. `animsel`
+  // narrows which animations follow the clock (default all).
+  C.trap = function (a) {
+    if (!a.sel) throw new Error("trap needs ?sel=");
+    var AsyncFn = Object.getPrototypeOf(async function () {}).constructor;
+    var when = a.when ? new Function("return (" + a.when + "\n)") : null;
+    return new Promise(function (resolve) {
+      var to = null, mo = new MutationObserver(function (recs) {
+        for (var i = 0; i < recs.length; i++) {
+          for (var j = 0; j < recs[i].addedNodes.length; j++) {
+            var n = recs[i].addedNodes[j];
+            if (n.nodeType !== 1 || !(n.matches(a.sel) || n.querySelector(a.sel))) continue;
+            var ok = true;
+            if (when) { try { ok = !!when(); } catch (e) { ok = false; } }
+            if (!ok) continue;
+            mo.disconnect(); clearTimeout(to);
+            clockFreeze(a);
+            if (a.hold !== "0") { try { C.pace({ hold: "1" }); } catch (e) {} }
+            if (a.freeze === "1") { try { C.freeze(); } catch (e) {} }
+            if (flySel) { flyLog = []; flySample(); }
+            resolve({ hit: true, node: safe(n), matches: document.querySelectorAll(a.sel).length });
+            return;
+          }
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+      to = setTimeout(function () { mo.disconnect(); resolve({ hit: false }); }, Math.min(Number(a.timeout) || 30000, 590000) - 500);
+      if (a.do) {
+        var act;
+        try { act = new AsyncFn("return (" + a.do + "\n)"); } catch (e) { act = new AsyncFn(a.do); }
+        act().catch(function () {});
+      }
+    });
+  };
+
+  // rect?sel=&shotw=1293 — viewport rects of the matches, plus the same
+  // rects in a screenshot's coordinates when you pass its frame width
+  // (the Chrome tool's screenshot frame is narrower than the CSS viewport)
+  C.rect = function (a) {
+    if (!a.sel) throw new Error("rect needs ?sel=");
+    var k = a.shotw ? Number(a.shotw) / window.innerWidth : null, pad = Number(a.pad) || 0;
+    var out = [].slice.call(document.querySelectorAll(a.sel), 0, 20).map(function (e) {
+      var r = e.getBoundingClientRect();
+      var v = { x0: r.left - pad, y0: r.top - pad, x1: r.right + pad, y1: r.bottom + pad };
+      var row = { el: safe(e), css: [Math.round(v.x0), Math.round(v.y0), Math.round(v.x1), Math.round(v.y1)] };
+      if (k) row.shot = [Math.round(v.x0 * k), Math.round(v.y0 * k), Math.round(v.x1 * k), Math.round(v.y1 * k)];
+      return row;
+    });
+    return { innerWidth: window.innerWidth, innerHeight: window.innerHeight, scale: k, rects: out };
+  };
+
+  // mock/drop?code= — remove a mock table (its timers, its stored copy) and
+  // its code from this game's recents
+  C["mock/drop"] = function (a) {
+    var m = mock();
+    if (!m) throw new Error("no mock transport on this page (open it with ?mock)");
+    if (!a.code) throw new Error("mock/drop needs ?code=");
+    var code = String(a.code).toLowerCase();
+    var had = !!m.api.tables()[code];
+    if (had) m.api.drop(code);
+    var dropped = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!/^deets-[\w-]+-recents$/.test(k)) continue;
+      try {
+        var r = JSON.parse(localStorage.getItem(k));
+        if (Array.isArray(r) && r.indexOf(code) >= 0) {
+          localStorage.setItem(k, JSON.stringify(r.filter(function (c) { return c !== code; })));
+          dropped.push(k);
+        }
+      } catch (e) {}
+    }
+    return { dropped: had, recents: dropped, tables: Object.keys(m.api.tables()) };
   };
 
   /* ── the wire ────────────────────────────────────────────────── */

@@ -734,6 +734,17 @@
         });
         return API.phantomStep;
       },
+      // one table gone (the dev driver's mock/drop): its timers, then the stored copy
+      drop: function (code) {
+        var t = TABLES[code];
+        if (!t) return false;
+        disarmTimer(t);
+        if (DRIVES[code]) { clearTimeout(DRIVES[code]); delete DRIVES[code]; }
+        t.conns.forEach(function (c) { c.closed = true; });
+        delete TABLES[code];
+        save();
+        return true;
+      },
       wipe: function () {
         Object.keys(TABLES).forEach(function (c) { disarmTimer(TABLES[c]); });
         TABLES = {};
