@@ -419,7 +419,7 @@ worker change: both read `GET /t/<code>` with the code the filer already holds.
   this have no `seen`, so a reply he made earlier shows once as new.
 - A filer on the web who never comes back is not reached. That was the cost of A.
 
-### Read marks — worker LIVE 2026-10-26 (version 89f4a98e), this site not published; his calls R1 A, R2 B, R3 A
+### Read marks — LIVE 2026-10-26 (worker version 89f4a98e; this site published the same day); his calls R1 A, R2 B, R3 A
 
 **As built (2026-10-26).** Where this differs from the design below, this is the code.
 - `migrations/2026-10-26-read-marks.sql` adds `replies.seen_at`, `seen_via`, `opened_at` and
@@ -449,8 +449,8 @@ worker change: both read `GET /t/<code>` with the code the filer already holds.
   it: `/health` on both hosts, `/token`, `/status`, `/posts`, `/config` answered 200, an
   unknown `/t/` 404. No real ticket was read, so no false mark was made; the first filer
   read is the live proof (`SELECT count(*) FROM posts WHERE read_at IS NOT NULL`).
-  **Still open:** publish this site — the Inbox marks, `?open=1` and the cookie on the
-  ticket reads, `privacy3`. Until then the app's reads are marked, the page's opens are not.
+  This site was pushed the same day (`8274e2a`); Pages served the Inbox marks, `?open=1`
+  and `privacy3`. **Still open:** his look at the Inbox (the owner's read is untested).
 
 His ask, 2026-10-26: know whether a reply reached the filer. Today nothing records it: the
 worker writes nothing when `GET /t/<code>` is read, and the only trace is the filer's own log
