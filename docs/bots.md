@@ -1,3 +1,8 @@
+---
+status: live
+sources: [poker/engine.js, cities/engine.js, mahjong/engine.js, games/table-do.js, scripts/poker-bot-duel.js]
+updated: 2026-08-04
+---
 # Bots
 
 How the Deets games play themselves: where a bot's brain lives, the
@@ -169,7 +174,7 @@ shell only *renders* it.
   because nobody chose one for it. It plays the default rather than
   inheriting whatever the host last typed.
 - A game that declares **no** tiers gets no picker and nothing else
-  changes. That is DeetsShips today ([ships.md](ships.md)); its bot is a
+  changes. That is DeetsShips today (`ships.md`, on the unmerged `DeetsShips` branch); its bot is a
   deliberate v1 anchor.
 
 The tiers are **parameters over one brain**, never separate brains. A

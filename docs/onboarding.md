@@ -1,3 +1,8 @@
+---
+status: parked
+sources: [index.html, js/walkers.js, js/controls.js]
+updated: 2026-10-23
+---
 # Onboarding — the first-run walk
 
 > **Built 2026-09-24, on the home page only.** All copy is `[ph]`, waiting for his pass.

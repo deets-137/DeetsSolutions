@@ -39,25 +39,35 @@ served flat.
 and **Next up**. When asked "what's next", answer from it. When a session
 plans, finishes, or parks work, update its Next up in the same commit.
 
-Start at [README.md](README.md). Then:
+Start at [README.md](README.md). One line per doc, no status here: each
+doc's status (`live`, `built`, `designed`, `project`, `parked`, `idea`,
+`foundation`, `sop`) is in its front matter, and where things stand is in
+HANDOFF. **Lessons already paid for: [docs/LESSONS.md](docs/LESSONS.md).**
 
 | Topic | Doc |
 | --- | --- |
-| Site structure, tokens, chrome | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
-| **Porting DeetsMusic's UI (settings panel, pop motion, look schedule) — build brief, 2026-09-15** | **[ui-direction.md](docs/ui-direction.md)** |
+| Dev server, dev driver (curl a real tab), mock controls, checks, debugging | **[tooling.md](docs/tooling.md)** |
+| Site structure, tokens, chrome, deploy + caching | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
+| Porting DeetsMusic's UI (settings panel, pop motion, look schedule) | [ui-direction.md](docs/ui-direction.md) |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
-| **Designing a NEW game** | **[design-language.md](docs/design-language.md)** — the precedents, decision trees, and questionnaire |
+| **Designing a NEW game** | **[design-language.md](docs/design-language.md)** |
 | Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md), [tanks.md](docs/tanks.md) |
-| **Real-time games (tanks, doom)** | **[realtime.md](docs/realtime.md)** — read before tanks.md; owns the tick, authority, DO posture |
+| **Real-time games (tanks, doom)** — read before tanks.md | **[realtime.md](docs/realtime.md)** |
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
-| Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [data.md](docs/data.md) |
-| The home page's first-run walk (Deets + Happy lead a first visitor; `/?tour`) — built 2026-09-24, copy all `[ph]` | [onboarding.md](docs/onboarding.md) |
-| Accounts + game stats | [accounts.md](docs/accounts.md), [stats.md](docs/stats.md) |
-| DeetsMusic page (`deetsmusic/`, nav tab): status, installs, releases, boards (filter/sort, owner right-click moderation), intake, remote config — worker live, page SHIPPED 2026-09-14 (`?mock` = sample data, everyone owner), Aditya leads its design | [support.md](docs/support.md) |
-| **DeetsMusic page's product pass** (tagline, features, screenshots, requirements + trust; later items; the tip jar; the site's Ocean brought up to the app's sea) — planned 2026-10-06, not built | [deetsmusic-page-pass.md](docs/deetsmusic-page-pass.md) |
-| DeetsMusic web demo (`deetsmusic/demo/`): the real app UI in an iframe with mock songs. `app/` is a build copied from the DeetsMusic repo (`npm run demo:publish`) — never hand-edit it | DeetsMusic repo `docs/features/WEB-DEMO.md` |
-| A Status row for DeetsMusic's listening-rooms worker (`rooms.deets.solutions`): one D1 insert, one markup block, one `[ph]` string — designed 2026-09-17, not built | [rooms-status.md](docs/rooms-status.md) |
-| **DeetsMusic Rooms on the site**: the Radio tab rebuilt as the app's own Search / Queue / History / Now Playing cards on the rooms worker (a friend on a Mac listens in a browser); YouTube and the Match Desk out. His calls made 2026-10-13; the app side built; the site page NOT built; 2 forks open (§4) | **[rooms-web.md](docs/rooms-web.md)** |
+| Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [youtube.md](docs/youtube.md), [spotify.md](docs/spotify.md), [data.md](docs/data.md) |
+| The home page's first-run walk (`/?tour`) | [onboarding.md](docs/onboarding.md) |
+| Accounts + game stats | [accounts.md](docs/accounts.md), [accounts-setup.md](docs/accounts-setup.md), [stats.md](docs/stats.md) |
+| DeetsMusic page (`deetsmusic/`): status, installs, releases, boards | [support.md](docs/support.md) |
+| DeetsMusic page's product pass | [deetsmusic-page-pass.md](docs/deetsmusic-page-pass.md) |
+| DeetsMusic web demo (`deetsmusic/demo/app/` is a build copy — never hand-edit) | DeetsMusic repo `docs/features/WEB-DEMO.md` |
+| A Status row for DeetsMusic's rooms worker | [rooms-status.md](docs/rooms-status.md) |
+| **DeetsMusic Rooms on the site** (the Radio tab rebuilt) | **[rooms-web.md](docs/rooms-web.md)** |
+| Cloudflare free-tier costs; SOTD × Bluesky; resume usage numbers | [free-tier.md](docs/free-tier.md), [bluesky.md](docs/bluesky.md), [usage-numbers.md](docs/usage-numbers.md) |
+
+**Docs upkeep.** A new doc starts with front matter (`status`, `sources`,
+`updated`). When you change a doc against its code, bump `updated`.
+`node scripts/docs-check.js` must report 0 facts before a docs commit. Its
+"stale?" warnings mean re-read the doc against the newer code.
 
 ## CSS
 
@@ -178,6 +188,8 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 
 **Visual verification is Aditya's.** After UI changes, confirm the page loads
 cleanly (console, DOM counts), then hand off — he tests look-and-feel himself
-at http://localhost:8787 (`.claude/launch.json` → `deets-site`). Don't drive
+at http://localhost:8787 (`.claude/launch.json` → `deets-site`). To drive a
+page yourself, use the dev driver's curl API ([tooling.md](docs/tooling.md)),
+not pasted harnesses in the Chrome tool. Don't drive
 extended click-through sessions unless asked; if you do interact, restore any
 localStorage state you changed (view/sort/filter) first.

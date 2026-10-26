@@ -1,3 +1,8 @@
+---
+status: idea
+sources: []
+updated: 2026-09-21
+---
 # Free-tier costs, across the account — and the case for retiring the League crawler
 
 > **Written 2026-09-19, from DeetsMusic.** The numbers below were re-read from Cloudflare's own

@@ -1,3 +1,8 @@
+---
+status: live
+sources: [poker/engine.js, games/table.js, styles/table.css, scripts/build-poker-chips.py]
+updated: 2026-08-05
+---
 # DeetsPoker — no-limit hold'em, 2–12 seats
 
 The poker tab: no-limit Texas Hold'em played as a **cash game** on the

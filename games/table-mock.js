@@ -32,6 +32,8 @@
 
   var LATENCY = 110;        // fake round-trip
   var BOT_STEP = 650;       // ms between bot actions (watchable)
+  // ?mock&mockpace=10 → bots move 10× faster (dev driver; mock only)
+  try { BOT_STEP = Math.round(BOT_STEP / (Number(new URLSearchParams(location.search).get("mockpace")) || 1)); } catch (e) {}
   var LOG_MAX = 200;
   var MAX_CONNS = 30;
   var EXPIRE_MS = 3600000;  // idle + empty this long → the table is dropped on boot

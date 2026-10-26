@@ -1,3 +1,8 @@
+---
+status: project
+sources: [radio/radio.js, radio/transport.js, radio/transport-mock.js, radio/strings.js]
+updated: 2026-10-14
+---
 # DeetsMusic Rooms on the site — the Radio tab rebuilt as the rooms web port
 
 > **Opened 2026-10-14** for a DeetsSolutions session to pick up. The design and the owner's

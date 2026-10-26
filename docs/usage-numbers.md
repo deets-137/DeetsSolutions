@@ -1,3 +1,8 @@
+---
+status: project
+sources: []
+updated: 2026-10-06
+---
 # Usage numbers for the resume
 
 **Why:** a resume review (YC's AI tool, 2026-10-01) asked for proof that the

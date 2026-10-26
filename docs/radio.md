@@ -1,9 +1,14 @@
+---
+status: live
+sources: [radio/radio.js, radio/transport.js, radio/strings.js, scripts/radio-token.ps1]
+updated: 2026-08-07
+---
 # DeetsRadio — design (phase 3 built)
 
 **Status (2026-07-14):** all three build phases are in and the worker is
 **deployed** at `radio-api.deets.solutions`. Rooms run on the real
 transport (`radio/transport.js` → the sibling
-[DeetsRadio](../../DeetsRadio) worker, a Durable Object per room; deploy
+[DeetsRadio](https://github.com/deets-137/DeetsRadio) worker, a Durable Object per room; deploy
 with `npx wrangler deploy` there); `?mock` on the page URL selects the
 in-page mock instead, and `?api=<url>` (honored on localhost only) points
 at a local `npx wrangler dev --port 8789`. The Apple side is phase 2's:
@@ -740,7 +745,7 @@ mock stays in the repo as a dev tool (query-flag selected), not a throwaway.
    no playable asset sit silent with a note; mock-catalog entries stay
    silent without one. A genuinely working *solo* DeetsRadio.
 3. ✅ **Worker + DO** (built 2026-07-13) — the sibling
-   [DeetsRadio](../../DeetsRadio) repo: one plain-JS ES-module worker,
+   [DeetsRadio](https://github.com/deets-137/DeetsRadio) repo: one plain-JS ES-module worker,
    `RadioRoom` DO per room (SQLite-backed, free tier). Hibernatable
    WebSockets (`ping`/`pong` auto-answered without waking the object),
    storage-alarm track advancement (an empty durable room keeps playing;

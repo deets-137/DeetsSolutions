@@ -1,3 +1,8 @@
+---
+status: sop
+sources: []
+updated: 2026-10-24
+---
 # Deets.Solutions — Handoff / Status
 
 > Cold-start guide — read first. A hand-built static site on Cloudflare Pages (no build

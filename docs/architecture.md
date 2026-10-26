@@ -1,3 +1,8 @@
+---
+status: foundation
+sources: [js/controls.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
+updated: 2026-10-25
+---
 # Architecture
 
 Technical companion to the [README](../README.md). The README says what the
@@ -379,6 +384,13 @@ header carries this warning.
   edit mode starts (toggle again to pick it up). Nothing in the served tree
   references it, so it never reaches Pages. It is for Aditya typing his own
   words: the Copy rule for Claude is unchanged.
+- **Dev driver (dev only, 2026-10-25).** The same proxy injects
+  `scripts/dev-driver.js`, so `curl localhost:<port>/__dev/*` can drive a
+  real open tab: build a mock table, wait server-side for a phase, eval,
+  reload, set the look, step animations. Locally the proxy also sends JS/CSS
+  as `no-store` and widens the HTML's CSP for the driver. Pages keeps the
+  real `_headers` and CSP. Full API and recipes:
+  [tooling.md](tooling.md).
 - Hosted on Cloudflare Pages; push to the connected branch and it deploys.
   The generated JSONs are committed, so a data refresh is: regenerate,
   commit, push. `scripts/healthcheck.sh` sanity-checks DNS/hosting.

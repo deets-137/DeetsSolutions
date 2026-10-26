@@ -10,8 +10,10 @@
 // that script into every HTML page and answers its saves: /__copy/save
 // rewrites one key's value in a page's strings.js, /__copy/save-html one
 // text in a page's own HTML (/__copy/probe says which texts qualify).
-// None of it is in the
-// repo's served tree, so none of it can reach Pages.
+// It also hosts the dev driver (scripts/dev-driver-server.js): curl
+// /__dev/* to drive a real tab (docs/architecture.md, "Dev driver"), and
+// it sends JS/CSS as no-store so a reload never runs a stale script.
+// None of it is in the repo's served tree, so none of it can reach Pages.
 //
 // Not `cf dev`: as of cf 1.0.0-beta.12 it dies on Windows with `spawn EFTYPE`,
 // and it scaffolds the site as a Worker rather than a Pages project.
@@ -32,7 +34,8 @@ const ROOT = path.join(__dirname, '..');
 const START = Number(process.argv[2]) || 8787;
 const STATE = path.join(os.tmpdir(), 'deets-site-dev');
 const EDITOR = path.join(__dirname, 'copy-edit.js');
-const INJECT = '<script src="/__copy/edit.js" defer></script>';
+const INJECT = '<script src="/__copy/edit.js" defer></script><script src="/__dev/driver.js" defer></script>';
+const driver = require('./dev-driver-server');
 
 function isFree(port) {
   return new Promise((resolve) => {
@@ -142,9 +145,10 @@ function copyRoute(req, res) {
   send(res, 404, { ok: false, error: 'unknown copy route' });
 }
 
-function proxy(inner) {
+function proxy(inner, devRoute) {
   return (req, res) => {
     if (req.url.startsWith('/__copy/')) return copyRoute(req, res);
+    if (req.url.startsWith('/__dev/')) return devRoute(req, res);
     const headers = { ...req.headers };
     delete headers['accept-encoding'];   // keep HTML plain so the tag can go in
     const up = http.request(
@@ -152,7 +156,15 @@ function proxy(inner) {
       (ur) => {
         const isHtml = /text\/html/.test(ur.headers['content-type'] || '') && req.method === 'GET';
         if (!isHtml || ur.statusCode !== 200) {
-          res.writeHead(ur.statusCode, ur.headers);
+          const out = { ...ur.headers };
+          // local only: _headers' max-age=0 + must-revalidate still lets the
+          // browser reuse a 304'd copy; no-store makes every reload fetch the
+          // script it is about to run
+          if (/javascript|text\/css/.test(out['content-type'] || '')) {
+            out['cache-control'] = 'no-store';
+            delete out['etag']; delete out['last-modified'];
+          }
+          res.writeHead(ur.statusCode, out);
           return ur.pipe(res);
         }
         const chunks = [];
@@ -163,6 +175,15 @@ function proxy(inner) {
           const out = { ...ur.headers };
           delete out['content-length'];
           delete out['etag'];
+          // the driver's stream lives on its own port, which _headers' CSP
+          // (rightly) doesn't know; let local pages reach it. Its `eval`
+          // command needs 'unsafe-eval' — local only, Pages keeps the real CSP
+          const csp = out['content-security-policy'];
+          if (csp) {
+            out['content-security-policy'] = csp
+              .replace(/connect-src/, `connect-src http://localhost:${devRoute.sidePort} http://127.0.0.1:${devRoute.sidePort}`)
+              .replace(/script-src/, "script-src 'unsafe-eval'");
+          }
           res.writeHead(200, out);
           res.end(html);
         });
@@ -178,8 +199,9 @@ function proxy(inner) {
   const server = http.createServer();
   await new Promise((r) => server.listen(port, '127.0.0.1', r));
   const inner = await freeFrom(port + 1);
-  server.on('request', proxy(inner));
-  console.log(`deets-site → http://localhost:${port}  (wrangler on ${inner})`);
+  const side = await freeFrom(inner + 1);
+  server.on('request', proxy(inner, driver.mount(port, side)));
+  console.log(`deets-site → http://localhost:${port}  (wrangler on ${inner}, dev driver on ${side})`);
   const child = spawn(
     process.execPath,
     [path.join(ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js'),

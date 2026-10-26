@@ -1,3 +1,8 @@
+---
+status: live
+sources: [deetsmusic/index.html, deetsmusic/strings.js, js/home.js]
+updated: 2026-10-20
+---
 # Support — status, installs, releases and boards for every Deets app
 
 One public home per Deets app where a person can download it, see whether

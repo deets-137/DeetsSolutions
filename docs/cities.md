@@ -1,3 +1,8 @@
+---
+status: live
+sources: [cities/engine.js, cities/cities.js, cities/strings.js, games/table.js]
+updated: 2026-08-05
+---
 # DeetsCities — design + build log
 
 > **The shared half lives in [games.md](games.md)** — the wire protocol,

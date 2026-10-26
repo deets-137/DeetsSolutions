@@ -1,3 +1,8 @@
+---
+status: parked
+sources: [radio/transport.js, radio/transport-mock.js]
+updated: 2026-07-15
+---
 # DeetsRadio — Spotify (SHELVED 2026-07-14; kept as reference)
 
 **Shelved (2026-07-14, same day it was written):** Aditya chose the

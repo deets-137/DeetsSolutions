@@ -1,3 +1,8 @@
+---
+status: built
+sources: [deetsmusic/index.html, deetsmusic/strings.js]
+updated: 2026-09-21
+---
 # The Rooms status row — what this site needs to set it up
 
 > **Written 2026-09-17. The site side was built the same day** — §2b's markup is in

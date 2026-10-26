@@ -1,3 +1,8 @@
+---
+status: live
+sources: [games/table-do.js, profile/profile.js, mahjong/engine.js, poker/engine.js, cities/engine.js]
+updated: 2026-08-05
+---
 # Game stats — the accounts phase-2 design
 
 **Status: LIVE as of 2026-07-29.** Steps 1–4 of "Suggested landing order" are

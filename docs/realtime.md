@@ -1,3 +1,8 @@
+---
+status: project
+sources: [tanks/net.js, tanks/transport-mock.js, games/table-do.js]
+updated: 2026-08-05
+---
 # Real-time games — the framework
 
 The third doc in the games set, and the newest. [games.md](games.md) is

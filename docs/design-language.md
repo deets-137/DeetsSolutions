@@ -1,3 +1,8 @@
+---
+status: sop
+sources: []
+updated: 2026-08-04
+---
 # The design language — how a Deets game gets designed
 
 [games.md](games.md) is the **contract**: the wire protocol, the shell

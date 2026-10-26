@@ -1,3 +1,8 @@
+---
+status: foundation
+sources: [styles/chrome.css, styles/main.css, styles/table.css]
+updated: 2026-07-28
+---
 # The stylesheets — architecture, and what's left to split
 
 **Status: phase 1 executed 2026-07-28.** The games and the shared chrome are

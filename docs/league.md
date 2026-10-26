@@ -1,3 +1,8 @@
+---
+status: live
+sources: [league/index.html, league/league.js]
+updated: 2026-10-20
+---
 # League tab
 
 The `league/` tab shows League of Legends stats for anyone who's been

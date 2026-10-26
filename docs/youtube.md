@@ -1,3 +1,8 @@
+---
+status: live
+sources: [radio/youtube.js, radio/yt-key.js, radio/transport.js]
+updated: 2026-07-15
+---
 # DeetsRadio — YouTube (v1.0, shipped 2026-07-15)
 
 YouTube is DeetsRadio's **free full-track tier**: the keyless IFrame
