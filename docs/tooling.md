@@ -84,14 +84,21 @@ Bash call's 600 s).
 | `table?code=&name=&bots=N&tier=&set=k:v,k:v&spectate=1&start=1` | joins `code` (random if omitted) through the shell's real gate. Then it stands up if `spectate`, adds N bots to open seats, applies settings and starts. It sends the same `stand` / `addBot` / `setSettings` / `start` messages the shell's buttons send, so there's no confirm step to click |
 | `wait?phase=a,b` · `handOver=1\|0` · `wallBelow=N` · `until=<js>` | polls **from the server** every `every=` ms (default 400) until true, then returns the state; 408 with the last state on timeout. Outlasts any browser-tool call, and survives the tab reloading |
 | `eval` | runs JS in the page. An expression or a body with `return`, awaited, and the result made JSON-safe (elements become `<tag#id.class>`) |
-| `reload` | reloads and returns once the tab is back with the **same id** |
-| `pace?ms=` | sets the mock's live bot step (`phantomStep`), returning the previous one |
+| `reload` (`?rejoin=1`) | reloads and returns once the tab is back with the **same id**; `rejoin=1` then takes the gate back into the hash's table (`rejoin`) |
+| `rejoin` | clicks the gate's pill (Rejoin / Sit down / Spectate) for the hash's table, and returns once joined |
+| `pace?ms=` | sets the mock's live bot step and **re-arms a step already waiting** (`repace`), returning the previous one. Before 2026-10-25 a long pace stalled the bots until the old step ran out |
+| `freeze` / `thaw` | `freeze` holds every message to this tab, so the view stays put while the bots play on; `thaw` delivers the held messages in order. Holding, not dropping, matters: a game waiting on your seat sends nothing more, so dropped messages leave the page stale for good |
 | `look?skin=&theme=` | through the settings menu's own chips (look-change cover and all). It waits until the attribute lands and returns `prev` (values plus the stored keys) |
 | `look/restore` | puts back the tab's first `prev`: attributes, and localStorage keys set or removed |
 | `anims/catch?sel=` | a MutationObserver pauses every `document.getAnimations()` entry whose target matches (or sits inside) `sel` the moment it starts |
+| `anims/until?sel=&until=<js>&do=<js>&freeze=1` | catches a moment in one call: arms `anims/catch`, starts `do` (not awaited, so it may loop), polls `until` **in the page** every 10 ms, and the instant it's true freezes the view (if asked) and seeks to 0. Returns `hit`, `frozen`, `caught`, `doError`. The server's `wait` polls every 400 ms, too late for a 1 s transition |
 | `anims/list` | the caught animations: name, target, currentTime, duration |
-| `anims/seek?ms=` | every caught animation to that local time, still paused |
+| `anims/seek?ms=` (`&list=1`) | every caught animation to that local time, still paused. Returns once a frame has painted; `painted: false` means a background tab, where a screenshot may lag the seek (seen 2026-10-25) |
+| `anims/sample?at=0,250,500&sel=&box=&each=1` | seeks to each time and reads **computed style**: how many `sel` matches are hidden (opacity < 0.05) or moving (`translate`/`scale` not at rest), and which scroll boxes inside `box` overflow (a flashing scrollbar). Trust this over a background tab's screenshot |
 | `anims/finish` (`?play=1`) | jumps them to the end (or plays them on) and stops watching |
+
+The dev server's console logs one line per command:
+`[dev] t-4f2a anims/seek 14ms ok` (or `FAIL` and the error).
 
 ```bash
 B=localhost:8787/__dev
@@ -102,6 +109,12 @@ curl -s -X POST "$B/eval?tab=t-4f2a" -d 'document.querySelectorAll(".gt-seat").l
 curl -s "$B/anims/catch?tab=t-4f2a&sel=.mj-tile"
 curl -s "$B/anims/seek?tab=t-4f2a&ms=120"
 curl -s "$B/anims/finish?tab=t-4f2a"
+# catch a transition the moment it lands, view frozen, then read it
+curl -s -X POST "$B/anims/until?tab=t-4f2a" -d '{"sel":".mj-bento","freeze":"1",
+  "do":"document.querySelector(\".mj-seating__roll\").click()",
+  "until":"document.querySelector(\"[data-mj-table]\").dataset.phase===\"play\""}'
+curl -s "$B/anims/sample?tab=t-4f2a&at=0,300,600,1000&sel=.mj-bento%20*"
+curl -s "$B/thaw?tab=t-4f2a"
 ```
 
 ### Limits
@@ -114,6 +127,13 @@ curl -s "$B/anims/finish?tab=t-4f2a"
   hand's length.
 - Not tested live: a duplicated tab getting a fresh id, and the 409 for
   several equally recent tabs.
+- A freeze holds only this tab's view. The mock keeps playing, so the moment
+  after a thaw is wherever the bots got to, not the next step. To catch a
+  later moment (the deal at the break, say), arm `anims/until` while it is
+  still ahead.
+- A page's own time-based work still runs in real time while animations are
+  paused (mahjong's wave ends its scroll locks on a timer), so a `sample`
+  taken long after the catch can show what a viewer never would.
 
 ## 4. Game mocks — `?mock`
 
@@ -124,7 +144,8 @@ disconnects ([games.md](games.md)).
 | Control | Does |
 | --- | --- |
 | `?mock&mockpace=N` | divides the 650 ms bot step by N, for that page load |
-| `<Game>Transport.phantomStep = ms` | the same, live (what the driver's `pace` sets) |
+| `<Game>Transport.phantomStep = ms` | the same, live, from the next bot step on |
+| `<Game>Transport.repace(ms)` | sets it and re-arms a bot step already waiting (what the driver's `pace` calls) |
 | `<Game>Transport.wipe()` | drops every mock table, including its storage key |
 | `<Game>Transport.tables()` | the live table objects |
 
@@ -154,8 +175,9 @@ owning doc in its first line.
 2. Snapshot the keys: `curl -s -X POST "$B/eval?tab=…" -d 'Object.keys(localStorage)'`.
 3. `table?…&bots=4&spectate=1&start=1` for a bot-only table, or `bots=3`
    to play seat 0 yourself.
-4. `wait` for the moment you care about. For an animation, call
-   `anims/catch?sel=…` first, then `anims/seek` through it and screenshot
-   each step.
-5. After editing JS/CSS, `reload`. It's never stale, and the id holds.
+4. `wait` for the moment you care about. For an animation, catch it with
+   `anims/until?…&freeze=1` (or `anims/catch` armed first), then
+   `anims/seek` through it and screenshot each step, and `anims/sample`
+   for the numbers. `thaw` (or `reload?rejoin=1`) to go on.
+5. After editing JS/CSS, `reload?rejoin=1`. It's never stale, and the id holds.
 6. Restore: `look/restore`, and remove the mock keys from step 2.

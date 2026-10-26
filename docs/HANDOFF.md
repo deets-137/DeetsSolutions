@@ -39,12 +39,13 @@ Games — **read [games.md](games.md) first**: [design-language.md](design-langu
 ## Run it
 
 ```bash
-python -m http.server 8787
+npm run dev
 ```
 
-- `.claude/launch.json` has `deets-site` (8787) plus `-alt` (8788) and `-alt2` (8789).
-  Several Deets apps run on this PC at once, so take a free one rather than failing on a
-  busy port.
+- `scripts/dev.js` (also `.claude/launch.json` → `deets-site`): wrangler behind a proxy on
+  the first free port from 8787, plus the copy editor and the dev driver (curl
+  `/__dev/*` drives a real tab). Several Deets apps run on this PC at once, so it probes
+  rather than failing on a busy port. Everything about it: [tooling.md](tooling.md).
 - **Live mode against production workers only works from 8787 or 8788** — those are the
   dev origins in the workers' `ALLOWED_ORIGINS`. 8789 is fine for `?mock`.
 - `?mock` on every game, Radio and `/deetsmusic/` runs the page against an in-page mock

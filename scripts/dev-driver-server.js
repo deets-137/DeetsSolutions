@@ -223,20 +223,33 @@ function mount(mainPort, sidePort) {
     const tab = picked.tab;
     delete q.tab;
 
+    const t0 = Date.now();
+    // one line per command on the dev server's console: which tab, how
+    // long, and how it ended — the trail when a run goes wrong
+    const log = (ok, note) => console.log(`[dev] ${tab.id} ${cmd} ${Date.now() - t0}ms ${ok ? 'ok' : 'FAIL'}${note ? ' ' + note : ''}`);
     if (cmd === 'wait') {
       const [status, body] = await wait(tab.id, q);
+      log(status === 200, status === 200 ? '' : 'status ' + status);
       return json(res, status, body);
     }
     if (cmd === 'reload') {
       const since = Date.now();
       const r = await relay(tab, 'reload', q, 5000);
-      if (!r.ok) return json(res, 502, { ...r, tab: tab.id });
+      if (!r.ok) { log(false, r.error); return json(res, 502, { ...r, tab: tab.id }); }
       const back = await awaitReconnect(tab.id, since, Math.min(Number(q.timeout) || 20000, WAIT_CAP));
-      if (!back) return json(res, 504, { ok: false, tab: tab.id, error: 'tab did not come back after reload' });
+      if (!back) { log(false, 'no reconnect'); return json(res, 504, { ok: false, tab: tab.id, error: 'tab did not come back after reload' }); }
+      // reload?rejoin=1 — and take the gate back into the table in the hash
+      if (q.rejoin === '1') {
+        const j = await relay(back, 'rejoin', {}, 15000);
+        log(j.ok, j.ok ? 'rejoined' : j.error);
+        return json(res, j.ok ? 200 : 500, { ok: j.ok, tab: back.id, info: back.info, result: j.result, error: j.error });
+      }
+      log(true);
       return json(res, 200, { ok: true, tab: back.id, info: back.info });
     }
     const timeout = Math.min(Number(q.timeout) || CMD_TIMEOUT, WAIT_CAP);
     const r = await relay(tab, cmd, q, timeout);
+    log(r.ok, r.ok ? '' : r.error);
     json(res, r.ok ? 200 : 500, { ok: r.ok, tab: tab.id, result: r.result, error: r.error });
   }
 }

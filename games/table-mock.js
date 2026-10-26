@@ -330,6 +330,9 @@
 
     /* ── bot drive (engine validates every attempt) ─────────────── */
     function postApply(t) { armTimer(t); scheduleDrive(t); }
+    // code → the pending drive step's timer, so repace() can re-arm it at a
+    // new pace (a step armed at the old pace would otherwise still wait it out)
+    var DRIVES = {};
     function scheduleDrive(t) {
       if (t.driving) return;
       var g = t.game;
@@ -339,7 +342,7 @@
       // lookup here that it uses to take the move
       if (!spec.needsPhantom(t, HELPERS)) return;
       t.driving = true;
-      setTimeout(function () { t.driving = false; driveStep(t); }, API.phantomStep);
+      DRIVES[t.code] = setTimeout(function () { delete DRIVES[t.code]; t.driving = false; driveStep(t); }, API.phantomStep);
     }
     function tryAct(t, action) {
       var res = Engine.applyAction(t.game, action, ctx());
@@ -717,7 +720,20 @@
         });
       },
 
-      /* dev knobs (console): <Game>Transport.wipe(), .phantomStep */
+      /* dev knobs (console, dev driver): <Game>Transport.wipe(), .phantomStep,
+         .repace(ms) — sets the step AND re-arms any bot step already waiting */
+      repace: function (ms) {
+        if (ms != null) API.phantomStep = Math.max(0, Number(ms));
+        Object.keys(DRIVES).forEach(function (code) {
+          clearTimeout(DRIVES[code]);
+          delete DRIVES[code];
+          var t = TABLES[code];
+          if (!t) return;
+          t.driving = false;
+          scheduleDrive(t);
+        });
+        return API.phantomStep;
+      },
       wipe: function () {
         Object.keys(TABLES).forEach(function (c) { disarmTimer(TABLES[c]); });
         TABLES = {};

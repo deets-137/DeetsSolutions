@@ -95,7 +95,7 @@
       code: s && s.code, phase: s && s.phase,
       skin: root.getAttribute("data-skin"), theme: root.getAttribute("data-theme"),
       focused: document.hasFocus(), visible: document.visibilityState === "visible",
-      activeAt: activeAt || null
+      activeAt: activeAt || null, frozen: !!held
     };
   }
 
@@ -139,13 +139,57 @@
     return { reloading: true };
   };
 
-  // live bot pacing: ms between bot moves (the mock's own .phantomStep knob)
+  // live bot pacing: ms between bot moves (the mock's own .phantomStep knob).
+  // repace() also re-arms a bot step already waiting at the old pace, so a
+  // long pace can be undone at once instead of waited out
   C.pace = function (a) {
     var m = mock();
     if (!m) throw new Error("no mock transport on this page (open it with ?mock)");
     var prev = m.api.phantomStep;
-    if (a.ms != null) m.api.phantomStep = Math.max(0, Number(a.ms));
+    if (a.ms != null) {
+      if (m.api.repace) m.api.repace(a.ms);
+      else m.api.phantomStep = Math.max(0, Number(a.ms));
+    }
     return { prev: prev, botStep: m.api.phantomStep };
+  };
+
+  // freeze — hold every message to this tab's connection, so the view stays
+  // exactly as it is (bots play on server-side). thaw — deliver what was
+  // held, in order, and let messages through again. Unlike dropping them,
+  // the page never ends up stale: a game waiting on this seat sends nothing
+  // more, so the held messages are the only way back in sync.
+  var held = null;
+  C.freeze = function () {
+    var x = mine();
+    if (!x || !x.conn) throw new Error("no live mock connection for this tab");
+    if (held) return { frozen: true, held: held.msgs.length };
+    var conn = x.conn, orig = conn.handler;
+    held = { conn: conn, orig: orig, msgs: [] };
+    conn.handler = function (msg) { held.msgs.push(msg); };
+    return { frozen: true, held: 0 };
+  };
+  C.thaw = function () {
+    if (!held) return { frozen: false, delivered: 0 };
+    var h = held;
+    held = null;
+    h.conn.handler = h.orig;
+    h.msgs.forEach(function (msg) { if (!h.conn.closed) h.orig(msg); });
+    return { frozen: false, delivered: h.msgs.length };
+  };
+
+  // rejoin — after a reload: take the gate's pill (Rejoin / Sit down /
+  // Spectate) for the table in the hash, as a person would
+  C.rejoin = async function () {
+    var x = mine();
+    if (x && x.conn) return { rejoined: false, already: true, state: stateOf() };
+    var go = await until(function () {
+      var b = document.querySelector(".gt-gate__go");
+      return b && !b.disabled && !b.closest("[hidden]") ? b : null;
+    }, 8000, "the gate");
+    go.click();
+    await until(function () { var y = mine(); return y && y.conn ? y : null; }, 8000, "the join");
+    await sleep(300);   // the snapshot's first paint
+    return { rejoined: true, state: stateOf() };
   };
 
   // table?code=&name=&bots=3&tier=&set=winds:1,minFaan:3&spectate=1&start=1
@@ -268,15 +312,93 @@
     grab();
     return { watching: catchSel, caught: caught.map(describe) };
   };
+  // anims/until?sel=.mj-bento&until=<js>&do=<js>&freeze=1 — catch a moment
+  // that a bot (or `do`) brings about: arm the catch, start `do` (not
+  // awaited, so it can loop — clicking Roll until it lands, say), poll
+  // `until` in the page every 10 ms, and the instant it's true freeze the
+  // view (if asked) and seek everything caught to 0. The server's `wait`
+  // polls every 400 ms, far too late to catch a 1 s transition.
+  C["anims/until"] = async function (a) {
+    if (!a.until) throw new Error("anims/until needs ?until=<js>");
+    C["anims/catch"]({ sel: a.sel || "body" });
+    var AsyncFn = Object.getPrototypeOf(async function () {}).constructor;
+    var cond = new AsyncFn("return (" + a.until + "\n)");
+    var doErr = null;
+    if (a.do) {
+      var act;
+      try { act = new AsyncFn("return (" + a.do + "\n)"); } catch (e) { act = new AsyncFn(a.do); }
+      act().catch(function (e) { doErr = String(e && e.message || e); });
+    }
+    var end = Date.now() + Math.min(Number(a.timeout) || 30000, 590000) - 500, hit = false;
+    while (Date.now() < end) {
+      try { hit = !!(await cond()); } catch (e) { hit = false; }
+      if (hit) break;
+      await sleep(10);
+    }
+    var frozen = false;
+    if (hit && (a.freeze === "1" || a.freeze === true)) { C.freeze(); frozen = true; }
+    seekAll(0);
+    return { hit: hit, frozen: frozen, caught: caught.length, doError: doErr };
+  };
   C["anims/list"] = function () {
     if (catcher) grab();
     return { watching: catchSel, caught: caught.map(describe) };
   };
-  // anims/seek?ms=120 — every caught animation to that local time, still paused
-  C["anims/seek"] = function (a) {
+  // a painted frame after a seek, so a screenshot right after shows it (two
+  // rAFs; a background tab may never fire them, hence the fallback)
+  function painted() {
+    return new Promise(function (resolve) {
+      var done = false, fin = function (v) { if (!done) { done = true; resolve(v); } };
+      requestAnimationFrame(function () { requestAnimationFrame(function () { fin(true); }); });
+      setTimeout(function () { fin(false); }, 250);
+    });
+  }
+  function seekAll(ms) {
     if (catcher) grab();
-    caught.forEach(function (an) { an.currentTime = Number(a.ms) || 0; });
-    return { caught: caught.map(describe) };
+    caught.forEach(function (an) { an.currentTime = ms; });
+  }
+  // anims/seek?ms=120 — every caught animation to that local time, still
+  // paused; returns once a frame has painted (`painted: false` = the tab is
+  // in the background and a screenshot may lag). `list=1` for every animation.
+  C["anims/seek"] = async function (a) {
+    seekAll(Number(a.ms) || 0);
+    var p = await painted();
+    return a.list === "1" ? { painted: p, caught: caught.map(describe) } : { ms: Number(a.ms) || 0, caught: caught.length, painted: p };
+  };
+  // anims/sample?at=0,250,500&sel=.mj-tile * — seek through each time and
+  // read what a viewer would see, from computed style (reliable where a
+  // background tab's screenshot isn't): of the `sel` matches, how many are
+  // still hidden (opacity < 0.05) or moving (translate/scale not at rest),
+  // and every scroll box (inside `box`, default the whole page) that
+  // overflows at that moment — a scrollbar flashing. `each=1` lists the
+  // matches' own values (first 40).
+  C["anims/sample"] = async function (a) {
+    var times = String(a.at || "0").split(",").map(Number);
+    var sel = a.sel || "*", boxSel = a.box || "body";
+    var out = [];
+    for (var i = 0; i < times.length; i++) {
+      seekAll(times[i]);
+      await painted();
+      var els = [].slice.call(document.querySelectorAll(sel));
+      var row = { ms: times[i], matched: els.length, hidden: 0, moving: 0, overflow: [] };
+      var each = [];
+      els.forEach(function (e) {
+        var cs = getComputedStyle(e), op = +cs.opacity;
+        var mv = (cs.translate && cs.translate !== "none" && !/^0px( 0px)?$/.test(cs.translate)) || (cs.scale && cs.scale !== "none" && cs.scale !== "1");
+        if (op < 0.05) row.hidden++;
+        if (mv) row.moving++;
+        if (a.each === "1" && each.length < 40) each.push({ el: safe(e), opacity: +op.toFixed(3), translate: cs.translate, scale: cs.scale });
+      });
+      document.querySelectorAll(boxSel + " *").forEach(function (e) {
+        var cs = getComputedStyle(e);
+        if (/auto|scroll/.test(cs.overflowX + cs.overflowY) && (e.scrollHeight > e.clientHeight + 0.5 || e.scrollWidth > e.clientWidth + 0.5)) {
+          row.overflow.push(safe(e));
+        }
+      });
+      if (a.each === "1") row.each = each;
+      out.push(row);
+    }
+    return { caught: caught.length, samples: out };
   };
   // anims/finish — jump caught animations to their end and stop watching
   // (anims/finish?play=1 lets them run on from where they are instead)
