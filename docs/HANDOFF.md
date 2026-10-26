@@ -69,7 +69,8 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-26 — BUILT, unpushed: mahjong tile flights (branch `tile-flights`).** Discards,
+**2026-10-26 — PUSHED, unmerged: mahjong tile flights (branch `tile-flights`). His visual
+pass is done (looks good, same day).** Discards,
 draws, flowers and claimed tiles now play one at a time: lift, glide to the tile's own
 slot, settle, a beat, then the next draw, all inside the 700 ms bot step. Origins keep
 their tile and destinations hold a hidden slot until the landing; counts, log lines and
@@ -77,8 +78,8 @@ the claim dock follow it. My moves never wait, and the rack slides. His calls fr
 contact sheet: a perfectly neat pond, no sound. Design: [mahjong.md](mahjong.md), "Tile
 flights"; motion tokens `--tile-*` in skin.css. Site-only (no engine or worker change).
 Checked on the mock (frames stepped, real-time runs at the live pace, engine 80/80); not
-yet seen: a claim's flight, flowers, the drag discard and the narrow layout. Next: his
-visual pass at `/mahjong/?mock`, then merge. The branch also carries another session's
+checked by me: a claim's flight, flowers, the drag discard and the narrow layout. Next:
+merge to `master` on his go-ahead (site-only, so nothing to deploy beyond Pages). The branch also carries another session's
 dev-driver commit (db45aac).
 
 **2026-10-25 — SHIPPED: `maw-jawng` merged to `master` (758dc33) and the worker deployed.**
