@@ -245,6 +245,8 @@
 
     deadlineFor: deadlineFor,
     dlSig: dlSig,
+    // the opening's beats don't run the clock (engine.js, openingBonusMs)
+    deadlineBonusMs: function (t) { return Engine.openingBonusMs(t.game); },
     /* bot drive — the BRAIN LIVES IN engine.js (docs/games.md, "Bots").
        This file used to carry its own ES5 copy of it while the worker
        carried an ES6 one, so every tuning pass had to be written twice.

@@ -580,6 +580,12 @@ export class GameTable {
     const t = this.t;
     t.v++;
     t.touched = Date.now();
+    // stamp the deadline for the state being sent BEFORE the views are built.
+    // Every caller arms after broadcasting, so each message used to carry the
+    // PREVIOUS obligation's turnEndsAt — right only once a later message
+    // came, and at a table waiting on a person none does. armAlarm keeps a
+    // running countdown (same dlSig), so the callers' own call stays harmless.
+    this.armAlarm();
     // the async seams applyEngine (synchronous, always) cannot reach itself
     await this.flushArc(!!(t.game && t.game.phase === "over"));
     if (this._over) { const p = this._over; this._over = null; await p; }

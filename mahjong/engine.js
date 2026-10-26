@@ -1091,8 +1091,34 @@
     return false;
   }
 
+  /* ── the opening's pause on the table clock (docs/mahjong.md, "The
+     opening") ──────────────────────────────────────────────────────
+     The page plays the opening's beats while the table waits on a person:
+     before the break, the seating roll's rest, the pads morphing into the
+     seat boxes and the wall going up; before the dealer's first discard,
+     the break roll and the deal. The clock doesn't run for those beats:
+     the worker and the mock both grant this through deadlineBonusMs, so a
+     timed dealer gets the whole budget once they can act. The lengths are
+     the default skin's (skin.css --morph / --build-layer / --deal-*,
+     mahjong.js ROLL_MS / SEAT_PAUSE / BREAK_MS); retune them together. */
+  var OPENING_MS = {
+    seated: 500 + 1000,                        // the last seating roll tumbles, then rests
+    morph: 600,                                // pads into seat boxes (first hand only)
+    build: 2 * 500,                            // the wall, two layers
+    deal: 620 + 15 * 150 + 3 * 30 + 380        // the break roll's tumble, then 16 chunks
+  };
+  function openingBonusMs(g) {
+    if (!g || g.phase !== "play" || g.handOver || g.claims || !g.round) return 0;
+    var first = g.round.prevailing === 0 && g.round.dealerIdx === 0 && g.round.hand === 1;
+    if (g.wall === null) return OPENING_MS.build + (first ? OPENING_MS.seated + OPENING_MS.morph : 0);
+    if (g.turn && g.turn.firstTurn && !g.pond.length && g.turn.seat === dealerSeat(g)) return OPENING_MS.deal;
+    return 0;
+  }
+
   var API = {
     KINDS: KINDS,
+    OPENING_MS: OPENING_MS,
+    openingBonusMs: openingBonusMs,
     FLOWERS: FLOWERS,
     WINDS: WINDS,
     DRAGONS: DRAGONS,
@@ -1174,7 +1200,11 @@
       }
       eq(g.phase, "play", "seating resolves to play");
       ok(g.order && g.order.length === 4, "order set");
+      // the opening's clock pause: the first break waits out the seating
+      // rest, the morph and the build; the dealer's first turn, the deal
+      eq(openingBonusMs(g), OPENING_MS.seated + OPENING_MS.morph + OPENING_MS.build, "first break: opening pause");
       act({ type: "rollBreak", seat: dealerSeat(g) });
+      eq(openingBonusMs(g), OPENING_MS.deal, "dealer's first turn: the deal's pause");
       ok(g.turn && g.turn.drawn != null, "dealer holds the first draw");
       var handTiles = g.players[dealerSeat(g)].hand.length;
       eq(handTiles, 13, "dealer hand is 13 + drawn");

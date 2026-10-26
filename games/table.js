@@ -577,7 +577,12 @@
       heldMsgs = null; holdTimer = null;
       while (q.length) {
         if (heldMsgs) { heldMsgs = heldMsgs.concat(q); return; }   // re-staged mid-queue
-        onMessage(q.shift());
+        // a held message is late by the hold: its serverNow would skew the
+        // clock by that much (the turn timer read seconds long), so only a
+        // message applied as it arrives sets the skew
+        var m = q.shift();
+        if (m && typeof m.serverNow === "number") { var c = {}; for (var k in m) if (k !== "serverNow") c[k] = m[k]; m = c; }
+        onMessage(m);
       }
     }
     function dropHeld() { if (holdTimer) clearTimeout(holdTimer); heldMsgs = null; holdTimer = null; }
@@ -1406,7 +1411,10 @@
        thinking, the hand is being scored). */
     function timerLeftMs() {
       if (!model || !timerBudgetSec() || model.turnEndsAt == null) return null;
-      return Math.max(0, model.turnEndsAt - (Date.now() - clockSkew));
+      // never more than the budget: time a game grants on top of it without
+      // raising the budget (mahjong's opening, which the page is still
+      // playing) holds the clock at full instead of overflowing it
+      return Math.min(timerBudgetSec() * 1000, Math.max(0, model.turnEndsAt - (Date.now() - clockSkew)));
     }
     function fmtClock(ms) { var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
     function timerRing(i) {

@@ -293,8 +293,12 @@
   function dealMs() {
     return 15 * tokenMs("--deal-step") + 3 * tokenMs("--deal-gap") + tokenMs("--deal-fly");
   }
+  // the deal is ON only while its time runs — never on a flag alone, so a
+  // late or lost timer can't leave it hiding hands
+  function dealing() { return !!DEAL && tl() < DEAL.end; }
+  function stopDeal() { if (DEAL) clearTimeout(DEAL.timer); DEAL = null; }
   function startDeal() {
-    DEAL = null;
+    stopDeal();
     if (!motionOk() || !model.order || !model.round) return;
     var step = tokenMs("--deal-step"), t0 = tl() + BREAK_MS;
     var seats = [0, 1, 2, 3].map(function (w) { return model.order[(model.round.dealerIdx + w) % 4]; });
@@ -307,12 +311,14 @@
     });
     DEAL = { t0: t0, end: t0 + dealMs(), steps: steps, launched: 0 };
     // the hand's own flights (the dealer's 14th, flowers) wait for the deal
-    if (TQ.beat) clearTimeout(TQ.beat);
+    // (tqPump asks dealing()). The deal keeps its OWN timer: it once rode
+    // the queue's beat, which tqFinish clears (a hidden tab, a snapshot),
+    // and the deal never ended — every slot past 13 stayed hidden, the
+    // drawn tile with them
     var d = DEAL;
-    TQ.beat = setTimeout(function () {
-      TQ.beat = null;
-      if (DEAL === d) { DEAL = null; TBL.render(); }
-      tqPump();
+    d.timer = setTimeout(function () {
+      if (DEAL !== d) return;
+      DEAL = null; TBL.render(); tqPump();
     }, d.end - tl() + 30);
     steps.forEach(function (s) {
       setTimeout(function () { if (DEAL === d) dealLaunch(s); }, s.launch - tl());
@@ -342,7 +348,7 @@
   // the felt and hands as the deal stands right now (after every render,
   // every launch and every landing)
   function dealPaint() {
-    if (!DEAL) return;
+    if (!dealing()) return;
     var taken = Math.floor(dealTaken() / 2);
     BIG.querySelectorAll(".mj-tilef--wall[data-fpos]").forEach(function (st) {
       // the deal's 52 tiles are the 26 stacks clockwise from the break
@@ -757,7 +763,7 @@
     var shifted = wasPhase && wasPhase !== model.phase;
     // the opening's own build and deal stand in for those two waves
     if (OPEN) built = false;
-    if (DEAL) dealt = false;
+    if (dealing()) dealt = false;
     var kind = shifted ? "phase" : built ? "build" : dealt ? "deal" : null;
     if (!kind || !motionOk()) return;
     stopWave();
@@ -1387,7 +1393,7 @@
     var front = Math.max(0, drawn - (model.wallBack || 0) - HOLD.front);
     // mid-deal the wall holds what the deal hasn't lifted yet; flower
     // replacements come off the back after it (tile flights)
-    if (DEAL) { front = dealTaken(); rear = 0; }
+    if (dealing()) { front = dealTaken(); rear = 0; }
     var brk = breakStackIndex();
     var sides = {};
     SIDE_ORDER.forEach(function (pos) { sides[pos] = el("div", "mj-wall__side mj-wall__side--" + pos); });
@@ -2454,7 +2460,7 @@
   }
 
   function tqPump() {
-    if (TQ.running || TQ.beat) return;
+    if (TQ.running || TQ.beat || dealing()) return;   // the deal's own timer pumps after it
     var waiting = TQ.steps.filter(function (s) { return s.state === "wait"; });
     if (!waiting.length) return;
     if (!flightsOn() || waiting.length > 8) { tqFinish(true); return; }
@@ -2657,6 +2663,7 @@
      dropping the table back to the lobby ─────────────────────────── */
   function resetGameUi() {
     clearFlights();
+    stopDeal(); OPEN = null;   // the opening's beats belong to the game being let go
     TQ.batch = []; tqFinish(false); tqSweep();
     lastDice = null; lastActor = null;
     ui.deckPinned = false; ui.logPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};

@@ -527,6 +527,14 @@ in that seat's accent and turns `--stop` for the last ten seconds.
 leaves the DOM, and both read only public broadcast fields, so **spectators
 see exactly what players see** — don't reimplement either from `you`.
 
+The deadline is stamped **before** a broadcast's views are built
+(`broadcast()` calls `armAlarm()` first, and the mock calls `armTimer`). Until
+2026-10-26 every message carried the previous obligation's deadline, and a
+table waiting on a person never got the right one. A readout never shows more
+than its budget. So time a game grants on top of the budget, without raising
+the budget (mahjong's opening pause), holds the clock at full. A budget that
+does include the bonus (cities' `timerBudget`) is unaffected.
+
 Each readout keeps its tick handle **on its own node**, so any number run at
 once. That matters: mahjong's claim window waits on several seats
 simultaneously, and the per-game versions this replaced shared one module

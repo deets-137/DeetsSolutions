@@ -419,9 +419,23 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   to the first. Each beat is pinned to the document timeline, so a
   render mid-beat picks it up where it stands. `stageTable` holds the
   server's broadcasts behind each beat, so a bot dealer's break and first
-  discard wait their turn. Cost: the table clock keeps running on the
-  server meanwhile, so a timed dealer loses about 1.6 s to the build
-  before the break and about 3 s to the deal before the first discard.
+  discard wait their turn.
+  **The clock pauses for the beats (his call, 2026-10-26).** The engine's
+  `openingBonusMs(g)` returns the time the page needs: before the break,
+  the build, plus the seating rest and the morph on the first hand; on
+  the dealer's first turn, the break roll and the deal. The worker and
+  the mock both grant it through `deadlineBonusMs`. The shell's readout
+  never shows more than the budget, so the clock holds at full while the
+  page plays and starts counting when the dealer can act. Measured in the
+  mock at 45 s: the dealer has 44.8 s when the Roll appears and 44.1 s at
+  their first discard. The lengths in `OPENING_MS` mirror the default
+  skin's tokens; retune them together. Two fixes came with it. The
+  table base now stamps the deadline before it builds a broadcast; it
+  used to carry the previous obligation's. And held messages no longer
+  reset the clock skew, which had made the readout run about 3 s long.
+  Also: the deal keeps its own end timer. It once rode the tile queue's
+  beat, which a hidden tab clears, and the dealer's drawn tile stayed
+  hidden.
 - **Players tile**: seat strips (the shared `--gseat` accent edge, the
   shell's `.gt-ring` timer on **every** active dot — a claim window waits
   on several seats at once — Away dimming, bot tags, score + tile count,
