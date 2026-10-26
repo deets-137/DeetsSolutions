@@ -386,16 +386,23 @@
   overflow: hidden;
 }
 .mj-die--small { width: 1.8rem; height: 1.8rem; font-size: 1rem; }
-.mj-dice__faces.is-spinning .mj-die { animation: mj-diespin 0.14s steps(2) infinite; }
+.mj-dice__faces.is-spinning .mj-die,
+.mj-seating__dice.is-spinning .mj-die { animation: mj-diespin 0.14s steps(2) infinite; }
+/* a pad's sum holds its place, unseen, while its dice tumble */
+.mj-seating__dice.is-spinning .mj-seating__sum { visibility: hidden; }
 @keyframes mj-diespin { to { transform: translateY(-2px) rotate(8deg); } }
-.mj-dice__faces.is-settled .mj-die { animation: mj-diesettle 0.34s var(--ease-ui); }
+.mj-dice__faces.is-settled .mj-die,
+.mj-seating__dice.is-settled .mj-die { animation: mj-diesettle 0.34s var(--ease-ui); }
 @keyframes mj-diesettle {
   0% { transform: translateY(-5px) scale(1.06); }
   60% { transform: translateY(1px) scale(0.98); }
   100% { transform: none; }
 }
 .mj-dice__cap { margin: var(--space-2) 0 0; text-align: center; color: var(--subtext); font-size: 0.85rem; min-height: 1.5em; min-height: 1lh; }
-@media (prefers-reduced-motion: reduce) { .mj-dice__faces.is-spinning .mj-die, .mj-dice__faces.is-settled .mj-die { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mj-dice__faces.is-spinning .mj-die, .mj-dice__faces.is-settled .mj-die,
+  .mj-seating__dice.is-spinning .mj-die, .mj-seating__dice.is-settled .mj-die { animation: none; }
+}
 
 /* ── players tile ─────────────────────────────────────────────── */
 .mj-pstrip {

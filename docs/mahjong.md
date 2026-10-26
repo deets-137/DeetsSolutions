@@ -383,6 +383,17 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   most kongs, most deal-ins).
 - **Dice tile**: cities' tumble/settle kit; shows the latest seating or
   wall-break roll, plus the countdown box when the table clock is armed.
+- **Seating roll timing (his call, 2026-10-26).** A seat's roll tumbles for
+  `ROLL_MS` (0.5 s) on its own pad and on the dice tile together. Then it
+  settles and the sum shows. The roll that settles the seating (the last
+  one in, or the one that ties the lead) arrives in the same broadcast as
+  its outcome, so `stageSeating` hands the shell's `stageMessage` hook two
+  steps. First comes a copy still in `seating` with that roll on it. Then,
+  `ROLL_MS + SEAT_PAUSE` (1 s) later, comes the real broadcast without the
+  roll. Messages that arrive in between queue behind it, so a bot dealer's
+  wall break waits too. Known quirk: after a tie, bots that re-roll during
+  the pause have their rolls queued, and they tumble together when it
+  lifts.
 - **Players tile**: seat strips (the shared `--gseat` accent edge, the
   shell's `.gt-ring` timer on **every** active dot — a claim window waits
   on several seats at once — Away dimming, bot tags, score + tile count,

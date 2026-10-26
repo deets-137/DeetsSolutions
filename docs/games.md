@@ -830,7 +830,10 @@ toolbar, grace countdowns, the alarm, the fuse, or any of their CSS.
 Two opt-in flags restyle that chrome: `iconToolbar` (icon pills) and
 `openButton` (one + / sit button beside the code in place of the gate, with
 the unfurl-and-wave arrival). Mahjong uses both; see
-[mahjong.md](mahjong.md), "The open button".
+[mahjong.md](mahjong.md), "The open button". One hook holds the table on a
+moment: `stageMessage(msg, model)` may return `{ now, ms, later }`. The shell
+applies `now`, applies `later` after `ms`, and queues every message in
+between (mahjong's seating pause).
 
 If you catch yourself writing one of those, the answer is already in
 `games/table.js`, `games/table-do.js` or `styles/table.css` — go find it

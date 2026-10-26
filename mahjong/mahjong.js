@@ -40,6 +40,14 @@
 
   var DECK_KEY = "deets-mahjong-deck";           // tile art: per VIEWER, never on the wire
   var ARRANGE_KEY = "deets-mahjong-autoarrange"; // "Auto-Arrange" toggle (default on)
+  // the seating roll (his timing, 2026-10-26): each seat's dice tumble for
+  // ROLL_MS, on its pad and on the dice tile; the roll that settles the
+  // seating (the last one, or a tie) then rests SEAT_PAUSE before the game
+  // or the re-roll goes on
+  var ROLL_MS = 500, SEAT_PAUSE = 1000;
+  var CLEAR_FIELDS = ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn",
+                      // a rematch omits the whole game — the lobby must not paint one
+                      "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"];
 
   /* ═══ THE TABLE SHELL ══════════════════════════════════════════
      games/table.js owns the socket, the code combobox, the gate, the
@@ -65,9 +73,8 @@
     startNeedsHint: S.startNeedsFour,
     errExtra: { loc: S.errLoc },
     /* fields the worker omits when absent must clear, not linger */
-    clearFields: ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn",
-                  // a rematch omits the whole game — the lobby must not paint one
-                  "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"],
+    clearFields: CLEAR_FIELDS,
+    stageMessage: stageSeating,
     clearYouFields: ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue", "hand"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
@@ -213,11 +220,41 @@
 
 
 
+  /* The roll that settles the seating — the last one in, or the one that
+     ties the lead — arrives in the same broadcast as its outcome (seated:
+     the game begins; seatReroll: the tied rolls clear). Staged in two:
+     first the table still seating with that roll on it (it tumbles, then
+     rests), then — ROLL_MS + SEAT_PAUSE later — the real broadcast minus
+     the roll already shown. The shell queues anything newer behind it
+     (games/table.js, "Staging"), so a bot dealer's wall break waits too. */
+  function stageSeating(msg, m) {
+    if (msg.type !== "state" || !m || m.phase !== "seating" || !m.seating) return null;
+    var ev = msg.ev || [];
+    var rolls = ev.filter(function (e) { return e.t === "seatRoll"; });
+    var settles = ev.some(function (e) { return e.t === "seated" || e.t === "seatReroll"; });
+    if (!rolls.length || !settles) return null;
+    var now = { type: "state", ev: rolls };
+    // a staged state keeps every field the table had (the timer's deadline
+    // included), so only the dice change on screen
+    CLEAR_FIELDS.forEach(function (f) { if (f in m) now[f] = m[f]; });
+    if (m.you) now.you = m.you;   // the shell's merge reads msg.you whenever the model has one
+    var shown = m.seating.rolls.slice();
+    rolls.forEach(function (e) { shown[e.seat] = e.d; });
+    now.phase = "seating";
+    now.seating = { rolls: shown, reroll: m.seating.reroll || null };
+    var later = {};
+    for (var k in msg) later[k] = msg[k];
+    later.ev = ev.filter(function (e) { return e.t !== "seatRoll"; });
+    return { now: now, ms: (reduceMotion() ? 0 : ROLL_MS) + SEAT_PAUSE, later: [later] };
+  }
+
+  var padSpin = {};   // seat → when its pad's tumble ends
   function handleEvent(e) {
     if (e.t === "seatRoll" || e.t === "breakRoll") {
       lastDice = { seat: e.seat, d: e.d };
       spinDice = e.d.length;
-      spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
+      spinUntil = Date.now() + (reduceMotion() ? 0 : e.t === "seatRoll" ? ROLL_MS : 620);
+      if (e.t === "seatRoll" && !reduceMotion()) padSpin[e.seat] = spinUntil;
     }
     if (e.t === "deal") ui.handOrder = null;   // fresh hand → re-seed the manual arrangement
     if (e.t === "discard" && model.turn && e.seat === mySeat()) { /* no toast for my own act */ }
@@ -951,7 +988,19 @@
       var diceRow = el("div", "mj-seating__dice");
       var r = st.rolls[i];
       if (r) {
-        r.forEach(function (v) { diceRow.appendChild(el("div", "mj-die mj-die--small", String(v))); });
+        // a fresh roll tumbles here as on the dice tile, then settles; the
+        // sum keeps its place, unseen, until the dice stop
+        var spin = (padSpin[i] || 0) - Date.now();
+        if (spin > 0) { diceRow.classList.add("is-spinning"); diceRow.dataset.until = padSpin[i]; }
+        else if (spin > -340) diceRow.classList.add("is-settled");
+        r.forEach(function (v) {
+          var die = el("div", "mj-die mj-die--small", spin > 0 ? String(1 + Math.floor(Math.random() * 6)) : String(v));
+          die.dataset.v = v;
+          // rebuilt mid-settle (the next seat's roll): pick the bounce up
+          // where it was rather than start it over
+          if (spin <= 0) die.style.animationDelay = spin + "ms";
+          diceRow.appendChild(die);
+        });
         diceRow.appendChild(el("span", "mj-seating__sum", String(r[0] + r[1])));
       } else {
         diceRow.appendChild(el("div", "mj-die mj-die--small", "–"));
@@ -973,6 +1022,26 @@
     wrap.appendChild(grid);
     if (st.reroll) wrap.appendChild(el("p", "mj-seating__note", fmt(S.seatingReroll, { names: st.reroll.map(seatName).join(", ") })));
     BIG.appendChild(wrap);
+    padTumble();
+  }
+  /* The pads' tumble: one ticker for every spinning pad, reading the DOM
+     each tick (a broadcast may have rebuilt the pads mid-roll) — random
+     faces every 70 ms, then the real ones, the settle, and the sum. */
+  var padTick = null;
+  function padTumble() {
+    if (padTick) return;
+    padTick = setInterval(function () {
+      var rows = BIG.querySelectorAll(".mj-seating__dice.is-spinning");
+      if (!rows.length) { clearInterval(padTick); padTick = null; return; }
+      var now = Date.now();
+      Array.prototype.forEach.call(rows, function (row) {
+        var done = now >= +row.dataset.until;
+        Array.prototype.forEach.call(row.querySelectorAll(".mj-die"), function (d) {
+          d.textContent = done ? d.dataset.v : String(1 + Math.floor(Math.random() * 6));
+        });
+        if (done) { row.classList.remove("is-spinning"); row.classList.add("is-settled"); }
+      });
+    }, 70);
   }
 
   /* ── the table: four rotated seat zones around a center well ──── */

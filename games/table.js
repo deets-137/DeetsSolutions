@@ -549,6 +549,7 @@
     }
     function leaveTable() {
       if (conn) conn.close();
+      dropHeld();
       conn = null; model = null; joined = false; code = null; logLines.length = 0;
       if (connToast) { connToast.dismiss(); connToast = null; }
       clearGraceToasts();
@@ -565,7 +566,27 @@
     }
 
     /* ═══ MESSAGE HANDLING ═════════════════════════════════════════ */
+    /* Staging (cfg.stageMessage): a game may hold the table on a moment —
+       mahjong's last seating roll lands and rests before the game starts,
+       though the server has already moved on. The hook returns
+       { now, ms, later }: `now` is applied at once, `later` after `ms`, and
+       every message that arrives meanwhile queues behind it, in order. */
+    var heldMsgs = null, holdTimer = null;
+    function releaseHeld() {
+      var q = heldMsgs || [];
+      heldMsgs = null; holdTimer = null;
+      while (q.length) {
+        if (heldMsgs) { heldMsgs = heldMsgs.concat(q); return; }   // re-staged mid-queue
+        onMessage(q.shift());
+      }
+    }
+    function dropHeld() { if (holdTimer) clearTimeout(holdTimer); heldMsgs = null; holdTimer = null; }
     function onMessage(msg) {
+      if (heldMsgs) { heldMsgs.push(msg); return; }
+      if (hook("stageMessage")) {
+        var st = cfg.stageMessage(msg, model);
+        if (st) { heldMsgs = (st.later || []).slice(); holdTimer = setTimeout(releaseHeld, st.ms); msg = st.now; }
+      }
       /* Real-time games (docs/realtime.md): sim-channel traffic — `tick`
          snapshots and their `ev` flavor — must bypass the shell's
          model/paint path entirely, or 20 Hz of DOM teardown fights the
