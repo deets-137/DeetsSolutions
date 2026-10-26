@@ -69,8 +69,9 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-26 — PUSHED, unmerged: mahjong tile flights (branch `tile-flights`). His visual
-pass is done (looks good, same day).** Discards,
+**2026-10-26 — SHIPPED: mahjong tile flights + headless dev tooling, `tile-flights`
+fast-forwarded into `master` (0914315) and pushed. His visual pass is done (looks good,
+same day).** Discards,
 draws, flowers and claimed tiles now play one at a time: lift, glide to the tile's own
 slot, settle, a beat, then the next draw, all inside the 700 ms bot step. Origins keep
 their tile and destinations hold a hidden slot until the landing; counts, log lines and
@@ -78,9 +79,9 @@ the claim dock follow it. My moves never wait, and the rack slides. His calls fr
 contact sheet: a perfectly neat pond, no sound. Design: [mahjong.md](mahjong.md), "Tile
 flights"; motion tokens `--tile-*` in skin.css. Site-only (no engine or worker change).
 Checked on the mock (frames stepped, real-time runs at the live pace, engine 80/80); not
-checked by me: a claim's flight, flowers, the drag discard and the narrow layout. Next:
-merge to `master` on his go-ahead (site-only, so nothing to deploy beyond Pages). The branch also carries another session's
-dev-driver commit (db45aac), and the **headless tooling** (2026-10-26): `/__dev/open` runs
+checked by me: a claim's flight, flowers, the drag discard and the narrow layout.
+Site-only, so Pages is the whole deploy. The merge also carried the other session's
+dev-driver commit (db45aac) and the **headless tooling** (2026-10-26): `/__dev/open` runs
 a tab in a headless Edge (never hidden, never throttled; `shot`, `slow`, `perf`), the
 driver's page half split into `scripts/dev-driver/` parts with per-game hooks, and
 `node scripts/dev-run.js turn|flight|soak|smooth`, one-call recipes
