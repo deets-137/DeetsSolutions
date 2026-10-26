@@ -140,9 +140,9 @@
          loopback auth page loads. `player.ts` configures it lazily on first play.
          A launch with no network fails this load; the flag lets player.ts load it again
          (TOASTS.md §5, the Apple health offline row). -->
-    <script type="module" crossorigin src="./assets/main-BTFWdLnb.js"></script>
+    <script type="module" crossorigin src="./assets/main-Blm2DM2k.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-Ct5FWWRu.js">
-    <link rel="stylesheet" crossorigin href="./assets/main-DRdDubT-.css">
+    <link rel="stylesheet" crossorigin href="./assets/main-DkhZcq3P.css">
   </head>
 
   <body>
@@ -324,6 +324,15 @@
       <div class="net" id="net" hidden>
         <button class="net__btn" id="net-open" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Network" title="Network: how steady the connection has been"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="net__car"><path d="M5.1 16H2.8V12.8H6.4L8 9.8H15.8L17.8 12.8H20.8L21.4 16H19.3M15.9 16H8.7"/><circle cx="6.9" cy="16" r="1.7"/><circle cx="17.6" cy="16" r="1.7"/><path d="M3.9 12.8V10.3M2.6 10.3H5.2"/></g></svg></button>
         <div class="net__panel pop app-scroll" id="net-panel" role="group" aria-label="Network" data-frames="net" data-tauri-drag-region="false" hidden></div>
+      </div>
+
+      <!-- The pin (docs/features/PIN.md): right of the Network button in Max, right of the app
+           title in Mini and Midi, where the buttons before it are hidden (his call, 2026-10-26).
+           A pin glyph: diagonal at rest, horizontal while pressed, vertical while pinned
+           (styles/pin.css). The panel: four tiles and the Pin button. src/pin.ts. -->
+      <div class="pin" id="pin">
+        <button class="pin__btn" id="pin-open" type="button" aria-haspopup="true" aria-expanded="false" aria-pressed="false" aria-label="Keep on top" title="Keep on top: pin the cover, the player, Mini or this window above other windows. For a lasting choice, use Settings › Window › Keep on top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6M10.2 3.5v5L7.6 12.4h8.8l-2.6-3.9v-5M12 12.4v8"/></svg></button>
+        <div class="pin__panel pop" id="pin-panel" role="group" aria-label="Keep on top" data-frames="pin" data-tauri-drag-region="false" hidden></div>
       </div>
 
       <div class="drag-region" data-tauri-drag-region></div>
