@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [deetsmusic/index.html, deetsmusic/strings.js, js/home.js]
-updated: 2026-10-20
+updated: 2026-10-26
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -418,6 +418,107 @@ worker change: both read `GET /t/<code>` with the code the filer already holds.
   than the entry's `seen` count. Opening the thread (`#t=`) sets `seen`. Entries saved before
   this have no `seen`, so a reply he made earlier shows once as new.
 - A filer on the web who never comes back is not reached. That was the cost of A.
+
+### Read marks — BUILT 2026-10-26, not migrated or deployed; his calls R1 A, R2 B, R3 A
+
+**As built (2026-10-26).** Where this differs from the design below, this is the code.
+- `migrations/2026-10-26-read-marks.sql` adds `replies.seen_at`, `seen_via`, `opened_at` and
+  `posts.read_at`; `schema.sql` carries them.
+- The worker: `handleTicket` takes `url` and `ctx`; a read that is not his calls `stampRead`
+  (one batch in `waitUntil`, errors swallowed). Only owner replies that are NOT hidden get a
+  mark: a hidden reply never reaches the filer. His read gets `read_at` (`readAt`) and the
+  reply marks (`threadReplies`); each falls back to the old columns before the migration, so
+  his Inbox never fails on the order.
+- **Found while building:** the page read `#t=` and *Your posts* WITHOUT the cookie, so his
+  own visit to a `#t=` page would have counted as the filer's. Both reads now send it
+  (`creds: true`); his visit marks nothing. A side effect: his `#t=` view now gets the owner
+  answer (hidden rows too), as the `#p=` view already did.
+- The admin Inbox: *Last checked {date}* in a post's foot; under each shown owner reply,
+  *Seen in the app {date}* / *Seen on the website {date}* / *Not seen yet*, and *Opened
+  {date}*. Strings `inboxSeen_*`, `inboxOpened`, `inboxNotSeen`, `inboxReadAt` — his wording (he took the `[ph]` marks out, 2026-10-26).
+- The privacy text: `privacy3` on this page, and a *Replies to your reports* bullet in
+  the DeetsMusic README › Privacy.
+- Tested on a local worker and a throwaway D1 (`wrangler dev --persist-to`): an app read
+  set `seen_at` and `seen_via = app`; a page read with `?open=1` set `opened_at` and left
+  `seen_via` alone; the hidden owner reply and the reporter's reply got nothing; `read_at`
+  was set; the filer's answer had no mark fields; with the columns dropped, a read still
+  answered 200. Not tested: the owner's read (it needs his session cookie).
+- **The deploy (his):** the migration, then `npx wrangler deploy` in DeetsSupport, then
+  `/health` and `/token`, then publish this site. `wrangler rollback` if anything is off.
+
+His ask, 2026-10-26: know whether a reply reached the filer. Today nothing records it: the
+worker writes nothing when `GET /t/<code>` is read, and the only trace is the filer's own log
+line `report: checked N open reports, M with a new reply`.
+
+**What "reached" means.** A read of `GET /t/<code>` WITHOUT his owner cookie, after the reply
+was written. Each such read already puts the reply in front of the filer:
+
+| Reader | What the filer sees |
+|---|---|
+| The app's daily check (`report_check`) | the reply notice, sticky until a button is pressed (`dismissKey`) |
+| The app's My reports › Refresh | the New reply dot |
+| This page's *Your posts* (`checkMine`) | the New reply chip |
+| This page's thread view (`#t=`, the notice's Open lands here) | the reply itself |
+
+A read with his cookie (the admin page's Inbox, his own thread view) never counts. *Don't show
+again* on the notice stops the app's checks, so a silenced app makes no read and gets no mark.
+A mark says the reply was shown; it cannot say the filer read the words.
+
+**What is stored** (`migrations/2026-10-26-read-marks.sql`, columns only):
+
+```sql
+ALTER TABLE replies ADD COLUMN seen_at  INTEGER;  -- owner replies: the FIRST filer read after it
+ALTER TABLE replies ADD COLUMN seen_via TEXT;     -- 'app' | 'web' — that read's reader
+ALTER TABLE posts   ADD COLUMN read_at  INTEGER;  -- the LAST filer read of the ticket
+```
+
+- `seen_via` comes from the User-Agent: `DeetsMusic/…` is `app`, anything else `web`. Only
+  the word is kept, never the agent string or the version.
+- `read_at` tells him the install still checks (an uninstalled app, or one older than 1.1.0,
+  stops). It is the last read only, overwritten each time.
+- No ID, no IP, no agent string: the rules in the worker's header hold.
+
+**The worker** (`handleTicket`, the one route; no new route):
+1. When the reader is not the owner, after the answer is built, `ctx.waitUntil` one batch:
+   `UPDATE replies SET seen_at = ?, seen_via = ? WHERE code = ? AND author = 'owner' AND
+   seen_at IS NULL` and `UPDATE posts SET read_at = ? WHERE code = ?`. Errors are swallowed:
+   a D1 fault loses a mark, never a read.
+2. The filer's answer does not change (see R1). With his cookie, `threadReplies` adds
+   `seen_at` / `seen_via` and the post adds `read_at`.
+3. Writes: one batch per filer read — at most one a day per open report per install, plus
+   page loads. Far inside D1's free writes.
+
+**The admin page** (`admin/admin.js`, the Inbox thread): under each of his replies, after the
+date, *Seen Oct 27 · app* or *Not seen yet*; in the post's head, *Last checked Oct 27*. The
+words are his; the build puts `[ph]` strings.
+
+**Replies from before the deploy** get their mark at the first filer read after it, so their
+time can be later than the true first read.
+
+**The order:** apply the migration, then deploy the worker (a `SELECT seen_at` before the
+column exists would fail his Inbox), then publish the admin page. No app release: the app
+already reads `/t/<code>`.
+
+**The forks:**
+- **R1 — Does the filer see the mark? His call, 2026-10-26: A.** A (recommended): no, only his Inbox; the privacy text
+  says it — the README › Privacy paragraph and this page's privacy line: when your app or
+  this page checks a report, the time is noted so Aditya knows his reply reached you. B: also
+  on the filer's thread page (*Your app saw this reply on Oct 27*).
+- **R2 — Also mark "opened"?** A: shown only, as above. B (recommended since his question,
+  2026-10-26, "is there really a cost to R2B?" — no real one): also `replies.opened_at`, the
+  first time the filer opens the thread after the reply. Every Open lands on one place — the
+  notice's Open and My reports' Open both go to `#t=<code>` (`report.rs` `TICKET_PAGE`), as
+  does *Your posts* — so the thread view's own `GET /t/<code>` sends `?open=1` and the
+  background reads (`report_check`, Refresh, `checkMine`) do not. The privacy line from R1
+  covers it. The only limit: it rides the page publish that the admin page needs anyway.
+- **R3 — A worker change while the app is live. His call, 2026-10-26: A.** His ask of 2026-10-26 (admin.js, the
+  Inbox) was no worker change while the app is live. This one is: the same worker serves the
+  mint (`/token`), sign-in and `/update`, so a broken deploy reaches every user. DeetsSupport
+  holds no sockets, so a good deploy drops nothing. A (recommended): deploy it with the
+  guards — the change sits in `handleTicket` only, the stamp is never awaited, `wrangler dev`
+  first, then `/health` and `/token` checked after, `wrangler rollback` ready. B: hold it for
+  the next worker change and deploy both together. (Reading Workers Logs by hand needs no
+  deploy, but it puts nothing on the admin page, so it is not an option here.)
 
 ---
 

@@ -1409,7 +1409,8 @@
     var next = function () {
       var code = queue.shift();
       if (!code) return;
-      return api("support", "GET", "/t/" + code).then(function (res) {
+      // The cookie, so a check from his own browser marks nothing ("Read marks").
+      return api("support", "GET", "/t/" + code, undefined, { creds: true }).then(function (res) {
         if (res.ok && res.data && Array.isArray(res.data.replies)) {
           MINE_OWNER[code] = ownerReplies(res.data.replies);
           renderMine();
@@ -1502,7 +1503,10 @@
     body.appendChild(el("p", "dm-empty", s("ticketLoading")));
     thread.hidden = true;
 
-    api("support", "GET", "/t/" + code).then(function (res) {
+    /* open=1: this is the filer opening the thread, so the worker marks Aditya's
+       replies opened (support.md, "Read marks"). The cookie goes too, so his own
+       visit is told apart and marks nothing. */
+    api("support", "GET", "/t/" + code + "?open=1", undefined, { creds: true }).then(function (res) {
       if (ticketCode !== code) return;
       body.textContent = "";
       if (res.status === 404) { body.appendChild(el("p", "dm-empty", s("ticketMissing"))); return; }

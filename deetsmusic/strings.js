@@ -392,6 +392,12 @@ window.DM_STRINGS = {
   inboxStatusPill:       "Status",
   inboxReplyLabel:       "Reply as Aditya",
   inboxReplyAria:        "Reply to {title}",
+  // Read marks (support.md, "Read marks"): did his reply reach the filer.
+  inboxSeen_app:         "Seen in the app {date}",
+  inboxSeen_web:         "Seen on the website {date}",
+  inboxOpened:           "Opened {date}",
+  inboxNotSeen:          "Not seen yet",
+  inboxReadAt:           "Last checked {date}",
 
   adminLink:         "Admin",
   adminTitle:        "DeetsMusic admin",
@@ -430,5 +436,6 @@ window.DM_STRINGS = {
   fineTitle:  "Privacy",
   privacy1:   "Apple sign in is purely on your PC, DeetsMusic can't see anything about your Apple account.",
   privacy2:   "There's no cloud backups or anything yet so no one except Apple gets your play history.",
+  privacy3:   "When your app or this page checks a report you sent, the time is noted, so Aditya knows his reply reached you. No ID, no IP address.",
   trademark:  "Apple Music is a trademark of Apple Inc., registered in the U.S. and other countries. DeetsMusic is an independent project. It is not affiliated with, sponsored by, or endorsed by Apple. (But I am unemployed and looking to get into Product-side roles so if we wanna chat Apple (or other service provider), I am so down)"
 };

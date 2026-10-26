@@ -256,6 +256,7 @@
       if (res.data.post) {
         p.source = res.data.post.source;
         p.meta = parseMeta(res.data.post.meta);
+        p.read_at = res.data.post.read_at || null;   // the filer's last read ("Read marks")
       }
       renderInbox();
     });
@@ -320,6 +321,7 @@
     var version = (p.meta && p.meta.version) || p.version;
     if (version) foot.appendChild(el("span", null, version === "all" ? s("ticketVersionAll") : "v" + version));
     foot.appendChild(el("span", null, s("inboxInterest", { n: p.interest || 0 })));
+    if (p.read_at) foot.appendChild(el("span", null, s("inboxReadAt", { date: fmtUnix(p.read_at) })));
     main.appendChild(foot);
 
     // An app bug's log tail (report.rs: the area the user picked, scrubbed). Folded: it is long.
@@ -344,6 +346,13 @@
         who.appendChild(nameEl);
         who.appendChild(el("span", null, fmtUnix(r.created_at)));
         if (r.hidden) who.appendChild(chip(s("tagHidden"), "hidden"));
+        // Did it reach the filer (support.md, "Read marks")? A hidden reply never shows to them.
+        if (r.author === "owner" && !r.hidden) {
+          who.appendChild(el("span", "dm-reply__mark", r.seen_at
+            ? s(r.seen_via === "app" ? "inboxSeen_app" : "inboxSeen_web", { date: fmtUnix(r.seen_at) })
+            : s("inboxNotSeen")));
+          if (r.opened_at) who.appendChild(el("span", "dm-reply__mark", s("inboxOpened", { date: fmtUnix(r.opened_at) })));
+        }
         li.appendChild(who);
         li.appendChild(el("p", "dm-reply__body", r.body));
         ol.appendChild(li);
