@@ -80,7 +80,13 @@ flights"; motion tokens `--tile-*` in skin.css. Site-only (no engine or worker c
 Checked on the mock (frames stepped, real-time runs at the live pace, engine 80/80); not
 checked by me: a claim's flight, flowers, the drag discard and the narrow layout. Next:
 merge to `master` on his go-ahead (site-only, so nothing to deploy beyond Pages). The branch also carries another session's
-dev-driver commit (db45aac).
+dev-driver commit (db45aac), and the **headless tooling** (2026-10-26): `/__dev/open` runs
+a tab in a headless Edge (never hidden, never throttled; `shot`, `slow`, `perf`), the
+driver's page half split into `scripts/dev-driver/` parts with per-game hooks, and
+`node scripts/dev-run.js turn|flight|soak|smooth`, one-call recipes
+([tooling.md](tooling.md) §3, §3a, §3b). A dev server started before that commit must
+be restarted: it still reads the removed `scripts/dev-driver.js`. The recipes would make
+the four unchecked cases above quick to cover: claim, flower, drag, narrow (`w=` on `open`).
 
 **2026-10-25 — SHIPPED: `maw-jawng` merged to `master` (758dc33) and the worker deployed.**
 The site's whole branch is live (Pages): the narrow-width work, Beginner chick, one stage,

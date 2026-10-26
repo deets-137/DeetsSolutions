@@ -15,14 +15,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawn } = require('child_process');
+const { launch } = require('./lib/cdp');   // the headless Edge (docs/tooling.md, "Headless")
 
 const BASE = (process.argv[2] && process.argv[2].startsWith('http'))
   ? process.argv[2].replace(/\/$/, '') : 'https://deets.solutions';
 const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('http'));
 const OUT = path.join(os.tmpdir(), 'deets-og-shots');
 const PROFILE = path.join(os.tmpdir(), 'deets-og-edge');
-const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const PORT = 9333;
 const W = 1440, H = 720;
 
@@ -96,57 +95,13 @@ const PAGES = {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function devtoolsUrl() {
-  for (let i = 0; i < 50; i++) {
-    try {
-      const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-      const tab = list.find((t) => t.type === 'page');
-      if (tab) return tab.webSocketDebuggerUrl;
-    } catch (e) {}
-    await wait(200);
-  }
-  throw new Error('Edge never opened its DevTools port');
-}
-
-function connect(url) {
-  const ws = new WebSocket(url);
-  let id = 0;
-  const pending = new Map();
-  const listeners = [];
-  ws.onmessage = (m) => {
-    const msg = JSON.parse(m.data);
-    if (msg.id && pending.has(msg.id)) {
-      const { resolve, reject } = pending.get(msg.id);
-      pending.delete(msg.id);
-      msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
-    } else if (msg.method) listeners.forEach((fn) => fn(msg));
-  };
-  const send = (method, params = {}) => new Promise((resolve, reject) => {
-    pending.set(++id, { resolve, reject });
-    ws.send(JSON.stringify({ id, method, params }));
-  });
-  const once = (method) => new Promise((resolve) => {
-    const fn = (msg) => { if (msg.method === method) { listeners.splice(listeners.indexOf(fn), 1); resolve(msg); } };
-    listeners.push(fn);
-  });
-  return new Promise((resolve) => { ws.onopen = () => resolve({ send, once, close: () => ws.close() }); });
-}
-
 async function main() {
   fs.rmSync(PROFILE, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
-  const edge = spawn(EDGE, [
-    '--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run',
-    `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`,
-    `--window-size=${W},${H}`, 'about:blank',
-  ], { stdio: 'ignore' });
+  const browser = await launch({ width: W, height: H, port: PORT, profile: PROFILE, scheme: 'light' });
 
   try {
-    const cdp = await connect(await devtoolsUrl());
-    await cdp.send('Page.enable');
-    await cdp.send('Runtime.enable');
-    await cdp.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
-    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+    const cdp = await browser.first();
 
     const names = ONLY.length ? ONLY : Object.keys(PAGES);
     for (const name of names) {
@@ -183,7 +138,7 @@ async function main() {
     }
     cdp.close();
   } finally {
-    edge.kill();
+    await browser.close();
   }
 }
 

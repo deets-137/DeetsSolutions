@@ -385,9 +385,10 @@ header carries this warning.
   references it, so it never reaches Pages. It is for Aditya typing his own
   words: the Copy rule for Claude is unchanged.
 - **Dev driver (dev only, 2026-10-25).** The same proxy injects
-  `scripts/dev-driver.js`, so `curl localhost:<port>/__dev/*` can drive a
-  real open tab: build a mock table, wait server-side for a phase, eval,
-  reload, set the look, step animations. Locally the proxy also sends JS/CSS
+  the dev driver's page half (`scripts/dev-driver/`), so `curl
+  localhost:<port>/__dev/*` can drive a real open tab, or a headless one it
+  opens itself (2026-10-26): build a mock table, wait server-side for a
+  phase, eval, reload, set the look, step animations, screenshot. Locally the proxy also sends JS/CSS
   as `no-store` and widens the HTML's CSP for the driver. Pages keeps the
   real `_headers` and CSP. Full API and recipes:
   [tooling.md](tooling.md).

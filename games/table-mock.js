@@ -95,6 +95,10 @@
           if (st && st.color && Colors.LEGACY[st.color]) st.color = Colors.LEGACY[st.color];
         });
         TABLES[code] = t;
+        // a running game picks up where it stood: its bots' next step and
+        // its deadline (a claim window's cap) were timers, and timers don't
+        // survive a reload. Deferred: API (the bot pace) is defined below.
+        if (running) setTimeout(function () { if (TABLES[code] === t) postApply(t); }, 0);
       });
     }
     boot();

@@ -1,5 +1,6 @@
 // The dev driver's server half (scripts/dev.js wires it in). Lets curl drive
-// a real browser tab: each page gets scripts/dev-driver.js injected, which
+// a real browser tab: each page gets the page half (scripts/dev-driver/*.js,
+// joined by pageScript below) injected, which
 // holds an EventSource to a SIDE port (its own origin, so its long-lived
 // connections never eat the page's six-per-host HTTP/1.1 pool). A curl to
 // /__dev/<cmd> on the main port is relayed down that stream; the page
@@ -15,7 +16,21 @@ const http = require('http');
 const path = require('path');
 const crypto = require('crypto');
 
-const SCRIPT = path.join(__dirname, 'dev-driver.js');
+const headless = require('./dev-headless');
+
+// the page half, joined in this order inside one function scope (core.js
+// says how the parts share it). Every games/*.js joins between the
+// commands and the wire. Read on every request, so an edit needs only a reload.
+const PARTS_DIR = path.join(__dirname, 'dev-driver');
+const PARTS = ['core.js', 'mock.js', 'look.js', 'anims.js', 'clock.js', 'games/*', 'wire.js'];
+function pageScript(sidePort) {
+  const files = PARTS.flatMap((p) => p === 'games/*'
+    ? fs.readdirSync(path.join(PARTS_DIR, 'games')).filter((f) => f.endsWith('.js')).sort().map((f) => 'games/' + f)
+    : [p]);
+  const body = files.map((f) => `/* ═══ ${f} ═══ */\n` + fs.readFileSync(path.join(PARTS_DIR, f), 'utf8')).join('\n');
+  return '(function () {\n"use strict";\nif (!/^(localhost|127\\.0\\.0\\.1)$/.test(location.hostname)) return;\n' +
+    body.replace('__SIDE_PORT__', String(sidePort)) + '\n})();\n';
+}
 const CMD_TIMEOUT = 30000;
 const WAIT_CAP = 590000;           // a single Bash call allows 600 s
 const GONE_MS = 120000;            // disconnected tabs drop off the list after this
@@ -52,7 +67,7 @@ function listing() {
   prune();
   return [...tabs.values()].map((t) => ({
     id: t.id, connected: t.connected, lastSeen: new Date(t.seen).toISOString(),
-    lastActive: t.active ? new Date(t.active).toISOString() : null, ...t.info,
+    lastActive: t.active ? new Date(t.active).toISOString() : null, headless: headless.isHeadless(t.id), ...t.info,
   }));
 }
 
@@ -205,9 +220,8 @@ function mount(mainPort, sidePort) {
     const url = new URL(req.url, 'http://x');
     const cmd = url.pathname.replace(/^\/__dev\//, '');
     if (cmd === 'driver.js') {
-      const src = fs.readFileSync(SCRIPT, 'utf8').replace('__SIDE_PORT__', String(sidePort));
       res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
-      return res.end(src);
+      return res.end(pageScript(sidePort));
     }
     if (cmd === 'tabs') return json(res, 200, { ok: true, tabs: listing() });
 
@@ -217,6 +231,16 @@ function mount(mainPort, sidePort) {
       if (raw) {
         try { Object.assign(q, JSON.parse(raw)); } catch (e) { q.js = raw; }   // a bare body is eval's js
       }
+    }
+    // the browser's own commands (open, shot, resize, close): headless tabs only
+    if (headless.handles(cmd)) {
+      const t0 = Date.now();
+      const [status, body] = await headless.run(cmd, q, {
+        mainPort,
+        awaitTab: (tid) => awaitReconnect(tid, 0, 10000),
+      });
+      console.log(`[dev] ${body.tab || q.tab || '-'} ${cmd} ${Date.now() - t0}ms ${status === 200 ? 'ok' : 'FAIL ' + body.error}`);
+      return json(res, status, body);
     }
     const picked = pick(q.tab);
     if (picked.error) return json(res, picked.status, { ok: false, error: picked.error, tabs: listing() });
