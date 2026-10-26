@@ -3559,6 +3559,29 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 /* The boards' tools are a two-pill grid; here a row holds one or two pills, flush right. */
 .dm-usage .dm-board__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; align-self: auto; margin-inline-start: auto; }
 
+/* The Inbox (admin.js; support.md, "The admin page"). A board card, but the whole text shows
+   and the card is not a link: the thread and the reply box sit inside it. */
+.dm-inbox .tb-pop { max-block-size: 18rem; overflow-y: auto; }
+.dm-inbox .dm-board__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; align-self: auto; margin-inline-start: auto; }
+.dm-inbox__list { display: flex; flex-direction: column; gap: var(--space-3); }
+.dm-inbox__post { cursor: default; }
+.dm-inbox__post:hover { border-color: var(--border); }
+.dm-inbox__body {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dm-inbox__thread { margin-block-start: var(--space-2); }
+.dm-inbox__reply { display: flex; flex-direction: column; gap: var(--space-2); margin-block-start: var(--space-2); }
+.dm-inbox__reply .dm-form__actions { align-items: center; }
+.dm-inbox__status { margin-inline-start: 0; justify-content: flex-start; }
+.dm-chip[data-tone="waiting"] { color: var(--title); border-color: var(--pause); }
+/* Your posts: Aditya replied since this browser last opened the thread (deetsmusic.js checkMine). */
+.dm-chip[data-tone="reply"] { color: var(--title); border-color: var(--go); }
+
 /* ── Product pass 1 (docs/deetsmusic-page-pass.md §3): tagline, features,
    screenshots, requirements + trust. `.dm-pitch` because `.dm-feats` is
    the release notes' two-pane. Items are the earlier-release cards'

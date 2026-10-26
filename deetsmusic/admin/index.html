@@ -32,13 +32,13 @@
     <link rel="preload" href="../../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/skin.css?v=2026-10-26" as="style" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-24" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-26" />
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-10-14" defer></script>
+    <script src="../strings.js?v=2026-10-26" defer></script>
     <script src="../mock.js?v=2026-10-14" defer></script>
-    <script src="./admin.js?v=2026-10-14" defer></script>
+    <script src="./admin.js?v=2026-10-26" defer></script>
   </head>
 
   <body>
@@ -99,6 +99,18 @@
       <p class="dm-lead dm-admin__gate" data-dm-admin-gate data-s="adminChecking"></p>
 
       <div class="dm-grid">
+        <!-- Inbox (support.md, "The admin page"): every post, newest activity first, with its
+             thread, a reply box and the status. GET /admin/posts, then GET /t/<code> per post;
+             no route of its own, so the worker did not change for it. -->
+        <section class="dm-box dm-box--wide dm-inbox" id="inbox" data-dm-inbox aria-labelledby="dm-inbox-title" hidden>
+          <div class="dm-box__head">
+            <h2 class="dm-box__title" id="dm-inbox-title" data-s="inboxTitle"></h2>
+            <div class="dm-board__tools" data-dm-inbox-tools></div>
+          </div>
+          <p class="dm-lead" data-dm-inbox-state></p>
+          <div class="dm-inbox__list" data-dm-inbox-list></div>
+        </section>
+
         <!-- Usage (DeetsMusic USAGE-COUNTS.md §6): GET /admin/usage. Counts only, never a raw row. -->
         <section class="dm-box dm-box--wide dm-usage" id="usage" data-dm-usage aria-labelledby="dm-usage-title" hidden>
           <div class="dm-box__head">

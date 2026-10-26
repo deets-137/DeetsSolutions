@@ -1390,9 +1390,33 @@
   }
   function remember(entry) {
     var list = readMine().filter(function (x) { return x.code !== entry.code; });
-    list.unshift({ code: entry.code, kind: entry.kind, title: entry.title, at: Math.floor(Date.now() / 1000) });
+    var seen = entry.seen || 0;
+    list.unshift({ code: entry.code, kind: entry.kind, title: entry.title, at: Math.floor(Date.now() / 1000), seen: seen });
     writeJSON(LS_MINE, list.slice(0, 50));
+    if (MINE_OWNER[entry.code] == null || MINE_OWNER[entry.code] < seen) MINE_OWNER[entry.code] = seen;
     renderMine();
+  }
+  /* New replies (2026-10-26, his call: the filer learns about Aditya's reply without contact
+     details). Once per page load, each saved code's thread is read (GET /t/<code>, the route
+     the thread view uses) and his replies counted; more than the entry's `seen` count shows a
+     New reply mark until the thread is opened. A failed read shows nothing. */
+  var MINE_OWNER = {};   // code → Aditya's replies on the thread, as last read
+  function ownerReplies(replies) {
+    return (replies || []).filter(function (r) { return r.author === "owner" && !r.hidden; }).length;
+  }
+  function checkMine() {
+    var queue = readMine().map(function (m) { return m.code; });
+    var next = function () {
+      var code = queue.shift();
+      if (!code) return;
+      return api("support", "GET", "/t/" + code).then(function (res) {
+        if (res.ok && res.data && Array.isArray(res.data.replies)) {
+          MINE_OWNER[code] = ownerReplies(res.data.replies);
+          renderMine();
+        }
+      }).then(next);
+    };
+    for (var i = 0; i < 3; i++) next();
   }
   function renderMine() {
     var box = $("[data-dm-mine]");
@@ -1406,6 +1430,7 @@
       var a = el("a", "dm-link", m.title);
       a.href = "#t=" + m.code;
       li.appendChild(a);
+      if ((MINE_OWNER[m.code] || 0) > (m.seen || 0)) li.appendChild(chip(s("mineNewReply"), "reply"));
       // Close is two clicks: the first arms it and says so. Closing sets the
       // post's state to closed on the worker (the code is the credential),
       // then drops it from this list. A post already deleted just drops.
@@ -1508,7 +1533,9 @@
   // report (it is on the board by definition), and nothing to reply with.
   function renderTicket(post, replies, pub) {
     var body = $("[data-dm-ticket-body]");
-    if (!pub && !OWNER) remember({ code: post.code, kind: post.kind, title: post.title });   // the owner's visits aren't "your posts"
+    // The owner's visits aren't "your posts". Opening the thread is reading his replies,
+    // so their count becomes the seen count and the New reply mark goes.
+    if (!pub && !OWNER) remember({ code: post.code, kind: post.kind, title: post.title, seen: ownerReplies(replies) });
 
     var chips = el("div", "dm-ticket__chips");
     chips.appendChild(chip(s("ticketKind_" + post.kind)));
@@ -2147,6 +2174,7 @@
   wireSignin();
   wireReplyMenu();
   renderMine();
+  checkMine();
   loadStatus();
   loadReleases();
   wireBoardTools("suggestion");

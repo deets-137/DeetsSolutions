@@ -373,6 +373,49 @@ raw settings row. Real numbers, no small-group limit (his call, 2026-10-13).
 - The strings are in `strings.js` (the admin + usage block), approved by him 2026-10-14.
   Metric names and setting keys show as the worker stores them.
 
+### The Inbox — BUILT 2026-10-26, not published
+
+His ask, 2026-10-26: "get them more viewable on the admin page for me". The 2026-10-14 call
+(only usage moves here) gives way for this one box; moderation on the boards and threads
+stays as it is, so the Inbox is a second way in.
+
+- **No worker change** (his rule the same day: the app is live, so no worker drop). It reads
+  `GET /admin/posts?app=deetsmusic`, then one `GET /t/<code>` per post, four at a time, with
+  his cookie, so the hidden rows come too. The writes are the boards' owner routes:
+  `POST /admin/posts/<code>/replies` and `PATCH /admin/posts/<code>` `{state}`.
+- **Each post** is a board card with the whole text (no clamp, not a link), its chips (kind,
+  state, *Waiting on you*, Hidden), the date, the version and ▲, the whole thread, a
+  *Reply as Aditya* box with Reply, and a Status pill. The title opens the thread page
+  (`../#t=<code>`) in a new tab.
+- **Waiting on you** = a post not fixed, won't fix or closed, with no reply from him, or with a
+  poster's reply after his last one. A member's comment does not count either way; a hidden
+  row counts for nothing. Order: newest activity first (the post or its last row).
+- **Pills:** Show (*Waiting on you* · *Not closed* · *Everything*, default the first) and Kind
+  (*Both* · *Suggestions* · *Bugs*), kept in `localStorage` `deets-dm-inbox`.
+- A repaint (each thread as it lands, a reply, a status) keeps a half-typed reply and its focus.
+- The strings are the `inbox*` block in `strings.js`, **awaiting his OK**.
+
+---
+
+## Replies reach the filer — BUILT 2026-10-26, not published
+
+His call, 2026-10-26 (option A of two; the other added an optional email): the app and this
+page tell a filer about Aditya's reply themselves. **We still keep no contact details.** No
+worker change: both read `GET /t/<code>` with the code the filer already holds.
+
+- **The app** (DeetsMusic `src/report-replies.ts`, `report.rs` `report_check`): 30 s after
+  launch, then every 6 h, it reads each OPEN report in Settings › Bugs › My reports that the
+  worker has not answered for in 20 h. No open report = no request. One info notice per
+  report with a new reply: "Aditya replied to your suggestion: “Title”" [Open]. Each reply
+  is told once (`told_replies`); Open marks it seen too. *Don't show again* stops the checks.
+  This replaced the earlier call "no request until Refresh is pressed". It reaches a filer
+  only once they run a release that has it.
+- **This page** (`deetsmusic.js` `checkMine`): on each load it reads each code in *Your posts*,
+  three at a time, and shows a **New reply** chip beside a post with more replies from him
+  than the entry's `seen` count. Opening the thread (`#t=`) sets `seen`. Entries saved before
+  this have no `seen`, so a reply he made earlier shows once as new.
+- A filer on the web who never comes back is not reached. That was the cost of A.
+
 ---
 
 ## Threads — planned 2026-09-15; steps 1–4 BUILT, none deployed

@@ -46,9 +46,14 @@
     return a < b ? 1 : a > b ? -1 : 0;
   }
   // Resolves (never rejects) to { ok, status, data }; a network failure is status 0.
-  function ownerApi(method, path) {
-    if (MOCK) return MOCK.request("support", method, path);
-    return fetch(HOSTS.support + path, { method: method, credentials: "include" }).then(function (r) {
+  function ownerApi(method, path, body) {
+    if (MOCK) return MOCK.request("support", method, path, body);
+    var init = { method: method, credentials: "include" };
+    if (body !== undefined) {
+      init.headers = { "Content-Type": "application/json" };
+      init.body = JSON.stringify(body);
+    }
+    return fetch(HOSTS.support + path, init).then(function (r) {
       return r.json().catch(function () { return null; }).then(function (data) {
         return { ok: r.ok, status: r.status, data: data };
       });
@@ -119,17 +124,256 @@
     var asked = null;
     window.DeetsAccount.onChange(function (u) {
       if (u === null) return;                       // not known yet
-      if (!u) { asked = null; gate("adminSignedOut"); showUsage(false); return; }
+      if (!u) { asked = null; gate("adminSignedOut"); showUsage(false); showInbox(false); return; }
       if (asked === u.id) return;
       asked = u.id;
       gate("adminChecking");
       ownerApi("GET", "/admin/me").then(function (res) {
         var yes = !!(res.ok && res.data && res.data.owner);
         gate(yes ? null : "adminNotOwner");
+        showInbox(yes);
         showUsage(yes);
       });
     });
   }
+  // ── Inbox (support.md, "The admin page" › The Inbox) ─────────────
+  // Every post of both kinds, hidden ones too, newest activity first, each with its
+  // whole text, its thread, a reply box and its status. No route of its own (his ask,
+  // 2026-10-26: no worker change while the app is live): GET /admin/posts gives the
+  // list, then one GET /t/<code> per post gives the thread, with the hidden rows
+  // because the request carries his cookie. The writes are the boards' owner routes.
+  var INBOX_BOX = $("[data-dm-inbox]");
+  var LS_INBOX = "deets-dm-inbox";   // { show, kind } — this browser's last choice
+  var DONE = { fixed: 1, wontfix: 1, closed: 1 };
+  var STATES = ["new", "open", "planned", "fixed", "wontfix", "closed"];
+  var THREAD_REQS = 4;               // threads read at once
+  var inbox = { show: "waiting", kind: "", posts: null, threads: {}, seq: 0, pills: null };
+  try {
+    var savedInbox = JSON.parse(localStorage.getItem(LS_INBOX)) || {};
+    if (["waiting", "open", "all"].indexOf(savedInbox.show) >= 0) inbox.show = savedInbox.show;
+    if (["", "suggestion", "issue"].indexOf(savedInbox.kind) >= 0) inbox.kind = savedInbox.kind;
+  } catch (e) {}
+
+  function toast(kind, text) { if (window.DeetsToast) window.DeetsToast.push({ kind: kind, text: text }); }
+  function errText(res) {
+    var code = res && res.data && res.data.error;
+    return S["err_" + code] ? s("err_" + code) : s("err_generic");
+  }
+  function fmtUnix(t) {
+    return new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+  function chip(text, tone) {
+    var c = el("span", "dm-chip", text);
+    if (tone) c.setAttribute("data-tone", tone);
+    return c;
+  }
+
+  /* Waiting on him: an open post with no reply from him yet, or one where the poster
+     wrote after his last reply. A member's comment is talk among visitors, not a
+     question to him, so it neither opens nor closes the wait. A hidden row counts for
+     nothing. A thread not read yet is not called waiting. */
+  function isWaiting(p) {
+    var t = inbox.threads[p.code];
+    if (DONE[p.state] || !t) return false;
+    var lastOwner = -1, lastPoster = -1;
+    t.forEach(function (r, i) {
+      if (r.hidden) return;
+      if (r.author === "owner") lastOwner = i;
+      else if (r.author === "reporter") lastPoster = i;
+    });
+    return lastOwner < 0 || lastPoster > lastOwner;
+  }
+  function lastActivity(p) {
+    var t = inbox.threads[p.code] || [];
+    return t.reduce(function (m, r) { return Math.max(m, r.created_at); }, p.created_at);
+  }
+
+  function showInbox(yes) {
+    if (!INBOX_BOX) return;
+    INBOX_BOX.hidden = !yes;
+    if (!yes) return;
+    wireInboxTools();
+    loadInbox();
+  }
+  function saveInbox() {
+    try { localStorage.setItem(LS_INBOX, JSON.stringify({ show: inbox.show, kind: inbox.kind })); } catch (e) {}
+  }
+  function wireInboxTools() {
+    if (inbox.pills) return;
+    var host = $("[data-dm-inbox-tools]");
+    inbox.pills = [
+      usagePill(host, s("inboxShowPill"), function () { return inbox.show; },
+        function () { return ["waiting", "open", "all"].map(function (k) { return [k, s("inboxShow_" + k)]; }); },
+        function (k) { inbox.show = k; saveInbox(); renderInbox(); }),
+      usagePill(host, s("inboxKindPill"), function () { return inbox.kind; },
+        function () { return [["", s("inboxKind_all")], ["suggestion", s("inboxKind_suggestion")], ["issue", s("inboxKind_issue")]]; },
+        function (k) { inbox.kind = k; saveInbox(); renderInbox(); }),
+    ];
+    inbox.pills.forEach(function (p) { p.paint(); });
+  }
+
+  function inboxState(text) {
+    var p = $("[data-dm-inbox-state]");
+    p.hidden = !text;
+    p.textContent = text || "";
+  }
+
+  function loadInbox() {
+    var seq = ++inbox.seq;
+    if (!inbox.posts) inboxState(s("inboxLoading"));
+    ownerApi("GET", "/admin/posts?app=deetsmusic").then(function (res) {
+      if (seq !== inbox.seq) return;
+      var posts = res.ok && res.data && res.data.posts;
+      if (!Array.isArray(posts)) { inbox.posts = null; inboxState(s("inboxFailed")); $("[data-dm-inbox-list]").textContent = ""; return; }
+      inbox.posts = posts;
+      renderInbox();
+      // The threads, a few at a time; the list repaints as each one lands.
+      var queue = posts.slice();
+      var next = function () {
+        var p = queue.shift();
+        if (!p || seq !== inbox.seq) return;
+        return loadThread(p).then(next);
+      };
+      for (var i = 0; i < THREAD_REQS; i++) next();
+    });
+  }
+  function loadThread(p) {
+    return ownerApi("GET", "/t/" + p.code).then(function (res) {
+      if (!res.ok || !res.data) return;
+      inbox.threads[p.code] = Array.isArray(res.data.replies) ? res.data.replies : [];
+      if (res.data.post && res.data.post.state) p.state = res.data.post.state;
+      if (res.data.post && typeof res.data.post.public === "boolean") p.public = res.data.post.public;
+      renderInbox();
+    });
+  }
+
+  /* A repaint keeps what he was typing: the reply boxes are kept by code and put back. */
+  function renderInbox() {
+    if (!inbox.posts) return;
+    var list = $("[data-dm-inbox-list]");
+    var drafts = {};
+    $all("[data-inbox-reply]", list).forEach(function (t) { if (t.value) drafts[t.getAttribute("data-inbox-reply")] = t.value; });
+    var focused = document.activeElement && document.activeElement.getAttribute("data-inbox-reply");
+    closePop();
+
+    var waiting = inbox.posts.filter(isWaiting).length;
+    var pending = inbox.posts.filter(function (p) { return !inbox.threads[p.code]; }).length;
+    inboxState(pending ? s("inboxReading", { n: pending }) : s(waiting === 1 ? "inboxWaitingOne" : "inboxWaitingMany", { n: waiting }));
+
+    var shown = inbox.posts.filter(function (p) {
+      if (inbox.kind && p.kind !== inbox.kind) return false;
+      if (inbox.show === "waiting") return isWaiting(p);
+      if (inbox.show === "open") return !DONE[p.state];
+      return true;
+    }).sort(function (a, b) { return lastActivity(b) - lastActivity(a); });
+
+    list.textContent = "";
+    if (!shown.length) {
+      list.appendChild(el("p", "dm-empty", s(inbox.show === "waiting" && !pending ? "inboxEmptyWaiting" : "inboxEmpty")));
+      return;
+    }
+    shown.forEach(function (p) { list.appendChild(renderInboxPost(p, drafts[p.code] || "")); });
+    if (focused) {
+      var back = $('[data-inbox-reply="' + focused + '"]', list);
+      if (back) back.focus({ preventScroll: true });
+    }
+  }
+
+  function renderInboxPost(p, draft) {
+    var item = el("article", "dm-post dm-inbox__post");
+    if (p.public === false) item.classList.add("is-hidden-post");
+    var main = el("div", "dm-post__main");
+
+    var head = el("div", "dm-post__head");
+    var h = el("h3", "dm-post__title");
+    var link = el("a", "dm-post__link", p.title);
+    link.href = "../#t=" + p.code;                 // the thread page, as the owner sees it
+    link.target = "_blank";
+    link.rel = "noopener";
+    h.appendChild(link);
+    head.appendChild(h);
+    head.appendChild(chip(s("ticketKind_" + p.kind)));
+    head.appendChild(chip(s("state_" + p.state), p.state));
+    if (isWaiting(p)) head.appendChild(chip(s("inboxWaiting"), "waiting"));
+    if (p.public === false) head.appendChild(chip(s("tagHidden"), "hidden"));
+    main.appendChild(head);
+
+    main.appendChild(el("p", "dm-inbox__body", p.body));
+
+    var foot = el("div", "dm-post__foot");
+    foot.appendChild(el("span", null, fmtUnix(p.created_at)));
+    if (p.version) foot.appendChild(el("span", null, "v" + p.version));
+    foot.appendChild(el("span", null, s("inboxInterest", { n: p.interest || 0 })));
+    main.appendChild(foot);
+
+    var t = inbox.threads[p.code];
+    if (t && t.length) {
+      var ol = el("ol", "dm-replies dm-inbox__thread");
+      t.forEach(function (r) {
+        var li = el("li", "dm-reply" + (r.author === "owner" ? " is-owner" : ""));
+        if (r.hidden) li.classList.add("is-hidden-reply");
+        var who = el("div", "dm-reply__who");
+        var label = r.author === "owner" ? s("authorOwner") : r.author === "member" ? (r.name || s("authorPoster")) : s("authorPoster");
+        var nameEl = el("span", "dm-reply__name", label);
+        if (r.author === "member" && r.color) nameEl.style.setProperty("--dm-who", r.color);
+        who.appendChild(nameEl);
+        who.appendChild(el("span", null, fmtUnix(r.created_at)));
+        if (r.hidden) who.appendChild(chip(s("tagHidden"), "hidden"));
+        li.appendChild(who);
+        li.appendChild(el("p", "dm-reply__body", r.body));
+        ol.appendChild(li);
+      });
+      main.appendChild(ol);
+    }
+
+    // Reply as Aditya, and the status, side by side under the thread.
+    var form = el("form", "dm-inbox__reply");
+    form.noValidate = true;
+    var area = el("textarea", "dm-field__input dm-field__area");
+    area.name = "body";
+    area.rows = 3;
+    area.maxLength = 4000;
+    area.value = draft;
+    area.setAttribute("data-inbox-reply", p.code);
+    area.setAttribute("aria-label", s("inboxReplyAria", { title: p.title }));
+    area.placeholder = s("inboxReplyLabel");
+    form.appendChild(area);
+    var actions = el("div", "dm-form__actions");
+    var send = el("button", "home__cta", s("replySend"));
+    send.type = "submit";
+    actions.appendChild(send);
+    var statusHost = el("div", "dm-board__tools dm-inbox__status");
+    actions.appendChild(statusHost);
+    form.appendChild(actions);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var b = area.value.trim();
+      if (!b) { toast("error", s("err_body")); return; }
+      send.disabled = true;
+      ownerApi("POST", "/admin/posts/" + p.code + "/replies", { body: b }).then(function (res) {
+        send.disabled = false;
+        if (!res.ok) { toast("error", errText(res)); return; }
+        area.value = "";
+        toast("success", s("replySent"));
+        loadThread(p);
+      });
+    });
+    main.appendChild(form);
+    var status = usagePill(statusHost, s("inboxStatusPill"), function () { return p.state; },
+      function () { return STATES.map(function (st) { return [st, s("state_" + st)]; }); },
+      function (st) {
+        ownerApi("PATCH", "/admin/posts/" + p.code, { state: st }).then(function (res) {
+          if (!res.ok) { toast("error", errText(res)); return; }
+          p.state = st;
+          renderInbox();
+        });
+      });
+    status.paint();
+
+    item.appendChild(main);
+    return item;
+  }
+
   // ── Usage (DeetsMusic docs/features/USAGE-COUNTS.md §6) ──────────
   // GET /admin/usage?channel=&week= answers the active-install counters (day,
   // ISO week and month rows, per version), the weeks that hold settings rows,

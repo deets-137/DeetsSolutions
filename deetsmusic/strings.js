@@ -357,6 +357,7 @@ window.DM_STRINGS = {
      Aditya in chat, 2026-09-14; mineLead and mineClose are his dictation */
   mineTitle:  "Your posts",
   mineLead:   "Links saved locally in this browser only",
+  mineNewReply: "New reply",   /* 2026-10-26: Aditya replied since this browser last opened the thread */
   mineClose:  "Close",
   mineCloseConfirm: "Click again to close",
   mineCloseAria:    "Close {title}",
@@ -365,6 +366,29 @@ window.DM_STRINGS = {
   /* admin page + usage box — owner only (DeetsMusic USAGE-COUNTS.md §6), added
      2026-10-14 and approved by Aditya in chat the same day ("remove the ph"). Metric names (log.error.lastfm, apple.library.429)
      and setting keys are shown as the worker stores them: data, not copy. */
+  /* The Inbox (support.md, "The admin page" › The Inbox), added 2026-10-26; awaiting his OK. */
+  inboxTitle:            "Inbox",
+  inboxShowPill:         "Show",
+  inboxShow_waiting:     "Waiting on you",
+  inboxShow_open:        "Not closed",
+  inboxShow_all:         "Everything",
+  inboxKindPill:         "Kind",
+  inboxKind_all:         "Both",
+  inboxKind_suggestion:  "Suggestions",
+  inboxKind_issue:       "Bugs",
+  inboxLoading:          "Reading the posts…",
+  inboxFailed:           "Couldn't read the posts.",
+  inboxReading:          "Reading {n} threads…",
+  inboxWaitingOne:       "1 post is waiting on you.",
+  inboxWaitingMany:      "{n} posts are waiting on you.",
+  inboxEmptyWaiting:     "Nothing is waiting on you.",
+  inboxEmpty:            "No posts match.",
+  inboxWaiting:          "Waiting on you",
+  inboxInterest:         "▲ {n}",
+  inboxStatusPill:       "Status",
+  inboxReplyLabel:       "Reply as Aditya",
+  inboxReplyAria:        "Reply to {title}",
+
   adminLink:         "Admin",
   adminTitle:        "DeetsMusic admin",
   adminChecking:     "Checking who you are…",
