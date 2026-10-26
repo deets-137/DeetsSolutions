@@ -153,6 +153,15 @@
   --seam-shift: 0.5s;                 /* a phase change's dividers dissolving open or filling in (mahjong) */
   --seam-ease:  cubic-bezier(0.37, 0, 0.63, 1); /* sine in-out: no edge to the start or the stop */
   --wave-span:  0.5s;                 /* a phase change's or deal's nested wave, first piece to last (mahjong) */
+  /* mahjong's opening (docs/mahjong.md, "The opening"): the seating pads
+     morph into the seat boxes, the wall goes up in two layers, and after
+     the break the hands are dealt 4-4-4-1 from the wall */
+  --morph:       0.6s cubic-bezier(0.2, 0.8, 0.2, 1); /* a pad flying into its seat box */
+  --build-layer: 0.5s;                /* one layer of the wall, all four sides at once */
+  --build-stack: 0.16s;               /* one stack settling into place */
+  --deal-step:   0.15s;               /* one chunk after the next, round the table */
+  --deal-fly:    0.38s cubic-bezier(0.3, 0.7, 0.3, 1); /* a chunk's flight, wall to hand */
+  --deal-gap:    0.03s;               /* the tiles of one chunk, one after the next */
   /* a mahjong tile's flight (docs/mahjong.md, "Tile flights"). One turn is a
      discard (lift + glide + settle), the beat, then a draw at 0.6/0.7/0.6 of
      the same three, and it must finish inside the worker's 700 ms bot step:

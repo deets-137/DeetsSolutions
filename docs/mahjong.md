@@ -394,6 +394,34 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   wall break waits too. Known quirk: after a tie, bots that re-roll during
   the pause have their rolls queued, and they tumble together when it
   lifts.
+- **The opening (his design, 2026-10-26; "THE OPENING" in mahjong.js).**
+  1. After the seating pause, each pad's clone flies and resizes into
+     its seat box (`--morph`). The box fades in under it as it lands.
+     The phase wave leaves the seat boxes and the board alone while this
+     runs, because a skin's `--boot-rise` after the morph read as a
+     second move.
+  2. The wall goes up in two layers, each one `--build-layer`. All four
+     sides build at once, each from its player's right hand (a
+     pinwheel). The first pass sets every stack at the one-tile 0.55
+     look, and the second fills it in with a small pop.
+  3. Only then does the break's **Roll** appear, in the middle of the
+     felt and only for the dealer. Others see who's rolling. The role
+     tile no longer has the break Roll.
+  4. After the roll tumbles on the dice tile (`BREAK_MS`), the deal
+     comes off the wall clockwise from the break. It goes 4 tiles a seat
+     from the dealer round the table, twice more, then 1 each
+     (`--deal-step`, `--deal-fly`, `--deal-gap`).
+  5. The dealer's 14th is the hand's first draw, and flowers are
+     replaced after it. Both are ordinary tile flights, held until the
+     deal lands.
+
+  Every new hand builds and deals the same way; only the morph belongs
+  to the first. Each beat is pinned to the document timeline, so a
+  render mid-beat picks it up where it stands. `stageTable` holds the
+  server's broadcasts behind each beat, so a bot dealer's break and first
+  discard wait their turn. Cost: the table clock keeps running on the
+  server meanwhile, so a timed dealer loses about 1.6 s to the build
+  before the break and about 3 s to the deal before the first discard.
 - **Players tile**: seat strips (the shared `--gseat` accent edge, the
   shell's `.gt-ring` timer on **every** active dot — a claim window waits
   on several seats at once — Away dimming, bot tags, score + tile count,
