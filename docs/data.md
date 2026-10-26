@@ -1,3 +1,8 @@
+---
+status: foundation
+sources: [scripts/nightly-sotd.ps1, scripts/build-project-dates.py]
+updated: 2026-09-02
+---
 # Data pipelines
 
 Both journal tabs render a static JSON committed to this repo. The

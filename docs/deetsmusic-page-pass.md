@@ -1,3 +1,8 @@
+---
+status: project
+sources: [deetsmusic/index.html, deetsmusic/strings.js, styles/main.css]
+updated: 2026-10-23
+---
 # DeetsMusic page — the product pass (tagline, features, screenshots, trust)
 
 A plan for `deets.solutions/deetsmusic/` so a cold visitor understands what DeetsMusic is,

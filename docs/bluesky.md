@@ -1,3 +1,8 @@
+---
+status: idea
+sources: [scripts/nightly-sotd.ps1]
+updated: 2026-08-03
+---
 # SOTD × Bluesky
 
 **Status: proposal. Nothing here is built.** No file in this repo talks to

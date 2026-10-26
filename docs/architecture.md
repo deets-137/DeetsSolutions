@@ -1,3 +1,8 @@
+---
+status: foundation
+sources: [js/controls.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
+updated: 2026-10-25
+---
 # Architecture
 
 Technical companion to the [README](../README.md). The README says what the

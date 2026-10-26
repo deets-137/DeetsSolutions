@@ -1,3 +1,8 @@
+---
+status: foundation
+sources: [js/controls.js, js/toast.js, js/ocean.js, styles/chrome.css]
+updated: 2026-10-24
+---
 # UI
 
 The site's interface components: how they're built, what markup and

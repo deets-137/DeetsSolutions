@@ -1,3 +1,8 @@
+---
+status: project
+sources: [js/controls.js, styles/skin.css]
+updated: 2026-10-06
+---
 # UI direction: pulling DeetsMusic's UI back into the site
 
 > Written 2026-09-15 as a build brief. It says what to take and in what order; it is not

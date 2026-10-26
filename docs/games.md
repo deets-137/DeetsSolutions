@@ -1,3 +1,8 @@
+---
+status: foundation
+sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, styles/table.css]
+updated: 2026-10-25
+---
 # Deets games — the shared foundation
 
 Every game tab on this site is the same table wearing a different game.
@@ -261,7 +266,7 @@ nothing else about their model, wire, or UX changes. A game with **real
 teams** (DeetsShips) declares a count — `get TEAMS() { return 2; }` on the
 DO subclass, `teams: 2` in the mock spec and the shell config — and that
 one flag gates everything below. Built for ships
-([ships.md](ships.md)); any future team game inherits it.
+(`ships.md`, on the unmerged `DeetsShips` branch); any future team game inherits it.
 
 - **Sides are structural in the lobby**: the first `capacity/TEAMS` seat
   indices are team 0, the next team 1. The shell renders one seat column
@@ -613,7 +618,8 @@ The mock (`games/table-mock.js`) mirrors this contract **hook for hook**,
 so a game's `transport-mock.js` is the same spec in browser form and the two
 read as one design. What the mock deliberately does not model: disconnects
 (no grace window, no bot takeover, no reconnect), so rejoin behavior can only
-be tested live.
+be tested live. Its dev controls (`?mockpace=N`, `.phantomStep`, `.wipe()`)
+and the curl driver that runs it are in [tooling.md](tooling.md).
 
 **Subclass must provide:** `Engine`, `Colors`, `GAME_VERBS`,
 `defaultSettings()`, `viewGame(view, token, seat)`, `applySettings(msg)`,

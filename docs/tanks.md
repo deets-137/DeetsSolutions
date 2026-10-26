@@ -1,3 +1,8 @@
+---
+status: live
+sources: [tanks/levels.js, tanks/designer.html, scripts/build-tanks-levels.py, scripts/build-tanks-art.py]
+updated: 2026-10-06
+---
 # DeetsTanks — top-down tank arena, PvE campaign + PvP mode
 
 A Wii-Play-Tanks-style game: top-down, real-time, slow ricocheting shells,

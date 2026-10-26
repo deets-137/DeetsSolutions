@@ -1,3 +1,8 @@
+---
+status: sop
+sources: [js/account.js, auth/done.html, privacy/index.html]
+updated: 2026-07-28
+---
 # Accounts — setup checklist
 
 Everything that can't be done from a terminal, in order, with the exact

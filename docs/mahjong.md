@@ -1,3 +1,8 @@
+---
+status: live
+sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py]
+updated: 2026-09-30
+---
 # DeetsMahjong — the Hong Kong mahjong tab
 
 > **The shared half lives in [games.md](games.md)** — the wire protocol,

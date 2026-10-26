@@ -1,3 +1,8 @@
+---
+status: live
+sources: [js/account.js, auth/done.html, profile/profile.js, games/table-do.js]
+updated: 2026-10-23
+---
 # Deets accounts — sign in with Google
 
 A profile that follows you across the site: a display name and a seat

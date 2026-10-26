@@ -1,3 +1,8 @@
+---
+status: sop
+sources: [scripts/dev.js, scripts/dev-driver.js, scripts/dev-driver-server.js, scripts/copy-edit.js, games/table-mock.js]
+updated: 2026-10-25
+---
 # Tooling and debugging
 
 What exists for running, driving, checking and debugging the site locally.
@@ -132,6 +137,7 @@ covers the look).
 
 | Command | Checks |
 | --- | --- |
+| `node scripts/docs-check.js` | the docs: links resolve, front matter is valid, code comments cite real docs (facts, exit 1), plus "stale?" and missing-mention warnings |
 | `node <game>/engine.js` | that engine's self-checks (every engine is pure, DOM-free) |
 | `node scripts/poker-bot-duel.js` | poker bot tiers against each other ([bots.md](bots.md), "Measurement") |
 | `powershell -File scripts/prod-status.ps1` | the journal JSONs: prod vs origin/master vs local HEAD |
