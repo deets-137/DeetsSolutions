@@ -43,6 +43,7 @@ Start at [README.md](README.md). Then:
 
 | Topic | Doc |
 | --- | --- |
+| **Dev server, dev driver (curl a real tab), mock dev controls, check scripts, debugging recipe** | **[tooling.md](docs/tooling.md)** |
 | Site structure, tokens, chrome | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
 | **Porting DeetsMusic's UI (settings panel, pop motion, look schedule) — build brief, 2026-09-15** | **[ui-direction.md](docs/ui-direction.md)** |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
@@ -178,6 +179,8 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 
 **Visual verification is Aditya's.** After UI changes, confirm the page loads
 cleanly (console, DOM counts), then hand off — he tests look-and-feel himself
-at http://localhost:8787 (`.claude/launch.json` → `deets-site`). Don't drive
+at http://localhost:8787 (`.claude/launch.json` → `deets-site`). To drive a
+page yourself, use the dev driver's curl API ([tooling.md](docs/tooling.md)),
+not pasted harnesses in the Chrome tool. Don't drive
 extended click-through sessions unless asked; if you do interact, restore any
 localStorage state you changed (view/sort/filter) first.
