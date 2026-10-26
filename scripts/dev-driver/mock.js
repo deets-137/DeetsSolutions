@@ -106,15 +106,35 @@ C.thaw = function () {
   return { frozen: false, delivered: h.msgs.length };
 };
 
-// rejoin — after a reload: take the gate's pill (Rejoin / Sit down /
-// Spectate) for the table in the hash, as a person would
+// The way in for the code the shell just read, as a person would take it:
+// the gate's first pill (Create / Sit down / Rejoin), or — on a game with
+// cfg.openButton (mahjong), which has no gate — the open button once Enter
+// has opened it out. `name` fills the gate's field, or for the button is
+// saved as this game's name first (else a signed-out tab joins as a guest
+// and lands in the rename editor).
+async function joinControl(name) {
+  var b = await until(function () {
+    var g = document.querySelector(".gt-gate__go");
+    if (g && !g.disabled && !g.closest("[hidden]")) return g;
+    var o = document.querySelector(".gt-go.is-open");
+    return o && !o.hidden ? o : null;
+  }, 8000, "the gate or the open button");
+  var nameIn = document.querySelector(".gt-gate__name-input");
+  if (nameIn && !nameIn.value.trim()) nameIn.value = name || "Driver";
+  var m = mock();
+  if (name && b.classList.contains("gt-go") && m) {
+    var ns = m.name.replace(/Transport$/, "").toLowerCase();   // MahjongTransport → mahjong
+    try { if (!JSON.parse(localStorage.getItem("deets-" + ns + "-name"))) localStorage.setItem("deets-" + ns + "-name", JSON.stringify(name)); } catch (e) {}
+  }
+  return b;
+}
+
+// rejoin — after a reload: take the way in (Rejoin / Sit down / Spectate)
+// for the table in the hash, as a person would
 C.rejoin = async function () {
   var x = mine();
   if (x && x.conn) return { rejoined: false, already: true, state: stateOf() };
-  var go = await until(function () {
-    var b = document.querySelector(".gt-gate__go");
-    return b && !b.disabled && !b.closest("[hidden]") ? b : null;
-  }, 8000, "the gate");
+  var go = await joinControl();
   go.click();
   await until(function () { var y = mine(); return y && y.conn ? y : null; }, 8000, "the join");
   await sleep(300);   // the snapshot's first paint
@@ -131,14 +151,9 @@ C.table = async function (a) {
   if (hashCode() !== code) { location.hash = code; await sleep(400); }
   var x = mine();
   if (!(x && x.code === code && x.conn)) {
-    // the shell peeks the code and draws its gate; take its first pill
-    // (Create / Sit down / Rejoin) — the same path a person takes
-    var go = await until(function () {
-      var b = document.querySelector(".gt-gate__go");
-      return b && !b.disabled && !b.closest("[hidden]") ? b : null;
-    }, 8000, "the gate");
-    var nameIn = document.querySelector(".gt-gate__name-input");
-    if (nameIn && !nameIn.value.trim()) nameIn.value = a.name || "Driver";
+    // the shell peeks the code and offers its way in — the same path a
+    // person takes
+    var go = await joinControl(a.name);
     go.click();
     x = await until(function () { var y = mine(); return y && y.code === code && y.conn ? y : null; }, 8000, "the join");
   }

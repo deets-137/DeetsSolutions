@@ -298,6 +298,19 @@
   display: grid; place-items: center;
   color: var(--mjglow); font-size: 0.85rem; text-align: center;
 }
+/* the break, centered on the felt once the wall stands: who's rolling,
+   and the dealer's Roll (the opening, docs/mahjong.md) */
+.mj-felt__break {
+  position: absolute; inset: 0;
+  display: grid; place-content: center; justify-items: center; gap: var(--space-2);
+  pointer-events: none;
+}
+.mj-felt__break > * { pointer-events: auto; }
+.mj-felt__break .mj-felt__note { position: static; display: block; }
+/* the opening's travellers: a seating pad on its way to its seat box, a
+   dealt tile on its way to a hand — above the panels, never in the way */
+.mj-morph, .mj-dealfly { z-index: 36; pointer-events: none; }
+.mj-morph { overflow: hidden; }
 
 /* ── seating panel (dice pick the winds) ──────────────────────── */
 .mj-seating { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
@@ -386,16 +399,23 @@
   overflow: hidden;
 }
 .mj-die--small { width: 1.8rem; height: 1.8rem; font-size: 1rem; }
-.mj-dice__faces.is-spinning .mj-die { animation: mj-diespin 0.14s steps(2) infinite; }
+.mj-dice__faces.is-spinning .mj-die,
+.mj-seating__dice.is-spinning .mj-die { animation: mj-diespin 0.14s steps(2) infinite; }
+/* a pad's sum holds its place, unseen, while its dice tumble */
+.mj-seating__dice.is-spinning .mj-seating__sum { visibility: hidden; }
 @keyframes mj-diespin { to { transform: translateY(-2px) rotate(8deg); } }
-.mj-dice__faces.is-settled .mj-die { animation: mj-diesettle 0.34s var(--ease-ui); }
+.mj-dice__faces.is-settled .mj-die,
+.mj-seating__dice.is-settled .mj-die { animation: mj-diesettle 0.34s var(--ease-ui); }
 @keyframes mj-diesettle {
   0% { transform: translateY(-5px) scale(1.06); }
   60% { transform: translateY(1px) scale(0.98); }
   100% { transform: none; }
 }
 .mj-dice__cap { margin: var(--space-2) 0 0; text-align: center; color: var(--subtext); font-size: 0.85rem; min-height: 1.5em; min-height: 1lh; }
-@media (prefers-reduced-motion: reduce) { .mj-dice__faces.is-spinning .mj-die, .mj-dice__faces.is-settled .mj-die { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mj-dice__faces.is-spinning .mj-die, .mj-dice__faces.is-settled .mj-die,
+  .mj-seating__dice.is-spinning .mj-die, .mj-seating__dice.is-settled .mj-die { animation: none; }
+}
 
 /* ── players tile ─────────────────────────────────────────────── */
 .mj-pstrip {
@@ -826,10 +846,14 @@ button.mj-chick:focus-visible { outline: 2px solid var(--title); outline-offset:
 .mj-chick__wing { transform-box: fill-box; transform-origin: 100% 30%; }
 /* the lobby toggle is boxed like a toolbar pill so it reads as a button;
    --seat-extra-w sizes the shell's placeholder in rows without one (empty
-   seats, bots) so the chicks keep one column */
+   seats, bots) so the chicks keep one column. Its height is the shell's
+   1.6em seat strip (table.css), not glyph + padding: at 26px it stood
+   0.4px taller than the badge/input/tier strip, so a row grew the moment
+   a human sat (the add-bot Confirm jitter, a stand-in in the mock) */
 .mj { --seat-extra-w: calc(var(--icon-glyph) + 2 * var(--space-1) + 2px); }
 .mj-chick--toggle {
-  padding: var(--space-1);
+  box-sizing: border-box; height: 1.6em; font: inherit;
+  padding: 0 var(--space-1);
   background: var(--surface);
   border: 1px solid var(--border);
 }

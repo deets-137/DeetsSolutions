@@ -69,6 +69,26 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-26 — SHIPPED: `maw-polish` merged into `master` and pushed; the mahjong worker
+deployed (64b2feac, its master 2e6a492).** His visual pass is done, same day.
+- **Seat rows:** they hold one height through Add Bot and Confirm in every skin.
+- **The open button:** a + / sit button in the bar replaces mahjong's gate. Enter twice
+  presses it; the click spins it, then the table unfurls and the lobby waves in
+  ([mahjong.md](mahjong.md), "The open button").
+- **The seating roll:** the pads tumble for 0.5 s and the result rests 1 s.
+- **The opening:** the pads morph into the seat boxes, and the wall builds in two
+  pinwheel layers. The break's Roll then sits on the felt, and the deal goes 4-4-4-1
+  ("The opening").
+- **The dealer's clock:** it pauses for those beats (`Engine.openingBonusMs`).
+- **Fixes on the way:** `table-do.js` now stamps the deadline before it broadcasts. Held
+  messages no longer skew the clock. The deal no longer strands the drawn tile.
+
+New `skin.css` tokens moved the skin and chrome stamps to 2026-10-26. Other games keep the
+gate until they opt into `openButton`. **Cities', poker's and ships' workers carry the old
+`table-do.js`**: re-vendor at their next deploy (their `--check` will flag the drift).
+Next: the seating-to-play flow as he plays it live; the tie-reroll burst
+([mahjong.md](mahjong.md), "Seating roll timing") if it bothers him.
+
 **2026-10-26 — SHIPPED: mahjong tile flights + headless dev tooling, `tile-flights`
 fast-forwarded into `master` (0914315) and pushed. His visual pass is done (looks good,
 same day).** Discards,

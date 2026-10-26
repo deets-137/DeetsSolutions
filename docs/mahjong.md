@@ -331,7 +331,29 @@ DeetsMusicWindows' title bar (16px, 24-unit grid, 1.6 stroke; the cog is
 its path verbatim and turns `--cog-step` per click, never unwinding; the
 links part and rejoin; the arrow flies out before the table is left).
 Tokens: `--icon-*` / `--cog-step` in `skin.css`. Glyph nodes are built
-once and moved into each toolbar rebuild so a Web Animation survives it. The tile rectangle stays fixed; the shell's `fitLog` drops its
+once and moved into each toolbar rebuild so a Web Animation survives it.
+
+**The open button (2026-10-26, his design).** Mahjong opts into the shell's
+`openButton`, which replaces the gate with one button, right-aligned in the
+bar. It shows **+** for a code nobody holds and the sit glyph for a table that
+exists. Inside a table it is gone (the toolbar owns the bar) until Enter reads
+a different code.
+Enter reads the code and opens the words out to the glyph's left: "Open
+table?", "Sit down", or "Spectate" when no seat is open (the worker still
+hands a returning token its seat). A click spins the + a quarter turn (the
+sit arrow dips instead). Then the table unfurls top-down (`--unfurl`) and the
+lobby's rows wave in (`--wave-in`, `--wave-step`). Each rebuild pins the new
+rows' animations to the same start time, so a broadcast mid-wave doesn't
+restart it. Each row animates from one keyframe to its own resting opacity:
+an explicit `opacity: 1` end once lit the dimmed rows (open seats, a disabled
+Start) and snapped them back, a second wave. A click always reads the code
+again: a remembered read went stale after a table closed, and the + tried to
+join it ("No such table."). An empty box makes up a word-word code
+(`jade-heron`). A guest with no name opens as "Guest". A taken name comes in
+as "Name 2" (then 3, …). Either way, a seated arrival lands with its seat's
+rename editor open.
+
+The tile rectangle stays fixed; the shell's `fitLog` drops its
 height lock once the log sits below the board. Below 56rem the table is
 still swapped for the "needs a wider screen" note (shared shell). Contents:
 
@@ -361,6 +383,59 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   most kongs, most deal-ins).
 - **Dice tile**: cities' tumble/settle kit; shows the latest seating or
   wall-break roll, plus the countdown box when the table clock is armed.
+- **Seating roll timing (his call, 2026-10-26).** A seat's roll tumbles for
+  `ROLL_MS` (0.5 s) on its own pad and on the dice tile together. Then it
+  settles and the sum shows. The roll that settles the seating (the last
+  one in, or the one that ties the lead) arrives in the same broadcast as
+  its outcome, so `stageSeating` hands the shell's `stageMessage` hook two
+  steps. First comes a copy still in `seating` with that roll on it. Then,
+  `ROLL_MS + SEAT_PAUSE` (1 s) later, comes the real broadcast without the
+  roll. Messages that arrive in between queue behind it, so a bot dealer's
+  wall break waits too. Known quirk: after a tie, bots that re-roll during
+  the pause have their rolls queued, and they tumble together when it
+  lifts.
+- **The opening (his design, 2026-10-26; "THE OPENING" in mahjong.js).**
+  1. After the seating pause, each pad's clone flies and resizes into
+     its seat box (`--morph`). The box fades in under it as it lands.
+     The phase wave leaves the seat boxes and the board alone while this
+     runs, because a skin's `--boot-rise` after the morph read as a
+     second move.
+  2. The wall goes up in two layers, each one `--build-layer`. All four
+     sides build at once, each from its player's right hand (a
+     pinwheel). The first pass sets every stack at the one-tile 0.55
+     look, and the second fills it in with a small pop.
+  3. Only then does the break's **Roll** appear, in the middle of the
+     felt and only for the dealer. Others see who's rolling. The role
+     tile no longer has the break Roll.
+  4. After the roll tumbles on the dice tile (`BREAK_MS`), the deal
+     comes off the wall clockwise from the break. It goes 4 tiles a seat
+     from the dealer round the table, twice more, then 1 each
+     (`--deal-step`, `--deal-fly`, `--deal-gap`).
+  5. The dealer's 14th is the hand's first draw, and flowers are
+     replaced after it. Both are ordinary tile flights, held until the
+     deal lands.
+
+  Every new hand builds and deals the same way; only the morph belongs
+  to the first. Each beat is pinned to the document timeline, so a
+  render mid-beat picks it up where it stands. `stageTable` holds the
+  server's broadcasts behind each beat, so a bot dealer's break and first
+  discard wait their turn.
+  **The clock pauses for the beats (his call, 2026-10-26).** The engine's
+  `openingBonusMs(g)` returns the time the page needs: before the break,
+  the build, plus the seating rest and the morph on the first hand; on
+  the dealer's first turn, the break roll and the deal. The worker and
+  the mock both grant it through `deadlineBonusMs`. The shell's readout
+  never shows more than the budget, so the clock holds at full while the
+  page plays and starts counting when the dealer can act. Measured in the
+  mock at 45 s: the dealer has 44.8 s when the Roll appears and 44.1 s at
+  their first discard. The lengths in `OPENING_MS` mirror the default
+  skin's tokens; retune them together. Two fixes came with it. The
+  table base now stamps the deadline before it builds a broadcast; it
+  used to carry the previous obligation's. And held messages no longer
+  reset the clock skew, which had made the readout run about 3 s long.
+  Also: the deal keeps its own end timer. It once rode the tile queue's
+  beat, which a hidden tab clears, and the dealer's drawn tile stayed
+  hidden.
 - **Players tile**: seat strips (the shared `--gseat` accent edge, the
   shell's `.gt-ring` timer on **every** active dot — a claim window waits
   on several seats at once — Away dimming, bot tags, score + tile count,

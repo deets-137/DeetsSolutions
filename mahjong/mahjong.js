@@ -40,6 +40,15 @@
 
   var DECK_KEY = "deets-mahjong-deck";           // tile art: per VIEWER, never on the wire
   var ARRANGE_KEY = "deets-mahjong-autoarrange"; // "Auto-Arrange" toggle (default on)
+  // the seating roll (his timing, 2026-10-26): each seat's dice tumble for
+  // ROLL_MS, on its pad and on the dice tile; the roll that settles the
+  // seating (the last one, or a tie) then rests SEAT_PAUSE before the game
+  // or the re-roll goes on
+  var ROLL_MS = 500, SEAT_PAUSE = 1000;
+  var BREAK_MS = 620;   // the wall-break roll's tumble (three dice, the dice tile)
+  var CLEAR_FIELDS = ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn",
+                      // a rematch omits the whole game — the lobby must not paint one
+                      "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"];
 
   /* ═══ THE TABLE SHELL ══════════════════════════════════════════
      games/table.js owns the socket, the code combobox, the gate, the
@@ -61,12 +70,12 @@
     minSeats: 4,
     narrowOk: true,   // WIP: no desktop-only note while the narrow layout is designed
     iconToolbar: true,   // Invite / Settings / Leave as icons (games/table.js)
+    openButton: true,    // the code's + / sit button stands in for the gate (games/table.js)
     startNeedsHint: S.startNeedsFour,
     errExtra: { loc: S.errLoc },
     /* fields the worker omits when absent must clear, not linger */
-    clearFields: ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn",
-                  // a rematch omits the whole game — the lobby must not paint one
-                  "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"],
+    clearFields: CLEAR_FIELDS,
+    stageMessage: stageTable,
     clearYouFields: ["claims", "canWin", "kongs", "drawn", "nearWin", "handValue", "hand"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
@@ -212,12 +221,259 @@
 
 
 
+  /* The roll that settles the seating — the last one in, or the one that
+     ties the lead — arrives in the same broadcast as its outcome (seated:
+     the game begins; seatReroll: the tied rolls clear). Staged in two:
+     first the table still seating with that roll on it (it tumbles, then
+     rests), then — ROLL_MS + SEAT_PAUSE later — the real broadcast minus
+     the roll already shown. The shell queues anything newer behind it
+     (games/table.js, "Staging"), so a bot dealer's wall break waits too.
+     The opening's later beats hold the table the same way, for as long as
+     they play (see "The opening" below): the seats taking their places and
+     the wall going up (seated, nextHand), and the deal (breakRoll). */
+  function stageTable(msg, m) {
+    if (msg.type !== "state" || !m) return null;
+    var ev = msg.ev || [];
+    var has = function (t) { return ev.some(function (e) { return e.t === t; }); };
+    var staged = m.phase === "seating" && m.seating ? stageSeating(msg, m, ev) : null;
+    if (staged || !motionOk()) return staged;
+    if (has("seated")) return { now: msg, ms: tokenMs("--morph") + 2 * tokenMs("--build-layer"), later: [] };
+    if (has("nextHand")) return { now: msg, ms: 2 * tokenMs("--build-layer"), later: [] };
+    if (has("breakRoll") && has("deal")) return { now: msg, ms: BREAK_MS + dealMs(), later: [] };
+    return null;
+  }
+  function stageSeating(msg, m, ev) {
+    var rolls = ev.filter(function (e) { return e.t === "seatRoll"; });
+    var settles = ev.some(function (e) { return e.t === "seated" || e.t === "seatReroll"; });
+    if (!rolls.length || !settles) return null;
+    var now = { type: "state", ev: rolls };
+    // a staged state keeps every field the table had (the timer's deadline
+    // included), so only the dice change on screen
+    CLEAR_FIELDS.forEach(function (f) { if (f in m) now[f] = m[f]; });
+    if (m.you) now.you = m.you;   // the shell's merge reads msg.you whenever the model has one
+    var shown = m.seating.rolls.slice();
+    rolls.forEach(function (e) { shown[e.seat] = e.d; });
+    now.phase = "seating";
+    now.seating = { rolls: shown, reroll: m.seating.reroll || null };
+    var later = {};
+    for (var k in msg) later[k] = msg[k];
+    later.ev = ev.filter(function (e) { return e.t !== "seatRoll"; });
+    return { now: now, ms: (reduceMotion() ? 0 : ROLL_MS) + SEAT_PAUSE, later: [later] };
+  }
+
+  /* ═══ THE OPENING (his design, 2026-10-26) ═════════════════════
+     After the seating roll's pause, each seat's pad morphs into its seat
+     box on the board. Then the wall goes up the way it's built at a real
+     table, all four sides at once, each from its player's right hand (a
+     pinwheel), one layer and then the second, each layer one
+     --build-layer. Only then does the break's Roll appear, in the middle
+     of the felt, for the dealer. The roll tumbles on the dice tile, and
+     the deal comes off the wall from the break: 4 tiles to each seat from
+     the dealer round the table, again, again, then 1 each. The dealer's
+     14th is the hand's first draw (a tile flight, like any draw), and
+     flowers are replaced after it, as tile flights too.
+     A new hand builds its wall and deals the same way; only the morph
+     belongs to the first. Every beat is pinned to the document timeline,
+     so a render in the middle of one picks it up where it stands. The
+     server has moved on meanwhile: stageTable holds the broadcasts behind
+     each beat, so a bot dealer's break and first discard wait their turn. */
+  var OPEN = null;   // { t0, morph, buildT0, buildEnd, done:WeakSet, morphSeen }
+  var DEAL = null;   // { t0, end, steps:[{ seat, n, before, launch }], done }
+  function tl() { return document.timeline ? document.timeline.currentTime : performance.now(); }
+  function startOpening(morph) {
+    if (!motionOk()) { OPEN = null; return; }
+    var t0 = tl(), m = morph ? tokenMs("--morph") : 0, layer = tokenMs("--build-layer");
+    OPEN = { t0: t0, morph: morph, morphMs: m, buildT0: t0 + m, layer: layer, buildEnd: t0 + m + 2 * layer, done: new WeakSet() };
+    // the break's Roll appears once the wall stands
+    var o = OPEN;
+    setTimeout(function () { if (OPEN === o && model) TBL.render(); }, m + 2 * layer + 20);
+  }
+  function building() { return !!OPEN && tl() < OPEN.buildEnd; }
+  function morphing() { return !!OPEN && OPEN.morph && tl() < OPEN.buildEnd; }
+  function dealMs() {
+    return 15 * tokenMs("--deal-step") + 3 * tokenMs("--deal-gap") + tokenMs("--deal-fly");
+  }
+  // the deal is ON only while its time runs — never on a flag alone, so a
+  // late or lost timer can't leave it hiding hands
+  function dealing() { return !!DEAL && tl() < DEAL.end; }
+  function stopDeal() { if (DEAL) clearTimeout(DEAL.timer); DEAL = null; }
+  function startDeal() {
+    stopDeal();
+    if (!motionOk() || !model.order || !model.round) return;
+    var step = tokenMs("--deal-step"), t0 = tl() + BREAK_MS;
+    var seats = [0, 1, 2, 3].map(function (w) { return model.order[(model.round.dealerIdx + w) % 4]; });
+    var steps = [], had = {}, i = 0;
+    [4, 4, 4, 1].forEach(function (n) {
+      seats.forEach(function (s) {
+        steps.push({ seat: s, n: n, before: had[s] || 0, launch: t0 + i * step });
+        had[s] = (had[s] || 0) + n; i++;
+      });
+    });
+    DEAL = { t0: t0, end: t0 + dealMs(), steps: steps, launched: 0 };
+    // the hand's own flights (the dealer's 14th, flowers) wait for the deal
+    // (tqPump asks dealing()). The deal keeps its OWN timer: it once rode
+    // the queue's beat, which tqFinish clears (a hidden tab, a snapshot),
+    // and the deal never ended — every slot past 13 stayed hidden, the
+    // drawn tile with them
+    var d = DEAL;
+    d.timer = setTimeout(function () {
+      if (DEAL !== d) return;
+      DEAL = null; TBL.render(); tqPump();
+    }, d.end - tl() + 30);
+    steps.forEach(function (s) {
+      setTimeout(function () { if (DEAL === d) dealLaunch(s); }, s.launch - tl());
+    });
+  }
+  // tiles off the wall so far, and tiles landed in one seat's hand so far
+  function dealTaken() {
+    var now = tl(), n = 0;
+    DEAL.steps.forEach(function (s) { if (s.launch <= now) n += s.n; });
+    return n;
+  }
+  function dealLanded(seat) {
+    var now = tl(), gap = tokenMs("--deal-gap"), fly = tokenMs("--deal-fly"), n = 0;
+    DEAL.steps.forEach(function (s) {
+      if (s.seat !== seat) return;
+      for (var k = 0; k < s.n; k++) if (s.launch + k * gap + fly <= now) n++;
+    });
+    return n;
+  }
+  // the slots a seat's dealt tiles land in: my rack, or the backs in my zone
+  function dealSlots(seat) {
+    var q = seat === mySeat() ? ".mj-rack__tiles > *"
+      : '.mj-zone[data-zone="' + seat + '"] .mj-zone__backs > *';
+    return [].slice.call(document.querySelectorAll(".mj " + q))
+      .filter(function (n) { return !n.closest(".mj-seam-ghost"); });
+  }
+  // the felt and hands as the deal stands right now (after every render,
+  // every launch and every landing)
+  function dealPaint() {
+    if (!dealing()) return;
+    var taken = Math.floor(dealTaken() / 2);
+    BIG.querySelectorAll(".mj-tilef--wall[data-fpos]").forEach(function (st) {
+      // the deal's 52 tiles are the 26 stacks clockwise from the break
+      if (+st.getAttribute("data-fpos") < 26) st.classList.toggle("is-gone", +st.getAttribute("data-fpos") < taken);
+    });
+    [0, 1, 2, 3].forEach(function (s) {
+      var shown = dealLanded(s);
+      dealSlots(s).forEach(function (n, i) { n.style.visibility = i < shown ? "" : "hidden"; });
+    });
+  }
+  // one chunk leaves the wall: its tiles fly, one after the next, from the
+  // stacks they came off to the slots they fill
+  function dealLaunch(s) {
+    var gap = tokenMs("--deal-gap"), fly = seamToken("--deal-fly");
+    var flyMs = tokenMs("--deal-fly"), ease = fly.replace(/^\S+\s*/, "") || "ease-out";
+    var box = BENTO.getBoundingClientRect();
+    var before = DEAL.steps.reduce(function (n, x) { return x.launch < s.launch ? n + x.n : n; }, 0);
+    var froms = [];
+    for (var k = 0; k < s.n; k++) {
+      var st = BIG.querySelector('.mj-tilef--wall[data-fpos="' + Math.floor((before + k) / 2) + '"]');
+      froms.push(st ? st.getBoundingClientRect() : null);
+    }
+    dealPaint();   // the stacks leave the wall as the chunk lifts
+    var slots = dealSlots(s.seat);
+    for (var k2 = 0; k2 < s.n; k2++) {
+      var slot = slots[s.before + k2], from = froms[k2];
+      if (!slot || !from) continue;
+      var to = slot.getBoundingClientRect();
+      var c = slot.cloneNode(true);
+      c.classList.add("mj-dealfly");
+      c.setAttribute("aria-hidden", "true");
+      c.style.cssText = "position:absolute;margin:0;visibility:visible;left:" + (to.left - box.left) + "px;top:" +
+        (to.top - box.top) + "px;width:" + to.width + "px;height:" + to.height + "px";
+      BENTO.appendChild(c);
+      var dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+      var dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+      var sc = Math.max(from.width, from.height) / Math.max(to.width, to.height) || 1;
+      var a = c.animate([
+        { transform: "translate(" + dx + "px," + dy + "px) scale(" + sc + ")", opacity: 0.6 },
+        { transform: "none", opacity: 1 }
+      ], { duration: flyMs, delay: k2 * gap, easing: ease, fill: "backwards" });
+      (function (node) { a.onfinish = function () { node.remove(); dealPaint(); }; a.oncancel = function () { node.remove(); }; })(c);
+    }
+  }
+
+  /* The pads become the seat boxes: each pad (its clone) flies and resizes
+     into its seat's box on the board while its dice fade, and the box shows
+     as the clone lands. Captured before the render that leaves seating. */
+  function morphBefore(wasPhase) {
+    if (!OPEN || !OPEN.morph || OPEN.morphSeen || wasPhase !== "seating" || model.phase !== "play") return null;
+    OPEN.morphSeen = true;
+    var box = BENTO.getBoundingClientRect(), pads = [];
+    BIG.querySelectorAll(".mj-seating__pad[data-seat]").forEach(function (p) {
+      var r = p.getBoundingClientRect();
+      pads.push({ seat: +p.getAttribute("data-seat"), el: p.cloneNode(true), x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height });
+    });
+    return pads.length ? pads : null;
+  }
+  function morphRun(pads) {
+    if (!pads) return;
+    // the seating board's own fading ghost must not show a second set of pads
+    BENTO.querySelectorAll(".mj-seam-ghost .mj-seating__pad").forEach(function (p) { p.style.visibility = "hidden"; });
+    var box = BENTO.getBoundingClientRect();
+    var ms = OPEN.morphMs, ease = seamToken("--morph").replace(/^\S+\s*/, "") || "ease-out";
+    pads.forEach(function (p) {
+      var zone = BIG.querySelector('.mj-zone[data-zone="' + p.seat + '"]');
+      if (!zone) return;
+      var z = zone.getBoundingClientRect();
+      var g = p.el;
+      g.classList.add("mj-morph");
+      g.removeAttribute("data-seat");
+      g.setAttribute("aria-hidden", "true");
+      g.inert = true;
+      g.style.cssText += ";position:absolute;margin:0;box-sizing:border-box;left:" + p.x + "px;top:" + p.y +
+        "px;width:" + p.w + "px;height:" + p.h + "px";
+      BENTO.appendChild(g);
+      var to = { left: (z.left - box.left) + "px", top: (z.top - box.top) + "px", width: z.width + "px", height: z.height + "px" };
+      var from = { left: p.x + "px", top: p.y + "px", width: p.w + "px", height: p.h + "px" };
+      var a = g.animate([from, to], { duration: ms, easing: ease, fill: "forwards" });
+      // the dice and the Roll fade at once; the name rides along
+      [].forEach.call(g.querySelectorAll(".mj-seating__dice"), function (d) {
+        d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms * 0.35, fill: "forwards" });
+      });
+      // the box shows under the clone as it lands, the clone lets go
+      zone.animate([{ opacity: 0 }, { opacity: 0, offset: 0.8 }, { opacity: 1 }], { duration: ms, easing: "linear" });
+      g.animate([{ opacity: 1 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }], { duration: ms, easing: "linear", fill: "forwards" });
+      a.onfinish = function () { g.remove(); };
+    });
+  }
+
+  /* The wall goes up: every stack lands at the one-tile look (the same
+     0.55 a half-eaten stack wears), then fills in as the top tile lands
+     on it. Side by side from each player's right hand, all four at once. */
+  function buildApply() {
+    if (!OPEN || tl() >= OPEN.buildEnd + 50) return;
+    var L = OPEN.layer, d = Math.min(tokenMs("--build-stack"), L), T = 2 * L;
+    BIG.querySelectorAll(".mj-tilef--wall[data-k]").forEach(function (st) {
+      if (OPEN.done.has(st)) return;
+      OPEN.done.add(st);
+      var j = (+st.getAttribute("data-k")) % 18;
+      var s1 = j / 17 * (L - d), s2 = L + s1;
+      var a = st.animate([
+        { offset: 0, opacity: 0, translate: "0 -4px", scale: "1" },
+        { offset: s1 / T, opacity: 0, translate: "0 -4px", scale: "1" },
+        { offset: (s1 + d) / T, opacity: 0.55, translate: "0 0", scale: "1" },
+        { offset: s2 / T, opacity: 0.55, translate: "0 0", scale: "1" },
+        { offset: (s2 + d * 0.6) / T, opacity: 1, translate: "0 0", scale: "1.08" },
+        { offset: Math.min(1, (s2 + d) / T), opacity: 1, translate: "0 0", scale: "1" }
+      ], { duration: T, delay: OPEN.morphMs, easing: "ease-out", fill: "backwards" });
+      a.startTime = OPEN.t0;
+    });
+  }
+
+  var padSpin = {};   // seat → when its pad's tumble ends
   function handleEvent(e) {
     if (e.t === "seatRoll" || e.t === "breakRoll") {
       lastDice = { seat: e.seat, d: e.d };
       spinDice = e.d.length;
-      spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
+      spinUntil = Date.now() + (reduceMotion() ? 0 : e.t === "seatRoll" ? ROLL_MS : BREAK_MS);
+      if (e.t === "seatRoll" && !reduceMotion()) padSpin[e.seat] = spinUntil;
     }
+    // the opening's beats (see "The opening")
+    if (e.t === "seated") startOpening(true);
+    if (e.t === "nextHand") startOpening(false);
+    if (e.t === "breakRoll") startDeal();
     if (e.t === "deal") ui.handOrder = null;   // fresh hand → re-seed the manual arrangement
     if (e.t === "discard" && model.turn && e.seat === mySeat()) { /* no toast for my own act */ }
     if (e.t === "claimsOpen" && !e.robbing && e.seats.indexOf(mySeat()) >= 0) {
@@ -293,6 +549,7 @@
     var rackWas = wasPhase === model.phase && !TQ.noFlip ? snapRack() : null;
     TQ.noFlip = false;
     HOLD = tqHolds();
+    var morph = morphBefore(wasPhase);   // before seamBefore moves paintedPhase on
     var before = seamBefore();
     TABLE.dataset.phase = model.phase;   // CSS hook: the narrow lobby sheds the side tiles
     renderBig();
@@ -309,6 +566,9 @@
     seamShift(before);
     waveStart(wasPhase);
     waveApply();
+    morphRun(morph);
+    buildApply();
+    dealPaint();
   }
   /* ── phase seams: every phase fills one stage, so lobby → seating →
      play → over → lobby only moves the dividers between panels. The
@@ -501,6 +761,9 @@
     paintedHandOver = !!model.handOver;
     paintedBreak = !!model.needBreak;
     var shifted = wasPhase && wasPhase !== model.phase;
+    // the opening's own build and deal stand in for those two waves
+    if (OPEN) built = false;
+    if (dealing()) dealt = false;
     var kind = shifted ? "phase" : built ? "build" : dealt ? "deal" : null;
     if (!kind || !motionOk()) return;
     stopWave();
@@ -568,10 +831,15 @@
     function q(s) { return [].slice.call(n.querySelectorAll(s)); }
     var c = n.classList;
     if (c.contains("mj-board")) {
-      return q(":scope > .mj-feltwrap").concat(byDeal(q(":scope > .mj-zone"), function (z) { return +z.getAttribute("data-zone"); }));
+      // the seat boxes the opening's pads morph into are placed by the
+      // morph alone: a rise after it (the skin's --boot-rise) read as a
+      // second move once they'd landed
+      var zones = morphing() ? [] : byDeal(q(":scope > .mj-zone"), function (z) { return +z.getAttribute("data-zone"); });
+      return q(":scope > .mj-feltwrap").concat(zones);
     }
     // each side is entered at its player's right hand (renderFelt's order)
-    if (c.contains("mj-feltwrap")) return byDeal(q(".mj-wall__side"), sideSeat).concat(q(".mj-felt__pond > *"));
+    // (a wall going up has its own build — buildApply — not the wave)
+    if (c.contains("mj-feltwrap")) return (building() ? [] : byDeal(q(".mj-wall__side"), sideSeat)).concat(q(".mj-felt__pond > *"));
     if (c.contains("mj-zone")) return q(".mj-zone__backs > *, .mj-zone__melds > *");
     if (c.contains("mj-seating__pad")) return q(".mj-seating__dice > *");
     if (c.contains("mj-pstrip")) return q(".mj-pstrip__head, .mj-pstrip__tags, .mj-pstrip__stat");
@@ -594,7 +862,8 @@
       var many = list.length > 1;
       list.forEach(function (n, i) {
         var at = start + (many ? i * step : 0);
-        out.push({ el: n, at: at });
+        // nor does the board rise under them (its other pieces still arrive)
+        if (!(morphing() && n.classList.contains("mj-board"))) out.push({ el: n, at: at });
         walk(waveKids(n), at, many ? step * WAVE_NEST : step);
       });
     }
@@ -942,6 +1211,7 @@
     var scope = st.reroll || [0, 1, 2, 3];
     (model.seats || []).forEach(function (s, i) {
       var pad = el("div", "mj-seating__pad" + (scope.indexOf(i) >= 0 && !st.rolls[i] ? " is-waiting" : ""));
+      pad.setAttribute("data-seat", i);   // the opening's morph finds its seat box by it
       TBL.seatAccent(pad, i);
       var head = el("div", "mj-seating__head");
       head.appendChild(seatDot(i));
@@ -950,7 +1220,19 @@
       var diceRow = el("div", "mj-seating__dice");
       var r = st.rolls[i];
       if (r) {
-        r.forEach(function (v) { diceRow.appendChild(el("div", "mj-die mj-die--small", String(v))); });
+        // a fresh roll tumbles here as on the dice tile, then settles; the
+        // sum keeps its place, unseen, until the dice stop
+        var spin = (padSpin[i] || 0) - Date.now();
+        if (spin > 0) { diceRow.classList.add("is-spinning"); diceRow.dataset.until = padSpin[i]; }
+        else if (spin > -340) diceRow.classList.add("is-settled");
+        r.forEach(function (v) {
+          var die = el("div", "mj-die mj-die--small", spin > 0 ? String(1 + Math.floor(Math.random() * 6)) : String(v));
+          die.dataset.v = v;
+          // rebuilt mid-settle (the next seat's roll): pick the bounce up
+          // where it was rather than start it over
+          if (spin <= 0) die.style.animationDelay = spin + "ms";
+          diceRow.appendChild(die);
+        });
         diceRow.appendChild(el("span", "mj-seating__sum", String(r[0] + r[1])));
       } else {
         diceRow.appendChild(el("div", "mj-die mj-die--small", "–"));
@@ -972,6 +1254,26 @@
     wrap.appendChild(grid);
     if (st.reroll) wrap.appendChild(el("p", "mj-seating__note", fmt(S.seatingReroll, { names: st.reroll.map(seatName).join(", ") })));
     BIG.appendChild(wrap);
+    padTumble();
+  }
+  /* The pads' tumble: one ticker for every spinning pad, reading the DOM
+     each tick (a broadcast may have rebuilt the pads mid-roll) — random
+     faces every 70 ms, then the real ones, the settle, and the sum. */
+  var padTick = null;
+  function padTumble() {
+    if (padTick) return;
+    padTick = setInterval(function () {
+      var rows = BIG.querySelectorAll(".mj-seating__dice.is-spinning");
+      if (!rows.length) { clearInterval(padTick); padTick = null; return; }
+      var now = Date.now();
+      Array.prototype.forEach.call(rows, function (row) {
+        var done = now >= +row.dataset.until;
+        Array.prototype.forEach.call(row.querySelectorAll(".mj-die"), function (d) {
+          d.textContent = done ? d.dataset.v : String(1 + Math.floor(Math.random() * 6));
+        });
+        if (done) { row.classList.remove("is-spinning"); row.classList.add("is-settled"); }
+      });
+    }, 70);
   }
 
   /* ── the table: four rotated seat zones around a center well ──── */
@@ -1089,6 +1391,9 @@
     var rear = model.wallLeft != null ? Math.max(0, (model.wallBack || 0) - HOLD.back) : 0;
     // a draw still waiting its turn leaves its tile on the wall (tile flights)
     var front = Math.max(0, drawn - (model.wallBack || 0) - HOLD.front);
+    // mid-deal the wall holds what the deal hasn't lifted yet; flower
+    // replacements come off the back after it (tile flights)
+    if (dealing()) { front = dealTaken(); rear = 0; }
     var brk = breakStackIndex();
     var sides = {};
     SIDE_ORDER.forEach(function (pos) { sides[pos] = el("div", "mj-wall__side mj-wall__side--" + pos); });
@@ -1096,6 +1401,8 @@
       var st = backEl("wall");
       var fpos = (k - brk + 72) % 72;                    // clockwise distance from the break
       var rpos = (brk - 1 - k + 144) % 72;               // backwards distance from the break
+      st.setAttribute("data-k", k);                      // the build's order (each side from its right hand)
+      st.setAttribute("data-fpos", fpos);                // the deal's order (clockwise from the break)
       if (fpos < Math.floor(front / 2) || rpos < Math.floor(rear / 2)) st.classList.add("is-gone");
       else {
         if (fpos === Math.floor(front / 2)) {
@@ -1130,11 +1437,21 @@
       ct.setAttribute("data-step-from", HOLD.claim.id);
       pond.appendChild(ct);
     }
-    if (model.needBreak) {
-      pond.appendChild(el("p", "mj-felt__note",
-        dealerSeat() === mySeat() ? S.breakPromptYou : fmt(S.breakPrompt, { name: seatName(dealerSeat()) })));
-    }
     felt.appendChild(pond);
+    // the break, in the middle of the felt — once the wall stands. The
+    // dealer gets the Roll; everyone else is told who's rolling.
+    if (model.needBreak && !building()) {
+      var brkBox = el("div", "mj-felt__break");
+      var meBreaks = dealerSeat() === mySeat();
+      brkBox.appendChild(el("p", "mj-felt__note",
+        meBreaks ? S.breakPromptYou : fmt(S.breakPrompt, { name: seatName(dealerSeat()) })));
+      if (meBreaks) {
+        var bp = actionPill(S.rollPill, true, function () { send({ type: "rollBreak" }); });
+        bp.classList.add("mj-act--roll", "is-glow");
+        brkBox.appendChild(bp);
+      }
+      felt.appendChild(brkBox);
+    }
     return wrap;
   }
   // a sideways board tile: the shared rectangle transposed, face rotated
@@ -1727,12 +2044,7 @@
     // line above, so on your turn the pills sit level with the title row.
     var ctrl = el("div", "mj-play__ctrl");
     if (model.needBreak) {
-      var meBreaks = dealerSeat() === seat;
-      headNote(meBreaks ? S.breakPromptYou : fmt(S.breakPrompt, { name: seatName(dealerSeat()) }));
-      var bp = actionPill(S.rollPill, meBreaks, function () { send({ type: "rollBreak" }); });
-      bp.classList.add("mj-act--roll");
-      if (meBreaks) bp.classList.add("is-glow");
-      ctrl.appendChild(wrapPills([bp]));
+      // the break's Roll lives in the middle of the felt (renderFelt)
     } else if (model.phase === "play" && !model.handOver) {
       // every prompt for this phase rides the title line beside "your hand":
       // near-win keeps its quiet hint styling and stands in for the discard
@@ -2148,7 +2460,7 @@
   }
 
   function tqPump() {
-    if (TQ.running || TQ.beat) return;
+    if (TQ.running || TQ.beat || dealing()) return;   // the deal's own timer pumps after it
     var waiting = TQ.steps.filter(function (s) { return s.state === "wait"; });
     if (!waiting.length) return;
     if (!flightsOn() || waiting.length > 8) { tqFinish(true); return; }
@@ -2351,6 +2663,7 @@
      dropping the table back to the lobby ─────────────────────────── */
   function resetGameUi() {
     clearFlights();
+    stopDeal(); OPEN = null;   // the opening's beats belong to the game being let go
     TQ.batch = []; tqFinish(false); tqSweep();
     lastDice = null; lastActor = null;
     ui.deckPinned = false; ui.logPinned = false; ui.kongPick = false; ui.minFaanDraft = null; ui.overExpanded = {};

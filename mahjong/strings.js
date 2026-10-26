@@ -31,6 +31,12 @@ window.MAHJONG_STRINGS = {
    rejoinButton: "[ph]Rejoin or spectate",
    createLine: "The '{code}' Table doesn't exist yet. Open it?",
    createButton: "Open the Table",
+   /* the open button beside the code (his words in chat, 2026-10-26): the
+      + opens out to this; an existing table's button reuses sitButton /
+      watchButton. guestName seats a guest with no name, who lands in the
+      rename editor (a refused one becomes "Guest 2", "Guest 3", …) */
+   openPrompt: "Open table?",
+   guestName: "Guest",
    nameLabel: "Your name",
    nameNeeded: "Enter a name first.",
    joinRefused: "Table no longer exists.",

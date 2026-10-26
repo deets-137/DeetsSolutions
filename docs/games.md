@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, styles/table.css]
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 # Deets games — the shared foundation
 
@@ -527,6 +527,14 @@ in that seat's accent and turns `--stop` for the last ten seconds.
 leaves the DOM, and both read only public broadcast fields, so **spectators
 see exactly what players see** — don't reimplement either from `you`.
 
+The deadline is stamped **before** a broadcast's views are built
+(`broadcast()` calls `armAlarm()` first, and the mock calls `armTimer`). Until
+2026-10-26 every message carried the previous obligation's deadline, and a
+table waiting on a person never got the right one. A readout never shows more
+than its budget. So time a game grants on top of the budget, without raising
+the budget (mahjong's opening pause), holds the clock at full. A budget that
+does include the bonus (cities' `timerBudget`) is unaffected.
+
 Each readout keeps its tick handle **on its own node**, so any number run at
 once. That matters: mahjong's claim window waits on several seats
 simultaneously, and the per-game versions this replaced shared one module
@@ -827,6 +835,13 @@ What you should NOT have to write: identity, recents, the code combobox, the
 gate, join/leave, reconnect, version resync, the lobby, bots, seat colors,
 the seat accent, the turn timer and its readouts, kick, host fallback, the
 toolbar, grace countdowns, the alarm, the fuse, or any of their CSS.
+Two opt-in flags restyle that chrome: `iconToolbar` (icon pills) and
+`openButton` (one + / sit button beside the code in place of the gate, with
+the unfurl-and-wave arrival). Mahjong uses both; see
+[mahjong.md](mahjong.md), "The open button". One hook holds the table on a
+moment: `stageMessage(msg, model)` may return `{ now, ms, later }`. The shell
+applies `now`, applies `later` after `ms`, and queues every message in
+between (mahjong's seating pause).
 
 If you catch yourself writing one of those, the answer is already in
 `games/table.js`, `games/table-do.js` or `styles/table.css` — go find it

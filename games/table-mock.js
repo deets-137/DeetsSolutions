@@ -261,6 +261,9 @@
     }
     function broadcast(t, events) {
       t.v++; t.touched = now();
+      // the deadline goes out with the state it belongs to (table-do.js,
+      // broadcast): arming only after sent the previous obligation's
+      armTimer(t);
       t.conns.forEach(function (c) {
         if (c.closed) return;
         var view = buildView(t, c);
