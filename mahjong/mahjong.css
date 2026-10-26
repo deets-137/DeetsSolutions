@@ -826,10 +826,14 @@ button.mj-chick:focus-visible { outline: 2px solid var(--title); outline-offset:
 .mj-chick__wing { transform-box: fill-box; transform-origin: 100% 30%; }
 /* the lobby toggle is boxed like a toolbar pill so it reads as a button;
    --seat-extra-w sizes the shell's placeholder in rows without one (empty
-   seats, bots) so the chicks keep one column */
+   seats, bots) so the chicks keep one column. Its height is the shell's
+   1.6em seat strip (table.css), not glyph + padding: at 26px it stood
+   0.4px taller than the badge/input/tier strip, so a row grew the moment
+   a human sat (the add-bot Confirm jitter, a stand-in in the mock) */
 .mj { --seat-extra-w: calc(var(--icon-glyph) + 2 * var(--space-1) + 2px); }
 .mj-chick--toggle {
-  padding: var(--space-1);
+  box-sizing: border-box; height: 1.6em; font: inherit;
+  padding: 0 var(--space-1);
   background: var(--surface);
   border: 1px solid var(--border);
 }

@@ -167,7 +167,11 @@
   border-radius: var(--radius-control);
 }
 .gt-seat--empty { opacity: 0.6; border-style: dashed; }
-.gt-seat__name { flex: 1 1 auto; color: var(--text); }
+/* the name's text line is the same 1.6 as the control strip below: a skin's
+   taller body leading (press: 1.7) made named rows 1.6px taller than the
+   add-bot editor row, which has no name text, so the roster jumped on
+   Add Bot / Confirm */
+.gt-seat__name { flex: 1 1 auto; color: var(--text); line-height: 1.6; }
 /* a game's seatExtra column (games/table.js): everything after it rides one
    right-aligned tail whose width the shell equalizes across rows; an empty
    seat holds the column with a gap the size of the game's control */
@@ -222,6 +226,7 @@
 .gt-seat__addgo:hover { border-color: var(--go); }
 .gt-seat__namebtn {
   background: none; border: none; padding: 0; font: inherit; color: var(--text);
+  line-height: 1.6;   /* after `font: inherit`, which resets it to the skin's */
   text-align: left; cursor: pointer;
   text-decoration: underline dotted; text-underline-offset: 0.15em;
 }
