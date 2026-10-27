@@ -1503,6 +1503,7 @@
   function renderHandOver() {
     var s = model.handOver;
     var wrap = el("div", "mj-handover");
+    enterOnce(wrap, ["handOver", s.prevailing, s.hand, s.result, s.seat, s.scores]);
     var panel = el("div", "mj-handover__panel");
     if (s.result === "drawn") {
       panel.appendChild(el("h3", "mj-handover__title", S.handDrawnLine));
@@ -1760,9 +1761,20 @@
   }
 
   /* ── game over ────────────────────────────────────────────────── */
+  /* A panel's entrance (mj-overin) plays once per panel. Every resize step
+     and every broadcast rebuilds the board, and replaying a fade on each
+     made the hand-over panel flicker while a window was dragged. */
+  var enteredKey = null;
+  function enterOnce(node, id) {
+    var key = JSON.stringify(id);
+    if (key === enteredKey) return;
+    enteredKey = key;
+    node.classList.add("is-entering");
+  }
   function renderOver() {
     var o = model.over || {};
     var wrap = el("div", "mj-over");
+    enterOnce(wrap, ["over", model.code, o.hands, o.scores]);
     var head = el("div", "mj-over__head");
     head.appendChild(el("h2", "mj-over__title", S.gameOver));
     head.appendChild(el("span", "mj-over__turns", fmt(S.handCount, { n: o.hands || 0 })));
