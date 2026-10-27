@@ -92,6 +92,19 @@ when pressed. **Cities', poker's and ships' workers now drift further from `tabl
 re-vendor at their next deploy. `nextHandAuto` in `mahjong/strings.js` is his string and
 is no longer used: his call to delete it.
 
+Same branch, also 2026-10-27:
+- **End hand pills (dev only).** On a `?mock` page the local dev server adds **End hand:
+  Draw** and **End hand: Win** beside Edit copy (and `curl /__dev/endhand?as=draw|win`).
+  Win hands a random seat a random hand that clears the table minimum: honors weighted
+  in, some sets melded, the odd kong, 0-3 flowers. It goes through the mock's new `rig`
+  hook ([tooling.md](tooling.md)), so the engine scores it for real. Both checked on the
+  mock.
+- **Scoring answers mid-play.** The guide was rebuilt with the board on every broadcast,
+  so a bot's move between press and release ate the click (on Scoring and on the guide's
+  sections). The guide now has its own layer over the board and rebuilds only when its
+  content changes. The Scoring pill is one node kept across renders. Checked: 5
+  broadcasts while open, 0 rebuilds.
+
 **2026-10-26 — SHIPPED: `maw-polish` merged into `master` and pushed; the mahjong worker
 deployed (64b2feac, its master 2e6a492).** His visual pass is done, same day.
 - **Seat rows:** they hold one height through Add Bot and Confirm in every skin.

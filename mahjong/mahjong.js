@@ -36,6 +36,7 @@
   var LOG = document.querySelector("[data-mj-log]");
   var ROLE = document.querySelector("[data-mj-role]");
   var CLAIM = document.querySelector("[data-mj-claim]");
+  var GUIDE = document.querySelector("[data-mj-guide]");
   var DESKTOP = document.querySelector("[data-mj-desktop]");
 
   var DECK_KEY = "deets-mahjong-deck";           // tile art: per VIEWER, never on the wire
@@ -1613,9 +1614,14 @@
      expanding. Faan values restate the engine's contract
      (scoreDecomposition); the intro reads the live table settings.
      Anti-jitter: no entrance animation, instant (transition-free)
-     expand/collapse, scroll preserved across re-renders, and held
-     state flips classes/text only — the page rebuilds on every state
-     message while the popup is open, and it must hold still. */
+     expand/collapse. The guide is the VIEWER's, not the table's: it lives
+     in its own layer over the board ([data-mj-guide], a bento sibling),
+     and a broadcast rebuilds it only when what it shows changed (the live
+     marks, the table's minimum and cap). Rebuilt with the board on every
+     message, as it was before 2026-10-27, a click on a section or on
+     Scoring itself was lost whenever a bot moved between press and
+     release: the button pressed was gone. The Scoring pill is one node
+     kept across renders for the same reason. */
   var GUIDE_SECTIONS = [
     { head: "guideSecShape", items: [["allChows", "1"], ["allPungs", "3"], ["sevenPairs", "4"], ["halfFlush", "3"], ["fullFlush", "7"]] },
     { head: "guideSecWinds", items: [["dragonPung", "1"], ["smallDragons", "+3"], ["seatWind", "1"], ["prevWind", "1"], ["smallWinds", "+3"]] },
@@ -1628,11 +1634,15 @@
     var k = "guideDesc" + key.charAt(0).toUpperCase() + key.slice(1);
     return S[k] || "";
   }
+  function openGuide() { ui.guideOpen = true; renderGuide(); }
   function closeGuide() {
     if (!ui.guideOpen) return;
     ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
-    render();
+    renderGuide();
   }
+  GUIDE.addEventListener("click", function (e) { if (e.target === GUIDE) closeGuide(); });
+  var guideKey = null;   // what the open guide shows; a broadcast that leaves it alone skips the rebuild
+  var guidePill = null;  // the Scoring pill, one node across renders
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeGuide(); });
   // base chip value of a faan total under this table's cap (2^faan)
   function chipBase(faan) { return Math.pow(2, Math.min(faan, model.settings.capFaan)); }
@@ -1667,15 +1677,23 @@
     if (heldFaan > 0) btn.appendChild(el("span", "mj-guide__heldchip", "+" + heldFaan));
     btn.addEventListener("click", function () {
       ui.guideSecOpen[id] = !open;
-      render();
+      renderGuide();
     });
     body.appendChild(btn);
     if (open) fill();
   }
   function renderGuide() {
-    if (!ui.guideOpen || !model || !model.settings) return;
-    var wrap = el("div", "mj-guide");
-    wrap.addEventListener("click", function (e) { if (e.target === wrap) closeGuide(); });
+    if (!ui.guideOpen || !model || !model.settings) {
+      GUIDE.hidden = true; GUIDE.textContent = ""; guideKey = null;
+      return;
+    }
+    var key = JSON.stringify([model.you && model.you.handValue, model.settings.minFaan,
+      model.settings.capFaan, ui.guideSecOpen]);
+    if (key === guideKey) return;
+    guideKey = key;
+    GUIDE.textContent = "";
+    GUIDE.hidden = false;
+    var wrap = GUIDE;
     var panel = el("div", "mj-guide__panel");
     var head = el("div", "mj-guide__head");
     head.appendChild(el("h3", "mj-guide__title", S.guideTitle));
@@ -1736,8 +1754,7 @@
     });
     panel.appendChild(body);
     wrap.appendChild(panel);
-    BIG.appendChild(wrap);
-    // scroll position survives the wholesale re-render on every message
+    // scroll position survives a rebuild (a live mark changed, a section toggled)
     body.scrollTop = ui.guideScroll;
     body.addEventListener("scroll", function () { ui.guideScroll = body.scrollTop; });
   }
@@ -2122,8 +2139,11 @@
       // Mahjong! and the quiet Scoring share one split button at the
       // column's bottom right (his call, 2026-10-25): Mahjong! greys out
       // until a win is on and glows alone when it is; Scoring opens the guide
-      var guideP = actionPill(S.pillGuide, true, function () { ui.guideOpen = true; render(); });
-      guideP.classList.add("mj-act--quiet");
+      if (!guidePill) {
+        guidePill = actionPill(S.pillGuide, true, openGuide);
+        guidePill.classList.add("mj-act--quiet");
+      }
+      var guideP = guidePill;
       var split = el("div", "mj-split");
       split.appendChild(winP);
       split.appendChild(guideP);

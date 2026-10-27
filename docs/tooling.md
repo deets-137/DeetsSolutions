@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: [scripts/dev.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, games/table-mock.js]
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 # Tooling and debugging
 
@@ -129,6 +129,7 @@ Bash call's 600 s).
 | `fly/log?sel=` | records each `sel` match's viewport centre, size, transform and opacity on every clock step (clears the old log); without `sel` it returns the log, `stop=1` ends recording. Plot from this rather than from screenshots |
 | `rect?sel=&shotw=&pad=` | viewport rects of the matches (first 20). With `shotw` (the Chrome tool's screenshot frame width) they come back converted, ready for a `zoom` region. `info` reports `viewport` and `dpr` |
 | `mock/drop?code=` | removes one mock table (its timers, its stored copy) and its code from the recents |
+| `endhand?as=` | ends the hand in play on this tab's mock table through the game's `ends` hook (mahjong: `draw`, `win`), via the mock's `rig`. Also two **End hand** pills beside Edit copy on any `?mock` page whose game has the hook |
 
 The dev server's console logs one line per command:
 `[dev] t-4f2a anims/seek 14ms ok` (or `FAIL` and the error).
@@ -243,6 +244,7 @@ disconnects ([games.md](games.md)).
 | `<Game>Transport.repace(ms)` | sets it and re-arms a bot step already waiting (what the driver's `pace` calls) |
 | `<Game>Transport.wipe()` | drops every mock table, including its storage key |
 | `<Game>Transport.drop(code)` | drops one table (what the driver's `mock/drop` calls) |
+| `<Game>Transport.rig(code, prep)` | dev only: `prep(game)` readies the game in place and returns the actions to apply (an entry may be a function of the game as it then stands, returning an action or null); one broadcast carries their events. What `endhand` calls |
 | `<Game>Transport.tables()` | the live table objects |
 
 A reloaded page picks a running table up where it stood: since 2026-10-26

@@ -272,3 +272,51 @@ C["mock/drop"] = function (a) {
   }
   return { dropped: had, recents: dropped, tables: Object.keys(m.api.tables()) };
 };
+
+/* ── End hand: the game's own `ends` hooks, as a command and as pills ── */
+C.endhand = function (a) {
+  var x = mine(), ends = game().ends || {};
+  if (!x || !x.t) throw new Error("no mock table on this page (open it with ?mock)");
+  var name = Object.keys(ends).filter(function (k) { return k.toLowerCase() === String(a.as || "").toLowerCase(); })[0];
+  if (!name) throw new Error("endhand needs ?as= one of " + Object.keys(ends).join(", "));
+  var g = x.t.game;
+  if (!g || g.phase !== "play" || g.handOver || g.wall == null) throw new Error("no hand in play to end");
+  var r = x.m.api.rig(x.code, ends[name]);
+  if (r && r.error) throw new Error(r.error);
+  return r;
+};
+// dev-only pills beside Edit copy (scripts/copy-edit.js), one per `ends`
+// hook, on a ?mock page only. Not copy: dev chrome never reaches Pages.
+function endPills() {
+  var ends = game().ends;
+  if (!ends || document.querySelector(".dv-pills")) return;
+  var css = document.createElement("style");
+  css.textContent =
+    ".dv-pills{position:fixed;bottom:var(--space-3);z-index:2147483000;display:flex;gap:var(--space-2)}" +
+    ".dv-pill{font:inherit;font-family:var(--font-body);color:var(--text);background:var(--surface);" +
+    "border:1px solid var(--border);border-radius:var(--radius-control);padding:var(--space-1) var(--space-2);cursor:pointer;opacity:.6}" +
+    ".dv-pill:hover{opacity:1}";
+  document.head.appendChild(css);
+  var bar = document.createElement("div");
+  bar.className = "dv-pills";
+  Object.keys(ends).forEach(function (name) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "dv-pill";
+    b.title = "Dev only: end the hand in play on this mock table";
+    b.textContent = "End hand: " + name;
+    b.addEventListener("click", function () {
+      try { C.endhand({ as: name }); }
+      catch (e) { if (window.DeetsToast) window.DeetsToast.push({ kind: "error", text: e.message }); else console.warn("[dev]", e.message); }
+    });
+    bar.appendChild(b);
+  });
+  document.body.appendChild(bar);
+  function place() {
+    var ce = document.querySelector(".ce-pill"), r = ce && ce.getBoundingClientRect();
+    bar.style.left = r ? "calc(" + Math.round(r.right) + "px + var(--space-2))" : "var(--space-3)";
+  }
+  place();
+  window.addEventListener("resize", place);
+}
+if (document.readyState === "complete") setTimeout(endPills, 0);
+else window.addEventListener("load", function () { setTimeout(endPills, 0); });

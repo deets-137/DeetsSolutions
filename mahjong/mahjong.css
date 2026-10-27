@@ -882,11 +882,13 @@ button.mj-chick--toggle:hover { background: var(--surface-hover); border-color: 
    message while open, and anything replaying would flicker. Fixed
    panel width + internal scroll keep it perfectly still. */
 .mj-guide {
+  grid-area: big;   /* a bento sibling laid over the board, like the claim dock */
   position: absolute; inset: 0; z-index: 30;
   display: grid; place-items: center;
   background: color-mix(in srgb, var(--mjfelt) 30%, transparent);
   border-radius: var(--radius-panel);
 }
+.mj-guide[hidden] { display: none; }   /* display:grid would beat the UA hidden rule */
 .mj-guide__panel {
   background: var(--menu-surface);
   -webkit-backdrop-filter: var(--menu-backdrop);

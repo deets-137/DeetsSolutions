@@ -754,6 +754,27 @@
         save();
         return true;
       },
+      // dev only (the dev driver's End hand pills, docs/tooling.md): prep(game)
+      // readies the game in place and returns the actions to apply in order
+      // (or a function of the game as it then stands → an action, or null to
+      // skip), or { error }. One broadcast carries their events
+      rig: function (code, prep) {
+        var t = TABLES[code];
+        if (!t || !t.game) return { error: "no game on " + code };
+        var actions = prep(t.game);
+        if (!actions || actions.error) return actions || { error: "nothing to do" };
+        var events = [], out = { ok: true };
+        for (var i = 0; i < actions.length; i++) {
+          var a = typeof actions[i] === "function" ? actions[i](t.game) : actions[i];
+          if (!a) continue;
+          var r = applyEngine(t, a);
+          if (r.error) { out = { error: a.type + ": " + (r.error.code || r.error) }; break; }
+          events = events.concat(r.events || []);
+        }
+        broadcast(t, events);
+        postApply(t);
+        return out;
+      },
       wipe: function () {
         Object.keys(TABLES).forEach(function (c) { disarmTimer(TABLES[c]); });
         TABLES = {};

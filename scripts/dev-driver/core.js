@@ -80,6 +80,10 @@ var C = {};
      pass(send)            answer that window with a pass
      idle()                the page shows the game as it stands (no tile,
                            chip or card still on its way)
+     ends                  { Name: prep(game) } — each gets an "End hand:
+                           Name" pill beside Edit copy and the endhand?as=
+                           command; prep readies the game in place and
+                           returns the actions to apply (mock.rig)
    game() is this page's entry, found by its mock transport's global name. */
 var GAMES = {};
 function game() {

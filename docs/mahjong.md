@@ -453,7 +453,10 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   apart with a gold edge; click a tile to discard (hover lifts it);
   melds + flowers beneath. The controls column ends in one split button,
   **Mahjong! | Scoring**, cut by a hairline: Mahjong! stays greyed until
-  a win is on and then glows alone, and Scoring opens the guide. A
+  a win is on and then glows alone, and Scoring opens the guide. The
+  guide is the viewer's own layer over the board (`[data-mj-guide]`),
+  rebuilt only when what it shows changes, so a bot's move never eats a
+  click on it or on Scoring (2026-10-27). A
   **Kong** pill shows above it only while a kong is declarable (his
   calls, 2026-10-25). Below 48rem the controls leave the column for a
   row under the hand: the split button and Kong on the left, Auto-Arrange
