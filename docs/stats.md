@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [games/table-do.js, profile/profile.js, mahjong/engine.js, poker/engine.js, cities/engine.js]
-updated: 2026-08-05
+updated: 2026-10-27
 ---
 # Game stats — the accounts phase-2 design
 
@@ -990,6 +990,131 @@ If it reports `0`, the game was recorded but not attributed — the result row
 exists with a null uid, and the fault is in the cookie reaching the upgrade,
 not in any of the above. `npx wrangler d1 execute deets-accounts --remote
 --command "SELECT key, seat, uid FROM result_seats"` tells the two apart.
+
+---
+
+## Saving every hand — designed 2026-10-27, not built
+
+**Why.** A table reports once, at game over. A night that breaks up before
+the last hand is never recorded, and that turns out to be most of them. The
+D1 on 2026-10-27 held four results in total, three of them solo tests and
+exactly one real group game (`mahjong:jongmah:0`, 2026-10-08, four humans).
+Mahjong is played weekly. Saving each hand as it settles means an abandoned
+night still counts every hand that finished.
+
+What it's for is an **unofficial group tracker**: weekly and season
+standings for the regulars, matched by **name** because they play as guests
+(see "A known limitation: guests" above). Not accurate, and not meant to be:
+a typo splits a player in two. Accounts still attribute properly for anyone
+signed in.
+
+**The game-over result is untouched.** `results` and its tables keep
+recording finished games exactly as now. Hands are a fourth grain beside
+the three in "Three grains of history", not a replacement, and neither is
+derived from the other.
+
+### What gets saved
+
+Mahjong already builds it. `endHand()` pushes a summary onto `g.results[]`
+for every settled hand: today it reaches D1 only inside a finished game's
+`result_logs.detail`. One hand becomes one `hands` row plus one `hand_seats`
+row per seat:
+
+| Field | From |
+| --- | --- |
+| key | `game:tableId:rematchIndex:n`, `n` = index into `g.results[]` (not `round.hand`, which repeats while the dealer holds) |
+| outcome | `result` (`win` \| `drawn`), winner `seat`, `discarder`, `selfDraw`, `faan`, `limit`, `value` |
+| the hand | the summary verbatim as a JSON blob: `parts`, the winner's `tiles`, `arrangement`, `melds`, `flowers` |
+| per seat | `delta` (winner `+value`, others `-payments[s]`, all 0 on a draw), `score` after the hand, and who sat there: `uid`, `name`, `kind` from the seat's **open span** at that moment |
+
+**Nothing hidden rides it.** The summary is the `g.results[]` entry, not the
+hand-over view: only the winner's tiles, which the table has already seen.
+Losers' hands live on `g.handOver.hands` alone and never reach `results[]`.
+
+Names follow the existing rule: stored for guests and bots, a uid for users
+(names resolve live).
+
+### The new tables
+
+In `../DeetsAccounts`, as a migration plus the matching `schema.sql` block:
+
+```sql
+CREATE TABLE IF NOT EXISTS hands (
+  key           TEXT PRIMARY KEY,     -- "mahjong:jongmah:0:7", the idempotency key
+  game          TEXT NOT NULL,
+  table_id      TEXT NOT NULL,
+  rematch_index INTEGER NOT NULL,
+  n             INTEGER NOT NULL,     -- 0,1,2… within one game
+  ended_at      INTEGER NOT NULL,
+  result        TEXT NOT NULL,        -- 'win' | 'drawn' (poker: 'pot')
+  winner        INTEGER,              -- seat; NULL on a draw
+  value         INTEGER,              -- what the winner collected
+  summary       TEXT NOT NULL         -- the engine's per-hand summary, verbatim
+);
+CREATE TABLE IF NOT EXISTS hand_seats (
+  key       TEXT NOT NULL REFERENCES hands(key) ON DELETE CASCADE,
+  seat      INTEGER NOT NULL,
+  uid       TEXT,                     -- NULL for bots and guests
+  name      TEXT,                     -- guests and bots only
+  kind      TEXT NOT NULL,            -- 'user' | 'guest' | 'bot'
+  delta     INTEGER NOT NULL,         -- this hand's score change
+  score     INTEGER NOT NULL,         -- running score after it
+  ended_at  INTEGER NOT NULL,         -- denormalised, for the weekly GROUP BY
+  PRIMARY KEY (key, seat)
+);
+CREATE INDEX IF NOT EXISTS hand_seats_week ON hand_seats(ended_at);
+```
+
+Writes are `INSERT OR IGNORE`, so a resend can't double-count. A mahjong
+night of 20–30 hands is ~150 rows: noise against the free tier's daily
+writes ([free-tier.md](free-tier.md)).
+
+### The pipeline
+
+```
+engine settles a hand (g.results[] grows)
+  └─ table-do.js applyEngine() → handSummaries()        [new hook, no-op default]
+       └─ every entry past t.handsReported → payload with the open spans
+            └─ POST /ingest/hand over the service binding → DeetsAccounts
+                 └─ INSERT OR IGNORE into hands + hand_seats
+```
+
+- **The hook is a pull, not an event.** `handSummaries()` returns the
+  game's whole per-hand list (mahjong: `g.results`). The base keeps a
+  persisted `t.handsReported` and sends every entry past it. A hand that
+  slips past one apply is caught by the next, and nothing depends on a
+  `handOver` event's shape.
+- **Default `null`**, so cities and tanks send nothing and change nothing.
+  Like `reportResults()`, the POST lives in the base so no game can forget it.
+- **Rematch** resets `t.handsReported` with `g.results`, and the new
+  `rematchIndex` keeps the keys apart.
+- **Same delivery rules.** Outbox key `pending:hand:<key>` written before the
+  POST and deleted on a 2xx; the same `INGEST_SECRET`; nothing may throw
+  into the broadcast. The missing outbox sweep (step 6 below) now has two
+  kinds of leftover to drain.
+- **Mocks** don't POST, so the hook is unit-testable through
+  `node scripts/check.mjs` and nothing else.
+
+### Rollout — mahjong first
+
+1. **After `end-jong` merges.** That branch also edits the shared
+   `games/table-do.js`; two vendored changes in flight at once is the drift
+   the vendoring rule exists to stop.
+2. **DeetsAccounts:** migration, `/ingest/hand`, `check.mjs` coverage
+   (idempotency, auth guard, a draw, a seat that changed hands mid-game).
+   Deploy first: an unused route is harmless.
+3. **`games/table-do.js`:** the hook, `t.handsReported`, the POST.
+   Re-vendor into every worker; only mahjong turns it on.
+4. **DeetsMahjong:** `handSummaries()` → `g.results`, the payload check,
+   deploy.
+5. **Verify live:** play a few hands, leave before the end, then
+   `cf d1 query <id> --sql "SELECT * FROM hand_seats"`.
+6. **The tracker** (a reader, no writes): sum `delta` and count wins by
+   `COALESCE(uid, name)` per ISO week. Where it lives (profile, a games-page
+   panel, its own page) is still open.
+7. **Poker later**, with one rule of its own: a hand summary may carry only
+   cards that were shown. Folded and mucked hole cards never ride it, same
+   reasoning as "A live game's log must never be served" below.
 
 ---
 
