@@ -69,12 +69,12 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-27 — The gate says Rejoin / Sit down / Spectate (built, NOT deployed).** Peek
+**2026-10-27 — The gate says Rejoin / Sit down / Spectate (Poker worker deployed; site and Mahjong NOT).** Peek
 now knows the asker (token header + session cookie) and answers `mine` and `adoptable`
 ([games.md](games.md), "Identity and rejoin"). Re-vendored and pushed: DeetsPoker
-`master` (deploy blocked 2026-10-27, wrangler not logged in on the Mac), DeetsMahjong
-`end-jong` (ships with that branch's merge). Until they deploy, the live gate keeps
-"Rejoin or spectate". DeetsCities' `src/` is three months behind the site (colors, engine,
+`master`, deployed 2026-10-27 (version `cbcac442`); DeetsMahjong `end-jong` ships with
+that branch's merge. The gate itself is on the site's `end-jong`, so the live page keeps
+"Rejoin or spectate" until that merges. DeetsCities' `src/` is three months behind the site (colors, engine,
 table-do), so it needs its own re-vendor and test before it gets this.
 
 **2026-10-27 — Save every hand (designed, not built).** A table only reports at game
