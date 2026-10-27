@@ -71,9 +71,10 @@ Newest plan first. Each entry: status, the doc that holds the design, the first 
 
 **2026-10-27 — The gate says Rejoin / Sit down / Spectate (built, NOT deployed).** Peek
 now knows the asker (token header + session cookie) and answers `mine` and `adoptable`
-([games.md](games.md), "Identity and rejoin"). Re-vendored into DeetsMahjong and
-DeetsPoker (uncommitted there); until they deploy, the live gate keeps "Rejoin or
-spectate". DeetsCities' `src/` is three months behind the site (colors, engine,
+([games.md](games.md), "Identity and rejoin"). Re-vendored and pushed: DeetsPoker
+`master` (deploy blocked 2026-10-27, wrangler not logged in on the Mac), DeetsMahjong
+`end-jong` (ships with that branch's merge). Until they deploy, the live gate keeps
+"Rejoin or spectate". DeetsCities' `src/` is three months behind the site (colors, engine,
 table-do), so it needs its own re-vendor and test before it gets this.
 
 **2026-10-27 — Save every hand (designed, not built).** A table only reports at game
