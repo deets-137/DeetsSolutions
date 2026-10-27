@@ -196,10 +196,9 @@
     return t.reduce(function (m, r) { return Math.max(m, r.created_at); }, p.created_at);
   }
 
+  // The box is a dashboard tab now: the tabs show and hide it, the gate shows the dashboard.
   function showInbox(yes) {
-    if (!INBOX_BOX) return;
-    INBOX_BOX.hidden = !yes;
-    if (!yes) return;
+    if (!INBOX_BOX || !yes) return;
     wireInboxTools();
     loadInbox();
   }
@@ -274,6 +273,8 @@
     var waiting = inbox.posts.filter(isWaiting).length;
     var pending = inbox.posts.filter(function (p) { return !inbox.threads[p.code]; }).length;
     inboxState(pending ? s("inboxReading", { n: pending }) : s(waiting === 1 ? "inboxWaitingOne" : "inboxWaitingMany", { n: waiting }));
+    paintInboxSummary();
+    paintDash();
 
     var shown = inbox.posts.filter(function (p) {
       if (inbox.kind && p.kind !== inbox.kind) return false;
@@ -427,7 +428,7 @@
   var USAGE_PLAIN = ["panics", "freezes", "dbWriteFails", "backoffArms"];
   var USAGE_GROUPS = ["library", "me", "catalog", "search", "write", "probe"];
   var USAGE_CLASSES = ["2xx", "401", "403", "404", "429", "4xx", "5xx", "net"];
-  var USAGE_DAYS = 60;
+  var USAGE_DAYS = 90;
 
   function usageDay(d) { return d.toISOString().slice(0, 10); }
   function fmtCount(n) { return Math.round(n).toLocaleString("en-US"); }
@@ -456,10 +457,12 @@
     return entry;
   }
 
+  // The whole dashboard: the overview, the tabs and their panels (the Inbox among them).
   function showUsage(yes) {
     if (!USAGE_BOX) return;
     USAGE_BOX.hidden = !yes;
     if (!yes) return;
+    wireTabs();
     wireUsageTools();
     loadUsage();
   }
@@ -473,8 +476,6 @@
       usagePill($("[data-dm-usage-tools]"), s("usageWeekPill"), function () { return usage.week || ""; },
         function () { return usageWeeks().map(function (w) { return [w, w]; }); },
         function (w) { usage.week = w; loadUsage(); }),
-      usagePill($("[data-dm-usage-settool]"), s("usageSettingPill"), function () { return usage.setting; }, keys,
-        function (k) { usage.setting = k; renderUsage(); }),
       usagePill($("[data-dm-usage-crosstools]"), s("usageCrossA"), function () { return usage.a; }, keys,
         function (k) { usage.a = k; loadCross(); paintUsagePills(); }),
       usagePill($("[data-dm-usage-crosstools]"), s("usageCrossB"), function () { return usage.b; }, keys,
@@ -497,15 +498,14 @@
       if (seq !== usage.seq) return;
       if (!res.ok || !res.data) {
         state.textContent = s("usageFailed");
-        $("[data-dm-usage-body]").hidden = true;
         return;
       }
       usage.data = res.data;
       usage.week = res.data.week;
       state.hidden = true;
-      $("[data-dm-usage-body]").hidden = false;
       renderUsage();
       loadCross();
+      loadPrev();
     });
   }
 
@@ -539,73 +539,95 @@
   function renderUsage() {
     if (!usage.data) return;
     paintUsagePills();
-    var now = new Date();
-    var kpis = $("[data-dm-usage-kpis]");
-    kpis.textContent = "";
-    [["usageToday", sumActive(usageDay(now))], ["usageThisWeek", sumActive(usage.week)],
-     ["usageThisMonth", sumActive(usageDay(now).slice(0, 7))], ["usageReports", weekReports()]].forEach(function (k) {
-      var box = el("div", "dm-usage__kpi");
-      box.appendChild(el("span", "dm-usage__num", fmtCount(k[1])));
-      box.appendChild(el("span", "dm-hint", s(k[0])));
-      kpis.appendChild(box);
-    });
-    renderDaily(now);
-    var byV = {};
-    usage.data.active.forEach(function (r) { if (r.period === usage.week) byV[r.v] = (byV[r.v] || 0) + r.n; });
+    paintDash();
+    renderDaily();
+    var byV = weekByVersion();
     renderBars($("[data-dm-usage-versions]"), Object.keys(byV).sort(cmpVersionDesc).map(function (v) { return [v, byV[v]]; }), sumActive(usage.week));
     $("[data-dm-usage-lag]").hidden = !Object.keys(byV).some(function (v) { return cmpVersionDesc(v, USAGE_MOVES_FROM) > 0; });
+    renderInstalls(new Date());
+    renderFunnel();
+    renderInstallsChart();
     renderUpdates();
-    renderInstalls(now);
-    var shares = usage.data.shares.filter(function (r) { return r.key === usage.setting; })
-      .sort(function (a, b) { return b.n - a.n; }).map(function (r) { return [r.value, r.n]; });
-    renderBars($("[data-dm-usage-shares]"), shares, weekReports());
+    renderReleases();
     renderHealth();
+    renderHeat();
+    renderApple();
+    renderShares();
+  }
+  function weekByVersion() {
+    var byV = {};
+    usage.data.active.forEach(function (r) { if (r.period === usage.week) byV[r.v] = (byV[r.v] || 0) + r.n; });
+    return byV;
   }
 
-  /* The day line: the last 60 UTC days, every version summed, a missing day
-     as 0. Drawn in SVG in the page's own title color (no chart library). */
-  function renderDaily(now) {
+  /* Active installs per UTC day as a stacked area by version: the newest on top, the
+     SERIES newest named, the rest summed as Older. A missing day is 0; the empty days
+     before the first count are trimmed. Hovering reads one day out. */
+  function renderDaily() {
     var host = $("[data-dm-usage-daily]");
     host.textContent = "";
-    var days = [];
-    for (var i = USAGE_DAYS - 1; i >= 0; i--) {
-      var d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
-      days.push({ day: usageDay(d), n: sumActive(usageDay(d)) });
-    }
-    var max = Math.max.apply(null, days.map(function (x) { return x.n; }));
-    if (!max) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
-    var W = 600, H = 120, step = W / (days.length - 1);
-    var pts = days.map(function (x, i) { return (i * step).toFixed(1) + "," + (H - (x.n / max) * (H - 4) - 2).toFixed(1); });
-    var NS = "http://www.w3.org/2000/svg";
-    var svg = document.createElementNS(NS, "svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.setAttribute("preserveAspectRatio", "none");
-    svg.setAttribute("class", "dm-usage__svg");
-    svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", s("usageDaily"));
-    var area = document.createElementNS(NS, "polygon");
-    area.setAttribute("points", "0," + H + " " + pts.join(" ") + " " + W + "," + H);
-    area.setAttribute("class", "dm-usage__area");
-    var line = document.createElementNS(NS, "polyline");
-    line.setAttribute("points", pts.join(" "));
-    line.setAttribute("class", "dm-usage__line");
-    line.setAttribute("vector-effect", "non-scaling-stroke");
-    svg.appendChild(area);
-    svg.appendChild(line);
-    days.forEach(function (x, i) {                  // a hover title per day
-      var hit = document.createElementNS(NS, "rect");
-      hit.setAttribute("x", (i * step - step / 2).toFixed(1));
-      hit.setAttribute("y", "0");
-      hit.setAttribute("width", step.toFixed(1));
-      hit.setAttribute("height", String(H));
-      hit.setAttribute("class", "dm-usage__hit");
-      var t = document.createElementNS(NS, "title");
-      t.textContent = fmtDay(x.day) + ": " + fmtCount(x.n);
-      hit.appendChild(t);
-      svg.appendChild(hit);
+    var days = [], cell = {}, seen = {};
+    for (var i = USAGE_DAYS - 1; i >= 0; i--) days.push(dayAgo(i));
+    usage.data.active.forEach(function (r) {
+      if (r.period.length !== 10 || r.period < days[0]) return;     // a day row, in the window
+      var c = cell[r.period] = cell[r.period] || {};
+      c[r.v] = (c[r.v] || 0) + r.n;
+      seen[r.v] = 1;
     });
-    host.appendChild(svg);
-    host.appendChild(el("p", "dm-hint", s("usageDailyAxis", { from: fmtDay(days[0].day), to: fmtDay(days[days.length - 1].day), max: fmtCount(max) })));
+    while (days.length > 2 && !cell[days[0]]) days.shift();
+    var vs = Object.keys(seen).sort(cmpVersionDesc);
+    var series = vs.slice(0, SERIES).map(function (v, k) {
+      return { label: "v" + v, cls: "dm-ser-" + k, get: function (d) { return (cell[d] || {})[v] || 0; } };
+    });
+    if (vs.length > SERIES) {
+      var rest = vs.slice(SERIES);
+      series.push({ label: s("dashOlder"), cls: "dm-ser-" + SERIES, get: function (d) {
+        return rest.reduce(function (n, v) { return n + ((cell[d] || {})[v] || 0); }, 0);
+      } });
+    }
+    var totals = days.map(function (d) { return series.reduce(function (n, se) { return n + se.get(d); }, 0); });
+    var max = Math.max.apply(null, totals);
+    if (!max) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+
+    var W = 600, H = 160, step = W / (days.length - 1);
+    var x = function (k) { return (k * step).toFixed(1); };
+    var y = function (n) { return (H - (n / max) * (H - 4)).toFixed(1); };
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", "class": "dm-usage__svg dm-dash__area", role: "img", "aria-label": s("usageDaily") });
+    var base = days.map(function () { return 0; });
+    series.slice().reverse().forEach(function (se) {             // Older at the bottom
+      var top = days.map(function (d, k) { return base[k] + se.get(d); });
+      var up = top.map(function (n, k) { return x(k) + "," + y(n); });
+      var down = base.map(function (n, k) { return x(k) + "," + y(n); }).reverse();
+      svgEl("polygon", { points: up.concat(down).join(" "), "class": "dm-dash__band " + se.cls }, svg);
+      base = top;
+    });
+    svgEl("polyline", { points: totals.map(function (n, k) { return x(k) + "," + y(n); }).join(" "), "class": "dm-usage__line", "vector-effect": "non-scaling-stroke" }, svg);
+    var cross = svgEl("line", { x1: 0, x2: 0, y1: 0, y2: H, "class": "dm-dash__cross", "vector-effect": "non-scaling-stroke" }, svg);
+    cross.style.display = "none";
+
+    var plot = el("div", "dm-dash__plot");
+    plot.appendChild(svg);
+    var tip = el("div", "dm-dash__tip");
+    tip.hidden = true;
+    plot.appendChild(tip);
+    svg.addEventListener("pointermove", function (e) {
+      var r = svg.getBoundingClientRect();
+      var k = Math.max(0, Math.min(days.length - 1, Math.round((e.clientX - r.left) / r.width * (days.length - 1))));
+      cross.setAttribute("x1", x(k));
+      cross.setAttribute("x2", x(k));
+      cross.style.display = "";
+      tip.textContent = "";
+      tip.appendChild(el("strong", null, fmtDay(days[k])));
+      series.forEach(function (se) { tip.appendChild(tipRow(se.label, se.cls, se.get(days[k]))); });
+      tip.appendChild(tipRow(s("dashTotal"), null, totals[k]));
+      tip.hidden = false;
+      tip.style.insetInlineStart = (k / (days.length - 1) * r.width).toFixed(0) + "px";
+      tip.classList.toggle("is-flip", k > (days.length - 1) / 2);
+    });
+    svg.addEventListener("pointerleave", function () { tip.hidden = true; cross.style.display = "none"; });
+    host.appendChild(plot);
+    host.appendChild(legend(series));
+    host.appendChild(el("p", "dm-hint", s("usageDailyAxis", { from: fmtDay(days[0]), to: fmtDay(days[days.length - 1]), max: fmtCount(max) })));
   }
 
   /* Bars on the Status strip's track: one row per value, its count and share. */
@@ -663,7 +685,6 @@
       .concat(Object.keys(logs).sort())
       .concat([].concat.apply([], USAGE_GROUPS.map(function (g) { return USAGE_CLASSES.map(function (c) { return "apple." + g + "." + c; }); })));
     Object.keys(cells).forEach(function (m) { if (metrics.indexOf(m) < 0) metrics.push(m); });
-    $("[data-dm-usage-healthlead]").textContent = s("usageHealthLead", { n: fmtCount(reports) });
     var host = $("[data-dm-usage-health]");
     host.textContent = "";
     host.appendChild(usageTable([s("usageMetric")].concat(USAGE_BUCKETS), metrics.map(function (m) {
@@ -676,16 +697,20 @@
 
   /* Updates (USAGE-COUNTS.md §12.4): per version, every day summed. Waiting = downloaded but
      not restarted onto it yet (an update applies at the next start). Newest version first. */
-  function renderUpdates() {
+  function updatesByVersion() {
     var by = {};
     (usage.data.events || []).forEach(function (r) {
       if (r.metric !== "update.downloaded" && r.metric !== "update.applied") return;
-      var x = by[r.v] = by[r.v] || { downloaded: 0, applied: 0, rollback: 0, since: r.period };
+      var x = by[r.v] = by[r.v] || { downloaded: 0, applied: 0, rollback: 0, since: r.period, days: {} };
       if (r.metric === "update.downloaded") x.downloaded += r.n;
-      else x.applied += r.n;
+      else { x.applied += r.n; x.days[r.period] = (x.days[r.period] || 0) + r.n; }
       if (r.bucket === "rollback" && r.metric === "update.applied") x.rollback += r.n;
       if (r.period < x.since) x.since = r.period;
     });
+    return by;
+  }
+  function renderUpdates() {
+    var by = updatesByVersion();
     var host = $("[data-dm-usage-updates]");
     host.textContent = "";
     var vs = Object.keys(by).sort(cmpVersionDesc);
@@ -745,10 +770,520 @@
         if (bs.indexOf(b) < 0) bs.push(b);
         at[a + "\u0000" + b] = r.n;
       });
-      host.appendChild(usageTable([usage.a + " \\ " + usage.b].concat(bs), as.map(function (a) {
+      var max = rows.reduce(function (m, r) { return Math.max(m, r.n); }, 0);
+      var table = usageTable([usage.a + " \\ " + usage.b].concat(bs), as.map(function (a) {
         return [a].concat(bs.map(function (b) { return at[a + "\u0000" + b] || 0; }));
-      })));
+      }));
+      table.classList.add("dm-dash__heat");
+      var flat = [].concat.apply([], as.map(function (a) { return bs.map(function (b) { return at[a + "\u0000" + b] || 0; }); }));
+      $all("tbody td", table).forEach(function (td, k) { heat(td, flat[k], max); });
+      host.appendChild(table);
     });
+  }
+
+  // ── The dashboard (support.md, "The dashboard") ──────────────────
+  // An overview (the flags and the headline tiles) above four tabs, all drawn from the
+  // responses the page already reads: no worker change (his call, 2026-10-27). The flag
+  // thresholds are drafts for his edit.
+  var FLAG = {
+    rollback: 0.01, rollbackMin: 50,              // rollbacks per restart onto the newest version
+    healthRatio: 1.5, healthGap: 0.01, healthMin: 50,   // a trouble metric against the version before
+    freezes: 0.02,                                // panics flag at any count
+    finish: 0.8, finishMin: 20,                   // site + Store downloads finished, 7 days
+    drop: 0.15,                                   // mean daily active, last 7 whole days vs the 7 before
+    waitDays: 3,                                  // a post waiting on him
+  };
+  var TABS = ["growth", "inbox", "releases", "settings"];
+  var SERIES = 4;               // versions a chart names; the rest are Older
+  var NS = "http://www.w3.org/2000/svg";
+  var tabsWired = false;
+
+  function svgEl(tag, attrs, parent) {
+    var n = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function pct(x) {
+    if (!isFinite(x)) return "–";
+    var p = x * 100;
+    // A decimal where rounding would hide the difference: 0.4 % is not 0, 99.6 % is not 100.
+    if (p > 90 && p < 100) return (Math.floor(p * 10) / 10).toFixed(1) + "%";
+    return (p > 0 && p < 10 ? p.toFixed(1) : String(Math.round(p))) + "%";
+  }
+  function arrow(d) { return d >= 0 ? "▲ " : "▼ "; }
+  function dayAgo(i) {
+    var now = new Date();
+    return usageDay(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i)));
+  }
+  function daysSince(unix) { return Math.floor((Date.now() / 1000 - unix) / 86400); }
+  function prevWeek() {
+    var ws = usageWeeks(), k = ws.indexOf(usage.week);
+    return k >= 0 ? ws[k + 1] || null : null;
+  }
+  // The day counters in `events`, from `from` to `to` days ago (0 = today), where test(row) holds.
+  function eventSum(test, from, to) {
+    var lo = dayAgo(to), hi = dayAgo(from);
+    return ((usage.data && usage.data.events) || []).reduce(function (n, r) {
+      return r.period >= lo && r.period <= hi && test(r) ? n + r.n : n;
+    }, 0);
+  }
+  function isEv(metric, bucket) {
+    return function (r) { return r.metric === metric && (bucket == null || r.bucket === bucket); };
+  }
+  /* The week's health per version: its reports, and per metric the reports that counted it
+     above 0 (a metric is stored only above 0, so every row but `reports` is one). */
+  function healthStats() {
+    var rep = {}, above = {};
+    usage.data.health.forEach(function (r) {
+      if (r.metric === "reports") { rep[r.v] = (rep[r.v] || 0) + r.n; return; }
+      var m = above[r.metric] = above[r.metric] || {};
+      m[r.v] = (m[r.v] || 0) + r.n;
+    });
+    return { versions: Object.keys(rep).sort(cmpVersionDesc), reports: rep, above: above };
+  }
+  function isTrouble(metric) { return !/\.2xx$/.test(metric); }
+  // When the poster last spoke: their last shown reply, else the post itself.
+  function waitSince(p) {
+    return (inbox.threads[p.code] || []).reduce(function (m, r) {
+      return !r.hidden && r.author === "reporter" ? Math.max(m, r.created_at) : m;
+    }, p.created_at);
+  }
+
+  // ── Tabs: Growth · Inbox · Releases · Settings, kept in the hash ──
+  function tabFromHash() {
+    var h = location.hash.slice(1);
+    if (h === "usage") return "growth";             // the old anchor
+    return TABS.indexOf(h) >= 0 ? h : "growth";
+  }
+  function selectTab(t, write) {
+    $all("[data-tab]").forEach(function (b) {
+      var on = b.getAttribute("data-tab") === t;
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+    });
+    $all("[data-panel]").forEach(function (p) { p.hidden = p.getAttribute("data-panel") !== t; });
+    if (write && location.hash.slice(1) !== t) history.replaceState(null, "", "#" + t);
+  }
+  function wireTabs() {
+    if (tabsWired) return;
+    tabsWired = true;
+    var btns = $all("[data-tab]");
+    btns.forEach(function (b, i) {
+      b.addEventListener("click", function () { selectTab(b.getAttribute("data-tab"), true); });
+      b.addEventListener("keydown", function (e) {
+        var to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: btns.length - 1 }[e.key];
+        if (to == null) return;
+        e.preventDefault();
+        var nb = btns[(to + btns.length) % btns.length];
+        selectTab(nb.getAttribute("data-tab"), true);
+        nb.focus();
+      });
+    });
+    window.addEventListener("hashchange", function () { selectTab(tabFromHash(), false); });
+    selectTab(tabFromHash(), false);
+  }
+
+  // ── Chart pieces: a sparkline, a legend, a hover row, a heat cell, stacked columns ──
+  function spark(values, cls) {
+    var W = 120, H = 28, max = Math.max.apply(null, values) || 1, step = W / Math.max(1, values.length - 1);
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", "class": cls || "dm-dash__spark", "aria-hidden": "true" });
+    svgEl("polyline", {
+      points: values.map(function (v, k) { return (k * step).toFixed(1) + "," + (H - 2 - (v / max) * (H - 4)).toFixed(1); }).join(" "),
+      "class": "dm-usage__line", "vector-effect": "non-scaling-stroke",
+    }, svg);
+    return svg;
+  }
+  function legend(series) {
+    var box = el("div", "dm-dash__legend");
+    series.forEach(function (se) {
+      var item = el("span", "dm-dash__key");
+      item.appendChild(el("span", "dm-dash__swatch " + se.cls));
+      item.appendChild(el("span", null, se.label));
+      box.appendChild(item);
+    });
+    return box;
+  }
+  function tipRow(label, cls, n) {
+    var row = el("span", "dm-dash__tiprow");
+    row.appendChild(el("span", "dm-dash__swatch " + (cls || "is-none")));
+    row.appendChild(el("span", null, label));
+    row.appendChild(el("span", "dm-dash__tipnum", fmtCount(n)));
+    return row;
+  }
+  // A cell's shade grows with its value (square root, so the small ones still show).
+  function heat(td, value, max) {
+    td.style.setProperty("--heat", (max ? Math.round(Math.sqrt(value / max) * 45) : 0) + "%");
+  }
+  /* Stacked columns, one per label: `series` [{ label, cls, values }] stack bottom-up and
+     `dots` { label, values } sit on the same scale. Each column's hover title reads it out. */
+  function columns(host, labels, series, dots, aria) {
+    host.textContent = "";
+    var totals = labels.map(function (l, k) { return series.reduce(function (t, se) { return t + se.values[k]; }, 0); });
+    var max = Math.max.apply(null, totals.concat(dots ? dots.values : []));
+    if (!max) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    var W = 600, H = 140, slot = W / labels.length, bw = slot * 0.7;
+    var h = function (v) { return (v / max) * (H - 8); };
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, "class": "dm-dash__svg", role: "img", "aria-label": aria });
+    labels.forEach(function (lab, k) {
+      var x0 = k * slot + (slot - bw) / 2, acc = 0, lines = [lab];
+      series.forEach(function (se) {
+        var v = se.values[k];
+        lines.push(se.label + ": " + fmtCount(v));
+        if (!v) return;
+        var hh = h(v);
+        svgEl("rect", { x: x0.toFixed(1), y: (H - h(acc) - hh).toFixed(1), width: bw.toFixed(1), height: Math.max(1, hh - 1.5).toFixed(1), "class": "dm-dash__col " + se.cls }, svg);
+        acc += v;
+      });
+      if (dots) {
+        lines.push(dots.label + ": " + fmtCount(dots.values[k]));
+        if (dots.values[k]) svgEl("circle", { cx: (x0 + bw / 2).toFixed(1), cy: (H - h(dots.values[k])).toFixed(1), r: 4, "class": "dm-dash__dot" }, svg);
+      }
+      var hit = svgEl("rect", { x: (k * slot).toFixed(1), y: 0, width: slot.toFixed(1), height: H, "class": "dm-usage__hit" }, svg);
+      svgEl("title", null, hit).textContent = lines.join("\n");
+    });
+    host.appendChild(svg);
+    var keys = series.slice();
+    if (dots) keys.push({ label: dots.label, cls: "is-dot" });
+    host.appendChild(legend(keys));
+  }
+
+  // ── The overview: flags, then the headline tiles ────────────────
+  function paintDash() {
+    usage.flags = computeFlags();
+    paintFlags(usage.flags);
+    paintTiles();
+  }
+  /* Each flag: { tone, text }. `cells` and `releases` mark what the Releases tab outlines. */
+  function computeFlags() {
+    var out = [], cells = {}, rel = {};
+    var d = usage.data;
+    if (d) {
+      var ups = updatesByVersion(), uv = Object.keys(ups).sort(cmpVersionDesc)[0];
+      if (uv && ups[uv].applied >= FLAG.rollbackMin && ups[uv].rollback / ups[uv].applied > FLAG.rollback) {
+        var u = ups[uv];
+        out.push({ tone: "stop", text: s("flagRollback", { v: "v" + uv, pct: pct(u.rollback / u.applied), n: fmtCount(u.rollback), of: fmtCount(u.applied) }) });
+        rel[uv] = 1;
+      }
+      var h = healthStats(), hv = h.versions[0], pv = h.versions[1];
+      var share = function (m, v) { return h.reports[v] ? ((h.above[m] || {})[v] || 0) / h.reports[v] : 0; };
+      if (hv) {
+        var panics = (h.above.panics || {})[hv] || 0;
+        if (panics) {
+          out.push({ tone: "stop", text: s("flagPanics", { v: "v" + hv, n: fmtCount(panics) }) });
+          cells["panics|" + hv] = 1;
+        }
+        if (share("freezes", hv) > FLAG.freezes) {
+          out.push({ tone: "pause", text: s("flagFreezes", { v: "v" + hv, pct: pct(share("freezes", hv)) }) });
+          cells["freezes|" + hv] = 1;
+        }
+        if (pv && h.reports[hv] >= FLAG.healthMin && h.reports[pv] >= FLAG.healthMin) {
+          Object.keys(h.above).sort().forEach(function (m) {
+            if (!isTrouble(m) || m === "panics" || m === "freezes") return;
+            var a = share(m, hv), b = share(m, pv);
+            if (a > b * FLAG.healthRatio && a - b >= FLAG.healthGap) {
+              out.push({ tone: "pause", text: s("flagHealth", { v: "v" + hv, metric: m, pct: pct(a), prev: pct(b), pv: "v" + pv }) });
+              cells[m + "|" + hv] = 1;
+            }
+          });
+        }
+      }
+      var people = function (metric) {
+        return function (r) { return r.metric === metric && (r.bucket === "site" || r.bucket === "store"); };
+      };
+      var st = eventSum(people("setup.start"), 0, 6), dn = eventSum(people("setup.done"), 0, 6);
+      if (st >= FLAG.finishMin && dn / st < FLAG.finish) {
+        out.push({ tone: "pause", text: s("flagFinish", { pct: pct(dn / st), n: fmtCount(dn), of: fmtCount(st) }) });
+      }
+      // Whole days only: today is never whole, and neither is this week.
+      var mean = function (a, b) { var t = 0; for (var k = a; k <= b; k++) t += sumActive(dayAgo(k)); return t / (b - a + 1); };
+      var now7 = mean(1, 7), prev7 = mean(8, 14);
+      if (prev7 && (prev7 - now7) / prev7 > FLAG.drop) {
+        out.push({ tone: "pause", text: s("flagDrop", { pct: pct((prev7 - now7) / prev7), now: fmtCount(now7), prev: fmtCount(prev7) }) });
+      }
+    }
+    (inbox.posts || []).forEach(function (p) {
+      if (!isWaiting(p)) return;
+      var days = daysSince(waitSince(p));
+      if (days > FLAG.waitDays) out.push({ tone: "pause", text: s("flagWaiting", { title: p.title, d: days }) });
+    });
+    out.sort(function (a, b) { return (a.tone === "stop" ? 0 : 1) - (b.tone === "stop" ? 0 : 1); });
+    return { list: out, cells: cells, releases: rel };
+  }
+  function paintFlags(f) {
+    var host = $("[data-dm-flags]");
+    host.textContent = "";
+    host.appendChild(el("h3", "dm-usage__sub", s("dashFlagsTitle")));
+    var list = el("ul", "dm-dash__flaglist");
+    (f.list.length ? f.list : [{ tone: "go", text: s("dashFlagsNone") }]).forEach(function (x) {
+      var li = el("li", "dm-dash__flag");
+      li.setAttribute("data-tone", x.tone);
+      li.appendChild(el("span", "dm-dash__glyph", x.tone === "go" ? "✓" : x.tone === "stop" ? "!!" : "!"));
+      li.appendChild(el("span", null, x.text));
+      list.appendChild(li);
+    });
+    host.appendChild(list);
+  }
+  function tile(host, value, label, o) {
+    var t = el("div", "dm-usage__kpi dm-dash__tile");
+    t.appendChild(el("span", "dm-usage__num", value));
+    t.appendChild(el("span", "dm-hint", label));
+    if (o && o.sub) t.appendChild(el("span", "dm-dash__sub", o.sub));
+    if (o && o.spark && o.spark.length > 1) t.appendChild(spark(o.spark));
+    if (o && o.meter != null) {
+      var m = el("span", "dm-usage__track dm-dash__meter");
+      var f = el("span", "dm-usage__fill");
+      f.style.inlineSize = (Math.max(0, Math.min(1, o.meter)) * 100).toFixed(1) + "%";
+      m.appendChild(f);
+      t.appendChild(m);
+    }
+    host.appendChild(t);
+  }
+  function paintTiles() {
+    var host = $("[data-dm-tiles]");
+    host.textContent = "";
+    var k;
+    if (usage.data) {
+      var days30 = [];
+      for (k = 29; k >= 0; k--) days30.push(sumActive(dayAgo(k)));
+      tile(host, fmtCount(sumActive(dayAgo(0))), s("usageToday"), { spark: days30 });
+      var pw = prevWeek(), week = sumActive(usage.week);
+      tile(host, fmtCount(week), s("usageThisWeek"), {
+        sub: pw ? s("tileLastWeek", { n: fmtCount(sumActive(pw)) }) : null,
+        spark: usageWeeks().slice().reverse().map(sumActive),
+      });
+      var month = sumActive(dayAgo(0).slice(0, 7));
+      var current = usage.week === usageWeeks()[0];
+      tile(host, fmtCount(month), s("usageThisMonth"), { sub: current && month ? s("tileWeekShare", { pct: pct(week / month) }) : null });
+      var first = isEv("install.first"), n7 = eventSum(first, 0, 6), p7 = eventSum(first, 7, 13), d14 = [];
+      for (k = 13; k >= 0; k--) d14.push(eventSum(first, k, k));
+      tile(host, fmtCount(n7), s("tileNew"), {
+        sub: p7 ? arrow(n7 / p7 - 1) + s("tileVsBefore", { pct: pct(Math.abs(n7 / p7 - 1)) }) : null,
+        spark: d14,
+      });
+      var byV = weekByVersion(), newest = Object.keys(byV).sort(cmpVersionDesc)[0];
+      if (newest && week) tile(host, pct(byV[newest] / week), s("tileLatest", { v: "v" + newest }), { sub: s("tileLatestSub"), meter: byV[newest] / week });
+      var h = healthStats(), sum = function (o) { return Object.keys(o || {}).reduce(function (n, v) { return n + o[v]; }, 0); };
+      var reports = sum(h.reports);
+      if (reports) {
+        var free = 1 - sum(h.above.panics) / reports;
+        tile(host, pct(free), s("tilePanicFree"), { sub: s("tilePanicSub", { pct: pct(sum(h.above.freezes) / reports) }), meter: free });
+      }
+    }
+    if (inbox.posts) {
+      var waiting = inbox.posts.filter(isWaiting);
+      var oldest = waiting.reduce(function (m, p) { return Math.max(m, daysSince(waitSince(p))); }, 0);
+      tile(host, fmtCount(waiting.length), s("inboxWaiting"), { sub: waiting.length ? s("tileOldest", { d: oldest }) : s("tileAllAnswered") });
+    }
+  }
+
+  // ── Growth: the download funnel and the days it came in ────────
+  var SOURCES = [["site", "usageInSite"], ["store", "usageInStore"], ["direct", "usageInDirect"]];
+  function renderFunnel() {
+    var host = $("[data-dm-funnel]");
+    host.textContent = "";
+    var last = USAGE_INSTALL_DAYS - 1;
+    var rows = SOURCES.map(function (src) {
+      return { label: s(src[1]), start: eventSum(isEv("setup.start", src[0]), 0, last), done: eventSum(isEv("setup.done", src[0]), 0, last) };
+    });
+    var max = Math.max.apply(null, rows.map(function (r) { return r.start; })) || 1;
+    rows.forEach(function (r) {
+      var row = el("div", "dm-usage__bar");
+      row.appendChild(el("span", "dm-usage__label", r.label));
+      var track = el("span", "dm-usage__track");
+      var started = el("span", "dm-dash__started");
+      started.style.inlineSize = (r.start / max * 100).toFixed(1) + "%";
+      var fill = el("span", "dm-usage__fill");
+      fill.style.inlineSize = (r.start ? Math.min(1, r.done / r.start) * 100 : 0).toFixed(1) + "%";
+      started.appendChild(fill);
+      track.appendChild(started);
+      row.appendChild(track);
+      row.appendChild(el("span", "dm-usage__count", r.start
+        ? s("dashFunnelRow", { done: fmtCount(r.done), start: fmtCount(r.start), pct: pct(r.done / r.start) }) : "0"));
+      host.appendChild(row);
+    });
+  }
+  function renderInstallsChart() {
+    var days = [];
+    for (var k = USAGE_INSTALL_DAYS - 1; k >= 0; k--) days.push(dayAgo(k));
+    var per = function (test) { return days.map(function (d, i) { return eventSum(test, USAGE_INSTALL_DAYS - 1 - i, USAGE_INSTALL_DAYS - 1 - i); }); };
+    columns($("[data-dm-installs-chart]"), days.map(fmtDay),
+      SOURCES.map(function (src, i) { return { label: s(src[1]), cls: "dm-ser-" + i, values: per(isEv("setup.done", src[0])) }; }),
+      { label: s("usageInFirst"), values: per(isEv("install.first")) },
+      s("dashFinishedDaily"));
+  }
+
+  // ── Releases: a card per version, the health heatmap, the Apple grid ──
+  function renderReleases() {
+    var host = $("[data-dm-releases]");
+    host.textContent = "";
+    var by = updatesByVersion(), vs = Object.keys(by).sort(cmpVersionDesc);
+    if (!vs.length) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    vs.forEach(function (v) {
+      var x = by[v], card = el("article", "dm-dash__release");
+      var head = el("div", "dm-dash__relhead");
+      head.appendChild(el("h4", "dm-dash__reltitle", "v" + v));
+      if (x.applied) head.appendChild(chip(s("dashRollbackRate", { pct: pct(x.rollback / x.applied) }), usage.flags && usage.flags.releases[v] ? "flag" : null));
+      card.appendChild(head);
+      var dl = el("dl", "dm-dash__stats");
+      [["usageUpDownloaded", fmtCount(x.downloaded)], ["usageUpApplied", fmtCount(x.applied)],
+       ["usageUpWaiting", fmtCount(Math.max(0, x.downloaded - x.applied))], ["usageUpRollback", fmtCount(x.rollback)],
+       ["usageUpSince", fmtDay(x.since)]].forEach(function (p) {
+        var row = el("div");
+        row.appendChild(el("dt", null, s(p[0])));
+        row.appendChild(el("dd", null, p[1]));
+        dl.appendChild(row);
+      });
+      card.appendChild(dl);
+      var acc = 0, vals = [];
+      for (var k = USAGE_INSTALL_DAYS - 1; k >= 0; k--) {
+        var d = dayAgo(k);
+        if (d < x.since) continue;
+        acc += x.days[d] || 0;
+        vals.push(acc);
+      }
+      if (vals.length > 1) {
+        card.appendChild(el("p", "dm-hint", s("dashAdoption")));
+        card.appendChild(spark(vals, "dm-dash__spark dm-dash__spark--wide"));
+      }
+      host.appendChild(card);
+    });
+  }
+  /* Rows are the trouble metrics some version counted above 0 (2xx is not trouble), columns
+     the versions, newest first; a cell is the share of that version's reports. */
+  function renderHeat() {
+    var h = healthStats(), host = $("[data-dm-heat]");
+    host.textContent = "";
+    var reports = h.versions.reduce(function (n, v) { return n + h.reports[v]; }, 0);
+    $("[data-dm-usage-healthlead]").textContent = s("dashHeatLead", { n: fmtCount(reports) });
+    var rank = function (m) { return USAGE_PLAIN.indexOf(m) >= 0 ? "0" + USAGE_PLAIN.indexOf(m) : m.indexOf("log.") === 0 ? "1" + m : "2" + m; };
+    var metrics = Object.keys(h.above).filter(function (m) {
+      return isTrouble(m) && h.versions.some(function (v) { return (h.above[m][v] || 0) > 0; });
+    }).sort(function (a, b) { return rank(a) < rank(b) ? -1 : 1; });
+    if (!metrics.length) { host.appendChild(el("p", "dm-empty", s("dashHeatNone"))); return; }
+    var share = function (m, v) { return h.reports[v] ? (h.above[m][v] || 0) / h.reports[v] : 0; };
+    var max = 0;
+    metrics.forEach(function (m) { h.versions.forEach(function (v) { max = Math.max(max, share(m, v)); }); });
+    var cells = (usage.flags && usage.flags.cells) || {};
+    host.appendChild(heatTable([s("usageMetric")].concat(h.versions.map(function (v) { return "v" + v; })), metrics.map(function (m) {
+      return [m].concat(h.versions.map(function (v) {
+        return { share: share(m, v), max: max, flag: !!cells[m + "|" + v], title: fmtCount(h.above[m][v] || 0) + " / " + fmtCount(h.reports[v]) };
+      }));
+    })));
+  }
+  // The 48 Apple cells (group × class) for the Version pill's choice: share of its reports.
+  function renderApple() {
+    var h = healthStats(), host = $("[data-dm-apple]");
+    host.textContent = "";
+    var vs = usage.v ? [usage.v] : h.versions;
+    var reports = vs.reduce(function (n, v) { return n + (h.reports[v] || 0); }, 0);
+    var count = function (m) { return vs.reduce(function (n, v) { return n + ((h.above[m] || {})[v] || 0); }, 0); };
+    var max = 0;
+    USAGE_GROUPS.forEach(function (g) { USAGE_CLASSES.forEach(function (c) { max = Math.max(max, reports ? count("apple." + g + "." + c) / reports : 0); }); });
+    host.appendChild(heatTable([""].concat(USAGE_CLASSES), USAGE_GROUPS.map(function (g) {
+      return [g].concat(USAGE_CLASSES.map(function (c) {
+        var n = count("apple." + g + "." + c);
+        return { share: reports ? n / reports : 0, max: max, title: fmtCount(n) + " / " + fmtCount(reports) };
+      }));
+    })));
+  }
+  function heatTable(head, rows) {
+    var t = usageTable(head, rows.map(function (r) { return [r[0]].concat(r.slice(1).map(function () { return ""; })); }));
+    t.classList.add("dm-dash__heat");
+    $all("tbody tr", t).forEach(function (tr, i) {
+      $all("td", tr).forEach(function (td, j) {
+        var c = rows[i][j + 1];
+        td.className = c.share ? "" : "is-zero";
+        td.textContent = (c.flag ? "! " : "") + pct(c.share);
+        td.title = c.title;
+        if (c.flag) td.classList.add("is-flag");
+        heat(td, c.share, c.max);
+      });
+    });
+    return t;
+  }
+
+  // ── Settings: every setting at once, each value against the week before ──
+  function loadPrev() {
+    var pw = prevWeek(), seq = usage.seq;
+    usage.prev = null;
+    if (!pw) { renderShares(); return; }
+    ownerApi("GET", "/admin/usage?channel=" + encodeURIComponent(usage.channel) + "&week=" + encodeURIComponent(pw)).then(function (res) {
+      if (seq !== usage.seq || !res.ok || !res.data) return;
+      var w = (res.data.weeks || []).filter(function (x) { return x.week === pw; })[0];
+      usage.prev = { week: pw, reports: w ? w.n : 0, shares: res.data.shares || [] };
+      renderShares();
+    });
+  }
+  function renderShares() {
+    var host = $("[data-dm-usage-shares]");
+    host.textContent = "";
+    var rep = weekReports(), prev = usage.prev && usage.prev.reports ? usage.prev : null;
+    $("[data-dm-shares-lead]").textContent = prev
+      ? s("dashSharesLead", { n: fmtCount(rep), week: prev.week })
+      : s("dashSharesNoPrev", { n: fmtCount(rep) });
+    var keys = {};
+    usage.data.shares.forEach(function (r) { keys[r.key] = 1; });
+    var was = {};
+    if (prev) prev.shares.forEach(function (r) { was[r.key + "\u0000" + r.value] = r.n / prev.reports; });
+    Object.keys(keys).sort().forEach(function (k) {
+      var card = el("div", "dm-dash__share");
+      card.appendChild(el("h4", "dm-dash__sharetitle", k));
+      usage.data.shares.filter(function (r) { return r.key === k; }).sort(function (a, b) { return b.n - a.n; }).forEach(function (r) {
+        var now = rep ? r.n / rep : 0;
+        var row = el("div", "dm-usage__bar");
+        row.appendChild(el("span", "dm-usage__label", r.value == null ? "–" : String(r.value)));
+        var track = el("span", "dm-usage__track");
+        var fill = el("span", "dm-usage__fill");
+        fill.style.inlineSize = (Math.max(0.5, now * 100)).toFixed(1) + "%";
+        track.appendChild(fill);
+        row.appendChild(track);
+        var text = pct(now), key = k + "\u0000" + r.value;
+        if (prev) {
+          var pts = (now - (was[key] || 0)) * 100;
+          if (Math.abs(pts) >= 1) text += " · " + arrow(pts) + s("dashPts", { d: Math.abs(pts).toFixed(0) });
+        }
+        row.appendChild(el("span", "dm-usage__count", text));
+        card.appendChild(row);
+      });
+      host.appendChild(card);
+    });
+  }
+
+  // ── Inbox summary: tiles, posts per week, open bugs per version ──
+  function paintInboxSummary() {
+    if (!inbox.posts) return;
+    var open = inbox.posts.filter(function (p) { return !DONE[p.state]; });
+    var tiles = $("[data-dm-inbox-tiles]");
+    tiles.textContent = "";
+    tile(tiles, fmtCount(inbox.posts.filter(isWaiting).length), s("inboxWaiting"));
+    tile(tiles, fmtCount(open.filter(function (p) { return p.kind === "issue"; }).length), s("tileOpenBugs"));
+    tile(tiles, fmtCount(open.filter(function (p) { return p.kind === "suggestion"; }).length), s("tileOpenIdeas"));
+
+    var WEEKS = 12, now = Date.now() / 1000, labels = [], bugs = [], ideas = [];
+    for (var k = WEEKS - 1; k >= 0; k--) {
+      var hi = now - k * 7 * 86400, lo = hi - 7 * 86400;
+      var inWeek = inbox.posts.filter(function (p) { return p.created_at >= lo && p.created_at < hi; });
+      labels.push(s("dashWeekOf", { date: fmtUnix(lo) }));
+      bugs.push(inWeek.filter(function (p) { return p.kind === "issue"; }).length);
+      ideas.push(inWeek.filter(function (p) { return p.kind === "suggestion"; }).length);
+    }
+    columns($("[data-dm-inbox-weekly]"), labels, [
+      { label: s("inboxKind_issue"), cls: "dm-ser-0", values: bugs },
+      { label: s("inboxKind_suggestion"), cls: "dm-ser-2", values: ideas },
+    ], null, s("dashPostsWeekly"));
+
+    var byV = {};
+    open.forEach(function (p) {
+      if (p.kind !== "issue") return;
+      var v = (p.meta && p.meta.version) || p.version || "–";
+      byV[v] = (byV[v] || 0) + 1;
+    });
+    var bugsOpen = Object.keys(byV).reduce(function (n, v) { return n + byV[v]; }, 0);
+    renderBars($("[data-dm-inbox-versions]"), Object.keys(byV).sort(cmpVersionDesc).map(function (v) {
+      return [v === "all" ? s("ticketVersionAll") : v, byV[v]];
+    }), bugsOpen);
   }
 
   // ── Boot ───────────────────────────────────────────────────────

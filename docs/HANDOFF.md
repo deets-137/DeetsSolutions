@@ -69,6 +69,13 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-27 — DeetsMusic admin dashboard (LIVE: branch `audio-assists` merged to master and
+published 2026-10-27; no worker change).** The admin page became an overview (headline tiles, a
+*Needs a look* flag list) plus Growth / Inbox / Releases / Settings tabs, all drawn from today's
+worker responses ([support.md](support.md), "The dashboard"). Strings approved. Next: his look
+at live data on deets.solutions, and his edit of the flag thresholds (still drafts, `FLAG` in
+`deetsmusic/admin/admin.js`).
+
 **2026-10-27 — Mahjong claim window: tiers, the reveal, the eye (LIVE: merged to master
 on both repos with `end-jong`, worker deployed 2026-10-27, version `484e2361`).** His calls: the window asks
 win/pung/kong seats first and the chow seat only after they all pass; it waits with no

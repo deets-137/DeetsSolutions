@@ -32,13 +32,13 @@
     <link rel="preload" href="../../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/skin.css?v=2026-10-26" as="style" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-26" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-27b" />
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-10-27" defer></script>
+    <script src="../strings.js?v=2026-10-27b" defer></script>
     <script src="../mock.js?v=2026-10-27" defer></script>
-    <script src="./admin.js?v=2026-10-27" defer></script>
+    <script src="./admin.js?v=2026-10-27b" defer></script>
   </head>
 
   <body>
@@ -98,58 +98,104 @@
       <!-- Who you are: the worker's call (GET /admin/me), never this page's. -->
       <p class="dm-lead dm-admin__gate" data-dm-admin-gate data-s="adminChecking"></p>
 
-      <div class="dm-grid">
-        <!-- Inbox (support.md, "The admin page"): every post, newest activity first, with its
-             thread, a reply box and the status. GET /admin/posts, then GET /t/<code> per post;
-             no route of its own, so the worker did not change for it. -->
-        <section class="dm-box dm-box--wide dm-inbox" id="inbox" data-dm-inbox aria-labelledby="dm-inbox-title" hidden>
+      <!-- The dashboard (support.md, "The dashboard"): an overview always on top, then four
+           tabs. Everything is drawn from GET /admin/usage and the Inbox reads; counts only. -->
+      <div class="dm-grid dm-usage" data-dm-usage hidden>
+        <!-- Overview: the Channel and Week pills, the flags, the headline tiles. -->
+        <section class="dm-box dm-box--wide dm-dash" aria-labelledby="dm-dash-title">
           <div class="dm-box__head">
-            <h2 class="dm-box__title" id="dm-inbox-title" data-s="inboxTitle"></h2>
+            <h2 class="dm-box__title" id="dm-dash-title" data-s="dashOverview"></h2>
+            <div class="dm-board__tools" data-dm-usage-tools></div>
+          </div>
+          <p class="dm-lead" data-dm-usage-state></p>
+          <div class="dm-dash__flags" data-dm-flags></div>
+          <div class="dm-dash__tiles" data-dm-tiles></div>
+        </section>
+
+        <div class="dm-dash__tabs" role="tablist" data-dm-tabs>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-growth" aria-controls="growth" data-tab="growth" data-s="dashTab_growth"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-inbox" aria-controls="inbox" data-tab="inbox" data-s="inboxTitle"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-releases" aria-controls="releases" data-tab="releases" data-s="dashTab_releases"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-settings" aria-controls="settings" data-tab="settings" data-s="dashTab_settings"></button>
+        </div>
+
+        <!-- Growth: active installs by version, the version mix, the download funnel. -->
+        <section class="dm-box dm-box--wide dm-dash__panel" id="growth" role="tabpanel" aria-labelledby="dm-tab-growth" data-panel="growth" hidden>
+          <div class="dm-usage__body">
+            <h3 class="dm-usage__sub" data-s="usageDaily"></h3>
+            <div class="dm-usage__chart" data-dm-usage-daily></div>
+            <h3 class="dm-usage__sub" data-s="usageVersions"></h3>
+            <div class="dm-usage__bars" data-dm-usage-versions></div>
+            <p class="dm-hint" data-dm-usage-lag data-s="usageVersionsLag" hidden></p>
+            <h3 class="dm-usage__sub" data-s="usageInstalls"></h3>
+            <p class="dm-hint" data-dm-usage-installslead></p>
+            <div class="dm-dash__funnel" data-dm-funnel></div>
+            <div class="dm-usage__chart" data-dm-installs-chart></div>
+            <details class="dm-dash__table">
+              <summary data-s="dashTable"></summary>
+              <div class="dm-usage__table" data-dm-usage-installs></div>
+            </details>
+          </div>
+        </section>
+
+        <!-- Inbox (support.md, "The Inbox"): a summary, then every post, newest activity first,
+             with its thread, a reply box and the status. GET /admin/posts, then GET /t/<code>
+             per post; no route of its own, so the worker did not change for it. -->
+        <section class="dm-box dm-box--wide dm-inbox dm-dash__panel" id="inbox" role="tabpanel" aria-labelledby="dm-tab-inbox" data-panel="inbox" data-dm-inbox hidden>
+          <div class="dm-dash__tiles" data-dm-inbox-tiles></div>
+          <div class="dm-dash__pair">
+            <div>
+              <h3 class="dm-usage__sub" data-s="dashPostsWeekly"></h3>
+              <div class="dm-usage__chart" data-dm-inbox-weekly></div>
+            </div>
+            <div>
+              <h3 class="dm-usage__sub" data-s="dashBugsByVersion"></h3>
+              <div class="dm-usage__bars" data-dm-inbox-versions></div>
+            </div>
+          </div>
+          <div class="dm-box__head">
+            <h3 class="dm-usage__sub" data-s="dashPosts"></h3>
             <div class="dm-board__tools" data-dm-inbox-tools></div>
           </div>
           <p class="dm-lead" data-dm-inbox-state></p>
           <div class="dm-inbox__list" data-dm-inbox-list></div>
         </section>
 
-        <!-- Usage (DeetsMusic USAGE-COUNTS.md §6): GET /admin/usage. Counts only, never a raw row. -->
-        <section class="dm-box dm-box--wide dm-usage" id="usage" data-dm-usage aria-labelledby="dm-usage-title" hidden>
-          <div class="dm-box__head">
-            <h2 class="dm-box__title" id="dm-usage-title" data-s="usageTitle"></h2>
-            <div class="dm-board__tools" data-dm-usage-tools></div>
-          </div>
-          <p class="dm-lead" data-dm-usage-state></p>
-          <div class="dm-usage__body" data-dm-usage-body hidden>
-            <div class="dm-usage__kpis" data-dm-usage-kpis></div>
-            <h3 class="dm-usage__sub" data-s="usageDaily"></h3>
-            <div class="dm-usage__chart" data-dm-usage-daily></div>
-            <h3 class="dm-usage__sub" data-s="usageVersions"></h3>
-            <div class="dm-usage__bars" data-dm-usage-versions></div>
-            <p class="dm-hint" data-dm-usage-lag data-s="usageVersionsLag" hidden></p>
-            <!-- Updates, first starts and Setup.exe downloads (DeetsMusic USAGE-COUNTS.md §12.4):
-                 the `events` day counters of GET /admin/usage. -->
+        <!-- Releases: one card per version with update counts, then health. -->
+        <section class="dm-box dm-box--wide dm-dash__panel" id="releases" role="tabpanel" aria-labelledby="dm-tab-releases" data-panel="releases" hidden>
+          <div class="dm-usage__body">
             <h3 class="dm-usage__sub" data-s="usageUpdates"></h3>
             <p class="dm-hint" data-s="usageUpdatesLead"></p>
-            <div class="dm-usage__table" data-dm-usage-updates></div>
-            <h3 class="dm-usage__sub" data-s="usageInstalls"></h3>
-            <p class="dm-hint" data-dm-usage-installslead></p>
-            <div class="dm-usage__table" data-dm-usage-installs></div>
+            <div class="dm-dash__releases" data-dm-releases></div>
+            <h3 class="dm-usage__sub" data-s="usageHealth"></h3>
+            <p class="dm-hint" data-dm-usage-healthlead></p>
+            <div class="dm-usage__table" data-dm-heat></div>
             <div class="dm-usage__subhead">
-              <h3 class="dm-usage__sub" data-s="usageSettings"></h3>
-              <div class="dm-board__tools" data-dm-usage-settool></div>
+              <h3 class="dm-usage__sub" data-s="dashApple"></h3>
+              <div class="dm-board__tools" data-dm-usage-healthtool></div>
             </div>
-            <div class="dm-usage__bars" data-dm-usage-shares></div>
+            <p class="dm-hint" data-s="dashAppleLead"></p>
+            <div class="dm-usage__table" data-dm-apple></div>
+            <details class="dm-dash__table">
+              <summary data-s="dashTable"></summary>
+              <div class="dm-usage__table" data-dm-usage-updates></div>
+              <div class="dm-usage__table" data-dm-usage-health></div>
+            </details>
+          </div>
+        </section>
+
+        <!-- Settings: every setting at once, then the cross-check. -->
+        <section class="dm-box dm-box--wide dm-dash__panel" id="settings" role="tabpanel" aria-labelledby="dm-tab-settings" data-panel="settings" hidden>
+          <div class="dm-usage__body">
+            <h3 class="dm-usage__sub" data-s="usageSettings"></h3>
+            <p class="dm-hint" data-dm-shares-lead></p>
+            <div class="dm-dash__shares" data-dm-usage-shares></div>
             <div class="dm-usage__subhead">
               <h3 class="dm-usage__sub" data-s="usageCross"></h3>
               <div class="dm-board__tools" data-dm-usage-crosstools></div>
             </div>
             <p class="dm-hint" data-s="usageCrossLead"></p>
             <div class="dm-usage__table" data-dm-usage-cross></div>
-            <div class="dm-usage__subhead">
-              <h3 class="dm-usage__sub" data-s="usageHealth"></h3>
-              <div class="dm-board__tools" data-dm-usage-healthtool></div>
-            </div>
-            <p class="dm-hint" data-dm-usage-healthlead></p>
-            <div class="dm-usage__table" data-dm-usage-health></div>
           </div>
         </section>
       </div>

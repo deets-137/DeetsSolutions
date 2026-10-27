@@ -1,7 +1,7 @@
 ---
 status: live
-sources: [deetsmusic/index.html, deetsmusic/strings.js, js/home.js]
-updated: 2026-10-26
+sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, js/home.js]
+updated: 2026-10-27
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -405,6 +405,57 @@ stays as it is, so the Inbox is a second way in.
   (*Both* · *Suggestions* · *Bugs*), kept in `localStorage` `deets-dm-inbox`.
 - A repaint (each thread as it lands, a reply, a status) keeps a half-typed reply and its focus.
 - The strings are the `inbox*` block in `strings.js`, **awaiting his OK**.
+
+### The dashboard — LIVE 2026-10-27 (built on branch `audio-assists`, merged and published the same day)
+
+His ask, 2026-10-27: "make it a true admin dashboard with visualizations fitting the various
+data sources". His answers the same day: he opens the page to see **release trouble only when
+something is abnormal**, **whether DeetsMusic is growing**, and **what needs him**; the layout is
+an **overview plus tabs**; the page **flags problems on its own**; and it is **page-only** (no
+worker change: every chart is drawn from today's `GET /admin/usage` and the Inbox reads).
+
+- **Overview** (always shown, above the tabs): the Channel and Week pills, a *Needs a look* list
+  that stays empty unless a flag fires, and the headline tiles, each with a sparkline or meter:
+  today so far, this week (and last week), this month (and this week's share of it), new installs
+  over 7 days against the 7 before, the share of this week's installs on the newest version, the
+  panic-free share of this week's reports, and posts waiting on him (and the oldest wait).
+- **Tabs** (Growth · Inbox · Releases · Settings), kept in the URL hash (`#growth`, `#inbox`,
+  `#releases`, `#settings`; the old `#usage` opens Growth):
+  - **Growth:** active installs per day as a stacked area by version (newest on top, the four
+    newest named, the rest as *Older*), with a hover readout; the week's version mix; the
+    download funnel per source (started → finished, the finish rate); finished downloads per day
+    as stacked columns with first starts as dots. The 14-day table stays under *Table*.
+  - **Inbox:** tiles (waiting, open bugs, open suggestions), posts filed per week (12 weeks),
+    open bugs per version, then the Inbox cards as before.
+  - **Releases:** one card per version with update counts: downloaded, restarted onto it,
+    waiting, the rollback rate, days out, and a cumulative adoption line. Then a health heatmap
+    (versions × the trouble metrics: the share of each version's reports above 0) and the Apple
+    group × class grid for one version. The updates and health tables stay under *Table*.
+  - **Settings:** every setting at once as small bar lists, each value's change against the
+    week before in points (one extra `GET /admin/usage?week=<previous>`), then the cross-check
+    as a heatmap.
+- **Colour.** No categorical palette exists in the tokens, so versions are ordinal: the newest
+  is `--title`, older ones are `--title` mixed toward `--surface` (`color-mix`). Every series has
+  a legend. Flags use `--stop` / `--pause` with a glyph and words, never colour alone.
+- **The flags** (thresholds are drafts for his edit; the constants sit at the top of the
+  dashboard block in `admin.js`):
+  1. Rollbacks on the newest version above **1 %** of those restarted onto it (from 50 restarts).
+  2. A trouble metric on the newest version where the share of reports above 0 is over **1.5×**
+     the previous version's and at least 1 point higher (from 50 reports each). 2xx metrics are
+     not trouble and are skipped.
+  3. **Any** panic on the newest version, or freezes on more than **2 %** of its reports.
+  4. Site + Store downloads finishing below **80 %** over 7 days (from 20 starts).
+  5. Active installs down more than **15 %**: the mean of the last 7 whole days against the 7
+     before. Not this week against last week, because this week is never whole.
+  6. A post waiting on him for more than **3 days** (since the poster's last word).
+  The health flags (2, 3) read the chosen week, as the health counts do.
+- **Copy:** the `dash*` / `flag*` / `tile*` strings, approved by him in chat 2026-10-27
+  ("remove the ph from everything"). The thresholds above are still the drafts.
+- **Published to see live data** (his call, 2026-10-27: "I'm the only admin so that's fine"):
+  the owner's cookie never reaches localhost, so live numbers in this layout can only be
+  seen on deets.solutions; `?mock` covers the look locally.
+- **Later, if he wants it (needs the worker):** health across weeks, update and download
+  history beyond 14 days.
 
 ---
 
