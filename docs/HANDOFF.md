@@ -69,8 +69,8 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-27 — Mahjong claim window: tiers, the reveal, the eye (branch `claim-tiers` on
-both repos, cut from `end-jong`; NOT merged, NOT deployed).** His calls: the window asks
+**2026-10-27 — Mahjong claim window: tiers, the reveal, the eye (LIVE: merged to master
+on both repos with `end-jong`, worker deployed 2026-10-27, version `484e2361`).** His calls: the window asks
 win/pung/kong seats first and the chow seat only after they all pass; it waits with no
 deadline (no auto-pass); non-claimants see who's deciding only after 5 s; the panel sits
 centered on the felt (top-aligned when narrow), with a hold-to-fade eye in its corner
@@ -80,29 +80,27 @@ Checked: engine 101/101 (the bot ladder check now runs 24 matches; at 6 its marg
 rode on RNG order), worker `vendor.mjs --check` + payload 86/86, and on the headless mock:
 the panel centered on the felt (wide) and at its top (900 px), the eye's fade, the 5 s
 reveal naming a held bot, tier 2 reaching me after a bot's pass, a 40 s soak with no page
-errors. Not checked: two humans in one window, live. One new `[ph]` string
-(`claimPeek`, the eye's label). The shut eye is my drawing of his open one; his to
-redraw. To ship: merge `end-jong` first, then this, both repos together; a worker
-deployed mid-window would hold an old-shape `g.claims` (no `ask`), so deploy between
-games.
+errors. Not checked: two humans in one window, and a real game since the deploy. One
+new `[ph]` string (`claimPeek`, the eye's label). The shut eye is my drawing of his open
+one; his to redraw. A table that had a claim window open at the deploy holds an
+old-shape `g.claims` (no `ask`) and won't resolve it; a new game clears it.
 
-**2026-10-27 — The gate says Rejoin / Sit down / Spectate (Poker worker deployed; site and Mahjong NOT).** Peek
+**2026-10-27 — The gate says Rejoin / Sit down / Spectate (live on Poker and Mahjong).** Peek
 now knows the asker (token header + session cookie) and answers `mine` and `adoptable`
 ([games.md](games.md), "Identity and rejoin"). Re-vendored and pushed: DeetsPoker
-`master`, deployed 2026-10-27 (version `cbcac442`); DeetsMahjong `end-jong` ships with
-that branch's merge. The gate itself is on the site's `end-jong`, so the live page keeps
-"Rejoin or spectate" until that merges. DeetsCities' `src/` is three months behind the site (colors, engine,
+`master`, deployed 2026-10-27 (version `cbcac442`); DeetsMahjong went out with the
+`end-jong` merge (version `484e2361`), and the site's gate with it. DeetsCities' `src/` is three months behind the site (colors, engine,
 table-do), so it needs its own re-vendor and test before it gets this.
 
 **2026-10-27 — Save every hand (designed, not built).** A table only reports at game
 over, so nights that break up early are lost: D1 holds one real group game (Oct 8). Each
 settled hand gets a `hands` + `hand_seats` row, feeding an unofficial weekly tracker
 matched by name. Design and the mahjong-first rollout: [stats.md](stats.md), "Saving
-every hand". First step: after `end-jong` merges, the DeetsAccounts migration and
+every hand". First step (`end-jong` is merged): the DeetsAccounts migration and
 `/ingest/hand`.
 
-**2026-10-27 — Mahjong end of hand (branch `end-jong` on both repos; NOT merged, NOT
-deployed).** His two asks:
+**2026-10-27 — Mahjong end of hand (LIVE: merged to master on both repos, worker
+deployed 2026-10-27 with the claim tiers).** His two asks:
 - **No clock between hands.** The settlement waits on the host's Next hand, so the table
   can chat. `nextHand` is now a host verb: a new optional `HOST_VERBS` hook in the shared
   `games/table-do.js` (and `hostVerbs` in `table-mock.js`). Everyone else sees
@@ -116,11 +114,7 @@ Checked: engine 83/83, the worker's `vendor.mjs --check` and payload check (86/8
 On the mock (headless), the panel waits with no deadline and lays out several real wins
 in order (a wind pair, a concealed kong, flowers). Not checked: a hand with dragon or
 wind pungs, a non-host's view (the mock has one connection), and live.
-To ship: merge both `end-jong` branches, then `npx wrangler deploy` in `../DeetsMahjong`.
-Pages and the worker should go out together. With a new page on the old worker, the
-countdown line is gone but the 9 s auto-advance still runs. With the new worker on the old
-page, the hand waits, but a non-host still sees a Next hand button, and the worker refuses it
-when pressed. **Cities', poker's and ships' workers now drift further from `table-do.js`**:
+Shipped with the page and worker together. **Cities', poker's and ships' workers now drift further from `table-do.js`**:
 re-vendor at their next deploy. `nextHandAuto` in `mahjong/strings.js` is his string and
 is no longer used: his call to delete it.
 
