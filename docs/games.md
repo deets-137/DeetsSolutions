@@ -114,6 +114,17 @@ A device's `token` (localStorage, per game) is the identity. A seat record
 holds the token, so a returning player repossesses their seat from the bot
 that took it over — whichever gate pill they pressed.
 
+**The gate knows before you join.** `peek` carries the token in an
+`X-Table-Token` header (never the URL) with the session cookie
+(`credentials: "include"`), and answers `mine` (the join would reclaim a
+seat: `reclaimSeat`, the same token-then-dark-uid rule the join handler
+uses) and `adoptable` (seats a spectator could take mid-game at an
+"anyone" table). The gate and the open button turn that into **Rejoin**,
+**Sit down** + Spectate, or **Spectate** alone. Sit down mid-game adopts
+the one open seat, or arrives with the toolbar's seat list open when
+there's a choice. A peek without `mine` (a worker not yet re-vendored)
+falls back to the hedged "Rejoin or spectate".
+
 **Seat name and player name are two names.** A *player* name (the one typed
 at the gate) is unique among live connections; a *seat* name is unique among
 seats. Neither blocks the other: when Aditya stands up mid-game, the bot keeps

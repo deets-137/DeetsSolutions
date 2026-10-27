@@ -69,6 +69,13 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-27 — The gate says Rejoin / Sit down / Spectate (built, NOT deployed).** Peek
+now knows the asker (token header + session cookie) and answers `mine` and `adoptable`
+([games.md](games.md), "Identity and rejoin"). Re-vendored into DeetsMahjong and
+DeetsPoker (uncommitted there); until they deploy, the live gate keeps "Rejoin or
+spectate". DeetsCities' `src/` is three months behind the site (colors, engine,
+table-do), so it needs its own re-vendor and test before it gets this.
+
 **2026-10-27 — Save every hand (designed, not built).** A table only reports at game
 over, so nights that break up early are lost: D1 holds one real group game (Oct 8). Each
 settled hand gets a `hands` + `hand_seats` row, feeding an unofficial weekly tracker

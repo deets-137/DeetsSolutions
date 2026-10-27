@@ -174,7 +174,7 @@
     var clockSkew = 0;                       // Date.now() - server clock
     var graceToasts = {};                    // seat -> red countdown toast
     var wantSit = false;
-    var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false, settingsPinned: false, sitPinned: false };
+    var ui = { colorOpen: null, colorDraft: null, botEdit: null, botDraft: null, botFocus: false, settingsPinned: false, sitPinned: false, sitOpen: false };
 
     function send(msg) { if (conn) conn.send(msg); }
     function mySeat() { return model && model.you ? model.you.seat : null; }
@@ -296,7 +296,7 @@
       }
       if (joined) leaveTable();
       var seq = ++peekSeq;
-      T.peek(c).then(function (p) {
+      T.peek(c, deviceToken()).then(function (p) {
         if (seq !== peekSeq || joining || joined) return;
         renderGate(c, p);
       }).catch(function () { if (seq === peekSeq && !joined) toast(S.peekFailed, "error"); });
@@ -304,10 +304,10 @@
     function renderGate(c, p, refuseName) {
       GATE.hidden = false; GATE.textContent = "";
       TABLE.hidden = true; DESKTOP.hidden = true;
-      // an existing table always offers BOTH pills — Sit down (grayed when
-      // there's no seat to take: full lobby, or a running game) + Spectate
+      // peek knows who's asking (its token, its account): a seat that's
+      // already yours, an open lobby seat, or a mid-game seat up for adoption
       var full = p.exists && p.phase === "lobby" && p.seated >= p.capacity;
-      var canSit = p.exists && p.phase === "lobby" && !full;
+      var canSit = p.exists && (p.phase === "lobby" ? !full : p.phase !== "over" && p.adoptable > 0);
       var line;
       if (refuseName) line = S.nameTaken;
       else if (!p.exists) line = fmt(S.createLine, { code: c });
@@ -342,18 +342,18 @@
         form.appendChild(b);
         return b;
       }
-      /* An open seat gets the Sit/Spectate pair. With no seat to take (running
-         game, or a full lobby) a grayed "Sit down" was the only lit path being
-         "Spectate" — misleading, because a returning player's token silently
-         repossesses their seat whichever pill they press. So offer the one
-         action that's actually available, enabled, and let the worker decide
-         whether it's a rejoin or a spectate. */
+      /* A seat that's already yours (your token, or your account's dark
+         seat) gets Rejoin. An open seat gets the Sit/Spectate pair; with none
+         to take, Spectate alone. A peek that predates `mine` (a worker not
+         yet redeployed) can't tell a rejoin from a spectate, so it keeps
+         the hedged "Rejoin or spectate" and lets the join decide. */
       var first;
       if (!p.exists) first = goBtn(S.createButton, false, true);
+      else if (p.mine) first = goBtn(S.rejoinSeat, true, true);
       else if (canSit) {
         first = goBtn(S.sitButton, false, true);
         goBtn(S.watchButton, true, true);
-      } else first = goBtn(S.rejoinButton, true, true);
+      } else first = goBtn("mine" in p ? S.watchButton : S.rejoinButton, true, true);
       GATE.appendChild(form);
       if (nameInput) nameInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter") { e.preventDefault(); (first.disabled ? btns[btns.length - 1].el : first).click(); }
@@ -363,9 +363,8 @@
     /* ═══ OPEN BUTTON (cfg.openButton — mahjong first) ═════════════
        One button beside the code stands in for the gate. Its glyph says
        what Enter found: + for a code nobody holds, the sit glyph (line,
-       down arrow) for a table that exists — "Sit down" with a seat open,
-       "Spectate" without one (the worker still hands a returning token
-       its seat, as the gate's Rejoin did). Enter opens the words out
+       down arrow) for a table that exists — "Rejoin" when a seat there is
+       already yours, "Sit down" with a seat open, "Spectate" without one. Enter opens the words out
        beside the glyph: that is the marker that the code was read. A
        click acts: the + spins (the sit arrow dips), then the table
        unfurls top-down and the lobby's rows arrive in a wave.
@@ -410,7 +409,9 @@
     if (cfg.openButton && BAR_INPUT && TOOLBAR) buildGo();
     function modeOf(p) {
       if (!p || !p.exists) return "open";
-      return p.phase === "lobby" && p.seated < p.capacity ? "sit" : "watch";
+      if (p.mine) return "rejoin";
+      var open = p.phase === "lobby" ? p.seated < p.capacity : p.phase !== "over" && p.adoptable > 0;
+      return open ? "sit" : "watch";
     }
     function setGo(mode, open) {
       if (!GO) return;
@@ -420,13 +421,14 @@
       // inside a table the toolbar owns the bar; the button comes back only
       // when Enter reads a DIFFERENT code (open, so one click moves you)
       GO.hidden = joined && !go.open;
-      var word = mode === "sit" ? S.sitButton : mode === "watch" ? S.watchButton : S.openPrompt;
+      var word = mode === "sit" ? S.sitButton : mode === "watch" ? S.watchButton
+        : mode === "rejoin" ? S.rejoinSeat : S.openPrompt;
       goText.textContent = word;
       GO.title = word; GO.setAttribute("aria-label", word);
     }
     function peekCode(c, then) {
       var seq = ++peekSeq;
-      T.peek(c).then(function (p) {
+      T.peek(c, deviceToken()).then(function (p) {
         if (seq !== peekSeq || joining) return;
         go.peek = { code: c, p: p };
         then(p);
@@ -447,19 +449,21 @@
       if (joined && c === code) return;
       go.busy = true; peekSeq++;     // any Enter read still in flight is moot
       go.reading = null; go.thenGo = false;
-      var read = c ? T.peek(c).then(function (p) { return { c: c, p: p }; })
+      var read = c ? T.peek(c, deviceToken()).then(function (p) { return { c: c, p: p }; })
                    : freshCode().then(function (fc) { return { c: fc, p: null }; });
       var moved = new Promise(function (res) { goMotion(go.mode, res); });
       var done = function () { go.busy = false; if (!joined) entrance = null; };
       Promise.all([read, moved]).then(function (r) {
-        var cc = r[0].c, mode = modeOf(r[0].p);
+        var cc = r[0].c, p = r[0].p, mode = modeOf(p);
         BAR_INPUT.value = cc; BAR_INPUT.blur();   // the caret leaves the title once you go
         if (joined) leaveTable();
         var who = storedName();
         nameBase = who || S.guestName; nameTry = 1;
-        renameOnSeat = !who && mode !== "watch";
+        // the rename editor is a lobby seat's: a rejoin keeps its seat's
+        // name, and a mid-game adopter rides beside the seat's
+        renameOnSeat = !who && (mode === "open" || (mode === "sit" && p.phase === "lobby"));
         entrance = { pending: true };
-        return joinTable(cc, nameBase, mode === "open", mode === "watch");
+        return joinTable(cc, nameBase, mode === "open", mode === "watch" || mode === "rejoin");
       }).then(done, function () { done(); toast(S.peekFailed, "error"); });
     }
     // + turns a quarter and keeps it (four arms: it always rests square);
@@ -557,7 +561,7 @@
       wantSit = false; createdTable = false; renameOnSeat = false;
       setGo("open", false);     // out of the table: the button is back
       ui.colorOpen = ui.colorDraft = ui.botEdit = ui.botDraft = null;
-      ui.botFocus = false; ui.settingsPinned = false;
+      ui.botFocus = false; ui.settingsPinned = false; ui.sitOpen = false;
       if (hook("onLeave")) cfg.onLeave();
       if (hook("onModel")) cfg.onModel(null);
       GATE.hidden = true; TABLE.hidden = true; DESKTOP.hidden = true;
@@ -639,9 +643,20 @@
       (msg.ev || []).forEach(handleEvent);
       if (hook("postEvents")) cfg.postEvents();
       syncGraceToasts();
-      // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator in
-      // the lobby; take a seat once (the toolbar's Sit/Stand governs after)
-      if (wantSit && model.phase === "lobby" && mySeat() == null) { wantSit = false; send({ type: "sit" }); }
+      // auto-sit: a "Sit down" / "Open table" gate join lands as a spectator;
+      // take a seat once (the toolbar's Sit/Stand governs after). Mid-game
+      // that's an adoption: the one open seat, or the Sit down list opened
+      // when there's a choice to make.
+      if (wantSit) {
+        wantSit = false;
+        if (mySeat() != null) { /* the join handed back a seat already mine */ }
+        else if (model.phase === "lobby") send({ type: "sit" });
+        else if (model.phase !== "over") {
+          var adopt = adoptableSeats();
+          if (adopt.length === 1) send({ type: "sit", seat: adopt[0].seat });
+          else if (adopt.length) ui.sitOpen = true;
+        }
+      }
       // a guest opened under the stand-in name: once seated, their own
       // rename editor is open and focused (the open button's arrival)
       if (renameOnSeat && model.phase === "lobby" && mySeat() != null) {
@@ -851,16 +866,12 @@
             if (sHover) sp.title = sHover;
             TOOLBAR.appendChild(sp);
           }
-        } else if (((model.settings && model.settings.rejoin) || "rejoin") === "anyone") {
-          // adoptable = the drive is holding it (cities/mahjong) or nobody
-          // is (an `away` seat at a game with no live bots — poker)
-          var open = (model.seats || []).filter(function (s) {
-            return s && !s.empty && (s.phantom || s.away) && !s.conceded;
-          });
+        } else {
+          var open = adoptableSeats();
           // no pill at all when nothing is adoptable — a permanently dead
           // "Sit down" at a full human table is noise, not an affordance
           if (open.length) TOOLBAR.appendChild(sitDownPill(open));
-          else ui.sitPinned = false;
+          else ui.sitPinned = ui.sitOpen = false;
         }
       }
       TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "leave") : pill)(S.leavePill, function () { leaveTable(); }));
@@ -868,6 +879,16 @@
         TOOLBAR.appendChild(confirmPill("close", S.closePill, S.closeConfirm,
           function () { send({ type: "closeTable" }); }));
       }
+    }
+    // mid-game seats a spectator may take, only at an "anyone" table:
+    // adoptable = the drive is holding it (cities/mahjong) or nobody is
+    // (an `away` seat at a game with no live bots — poker). peek's
+    // `adoptable` count is the worker's side of the same test.
+    function adoptableSeats() {
+      if (((model.settings && model.settings.rejoin) || "rejoin") !== "anyone") return [];
+      return (model.seats || []).filter(function (s) {
+        return s && !s.empty && (s.phantom || s.away) && !s.conceded;
+      });
     }
     function pill(label, onClick) {
       var b = el("button", "tb-pill"); b.type = "button";
@@ -1180,7 +1201,8 @@
       });
       // survive the toolbar rebuild an incoming frame triggers — otherwise
       // any table update while you're choosing snaps the popover shut
-      if (ui.sitPinned && openEntry && openEntry.kind === "sit") { openPop(entry); ui.sitPinned = true; }
+      // (or arrive open: a gate "Sit down" with more than one seat to adopt)
+      if (ui.sitOpen || (ui.sitPinned && openEntry && openEntry.kind === "sit")) { ui.sitOpen = false; openPop(entry); ui.sitPinned = true; }
       else ui.sitPinned = false;
       return wrap;
     }

@@ -24,11 +24,12 @@ window.MAHJONG_STRINGS = {
    peekPlayers: "{seated} players | {spectators} spectating",
    sitButton: "Sit down",
    watchButton: "Spectate",
-   /* shown instead of the Sit/Spectate pair when there's no open seat to take
-      (running game, or a full lobby). One enabled pill, because joining is one
-      action: the worker hands your seat back if your token owns one, else you
-      land as a spectator. */
+   /* the gate's join pill when a seat there is already yours (your token,
+      or your account's dark seat): peek knows, so it says Rejoin. The
+      hedged rejoinButton is the fallback for a worker whose peek predates
+      that, where joining decides: your seat back, else spectating. */
    rejoinButton: "[ph]Rejoin or spectate",
+   rejoinSeat: "Rejoin",
    createLine: "The '{code}' Table doesn't exist yet. Open it?",
    createButton: "Open the Table",
    /* the open button beside the code (his words in chat, 2026-10-26): the

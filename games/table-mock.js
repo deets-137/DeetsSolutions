@@ -671,8 +671,9 @@
               spectators: spectatorCount(t),
               // the mock has no accounts, so a token is the whole identity
               mine: seatOfToken(t, typeof token === "string" ? token.slice(0, 64) : "") != null,
+              // a stand-in presents as a human (baseView), so it isn't offered
               adoptable: live ? t.seats.filter(function (s) {
-                return s && (s.bot || s.phantom || s.away) && !s.conceded;
+                return s && !s.standIn && (s.bot || s.phantom || s.away) && !s.conceded;
               }).length : 0
             });
           }, LATENCY);

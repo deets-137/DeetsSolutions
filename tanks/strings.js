@@ -36,6 +36,7 @@ window.TANKS_STRINGS = {
   sitButton: "Sit down",
   watchButton: "Spectate",
   rejoinButton: "Rejoin or spectate",
+  rejoinSeat: "Rejoin",
   createLine: "The '{code}' Table doesn't exist yet. Open it?",
   createButton: "Open the Table",
   nameLabel: "Your name",
