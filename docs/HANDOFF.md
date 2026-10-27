@@ -104,6 +104,15 @@ Same branch, also 2026-10-27:
   sections). The guide now has its own layer over the board and rebuilds only when its
   content changes. The Scoring pill is one node kept across renders. Checked: 5
   broadcasts while open, 0 rebuilds.
+- **No flicker on resize.** The hand-over and game-over panels replayed their fade on
+  every resize step; they now fade in once.
+- **Every hand, one row each** ([mahjong.md](mahjong.md), "Every hand, one row each"):
+  all four hands revealed, winner on top then play order, payments on the rows, each
+  hand on one line at a shared scale, and the seat boxes glide off the board into
+  the rows. Engine: `hands` on the hand-over (never in `results`) and `arrangePartial`
+  (engine 87/87; re-vendored, payload check 86/86). Checked on the mock at 1440 and
+  820 px wide, a win and a draw, the glide stepped at 0.15× speed. Not checked: the
+  glide on the stacked phone board, and a game-over arriving straight from a hand.
 
 **2026-10-26 — SHIPPED: `maw-polish` merged into `master` and pushed; the mahjong worker
 deployed (64b2feac, its master 2e6a492).** His visual pass is done, same day.

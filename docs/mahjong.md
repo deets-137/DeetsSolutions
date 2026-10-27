@@ -560,13 +560,27 @@ at 10 s. The hand-over interstitial has none: `nextHand` is a host verb
 (`HOST_VERBS`, [games.md](games.md)), so the table can talk between hands
 and moves on when the host deals (his call, 2026-10-27).
 
-**The winning hand's layout.** The summary carries `arrangement`, the
-concealed tiles split the way they scored (`{ sets, pair }`, seven pairs as
-`{ pairs }`, thirteen orphans as `null`). The panel merges those sets with
-the melds and lays them out dragons, winds, then the suits (characters,
-dots, bamboo, by number), a rule, the pair, a rule, the flowers. Melded and
-concealed sets sort together. A summary without `arrangement` (thirteen
-orphans) shows its tiles sorted the same way, then the melds.
+**Every hand, one row each (his calls, 2026-10-27).** The hand-over shows
+all four hands: the hand is over, so nothing it reveals is live. The
+summary carries `hands[seat]` = `{ tiles, melds, flowers, arrangement }`
+on the hand-over only, never in `results[]` (the stats' per-hand record).
+The winner's `arrangement` is the split that scored (`{ sets, pair }`,
+seven pairs as `{ pairs }`, thirteen orphans as `null`); everyone else's is
+`arrangePartial`'s, the hand at its most formed (`{ sets, pair, rest }`:
+the most sets, then a pair, then the loose tiles).
+
+The panel stacks four rows, the winner on top and then play order (a
+drawn hand starts from the dealer). A row is the seat's box (its accent
+edge, name, wind), its hand on ONE line, and what it took or paid (none on
+a draw). A line reads dragons, winds, then the suits (characters, dots,
+bamboo, by number), melded and concealed sets together, a rule, the pair,
+a rule, the loose tiles, a rule, the flowers. A concealed kong shows its
+faces. All four lines share one scale, shrunk until the widest fits
+(`fitHandRows`, CSS `zoom`). As the hand ends, each seat's box glides off
+the board onto its row, one after another (`handOverBefore`/`handOverRun`,
+the opening's morph run the other way, on `--morph`), so the panel's own
+entrance is a plain fade. A summary without `hands` (an older worker)
+shows the winner's hand alone with the payments listed.
 Bots act on their own ~700 ms cadence, timer or no timer.
 
 ## Copy

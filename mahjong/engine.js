@@ -313,6 +313,43 @@
     if (dec.sevenPairs) return { pairs: Object.keys(countsOf(tiles)) };
     return { sets: clone(dec.sets), pair: dec.pair };
   }
+  // an unfinished hand at its most formed: the most sets, then a pair if one
+  // is left over, then the loose tiles — { sets, pair (or null), rest }
+  function arrangePartial(tiles) {
+    var counts = countsOf(tiles), best = null, sets = [];
+    function score(pair) { return sets.length * 2 + (pair ? 1 : 0); }
+    function walk(pair, rest) {
+      var k = null;
+      for (var i = 0; i < KINDS.length; i++) if (counts[KINDS[i]]) { k = KINDS[i]; break; }
+      if (!k) {
+        if (!best || score(pair) > best.score) best = { score: score(pair), sets: clone(sets), pair: pair, rest: rest.slice() };
+        return;
+      }
+      if (counts[k] >= 3) {
+        counts[k] -= 3; sets.push({ kind: "pung", tile: k });
+        walk(pair, rest);
+        sets.pop(); counts[k] += 3;
+      }
+      if (!isHonor(k) && numOf(k) <= 7) {
+        var a = suitOf(k) + (numOf(k) + 1), b = suitOf(k) + (numOf(k) + 2);
+        if (counts[a] && counts[b]) {
+          counts[k]--; counts[a]--; counts[b]--; sets.push({ kind: "chow", tile: k });
+          walk(pair, rest);
+          sets.pop(); counts[k]++; counts[a]++; counts[b]++;
+        }
+      }
+      if (!pair && counts[k] >= 2) {
+        counts[k] -= 2;
+        walk(k, rest);
+        counts[k] += 2;
+      }
+      counts[k]--; rest.push(k);
+      walk(pair, rest);
+      rest.pop(); counts[k]++;
+    }
+    walk(null, []);
+    return { sets: best.sets, pair: best.pair, rest: best.rest };
+  }
   function scoreDecomposition(g, seat, tiles, winCtx, dec, thirteen) {
     var p = g.players[seat];
     var cap = g.settings.capFaan;
@@ -526,10 +563,24 @@
     summary.scores = g.players.map(function (p) { return p.score; });
     g.results.push(summary);
     g.stats.hands++;
-    g.handOver = summary;
+    // the settlement shows every seat's hand (his call, 2026-10-27): the hand
+    // is over, so nothing it reveals is live. Only on the hand-over, never in
+    // results[] — those are the stats' per-hand record (docs/stats.md)
+    var over = clone(summary);
+    over.hands = g.players.map(function (p, s) {
+      var won = summary.result === "win" && s === summary.seat;
+      var tiles = won ? summary.tiles.slice() : p.hand.slice();
+      if (!won && g.turn && g.turn.seat === s && g.turn.drawn != null) tiles.push(g.turn.drawn);
+      tiles.sort();
+      return {
+        tiles: tiles, melds: clone(p.melds), flowers: p.flowers.slice(),
+        arrangement: won ? summary.arrangement : arrangePartial(tiles)
+      };
+    });
+    g.handOver = over;
     g.turn = null;
     g.claims = null;
-    events.push({ t: "handOver", summary: clone(summary) });
+    events.push({ t: "handOver", summary: clone(over) });
   }
 
   /* end the match: winner = top score; ties share (first in seat order reported) */
@@ -1146,6 +1197,7 @@
     minFaanFor: minFaanFor,
     scoreHand: scoreHand,
     scoreProgress: scoreProgress,
+    arrangePartial: arrangePartial,
     standings: standings,
     BOT_TIERS: BOT_TIERS,
     BOT_TIER_LIST: BOT_TIER_LIST,
@@ -1272,6 +1324,11 @@
       ok(g.handOver && g.handOver.result === "win" && g.handOver.seat === 0, "handOver records the win");
       var arr = g.handOver.arrangement;
       ok(arr && arr.pair === "dr" && arr.sets.length === 4, "handOver records the arrangement that scored");
+      ok(g.handOver.hands && g.handOver.hands.length === 4, "handOver shows every seat's hand");
+      eq(g.handOver.hands[0].tiles.length, 14, "the winner's hand is its 14 tiles");
+      ok(!g.results[g.results.length - 1].hands, "the hands stay out of results");
+      var pa = arrangePartial(["m1", "m2", "m3", "p5", "p5", "s7", "dg", "dg", "dg", "we"]);
+      eq(pa.sets.length + ":" + pa.pair + ":" + pa.rest.join(), "2:p5:s7,we", "an unfinished hand splits into sets, a pair, the rest");
       // self-draw: each of 3 pays 2v — winner takes 6v
       var v = Math.pow(2, g.handOver.faan);
       eq(g.players[0].score, 6 * v, "self-draw pays 3 x 2v");

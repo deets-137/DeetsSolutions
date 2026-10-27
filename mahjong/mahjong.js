@@ -440,6 +440,59 @@
     });
   }
 
+  /* The hand ends: each seat's box glides off the board into its row of
+     the hand-over panel (his call, 2026-10-27), the opening's morph run
+     the other way. A clone of the box flies and resizes onto the row
+     while its tiles fade (the name rides along), and the row shows as the
+     clone lands, one row after another. Once per hand-over; a reload onto
+     a finished hand just shows the rows. */
+  var hoKey = null;
+  function handOverBefore() {
+    var s = model.handOver;
+    if (!s) { hoKey = null; return null; }
+    var key = JSON.stringify([s.prevailing, s.hand, s.result, s.seat, s.scores]);
+    if (key === hoKey) return null;
+    hoKey = key;
+    if (!s.hands || !motionOk()) return null;
+    var box = BENTO.getBoundingClientRect(), out = [];
+    BIG.querySelectorAll(".mj-zone[data-zone]").forEach(function (z) {
+      var r = z.getBoundingClientRect();
+      if (!r.width) return;
+      out.push({ seat: +z.getAttribute("data-zone"), el: z.cloneNode(true), x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height });
+    });
+    return out.length ? out : null;
+  }
+  function handOverRun(zones) {
+    if (!zones) return;
+    var box = BENTO.getBoundingClientRect();
+    var ms = tokenMs("--morph") || 600, ease = seamToken("--morph").replace(/^\S+\s*/, "") || "ease-out";
+    zones.forEach(function (z) {
+      var row = BIG.querySelector('.mj-horow[data-horow="' + z.seat + '"]');
+      if (!row) return;
+      var r = row.getBoundingClientRect();
+      var k = [].indexOf.call(row.parentNode.children, row), delay = k * ms * 0.15;
+      var g = z.el;
+      g.classList.add("mj-morph");
+      g.removeAttribute("data-zone");
+      g.setAttribute("aria-hidden", "true");
+      g.inert = true;
+      g.style.cssText += ";position:absolute;margin:0;box-sizing:border-box;left:" + z.x + "px;top:" + z.y +
+        "px;width:" + z.w + "px;height:" + z.h + "px";
+      BENTO.appendChild(g);
+      var from = { left: z.x + "px", top: z.y + "px", width: z.w + "px", height: z.h + "px" };
+      var to = { left: (r.left - box.left) + "px", top: (r.top - box.top) + "px", width: r.width + "px", height: r.height + "px" };
+      var a = g.animate([from, to], { duration: ms, delay: delay, easing: ease, fill: "both" });
+      // the board's tiles fade at once; the name rides along
+      [].forEach.call(g.children, function (c) {
+        if (!c.classList.contains("mj-zone__head")) c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms * 0.35, delay: delay, fill: "both" });
+      });
+      // the row shows under the clone as it lands, the clone lets go
+      row.animate([{ opacity: 0 }, { opacity: 0, offset: 0.8 }, { opacity: 1 }], { duration: ms, delay: delay, easing: "linear", fill: "backwards" });
+      g.animate([{ opacity: 1 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }], { duration: ms, delay: delay, easing: "linear", fill: "forwards" });
+      a.onfinish = function () { g.remove(); };
+    });
+  }
+
   /* The wall goes up: every stack lands at the one-tile look (the same
      0.55 a half-eaten stack wears), then fills in as the top tile lands
      on it. Side by side from each player's right hand, all four at once. */
@@ -551,6 +604,7 @@
     TQ.noFlip = false;
     HOLD = tqHolds();
     var morph = morphBefore(wasPhase);   // before seamBefore moves paintedPhase on
+    var hoGlide = handOverBefore();      // the seat boxes, before the panel covers them
     var before = seamBefore();
     TABLE.dataset.phase = model.phase;   // CSS hook: the narrow lobby sheds the side tiles
     renderBig();
@@ -568,6 +622,7 @@
     waveStart(wasPhase);
     waveApply();
     morphRun(morph);
+    handOverRun(hoGlide);
     buildApply();
     dealPaint();
   }
@@ -1505,14 +1560,18 @@
     var wrap = el("div", "mj-handover");
     enterOnce(wrap, ["handOver", s.prevailing, s.hand, s.result, s.seat, s.scores]);
     var panel = el("div", "mj-handover__panel");
-    if (s.result === "drawn") {
+    var won = s.result !== "drawn";
+    if (!won) {
       panel.appendChild(el("h3", "mj-handover__title", S.handDrawnLine));
       panel.appendChild(el("p", "mj-handover__line", fmt(S.dealerRepeats, { name: seatName(s.dealer) })));
     } else {
       panel.appendChild(el("h3", "mj-handover__title" + (s.limit ? " is-limit" : ""),
         fmt(s.selfDraw ? S.handWinSelf : S.handWinLine, { name: seatName(s.seat), faan: s.faan })));
       if (s.limit) panel.appendChild(el("p", "mj-handover__limit", S.handWinLimit));
-      panel.appendChild(winningHandEl(s));
+    }
+    if (s.hands) panel.appendChild(handRowsEl(s));
+    else if (won) panel.appendChild(winningHandEl(s));   // an older worker's summary
+    if (won) {
       // faan breakdown
       var parts = el("div", "mj-handover__parts");
       (s.parts || []).forEach(function (x) {
@@ -1526,16 +1585,18 @@
       tot.appendChild(el("span", "mj-handover__pval", "+" + s.value));
       parts.appendChild(tot);
       panel.appendChild(parts);
-      // payments
-      var pays = el("div", "mj-handover__pays");
-      (s.payments || []).forEach(function (n, seat2) {
-        if (!n) return;
-        var row = el("div", "mj-handover__pay");
-        row.appendChild(seatDot(seat2));
-        row.appendChild(el("span", null, fmt(S.paysLabel, { name: seatName(seat2), n: n })));
-        pays.appendChild(row);
-      });
-      panel.appendChild(pays);
+      // payments ride the rows; an older summary without hands lists them
+      if (!s.hands) {
+        var pays = el("div", "mj-handover__pays");
+        (s.payments || []).forEach(function (n, seat2) {
+          if (!n) return;
+          var row = el("div", "mj-handover__pay");
+          row.appendChild(seatDot(seat2));
+          row.appendChild(el("span", null, fmt(S.paysLabel, { name: seatName(seat2), n: n })));
+          pays.appendChild(row);
+        });
+        panel.appendChild(pays);
+      }
     }
     // no clock: the host deals the next hand, so the table can talk first
     if (model.host) {
@@ -1550,11 +1611,63 @@
     }
     wrap.appendChild(panel);
     BIG.appendChild(wrap);
+    fitHandRows(wrap);
   }
-  /* the winning hand, laid out as it scored: dragons, winds, then the
-     suits (pungs, kongs and chows alike, melded or concealed), a rule, the
-     pair, a rule, the flowers. Seven pairs line up in the same order; a
-     summary with no arrangement (thirteen orphans) shows its tiles sorted. */
+  /* Every seat's hand, one row each (his call, 2026-10-27): the winner on
+     top, then play order (a drawn hand starts from the dealer). A row is
+     the seat's box (its accent edge, name, wind), its hand on ONE line,
+     and what it paid or took. The rows' tiles share one scale, shrunk to
+     fit the widest (fitHandRows). */
+  function handRowsEl(s) {
+    var won = s.result !== "drawn";
+    var first = won ? s.seat : s.dealer;
+    var order = model.order || [0, 1, 2, 3];
+    var seats = [0, 1, 2, 3].map(function (k) { return order[(order.indexOf(first) + k) % 4]; });
+    var box = el("div", "mj-handover__rows" + (won ? "" : " is-drawn"));
+    seats.forEach(function (seat) {
+      var row = el("div", "mj-horow" + (won && seat === s.seat ? " is-winner" : ""));
+      row.setAttribute("data-horow", seat);
+      TBL.seatAccent(row, seat);
+      var head = el("div", "mj-horow__head");
+      head.appendChild(seatDot(seat));
+      head.appendChild(el("span", "mj-horow__name", seatName(seat)));
+      var w = seatWind(seat);
+      if (w != null) {
+        var wt = el("span", "mj-zone__wind" + (w === 0 ? " is-dealer" : ""), HONOR_GLYPH[Engine.WINDS[w]]);
+        wt.title = windLabel(w) + (w === 0 ? " · " + S.dealerTag : "");
+        head.appendChild(wt);
+      }
+      row.appendChild(head);
+      var line = el("div", "mj-horow__tiles");
+      line.appendChild(handLineEl(s.hands[seat]));
+      row.appendChild(line);
+      var pay = el("span", "mj-horow__pay");
+      if (won) {
+        var n = seat === s.seat ? s.value : -(s.payments[seat] || 0);
+        pay.textContent = n > 0 ? "+" + n : String(n);
+        if (n < 0) pay.classList.add("is-paid");
+      }
+      if (won) row.appendChild(pay);
+      box.appendChild(row);
+    });
+    return box;
+  }
+  // one shared scale so every row's hand fits its line; measured unscaled
+  function fitHandRows(wrap) {
+    var lines = wrap.querySelectorAll(".mj-horow__tiles");
+    var k = 1;
+    lines.forEach(function (ln) {
+      var need = ln.firstChild.offsetWidth, room = ln.clientWidth;
+      if (need > 0 && room > 0) k = Math.min(k, (room - 2) / need);   // a hair of slack for the tile edge
+    });
+    if (k < 1) lines.forEach(function (ln) { ln.firstChild.style.zoom = String(Math.floor(k * 1000) / 1000); });
+  }
+  /* A hand laid out as it formed: dragons, winds, then the suits (pungs,
+     kongs and chows alike, melded or concealed), a rule, the pair, then an
+     unfinished hand's loose tiles, a rule, the flowers. Seven pairs line up
+     in the same order; a hand with no arrangement (thirteen orphans) shows
+     its tiles sorted. At the hand-over everything is revealed, so a
+     concealed kong shows its faces. */
   function tileRank(t) {
     var d = Engine.DRAGONS.indexOf(t), w = Engine.WINDS.indexOf(t);
     if (d >= 0) return d;
@@ -1562,35 +1675,36 @@
     return 20 + "mps".indexOf(Engine.suitOf(t)) * 10 + Engine.numOf(t);
   }
   function byRank(a, b) { return tileRank(a.tile) - tileRank(b.tile); }
-  function pairEl(t) {
+  function groupEl(tiles) {
     var w = el("span", "mj-meld");
-    w.appendChild(tileEl(t, ""));
-    w.appendChild(tileEl(t, ""));
+    tiles.forEach(function (t) { w.appendChild(tileEl(t, "")); });
     return w;
   }
-  function winningHandEl(s) {
+  function shownMeldEl(m) {
+    return m.kind === "kongC" ? groupEl([m.tile, m.tile, m.tile, m.tile]) : meldEl(m, "");
+  }
+  function handLineEl(h) {
     var row = el("div", "mj-handover__hand");
-    // the rule rides the group it sets apart, so a wrap can't strand it
-    function ruled(node) { node.classList.add("is-ruled"); return node; }
-    var arr = s.arrangement;
+    // the rule rides the group it sets apart, so nothing strands it; the
+    // first group on the line needs none
+    function ruled(node) { if (row.firstChild) node.classList.add("is-ruled"); return node; }
+    var arr = h.arrangement;
     if (arr && arr.pairs) {
       arr.pairs.map(function (t) { return { tile: t }; }).sort(byRank)
-        .forEach(function (x) { row.appendChild(pairEl(x.tile)); });
+        .forEach(function (x) { row.appendChild(groupEl([x.tile, x.tile])); });
     } else if (arr && arr.sets) {
-      var sets = arr.sets.concat(s.melds || []).sort(byRank);
-      sets.forEach(function (m) { row.appendChild(meldEl(m, "")); });
-      row.appendChild(ruled(pairEl(arr.pair)));
+      arr.sets.concat(h.melds || []).sort(byRank).forEach(function (m) { row.appendChild(shownMeldEl(m)); });
+      if (arr.pair) row.appendChild(ruled(groupEl([arr.pair, arr.pair])));
+      var rest = (arr.rest || []).slice().sort(function (a, b) { return tileRank(a) - tileRank(b); });
+      if (rest.length) row.appendChild(ruled(groupEl(rest)));
     } else {
-      // an older summary, or thirteen orphans: the tiles, then the melds
-      var loose = el("span", "mj-meld");
-      (s.tiles || []).slice().sort(function (a, b) { return tileRank(a) - tileRank(b); })
-        .forEach(function (t) { loose.appendChild(tileEl(t, "")); });
-      row.appendChild(loose);
-      (s.melds || []).forEach(function (m) { row.appendChild(meldEl(m, "")); });
+      (h.melds || []).slice().sort(byRank).forEach(function (m) { row.appendChild(shownMeldEl(m)); });
+      var loose = (h.tiles || []).slice().sort(function (a, b) { return tileRank(a) - tileRank(b); });
+      if (loose.length) row.appendChild(groupEl(loose));
     }
-    if ((s.flowers || []).length) {
+    if ((h.flowers || []).length) {
       var fl = ruled(el("span", "mj-meld"));
-      s.flowers.forEach(function (f) {
+      h.flowers.forEach(function (f) {
         var fe = tileEl(f, "");
         fe.classList.add("mj-tilef--flower");
         fl.appendChild(fe);
@@ -1598,6 +1712,10 @@
       row.appendChild(fl);
     }
     return row;
+  }
+  // an older worker's summary: the winner's hand alone
+  function winningHandEl(s) {
+    return handLineEl({ tiles: s.tiles, melds: s.melds, flowers: s.flowers, arrangement: s.arrangement });
   }
   function faanName(key) {
     var k = "faan" + key.charAt(0).toUpperCase() + key.slice(1);
