@@ -354,8 +354,9 @@
 .mj-handover__title.is-limit { text-shadow: 0 0 12px var(--mjglow); }
 .mj-handover__limit { margin: 0; color: var(--mjglow); font-weight: 700; letter-spacing: 0.08em; }
 .mj-handover__line { margin: 0; color: var(--text); }
-.mj-handover__hand { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; }
-.mj-handover__hand .mj-meld { margin-left: var(--space-2); }
+/* one group per set; the pair and the flowers each sit behind a rule */
+.mj-handover__hand { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: stretch; }
+.mj-handover__hand .is-ruled { border-left: 1px solid var(--border); padding-left: var(--space-3); }
 .mj-handover__parts { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; }
 .mj-handover__part { display: flex; justify-content: space-between; gap: var(--space-4); color: var(--text); }
 .mj-handover__part.is-total { border-top: 1px solid var(--border); padding-top: var(--space-1); color: var(--title); font-weight: 700; }
@@ -364,8 +365,7 @@
 .mj-handover__pays { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; color: var(--subtext); }
 .mj-handover__pay { display: flex; align-items: center; gap: var(--space-2); }
 .mj-handover__next { align-self: flex-start; cursor: pointer; }
-.mj-handover__next:disabled { opacity: 0.4; cursor: default; }
-.mj-handover__auto { margin: 0; color: var(--subtext); font-size: 0.8rem; min-height: 1.2em; }
+.mj-handover__wait { margin: 0; color: var(--subtext); font-size: 0.85rem; }
 
 
 /* ── tile-art picker (per viewer, not a table setting) ──────────

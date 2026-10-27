@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -68,6 +68,29 @@ npm run dev
 ## Next up
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
+
+**2026-10-27 — Mahjong end of hand (branch `end-jong` on both repos; NOT merged, NOT
+deployed).** His two asks:
+- **No clock between hands.** The settlement waits on the host's Next hand, so the table
+  can chat. `nextHand` is now a host verb: a new optional `HOST_VERBS` hook in the shared
+  `games/table-do.js` (and `hostVerbs` in `table-mock.js`). Everyone else sees
+  "Waiting on {name} to deal." (two new `[ph]` strings). `deadlineFor` returns null on
+  `handOver` in the mock and the worker, and `handOverAt` is gone from the view.
+- **The winning hand in order:** dragons, winds, then the suits, a rule, the pair, a rule,
+  the flowers ([mahjong.md](mahjong.md), "The winning hand's layout"). The engine's
+  summary now carries `arrangement`, the split that actually scored.
+
+Checked: engine 83/83, the worker's `vendor.mjs --check` and payload check (86/86) pass.
+On the mock (headless), the panel waits with no deadline and lays out several real wins
+in order (a wind pair, a concealed kong, flowers). Not checked: a hand with dragon or
+wind pungs, a non-host's view (the mock has one connection), and live.
+To ship: merge both `end-jong` branches, then `npx wrangler deploy` in `../DeetsMahjong`.
+Pages and the worker should go out together. With a new page on the old worker, the
+countdown line is gone but the 9 s auto-advance still runs. With the new worker on the old
+page, the hand waits, but a non-host still sees a Next hand button, and the worker refuses it
+when pressed. **Cities', poker's and ships' workers now drift further from `table-do.js`**:
+re-vendor at their next deploy. `nextHandAuto` in `mahjong/strings.js` is his string and
+is no longer used: his call to delete it.
 
 **2026-10-26 — SHIPPED: `maw-polish` merged into `master` and pushed; the mahjong worker
 deployed (64b2feac, its master 2e6a492).** His visual pass is done, same day.

@@ -24,6 +24,7 @@
 //     minSeats() { return 3; }
 //     createGame(seated) { ... }
 //     get GAME_VERBS() { return { roll: 1, ... }; }
+//     get HOST_VERBS() { return { nextHand: 1 }; }   (optional)
 //     deadlineFor() { ... }  dlSig() { ... }
 //     needsPhantom() { ... } phantomOne() { ... }
 //   }
@@ -71,6 +72,8 @@ export class GameTable {
   get Engine() { throw new Error("subclass must provide Engine"); }
   get Colors() { throw new Error("subclass must provide Colors"); }
   get GAME_VERBS() { return {}; }
+  // game verbs only the host may send, seated or not (mahjong's Next hand)
+  get HOST_VERBS() { return {}; }
   // extra persisted state this game needs, as { key: () => initialValue }
   get EXTRA_STATE() { return {}; }
   defaultSettings() { throw new Error("subclass must provide defaultSettings"); }
@@ -1060,7 +1063,8 @@ export class GameTable {
     if (this.GAME_VERBS[type]) {
       if (!t.game || t.game.phase === "over") return this.errTo(ws, "phase");
       const seat = this.seatOfToken(token);
-      if (seat == null) return this.errTo(ws, "perm");   // spectators can't act
+      // a host verb is the host's alone; any other needs a seat (spectators can't act)
+      if (this.HOST_VERBS[type] ? !this.isHost(token) : seat == null) return this.errTo(ws, "perm");
       const action = clone(msg); action.seat = seat;      // server injects the actor
       const res = this.applyEngine(action);
       if (res.error) return this.errTo(ws, res.error.code);

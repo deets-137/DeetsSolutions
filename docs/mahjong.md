@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py, styles/skin.css]
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 # DeetsMahjong — the Hong Kong mahjong tab
 
@@ -212,8 +212,9 @@ play resumes; otherwise the seat converts to a bot (`takeover`) and the
 hand plays on. Reclaim works at any point until the game is `over` —
 rejoin with the same token and the seat comes back off the bot with the
 concealed hand intact, since the hand is DO state re-derived from the
-seat, never held client-side. The `handOver` interstitial auto-advances
-at 9 s regardless of who's connected.
+seat, never held client-side. The `handOver` interstitial has no clock:
+it waits on the host's Next hand (below), and the host falls back to the
+longest-seated connected human like every other host duty.
 
 **A lobby seat is held indefinitely** — no grace, no timeout; the grace
 window is strictly mid-game. Because of that, `start` converts any
@@ -378,7 +379,8 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   `pond`, hover names the thrower, and the claimable tile pulses gold
   (each discard arrives by its flight — see "Tile flights" below). The felt carries no text; the break prompt overlays
   the empty box. `handOver` overlays a settlement panel (revealed hand,
-  faan breakdown, payments, Next hand + auto-advance countdown); `over`
+  faan breakdown, payments, and the host's Next hand; everyone else reads
+  who they're waiting on); `over`
   swaps in the stats reveal (superlatives: most wins, biggest hand,
   most kongs, most deal-ins).
 - **Dice tile**: cities' tumble/settle kit; shows the latest seating or
@@ -551,7 +553,17 @@ shared `--gseat-N` slots every game table uses (styles/table.css).
 One table deadline at a time (`turnEndsAt` in every broadcast, ticked
 client-side off `serverNow` skew): seating rolls, the break roll, the
 discard turn — all `timerSec` when a HUMAN must act; claim windows cap
-at 10 s; the hand-over interstitial always auto-advances after 9 s.
+at 10 s. The hand-over interstitial has none: `nextHand` is a host verb
+(`HOST_VERBS`, [games.md](games.md)), so the table can talk between hands
+and moves on when the host deals (his call, 2026-10-27).
+
+**The winning hand's layout.** The summary carries `arrangement`, the
+concealed tiles split the way they scored (`{ sets, pair }`, seven pairs as
+`{ pairs }`, thirteen orphans as `null`). The panel merges those sets with
+the melds and lays them out dragons, winds, then the suits (characters,
+dots, bamboo, by number), a rule, the pair, a rule, the flowers. Melded and
+concealed sets sort together. A summary without `arrangement` (thirteen
+orphans) shows its tiles sorted the same way, then the melds.
 Bots act on their own ~700 ms cadence, timer or no timer.
 
 ## Copy

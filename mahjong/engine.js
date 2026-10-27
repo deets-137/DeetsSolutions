@@ -302,9 +302,16 @@
     var best = null;
     decs.forEach(function (dec) {
       var sc = scoreDecomposition(g, seat, tiles, winCtx, dec, thirteen);
-      if (sc && (!best || sc.faan > best.faan)) best = sc;
+      if (sc && (!best || sc.faan > best.faan)) { best = sc; best.arrangement = arrangementOf(tiles, dec); }
     });
     return best;
+  }
+  // the concealed tiles as they scored, for the settlement to lay out:
+  // { sets, pair }, seven pairs as { pairs }, thirteen orphans as null
+  function arrangementOf(tiles, dec) {
+    if (!dec) return null;
+    if (dec.sevenPairs) return { pairs: Object.keys(countsOf(tiles)) };
+    return { sets: clone(dec.sets), pair: dec.pair };
   }
   function scoreDecomposition(g, seat, tiles, winCtx, dec, thirteen) {
     var p = g.players[seat];
@@ -503,7 +510,8 @@
     endHand(g, events, {
       result: "win", seat: winSeat, faan: sc.faan, limit: sc.limit, parts: sc.parts,
       selfDraw: !!winCtx.selfDraw, discarder: winCtx.discarder != null ? winCtx.discarder : null,
-      tiles: sc.tiles.slice().sort(), melds: clone(p.melds), flowers: p.flowers.slice(),
+      tiles: sc.tiles.slice().sort(), arrangement: sc.arrangement || null,
+      melds: clone(p.melds), flowers: p.flowers.slice(),
       payments: pay, value: total
     });
   }
@@ -1001,7 +1009,7 @@
   }
 
   function botAct(g, isBot, opts, ctx) {
-    if (!g || g.phase === "over" || g.handOver) return null;   // the timer advances a finished hand
+    if (!g || g.phase === "over" || g.handOver) return null;   // the host advances a finished hand
     opts = opts || {};
     ctx = ctx || { rand: Math.random, now: 0 };
     var rand = ctx.rand;
@@ -1262,6 +1270,8 @@
       ok(!r.error, "rigged self-draw win applies");
       g = r.game;
       ok(g.handOver && g.handOver.result === "win" && g.handOver.seat === 0, "handOver records the win");
+      var arr = g.handOver.arrangement;
+      ok(arr && arr.pair === "dr" && arr.sets.length === 4, "handOver records the arrangement that scored");
       // self-draw: each of 3 pays 2v — winner takes 6v
       var v = Math.pow(2, g.handOver.faan);
       eq(g.players[0].score, 6 * v, "self-draw pays 3 x 2v");

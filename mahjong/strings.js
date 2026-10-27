@@ -211,6 +211,8 @@ window.MAHJONG_STRINGS = {
    paysLabel: "{name} pays {n}",
    nextHandButton: "Next hand",
    nextHandAuto: "Next hand in {n}s…",
+   nextHandWait: "[ph]Waiting on {name} to deal.",
+   nextHandWaitHost: "[ph]Waiting on the host to deal.",
 
    /* faan part names (engine part keys) */
    faanThirteenOrphans: "Thirteen Orphans",

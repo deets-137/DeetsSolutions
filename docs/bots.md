@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [poker/engine.js, cities/engine.js, mahjong/engine.js, games/table-do.js, scripts/poker-bot-duel.js]
-updated: 2026-08-04
+updated: 2026-10-27
 ---
 # Bots
 
@@ -289,8 +289,8 @@ see [mahjong.md](mahjong.md).
    kong draws a replacement, so it is close to free value) → **discard
    the least useful tile**.
 
-`botAct` returns `null` on `handOver` — a settled hand is the *table's*
-timer to advance, not a bot's.
+`botAct` returns `null` on `handOver` — a settled hand is the host's to
+advance (`nextHand` is a host verb), not a bot's.
 
 ### Discard scoring
 
@@ -347,8 +347,8 @@ away with its stack or cashes out, never to a bot ([poker.md](poker.md),
      `commit`; raise above `raiseAt` (at `aggro`); then the price test;
      else call.
 
-`botAct` returns `null` on `handOver` — a settled hand is the table's
-timer to advance, not a bot's.
+`botAct` returns `null` on `handOver` — a settled hand is the host's to
+advance, not a bot's.
 
 ### Strength (0..1)
 

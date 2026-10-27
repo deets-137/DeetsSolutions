@@ -16,7 +16,6 @@
   var Engine = window.MahjongEngine;
   var Colors = window.DeetsColors;
 
-  var HANDOVER_MS = 9000;    // the settlement interstitial always auto-advances
   var CLAIM_CAP_MS = 10000;  // a claim window never waits longer than this (timed tables)
 
   // legal self-kong tiles for the seat holding the draw (the VIEW's copy —
@@ -37,7 +36,7 @@
   function deadlineFor(t) {
     var g = t.game;
     if (!g || g.phase === "over") return null;
-    if (g.handOver) return HANDOVER_MS;                       // always auto-advances
+    if (g.handOver) return null;                              // waits on the host's Next hand
     var timed = t.settings.timerSec > 0;
     var ms = t.settings.timerSec * 1000;
     function human(s) { return t.seats[s] && !t.seats[s].phantom; }
@@ -79,6 +78,7 @@
     Engine: Engine,
     Colors: Colors,
     gameVerbs: { rollSeat: 1, rollBreak: 1, discard: 1, win: 1, kong: 1, claim: 1, nextHand: 1 },
+    hostVerbs: { nextHand: 1 },   // the settlement waits on the host, so the table can talk
     // Add Bot seats a stand-in "real" player (table-mock.js baseView): the
     // bot brain plays it, the table sees a human — for designing per-player
     // options (the Beginner toggle) on the demo table
@@ -179,10 +179,7 @@
           view.you.handValue = hv;
         }
       }
-      if (g.handOver) {
-        view.handOver = g.handOver;
-        if (t.turnEndsAt) view.handOverAt = t.turnEndsAt;
-      }
+      if (g.handOver) view.handOver = g.handOver;
       if (phase === "over") {
         // standings ride the view so the client never sorts a finish itself
         // (docs/stats.md) — competition ranking, ties shared, and honest about

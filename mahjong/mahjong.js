@@ -46,7 +46,7 @@
   // or the re-roll goes on
   var ROLL_MS = 500, SEAT_PAUSE = 1000;
   var BREAK_MS = 620;   // the wall-break roll's tumble (three dice, the dice tile)
-  var CLEAR_FIELDS = ["claims", "handOver", "handOverAt", "turnEndsAt", "seating", "breakRoll", "turn",
+  var CLEAR_FIELDS = ["claims", "handOver", "turnEndsAt", "seating", "breakRoll", "turn",
                       // a rematch omits the whole game — the lobby must not paint one
                       "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"];
 
@@ -124,7 +124,7 @@
   ui.guideOpen = false; ui.guideScroll = 0; ui.guideSecOpen = {};
   var spinUntil = 0, spinDice = 2;
   var lastActor = null;
-  var tumbleHandle = null, nextHandTick = null;
+  var tumbleHandle = null;
   var lastDice = null;    // { seat, d:[..] } — the dice tile's latest roll
   var dragActive = false; // a rack tile is being dragged — suppress re-renders mid-drag
 
@@ -1510,16 +1510,7 @@
       panel.appendChild(el("h3", "mj-handover__title" + (s.limit ? " is-limit" : ""),
         fmt(s.selfDraw ? S.handWinSelf : S.handWinLine, { name: seatName(s.seat), faan: s.faan })));
       if (s.limit) panel.appendChild(el("p", "mj-handover__limit", S.handWinLimit));
-      // the winning hand, revealed
-      var handRow = el("div", "mj-handover__hand");
-      (s.tiles || []).forEach(function (t) { handRow.appendChild(tileEl(t, "")); });
-      (s.melds || []).forEach(function (m) { handRow.appendChild(meldEl(m, "")); });
-      (s.flowers || []).forEach(function (f) {
-        var fe = tileEl(f, "");
-        fe.classList.add("mj-tilef--flower");
-        handRow.appendChild(fe);
-      });
-      panel.appendChild(handRow);
+      panel.appendChild(winningHandEl(s));
       // faan breakdown
       var parts = el("div", "mj-handover__parts");
       (s.parts || []).forEach(function (x) {
@@ -1544,24 +1535,67 @@
       });
       panel.appendChild(pays);
     }
-    var next = el("button", "tb-pill mj-handover__next");
-    next.type = "button";
-    next.appendChild(el("span", "tb-pill__label", S.nextHandButton));
-    next.addEventListener("click", function () { send({ type: "nextHand" }); });
-    if (mySeat() == null) next.disabled = true;
-    panel.appendChild(next);
-    var auto = el("p", "mj-handover__auto");
-    panel.appendChild(auto);
-    tickNextHand(auto);
+    // no clock: the host deals the next hand, so the table can talk first
+    if (model.host) {
+      var next = el("button", "tb-pill mj-handover__next");
+      next.type = "button";
+      next.appendChild(el("span", "tb-pill__label", S.nextHandButton));
+      next.addEventListener("click", function () { send({ type: "nextHand" }); });
+      panel.appendChild(next);
+    } else {
+      panel.appendChild(el("p", "mj-handover__wait", model.hostSeat != null
+        ? fmt(S.nextHandWait, { name: seatName(model.hostSeat) }) : S.nextHandWaitHost));
+    }
     wrap.appendChild(panel);
     BIG.appendChild(wrap);
   }
-  function tickNextHand(node) {
-    if (nextHandTick) { clearTimeout(nextHandTick); nextHandTick = null; }
-    if (!model || !model.handOverAt) { node.textContent = ""; return; }
-    var ms = Math.max(0, model.handOverAt - (Date.now() - TBL.skew()));
-    node.textContent = fmt(S.nextHandAuto, { n: Math.ceil(ms / 1000) });
-    nextHandTick = setTimeout(function () { if (node.isConnected) tickNextHand(node); }, 250);
+  /* the winning hand, laid out as it scored: dragons, winds, then the
+     suits (pungs, kongs and chows alike, melded or concealed), a rule, the
+     pair, a rule, the flowers. Seven pairs line up in the same order; a
+     summary with no arrangement (thirteen orphans) shows its tiles sorted. */
+  function tileRank(t) {
+    var d = Engine.DRAGONS.indexOf(t), w = Engine.WINDS.indexOf(t);
+    if (d >= 0) return d;
+    if (w >= 0) return 10 + w;
+    return 20 + "mps".indexOf(Engine.suitOf(t)) * 10 + Engine.numOf(t);
+  }
+  function byRank(a, b) { return tileRank(a.tile) - tileRank(b.tile); }
+  function pairEl(t) {
+    var w = el("span", "mj-meld");
+    w.appendChild(tileEl(t, ""));
+    w.appendChild(tileEl(t, ""));
+    return w;
+  }
+  function winningHandEl(s) {
+    var row = el("div", "mj-handover__hand");
+    // the rule rides the group it sets apart, so a wrap can't strand it
+    function ruled(node) { node.classList.add("is-ruled"); return node; }
+    var arr = s.arrangement;
+    if (arr && arr.pairs) {
+      arr.pairs.map(function (t) { return { tile: t }; }).sort(byRank)
+        .forEach(function (x) { row.appendChild(pairEl(x.tile)); });
+    } else if (arr && arr.sets) {
+      var sets = arr.sets.concat(s.melds || []).sort(byRank);
+      sets.forEach(function (m) { row.appendChild(meldEl(m, "")); });
+      row.appendChild(ruled(pairEl(arr.pair)));
+    } else {
+      // an older summary, or thirteen orphans: the tiles, then the melds
+      var loose = el("span", "mj-meld");
+      (s.tiles || []).slice().sort(function (a, b) { return tileRank(a) - tileRank(b); })
+        .forEach(function (t) { loose.appendChild(tileEl(t, "")); });
+      row.appendChild(loose);
+      (s.melds || []).forEach(function (m) { row.appendChild(meldEl(m, "")); });
+    }
+    if ((s.flowers || []).length) {
+      var fl = ruled(el("span", "mj-meld"));
+      s.flowers.forEach(function (f) {
+        var fe = tileEl(f, "");
+        fe.classList.add("mj-tilef--flower");
+        fl.appendChild(fe);
+      });
+      row.appendChild(fl);
+    }
+    return row;
   }
   function faanName(key) {
     var k = "faan" + key.charAt(0).toUpperCase() + key.slice(1);

@@ -48,6 +48,7 @@
     var EXTRA = spec.extraState || {};
     var EXTRA_KEYS = Object.keys(EXTRA);
     var GAME_CMDS = spec.gameVerbs || {};
+    var HOST_CMDS = spec.hostVerbs || {};   // the worker's HOST_VERBS
     var LOBBY_CMDS = { sit: 1, stand: 1, rename: 1, addBot: 1, shuffle: 1, recolor: 1, setSettings: 1, start: 1 };
 
     var TABLES = {};   // code -> table
@@ -641,7 +642,8 @@
       if (GAME_CMDS[type]) {
         if (!t.game || t.game.phase === "over") return errTo(conn, "phase");
         var seat = seatOfToken(t, token);
-        if (seat == null) return errTo(conn, "perm");        // spectators can't act
+        // a host verb is the host's alone; any other needs a seat (spectators can't act)
+        if (HOST_CMDS[type] ? !isHost(t, token) : seat == null) return errTo(conn, "perm");
         var action = clone(msg); action.seat = seat;         // server injects the actor
         var res = applyEngine(t, action);
         if (res.error) return errTo(conn, res.error.code);

@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, styles/table.css]
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 # Deets games — the shared foundation
 
@@ -652,7 +652,9 @@ A real-teams game also overrides `TEAMS` (see "Teams").
 constant), `maskEvent`, `compactSeatsAtStart`, `onStart`, `onGameOver`,
 `onRematch` (drop any per-game state the discarded game owned; neither game
 needs it yet), `onJoined`, `extraCommand` (a verb the engine doesn't own —
-cities' `bet`), `deadlineBonusMs()` (see "The one alarm"), and the results hooks `seatStats(i)`, `seatCounters(i)`,
+cities' `bet`), `HOST_VERBS` (game verbs only the host may send, seated or
+not, as `{verb: 1}`; the mock's `hostVerbs`; mahjong's `nextHand`),
+`deadlineBonusMs()` (see "The one alarm"), and the results hooks `seatStats(i)`, `seatCounters(i)`,
 `resultDetail()` ([stats.md](stats.md)).
 
 **The base records a finished game itself.** `onGameOver()` is the game's own
