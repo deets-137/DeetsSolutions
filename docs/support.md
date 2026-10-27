@@ -372,6 +372,14 @@ raw settings row. Real numbers, no small-group limit (his call, 2026-10-13).
 - `?mock` answers `/admin/usage` from `mockUsage` in `mock.js` (fixed made-up counts).
 - The strings are in `strings.js` (the admin + usage block), approved by him 2026-10-14.
   Metric names and setting keys show as the worker stores them.
+- **Added 2026-10-27 (DeetsMusic USAGE-COUNTS.md §12.4), not published:** the *Owner*
+  channel (his own installs, kept out of Live); "Today so far"; a note under the version
+  mix when the week holds a version before 1.2.0 (its counts did not move on an update);
+  **Updates** (per version: downloaded, restarted onto it, waiting, rollbacks, first day)
+  and **Downloads and first starts** (the last 14 days: Setup.exe downloads finished from
+  the site, the Store and other links, the ones not finished, the Store check and bots
+  apart, and first starts), both from the response's `events`. The new strings are drafts
+  for his edit.
 
 ### The Inbox — BUILT 2026-10-26, not published
 

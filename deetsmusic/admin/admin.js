@@ -416,7 +416,11 @@
   // settings row. Real numbers, no small-group limit (his call, 2026-10-13).
   var USAGE_BOX = $("[data-dm-usage]");
   var usage = { channel: "live", week: null, data: null, setting: "skin", a: "skin", b: "surface", v: "", seq: 0, crossSeq: 0, pills: null };
-  var USAGE_CHANNELS = ["live", "beta", "dev"];
+  var USAGE_CHANNELS = ["live", "beta", "owner", "dev"];
+  /* The first version whose counts move on an update (USAGE-COUNTS.md §12.2): a week that
+     holds an older one may show an updated install under its old version. */
+  var USAGE_MOVES_FROM = "1.2.0";
+  var USAGE_INSTALL_DAYS = 14;
   var USAGE_BUCKETS = ["0", "1-9", "10-99", "100-999", "1000+"];
   /* The health metrics every report can carry (usage.rs): shown even when no
      install counted one this week, so "all zero" reads as a row, not a gap. */
@@ -549,6 +553,9 @@
     var byV = {};
     usage.data.active.forEach(function (r) { if (r.period === usage.week) byV[r.v] = (byV[r.v] || 0) + r.n; });
     renderBars($("[data-dm-usage-versions]"), Object.keys(byV).sort(cmpVersionDesc).map(function (v) { return [v, byV[v]]; }), sumActive(usage.week));
+    $("[data-dm-usage-lag]").hidden = !Object.keys(byV).some(function (v) { return cmpVersionDesc(v, USAGE_MOVES_FROM) > 0; });
+    renderUpdates();
+    renderInstalls(now);
     var shares = usage.data.shares.filter(function (r) { return r.key === usage.setting; })
       .sort(function (a, b) { return b.n - a.n; }).map(function (r) { return [r.value, r.n]; });
     renderBars($("[data-dm-usage-shares]"), shares, weekReports());
@@ -665,6 +672,58 @@
       var zero = Math.max(0, reports - above.reduce(function (a, b) { return a + b; }, 0));
       return [m, zero].concat(above);
     })));
+  }
+
+  /* Updates (USAGE-COUNTS.md §12.4): per version, every day summed. Waiting = downloaded but
+     not restarted onto it yet (an update applies at the next start). Newest version first. */
+  function renderUpdates() {
+    var by = {};
+    (usage.data.events || []).forEach(function (r) {
+      if (r.metric !== "update.downloaded" && r.metric !== "update.applied") return;
+      var x = by[r.v] = by[r.v] || { downloaded: 0, applied: 0, rollback: 0, since: r.period };
+      if (r.metric === "update.downloaded") x.downloaded += r.n;
+      else x.applied += r.n;
+      if (r.bucket === "rollback" && r.metric === "update.applied") x.rollback += r.n;
+      if (r.period < x.since) x.since = r.period;
+    });
+    var host = $("[data-dm-usage-updates]");
+    host.textContent = "";
+    var vs = Object.keys(by).sort(cmpVersionDesc);
+    if (!vs.length) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    host.appendChild(usageTable(
+      [s("usageUpVersion"), s("usageUpDownloaded"), s("usageUpApplied"), s("usageUpWaiting"), s("usageUpRollback"), s("usageUpSince")],
+      vs.map(function (v) {
+        var x = by[v];
+        return [v, x.downloaded, x.applied, Math.max(0, x.downloaded - x.applied), x.rollback, fmtDay(x.since)];
+      })));
+  }
+
+  /* Downloads and first starts (§12.3, §12.7): the last 14 UTC days, newest first. A Setup.exe
+     download counts in its source's column when every byte went out; "Not finished" is the
+     starts that never finished, every source but the Store check and bots. */
+  function renderInstalls(now) {
+    var cell = {};
+    (usage.data.events || []).forEach(function (r) {
+      var key = r.metric === "install.first" ? "first" : r.metric.indexOf("setup.") === 0 ? r.metric.slice(6) + "." + r.bucket : null;
+      if (!key) return;
+      var d = cell[r.period] = cell[r.period] || {};
+      d[key] = (d[key] || 0) + r.n;
+    });
+    var rows = [];
+    for (var i = 0; i < USAGE_INSTALL_DAYS; i++) {
+      var day = usageDay(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i)));
+      var c = cell[day] || {};
+      var get = function (k) { return c[k] || 0; };
+      var people = ["site", "store", "direct"];
+      var broken = people.reduce(function (n, src) { return n + Math.max(0, get("start." + src) - get("done." + src)); }, 0);
+      rows.push([fmtDay(day), get("done.site"), get("done.store"), get("done.direct"), broken, get("start.check"), get("start.bot"), get("first")]);
+    }
+    $("[data-dm-usage-installslead]").textContent = s("usageInstallsLead", { n: USAGE_INSTALL_DAYS });
+    var host = $("[data-dm-usage-installs]");
+    host.textContent = "";
+    host.appendChild(usageTable(
+      [s("usageInDay"), s("usageInSite"), s("usageInStore"), s("usageInDirect"), s("usageInBroken"), s("usageInCheck"), s("usageInBot"), s("usageInFirst")],
+      rows));
   }
 
   function loadCross() {

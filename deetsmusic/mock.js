@@ -773,7 +773,7 @@
      shapes, from made-up counts: a few thousand live installs, fewer on beta,
      a handful on dev. Same numbers on every load (no Math.random). */
   function mockUsage(q) {
-    var scale = { live: 1, beta: 0.04, dev: 0.003 }[q.get("channel") || "live"] || 1;
+    var scale = { live: 1, beta: 0.04, owner: 0.002, dev: 0.003 }[q.get("channel") || "live"] || 1;
     var pad = function (n) { return String(n).padStart(2, "0"); };
     var day = function (d) { return d.toISOString().slice(0, 10); };
     var isoWeek = function (d) {
@@ -853,7 +853,31 @@
         });
       });
     });
-    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health };
+    /* The day counters of updates, first starts and Setup.exe downloads (USAGE-COUNTS.md §12),
+       the worker's `events`: 0.28.0 out three days ago, most installs on it since. */
+    var events = [];
+    var ev = function (dd, v, metric, bucket, c) { if (n(c)) events.push({ period: day(dd), v: v, metric: metric, bucket: bucket, n: n(c) }); };
+    for (var e = 0; e < 14; e++) {
+      var ed = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - e));
+      var fresh = Math.max(0, 3 - e);
+      if (e < 3) {
+        ev(ed, "0.28.0", "update.downloaded", "", 900 * fresh);
+        ev(ed, "0.28.0", "update.applied", "", 700 * fresh);
+        ev(ed, "0.28.0", "update.applied", "rollback", 4 * fresh);
+      }
+      var sv = e < 3 ? "0.28.0" : "0.27.0";
+      ev(ed, sv, "setup.start", "site", 60 + (e % 4) * 9);
+      ev(ed, sv, "setup.done", "site", 52 + (e % 4) * 8);
+      ev(ed, sv, "setup.start", "store", 14 + (e % 3) * 3);
+      ev(ed, sv, "setup.done", "store", 13 + (e % 3) * 3);
+      ev(ed, sv, "setup.start", "direct", 9 + (e % 2) * 2);
+      ev(ed, sv, "setup.done", "direct", 7 + (e % 2) * 2);
+      ev(ed, sv, "setup.start", "check", 144);
+      ev(ed, sv, "setup.done", "check", 144);
+      ev(ed, sv, "setup.start", "bot", 3);
+      ev(ed, sv, "install.first", "", 58 + (e % 4) * 7);
+    }
+    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health, events: events };
   }
 
   window.DM_MOCK = {
