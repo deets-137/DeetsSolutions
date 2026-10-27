@@ -3584,16 +3584,44 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__flag[data-tone="pause"] { border-inline-start-color: var(--pause); }
 .dm-dash__flag[data-tone="go"] { border-inline-start-color: var(--go); color: var(--subtext); }
 .dm-dash__glyph { flex: none; min-inline-size: 1.2em; font-weight: var(--fw-title); color: var(--title); }
+/* Tiles: seven columns (the active-installs tile spans three), so the row is always full.
+   Each tile is four rows on a subgrid (label, number, meaning, foot): across a row the
+   numbers, the lines under them and the sparklines all sit on the same lines. */
 .dm-dash__tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--space-2);
 }
-.dm-dash__tile { min-inline-size: 0; }
-.dm-dash__sub { color: var(--subtext); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.dm-dash__tile {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: var(--space-1);
+  min-inline-size: 0;
+}
+.dm-dash__tile.is-wide { grid-column: span 3; }
+/* The Inbox's three counts: a label and a number each, nothing under them. */
+.dm-dash__tiles--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dm-dash__tiles--three .dm-dash__tile { grid-row: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+.dm-dash__tiles--three .dm-dash__sub:empty, .dm-dash__tiles--three .dm-dash__foot:empty { display: none; }
+/* Narrower: the active-installs tile takes a row of its own, the other four go two by two. */
+@media (max-width: 72rem) {
+  .dm-dash__tiles:not(.dm-dash__tiles--three) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dm-dash__tile.is-wide { grid-column: 1 / -1; }
+}
+@media (max-width: 40rem) {
+  .dm-dash__tiles:not(.dm-dash__tiles--three), .dm-dash__tiles.dm-dash__tiles--three { grid-template-columns: minmax(0, 1fr); }
+}
+.dm-dash__label { color: var(--text); font-size: 0.8rem; font-weight: var(--fw-title); line-height: 1.3; }
+.dm-dash__figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.dm-dash__fig { display: flex; flex-direction: column; }
+.dm-dash__tile .dm-usage__num { line-height: 1.1; }
+.dm-dash__sub { display: flex; flex-direction: column; color: var(--subtext); font-size: 0.78rem; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.dm-dash__foot { display: flex; flex-direction: column; gap: 2px; align-self: end; }
+.dm-dash__cap { color: var(--subtext); font-size: 0.68rem; line-height: 1.3; }
 .dm-dash__spark { display: block; inline-size: 100%; block-size: 1.75rem; overflow: visible; }
 .dm-dash__spark--wide { block-size: 2.5rem; }
-.dm-dash__meter { display: block; margin-block-start: var(--space-1); }
+.dm-dash__meter { display: block; }
 
 .dm-dash__tabs {
   grid-column: 1 / -1;
@@ -3664,7 +3692,18 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__swatch.is-none { visibility: hidden; }
 
 /* The funnel: the started bar is the faint track, the finished share fills it. */
-.dm-dash__funnel { display: flex; flex-direction: column; gap: var(--space-1); align-self: stretch; }
+/* Bar lists share one grid, so every track in a list starts and ends on the same line however
+   long a label or a count is. */
+.dm-usage .dm-usage__bars, .dm-dash__funnel {
+  display: grid;
+  grid-template-columns: fit-content(12rem) minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  align-self: stretch;
+  font-size: 0.85rem;
+}
+.dm-usage .dm-usage__bars > .dm-usage__bar, .dm-dash__funnel > .dm-usage__bar { display: contents; }
+.dm-usage .dm-usage__bars > .dm-empty { grid-column: 1 / -1; }
 .dm-dash__started {
   display: block;
   block-size: 100%;
@@ -3678,7 +3717,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 
 .dm-dash__releases {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
   gap: var(--space-2);
   align-self: stretch;
 }
@@ -3692,7 +3731,9 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 }
 .dm-dash__relhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .dm-dash__reltitle { margin: 0; color: var(--title); font-family: var(--font-title); font-weight: var(--fw-title); font-size: 1.1rem; }
-.dm-dash__stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1) var(--space-3); margin: 0; font-size: 0.82rem; }
+.dm-dash__stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: var(--space-2) var(--space-3); margin: 0; font-size: 0.82rem; }
+.dm-dash__baseline { stroke: var(--border); stroke-width: 1; }
+.dm-dash__span { display: flex; justify-content: space-between; gap: var(--space-2); color: var(--subtext); font-size: 0.72rem; }
 .dm-dash__stats dt { color: var(--subtext); }
 .dm-dash__stats dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }
 .dm-chip[data-tone="flag"] { color: var(--title); border-color: var(--stop); }
@@ -3701,15 +3742,67 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__heat td { background: color-mix(in oklab, var(--title) var(--heat, 0%), transparent); }
 .dm-dash__heat td.is-flag { outline: 2px solid var(--stop); outline-offset: -2px; color: var(--title); font-weight: var(--fw-title); }
 
-.dm-dash__shares {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
-  gap: var(--space-3);
-  align-self: stretch;
+/* Settings: one section per app Settings section, one row per setting. The default's part of
+   a bar is plain; the values that changed it wear the version shades. */
+.dm-dash__shares { display: flex; flex-direction: column; gap: var(--space-4); align-self: stretch; }
+.dm-dash__setsec { display: flex; flex-direction: column; gap: var(--space-2); }
+.dm-dash__setsec--top { padding: var(--space-3); background: var(--surface); border-radius: var(--radius-control); }
+.dm-dash__sechead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding-block-end: var(--space-1);
+  border-block-end: 1px solid var(--border);
+  color: var(--title);
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1rem;
 }
-.dm-dash__share { display: flex; flex-direction: column; gap: var(--space-1); min-inline-size: 0; }
-.dm-dash__sharetitle { margin: 0; color: var(--text); font-size: 0.85rem; font-weight: var(--fw-title); }
-.dm-dash__share .dm-usage__bar { grid-template-columns: minmax(4rem, 7rem) minmax(0, 1fr) minmax(5rem, auto); }
+.dm-dash__sechead h4 { margin: 0; font: inherit; color: inherit; }
+.dm-dash__setsec--top > .dm-dash__sechead { border-block-end: 0; padding: 0; }
+.dm-dash__seccount { color: var(--subtext); font-family: var(--font-body); font-weight: normal; font-size: 0.78rem; }
+.dm-dash__setgrid { display: flex; flex-direction: column; gap: var(--space-3); }
+.dm-dash__setgrid--top {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+@media (max-width: 72rem) { .dm-dash__setgrid--top { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 40rem) { .dm-dash__setgrid--top { grid-template-columns: minmax(0, 1fr); } }
+/* The sections flow down balanced columns; one never splits across two. */
+.dm-dash__setcols { columns: 3 18rem; column-gap: var(--space-5); margin-block-end: calc(var(--space-5) * -1); }
+.dm-dash__setcols > .dm-dash__setsec { break-inside: avoid; margin-block-end: var(--space-5); }
+.dm-dash__set { display: flex; flex-direction: column; gap: var(--space-1); min-inline-size: 0; }
+.dm-dash__sethead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.dm-dash__setname { color: var(--text); font-size: 0.88rem; font-weight: var(--fw-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-dash__setchanged { flex: none; color: var(--subtext); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.dm-dash__setchanged.is-moved { color: var(--title); }
+.dm-dash__setbar {
+  display: flex;
+  gap: 2px;
+  block-size: 0.6rem;
+  border-radius: calc(var(--radius-control) / 4);
+  overflow: hidden;
+}
+.dm-dash__seg { flex: 1 1 0; min-inline-size: 3px; background: var(--dm-ser); }
+.dm-dash__seg.is-def, .dm-dash__swatch.is-def { background: color-mix(in oklab, var(--subtext) 30%, var(--surface)); }
+.dm-dash__setvals { display: flex; flex-direction: column; gap: 2px; font-size: 0.78rem; }
+.dm-dash__setval { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); color: var(--text); }
+.dm-dash__setval.is-def { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+.dm-dash__valname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-dash__deftag {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-control) / 2);
+  color: var(--subtext);
+  font-size: 0.68rem;
+  justify-self: start;
+}
+.dm-dash__valpct { color: var(--subtext); text-align: end; font-variant-numeric: tabular-nums; }
+.dm-dash__still { margin: 0; color: var(--subtext); font-size: 0.78rem; line-height: 1.6; }
 
 .dm-dash__pair {
   display: grid;
@@ -3724,7 +3817,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
    and the card is not a link: the thread and the reply box sit inside it. */
 .dm-inbox .tb-pop { max-block-size: 18rem; overflow-y: auto; }
 .dm-inbox .dm-board__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; align-self: auto; margin-inline-start: auto; }
-.dm-inbox__list { display: flex; flex-direction: column; gap: var(--space-3); }
+.dm-inbox__list { display: flex; flex-direction: column; gap: var(--space-3); align-self: stretch; }
+.dm-inbox > .dm-dash__tiles, .dm-inbox > .dm-dash__pair { align-self: stretch; }
 .dm-inbox__post { cursor: default; }
 .dm-inbox__post:hover { border-color: var(--border); }
 .dm-inbox__body {

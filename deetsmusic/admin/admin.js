@@ -926,6 +926,7 @@
     var W = 600, H = 140, slot = W / labels.length, bw = slot * 0.7;
     var h = function (v) { return (v / max) * (H - 8); };
     var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, "class": "dm-dash__svg", role: "img", "aria-label": aria });
+    svgEl("line", { x1: 0, x2: W, y1: H - 0.5, y2: H - 0.5, "class": "dm-dash__baseline", "vector-effect": "non-scaling-stroke" }, svg);
     labels.forEach(function (lab, k) {
       var x0 = k * slot + (slot - bw) / 2, acc = 0, lines = [lab];
       series.forEach(function (se) {
@@ -944,6 +945,11 @@
       svgEl("title", null, hit).textContent = lines.join("\n");
     });
     host.appendChild(svg);
+    // The span under the baseline, first column to last, as the day line has.
+    var span = el("div", "dm-dash__span");
+    span.appendChild(el("span", null, labels[0]));
+    span.appendChild(el("span", null, labels[labels.length - 1]));
+    host.appendChild(span);
     var keys = series.slice();
     if (dots) keys.push({ label: dots.label, cls: "is-dot" });
     host.appendChild(legend(keys));
@@ -1025,19 +1031,42 @@
     });
     host.appendChild(list);
   }
-  function tile(host, value, label, o) {
-    var t = el("div", "dm-usage__kpi dm-dash__tile");
-    t.appendChild(el("span", "dm-usage__num", value));
-    t.appendChild(el("span", "dm-hint", label));
-    if (o && o.sub) t.appendChild(el("span", "dm-dash__sub", o.sub));
-    if (o && o.spark && o.spark.length > 1) t.appendChild(spark(o.spark));
-    if (o && o.meter != null) {
+  /* One headline tile, always four parts so a row of tiles lines up on one subgrid: what it
+     counts, the number (or `o.figs`, several labelled numbers), what the number means (with
+     `o.delta` on its own line), and a foot: a sparkline with its span, a meter, or nothing.
+     `o.wide` spans two columns. */
+  function tile(host, label, value, o) {
+    o = o || {};
+    var t = el("div", "dm-usage__kpi dm-dash__tile" + (o.wide ? " is-wide" : ""));
+    t.appendChild(el("span", "dm-dash__label", label));
+    if (o.figs) {
+      var figs = el("span", "dm-dash__figs");
+      o.figs.forEach(function (f) {
+        var fig = el("span", "dm-dash__fig");
+        fig.appendChild(el("span", "dm-usage__num", f[0]));
+        fig.appendChild(el("span", "dm-dash__cap", f[1]));
+        figs.appendChild(fig);
+      });
+      t.appendChild(figs);
+    } else {
+      t.appendChild(el("span", "dm-usage__num", value));
+    }
+    var sub = el("span", "dm-dash__sub");
+    if (o.sub) sub.appendChild(el("span", null, o.sub));
+    if (o.delta) sub.appendChild(el("span", null, o.delta));
+    t.appendChild(sub);
+    var foot = el("span", "dm-dash__foot");
+    if (o.spark && o.spark.length > 1) {
+      foot.appendChild(spark(o.spark));
+      if (o.sparkCap) foot.appendChild(el("span", "dm-dash__cap", o.sparkCap));
+    } else if (o.meter != null) {
       var m = el("span", "dm-usage__track dm-dash__meter");
       var f = el("span", "dm-usage__fill");
       f.style.inlineSize = (Math.max(0, Math.min(1, o.meter)) * 100).toFixed(1) + "%";
       m.appendChild(f);
-      t.appendChild(m);
+      foot.appendChild(m);
     }
+    t.appendChild(foot);
     host.appendChild(t);
   }
   function paintTiles() {
@@ -1047,35 +1076,49 @@
     if (usage.data) {
       var days30 = [];
       for (k = 29; k >= 0; k--) days30.push(sumActive(dayAgo(k)));
-      tile(host, fmtCount(sumActive(dayAgo(0))), s("usageToday"), { spark: days30 });
-      var pw = prevWeek(), week = sumActive(usage.week);
-      tile(host, fmtCount(week), s("usageThisWeek"), {
-        sub: pw ? s("tileLastWeek", { n: fmtCount(sumActive(pw)) }) : null,
-        spark: usageWeeks().slice().reverse().map(sumActive),
+      // Today, the week and the month together: one measure, three spans.
+      var pw = prevWeek(), week = sumActive(usage.week), mon = dayAgo(0).slice(0, 7);
+      tile(host, s("tileActive"), null, {
+        wide: true,
+        figs: [
+          [fmtCount(sumActive(dayAgo(0))), s("tileToday")],
+          [fmtCount(week), s("tileWeek")],
+          [fmtCount(sumActive(mon)), s("tileMonth")],
+        ],
+        sub: s("tileActiveSub"),
+        delta: pw ? s("tileLastWeek", { n: fmtCount(sumActive(pw)) }) : null,
+        spark: days30, sparkCap: s("tileCapDays", { n: 30 }),
       });
-      var month = sumActive(dayAgo(0).slice(0, 7));
-      var current = usage.week === usageWeeks()[0];
-      tile(host, fmtCount(month), s("usageThisMonth"), { sub: current && month ? s("tileWeekShare", { pct: pct(week / month) }) : null });
       var first = isEv("install.first"), n7 = eventSum(first, 0, 6), p7 = eventSum(first, 7, 13), d14 = [];
       for (k = 13; k >= 0; k--) d14.push(eventSum(first, k, k));
-      tile(host, fmtCount(n7), s("tileNew"), {
-        sub: p7 ? arrow(n7 / p7 - 1) + s("tileVsBefore", { pct: pct(Math.abs(n7 / p7 - 1)) }) : null,
-        spark: d14,
+      tile(host, s("tileNewInstalls"), fmtCount(n7), {
+        sub: s("tileNewInstallsSub"),
+        delta: p7 ? arrow(n7 / p7 - 1) + s("tileVsBefore", { pct: pct(Math.abs(n7 / p7 - 1)) }) : null,
+        spark: d14, sparkCap: s("tileCapDays", { n: 14 }),
       });
       var byV = weekByVersion(), newest = Object.keys(byV).sort(cmpVersionDesc)[0];
-      if (newest && week) tile(host, pct(byV[newest] / week), s("tileLatest", { v: "v" + newest }), { sub: s("tileLatestSub"), meter: byV[newest] / week });
+      if (newest && week) {
+        tile(host, s("tileNewest"), pct(byV[newest] / week), {
+          sub: s("tileNewestSub", { n: fmtCount(byV[newest]), of: fmtCount(week), v: "v" + newest }), meter: byV[newest] / week,
+        });
+      }
       var h = healthStats(), sum = function (o) { return Object.keys(o || {}).reduce(function (n, v) { return n + o[v]; }, 0); };
       var reports = sum(h.reports);
       if (reports) {
         var free = 1 - sum(h.above.panics) / reports;
-        tile(host, pct(free), s("tilePanicFree"), { sub: s("tilePanicSub", { pct: pct(sum(h.above.freezes) / reports) }), meter: free });
+        tile(host, s("tilePanicFreeTitle"), pct(free), {
+          sub: s("tilePanicFreeSub", { n: fmtCount(reports), pct: pct(sum(h.above.freezes) / reports) }), meter: free,
+        });
+      } else {
+        tile(host, s("tilePanicFreeTitle"), "–", { sub: s("tileNoHealth") });
       }
     }
-    if (inbox.posts) {
-      var waiting = inbox.posts.filter(isWaiting);
-      var oldest = waiting.reduce(function (m, p) { return Math.max(m, daysSince(waitSince(p))); }, 0);
-      tile(host, fmtCount(waiting.length), s("inboxWaiting"), { sub: waiting.length ? s("tileOldest", { d: oldest }) : s("tileAllAnswered") });
-    }
+    // Always drawn, so the row keeps its shape while the posts are still being read.
+    var waiting = (inbox.posts || []).filter(isWaiting);
+    var oldest = waiting.reduce(function (m, p) { return Math.max(m, daysSince(waitSince(p))); }, 0);
+    tile(host, s("tileWaitingTitle"), inbox.posts ? fmtCount(waiting.length) : "–", {
+      sub: !inbox.posts ? s("inboxLoading") : waiting.length ? s("tileOldest", { d: oldest }) : s("tileAllAnswered"),
+    });
   }
 
   // ── Growth: the download funnel and the days it came in ────────
@@ -1216,38 +1259,121 @@
       renderShares();
     });
   }
+  /* Grouped by the app's own Settings sections and named as the app names them, from
+     usage-settings.js (generated from DeetsMusic: scripts/build-usage-settings.mjs). Each
+     setting is one row: a bar split by value, the default's part plain and the rest in the
+     title color, with how many installs moved off the default. A section's settings that
+     everyone left at the default fold into one line. A key the map lacks shows under Other,
+     by its key, with no default marked. */
+  var SETTINGS_MAP = window.DM_USAGE_SETTINGS || { sections: [], keys: {} };
+  var SETTINGS_ORDER = Object.keys(SETTINGS_MAP.keys);
+  function settingRows() {
+    var by = {}, prevBy = {};
+    usage.data.shares.forEach(function (r) { (by[r.key] = by[r.key] || []).push(r); });
+    if (usage.prev) usage.prev.shares.forEach(function (r) { (prevBy[r.key] = prevBy[r.key] || []).push(r); });
+    var total = function (list) { return list.reduce(function (n, r) { return n + r.n; }, 0); };
+    return Object.keys(by).map(function (k) {
+      var meta = SETTINGS_MAP.keys[k] || null, def = meta ? meta.def : [];
+      var vals = by[k].slice().sort(function (a, b) { return b.n - a.n; });
+      var was = {}, pt = total(prevBy[k] || []);
+      (prevBy[k] || []).forEach(function (r) { was[String(r.value)] = r.n / pt; });
+      var isDef = function (v) { return def.indexOf(String(v)) >= 0; };
+      return {
+        key: k, meta: meta, vals: vals, total: total(vals), isDef: isDef, was: pt ? was : null,
+        changed: def.length ? total(vals.filter(function (r) { return !isDef(r.value); })) : null,
+        section: meta ? meta.section : s("dashSettingsOther"),
+      };
+    });
+  }
+  function valueName(r, v) {
+    if (v == null) return "–";
+    if (v === "other") return s("dashValOther");
+    if (v === "user") return s("dashValUser");
+    return (r.meta && r.meta.options[v]) || String(v);
+  }
+  function settingRow(r) {
+    var row = el("div", "dm-dash__set");
+    var head = el("div", "dm-dash__sethead");
+    var name = el("span", "dm-dash__setname", r.meta ? r.meta.label : r.key);
+    name.title = r.key;
+    head.appendChild(name);
+    if (r.changed != null) {
+      var ch = el("span", "dm-dash__setchanged", s("dashChanged", { pct: pct(r.changed / r.total) }));
+      if (r.changed) ch.classList.add("is-moved");
+      head.appendChild(ch);
+    }
+    row.appendChild(head);
+    var bar = el("div", "dm-dash__setbar"), vals = el("div", "dm-dash__setvals"), shade = 0;
+    r.vals.forEach(function (v) {
+      var def = r.isDef(v.value), cls = def ? "is-def" : "dm-ser-" + Math.min(shade++, SERIES - 1);
+      var share = r.total ? v.n / r.total : 0;
+      var seg = el("span", "dm-dash__seg " + cls);
+      seg.style.flexGrow = String(v.n);
+      seg.title = valueName(r, v.value) + ": " + fmtCount(v.n) + " (" + pct(share) + ")";
+      bar.appendChild(seg);
+      var item = el("span", "dm-dash__setval" + (def ? " is-def" : ""));
+      item.appendChild(el("span", "dm-dash__swatch " + cls));
+      item.appendChild(el("span", "dm-dash__valname", valueName(r, v.value)));
+      if (def) item.appendChild(el("span", "dm-dash__deftag", s("dashDefault")));
+      var text = pct(share) + " · " + fmtCount(v.n);
+      if (r.was) {
+        var pts = (share - (r.was[String(v.value)] || 0)) * 100;
+        if (Math.abs(pts) >= 1) text += " · " + arrow(pts) + Math.abs(pts).toFixed(0);
+      }
+      item.appendChild(el("span", "dm-dash__valpct", text));
+      vals.appendChild(item);
+    });
+    row.appendChild(bar);
+    row.appendChild(vals);
+    return row;
+  }
   function renderShares() {
     var host = $("[data-dm-usage-shares]");
     host.textContent = "";
     var rep = weekReports(), prev = usage.prev && usage.prev.reports ? usage.prev : null;
     $("[data-dm-shares-lead]").textContent = prev
-      ? s("dashSharesLead", { n: fmtCount(rep), week: prev.week })
-      : s("dashSharesNoPrev", { n: fmtCount(rep) });
-    var keys = {};
-    usage.data.shares.forEach(function (r) { keys[r.key] = 1; });
-    var was = {};
-    if (prev) prev.shares.forEach(function (r) { was[r.key + "\u0000" + r.value] = r.n / prev.reports; });
-    Object.keys(keys).sort().forEach(function (k) {
-      var card = el("div", "dm-dash__share");
-      card.appendChild(el("h4", "dm-dash__sharetitle", k));
-      usage.data.shares.filter(function (r) { return r.key === k; }).sort(function (a, b) { return b.n - a.n; }).forEach(function (r) {
-        var now = rep ? r.n / rep : 0;
-        var row = el("div", "dm-usage__bar");
-        row.appendChild(el("span", "dm-usage__label", r.value == null ? "–" : String(r.value)));
-        var track = el("span", "dm-usage__track");
-        var fill = el("span", "dm-usage__fill");
-        fill.style.inlineSize = (Math.max(0.5, now * 100)).toFixed(1) + "%";
-        track.appendChild(fill);
-        row.appendChild(track);
-        var text = pct(now), key = k + "\u0000" + r.value;
-        if (prev) {
-          var pts = (now - (was[key] || 0)) * 100;
-          if (Math.abs(pts) >= 1) text += " · " + arrow(pts) + s("dashPts", { d: Math.abs(pts).toFixed(0) });
-        }
-        row.appendChild(el("span", "dm-usage__count", text));
-        card.appendChild(row);
-      });
-      host.appendChild(card);
+      ? s("dashSetLead", { n: fmtCount(rep), week: prev.week })
+      : s("dashSetLeadNoPrev", { n: fmtCount(rep) });
+    var rows = settingRows();
+    if (!rows.length) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    var rank = function (r) { var i = SETTINGS_ORDER.indexOf(r.key); return i < 0 ? 1e6 : i; };
+
+    // First, the settings people moved off the default most.
+    var top = rows.filter(function (r) { return r.changed; })
+      .sort(function (a, b) { return b.changed / b.total - a.changed / a.total || rank(a) - rank(b); }).slice(0, 6);
+    if (top.length) {
+      var lead = el("section", "dm-dash__setsec dm-dash__setsec--top");
+      lead.appendChild(el("h4", "dm-dash__sechead", s("dashMostChanged")));
+      var grid = el("div", "dm-dash__setgrid dm-dash__setgrid--top");
+      top.forEach(function (r) { grid.appendChild(settingRow(r)); });
+      lead.appendChild(grid);
+      host.appendChild(lead);
+    }
+
+    // The sections flow down balanced columns, so a short one leaves no hole beside it.
+    var cols = el("div", "dm-dash__setcols");
+    host.appendChild(cols);
+    SETTINGS_MAP.sections.concat([s("dashSettingsOther")]).forEach(function (sec) {
+      var inSec = rows.filter(function (r) { return r.section === sec; }).sort(function (a, b) { return rank(a) - rank(b) || (a.key < b.key ? -1 : 1); });
+      if (!inSec.length) return;
+      var moved = inSec.filter(function (r) { return r.changed !== 0; });
+      var still = inSec.filter(function (r) { return r.changed === 0; });
+      var box = el("section", "dm-dash__setsec");
+      var head = el("div", "dm-dash__sechead");
+      head.appendChild(el("h4", null, sec));
+      head.appendChild(el("span", "dm-dash__seccount", s("dashSecCount", { n: inSec.length - still.length, of: inSec.length })));
+      box.appendChild(head);
+      if (moved.length) {
+        var grid = el("div", "dm-dash__setgrid");
+        moved.forEach(function (r) { grid.appendChild(settingRow(r)); });
+        box.appendChild(grid);
+      }
+      if (still.length) {
+        box.appendChild(el("p", "dm-dash__still", s("dashAllDefault", {
+          names: still.map(function (r) { return r.meta ? r.meta.label : r.key; }).join(" · "),
+        })));
+      }
+      cols.appendChild(box);
     });
   }
 
@@ -1257,9 +1383,9 @@
     var open = inbox.posts.filter(function (p) { return !DONE[p.state]; });
     var tiles = $("[data-dm-inbox-tiles]");
     tiles.textContent = "";
-    tile(tiles, fmtCount(inbox.posts.filter(isWaiting).length), s("inboxWaiting"));
-    tile(tiles, fmtCount(open.filter(function (p) { return p.kind === "issue"; }).length), s("tileOpenBugs"));
-    tile(tiles, fmtCount(open.filter(function (p) { return p.kind === "suggestion"; }).length), s("tileOpenIdeas"));
+    tile(tiles, s("tileWaitingTitle"), fmtCount(inbox.posts.filter(isWaiting).length));
+    tile(tiles, s("tileOpenBugs"), fmtCount(open.filter(function (p) { return p.kind === "issue"; }).length));
+    tile(tiles, s("tileOpenIdeas"), fmtCount(open.filter(function (p) { return p.kind === "suggestion"; }).length));
 
     var WEEKS = 12, now = Date.now() / 1000, labels = [], bugs = [], ideas = [];
     for (var k = WEEKS - 1; k >= 0; k--) {

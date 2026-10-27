@@ -32,13 +32,15 @@
     <link rel="preload" href="../../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/skin.css?v=2026-10-26" as="style" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-27b" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-27c" />
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-10-27b" defer></script>
+    <script src="../strings.js?v=2026-10-27c" defer></script>
     <script src="../mock.js?v=2026-10-27" defer></script>
-    <script src="./admin.js?v=2026-10-27b" defer></script>
+    <!-- Generated from DeetsMusic: scripts/build-usage-settings.mjs (support.md, "The dashboard"). -->
+    <script src="./usage-settings.js?v=2026-10-27c" defer></script>
+    <script src="./admin.js?v=2026-10-27c" defer></script>
   </head>
 
   <body>
@@ -142,7 +144,7 @@
              with its thread, a reply box and the status. GET /admin/posts, then GET /t/<code>
              per post; no route of its own, so the worker did not change for it. -->
         <section class="dm-box dm-box--wide dm-inbox dm-dash__panel" id="inbox" role="tabpanel" aria-labelledby="dm-tab-inbox" data-panel="inbox" data-dm-inbox hidden>
-          <div class="dm-dash__tiles" data-dm-inbox-tiles></div>
+          <div class="dm-dash__tiles dm-dash__tiles--three" data-dm-inbox-tiles></div>
           <div class="dm-dash__pair">
             <div>
               <h3 class="dm-usage__sub" data-s="dashPostsWeekly"></h3>

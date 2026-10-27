@@ -415,10 +415,17 @@ an **overview plus tabs**; the page **flags problems on its own**; and it is **p
 worker change: every chart is drawn from today's `GET /admin/usage` and the Inbox reads).
 
 - **Overview** (always shown, above the tabs): the Channel and Week pills, a *Needs a look* list
-  that stays empty unless a flag fires, and the headline tiles, each with a sparkline or meter:
-  today so far, this week (and last week), this month (and this week's share of it), new installs
-  over 7 days against the 7 before, the share of this week's installs on the newest version, the
-  panic-free share of this week's reports, and posts waiting on him (and the oldest wait).
+  (*Nothing looks off* when no flag fires), and five tiles. Each tile names what it counts
+  (his ask, 2026-10-27: "unsure what 14 and 17 refer to"): **Active installs** (today, this
+  week and this month side by side, last week under them, 30 days of sparkline), new installs
+  over 7 days against the 7 before, the share on the newest version, health reports with no
+  panic, and posts waiting on him.
+- **Layout rules** (his ask, 2026-10-27: "pixel perfect alignment, organized, no odd white
+  spaces"): the tiles sit on 7 columns (Active installs spans 3), and each tile is 4 subgrid
+  rows, so numbers, lines and sparklines share lines across a row. At 72rem and below it's 2
+  columns (Active installs on its own row), and at 40rem 1. A bar list is one grid, so its tracks
+  start and end together. Release cards fill their row. The Settings sections flow down
+  balanced columns.
 - **Tabs** (Growth · Inbox · Releases · Settings), kept in the URL hash (`#growth`, `#inbox`,
   `#releases`, `#settings`; the old `#usage` opens Growth):
   - **Growth:** active installs per day as a stacked area by version (newest on top, the four
@@ -431,9 +438,23 @@ worker change: every chart is drawn from today's `GET /admin/usage` and the Inbo
     waiting, the rollback rate, days out, and a cumulative adoption line. Then a health heatmap
     (versions × the trouble metrics: the share of each version's reports above 0) and the Apple
     group × class grid for one version. The updates and health tables stay under *Table*.
-  - **Settings:** every setting at once as small bar lists, each value's change against the
-    week before in points (one extra `GET /admin/usage?week=<previous>`), then the cross-check
-    as a heatmap.
+  - **Settings** (his ask, 2026-10-27: "highlight which options are defaults"): grouped by the
+    app's own Settings sections, named as the app names them. Each setting is one bar split by
+    value, where the default's part is plain and the values that changed it are colored, with a
+    *default* tag and "N% changed it". First come the six settings changed most from the
+    default. A section's settings that everyone left at the default fold into one line. Each
+    value's change against the week before, in points, comes from one extra
+    `GET /admin/usage?week=<previous>`. The cross-check is a heatmap.
+    **The names and defaults** come from `deetsmusic/admin/usage-settings.js`, GENERATED
+    from the DeetsMusic checkout by
+    `node --import ../DeetsMusic/tests/setup.mjs scripts/build-usage-settings.mjs`.
+    The script loads the app's own spec list (`agent-settings.ts`) with the settings store,
+    swapping the Tauri/DOM modules for inert stand-ins, so an empty store answers what a fresh
+    install reports. The Rust-owned rows read `settings.rs`'s `Default` (and the Run key is on
+    by the first run's enrolment). Theme and skin follow the OS light/dark pair, so both of
+    each pair count as defaults; the surface has none. **Rerun it whenever DeetsMusic adds,
+    renames or re-defaults a setting.** It fails if a reported key has no spec or no default.
+    A key the map lacks still shows, under *Other*.
 - **Colour.** No categorical palette exists in the tokens, so versions are ordinal: the newest
   is `--title`, older ones are `--title` mixed toward `--surface` (`color-mix`). Every series has
   a legend. Flags use `--stop` / `--pause` with a glyph and words, never colour alone.
@@ -450,7 +471,8 @@ worker change: every chart is drawn from today's `GET /admin/usage` and the Inbo
   6. A post waiting on him for more than **3 days** (since the poster's last word).
   The health flags (2, 3) read the chosen week, as the health counts do.
 - **Copy:** the `dash*` / `flag*` / `tile*` strings, approved by him in chat 2026-10-27
-  ("remove the ph from everything"). The thresholds above are still the drafts.
+  ("remove the ph from everything", then "Don't need [ph]s for this session"). The thresholds
+  above are still the drafts.
 - **Published to see live data** (his call, 2026-10-27: "I'm the only admin so that's fine"):
   the owner's cookie never reaches localhost, so live numbers in this layout can only be
   seen on deets.solutions; `?mock` covers the look locally.
