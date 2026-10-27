@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-26T04:27:55Z",
+  "generated_at": "2026-10-27T02:00:17Z",
   "channel": "song-of-the-day",
-  "count": 462,
+  "count": 463,
   "songs": [
     {
       "post_id": 1,
@@ -10628,6 +10628,29 @@
       "apple_music_url": "https://music.apple.com/us/album/visible/1472313529?i=1472313530&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/97/68/eb/9768ebad-c9d7-aefa-ae89-3ad295e9b9b2/mzaf_8889989339170436818.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/d5/e7/15/d5e715ad-e08a-8425-106e-0c639229ebfd/859733373642_cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 31040,
+      "posted_at": "2026-10-27T01:45:42.966000+00:00",
+      "date": "2026-10-26",
+      "day": "Mon",
+      "month": "10_2026",
+      "track_name": "car",
+      "artist_name": "Royel Otis",
+      "album": "hickey",
+      "genre": "Alternative",
+      "duration": "3:17",
+      "duration_sec": 197,
+      "release_date": "2025-06-27",
+      "release_year": 2025,
+      "age_yrs": 1,
+      "service": "spotify",
+      "resolved": "yes",
+      "author": "sgrim:]",
+      "url": "https://open.spotify.com/track/6hkafjAcHMk1TtSF6w2wIx?si=onLkO0QfQo2ohGqNh2Kluw&utm_source=copy-link&rowId=ab755f53aba805e3371d&context=spotify%3Aplaylist%3A37i9dQZF1F5p3rmiWPIYgZ",
+      "apple_music_url": "https://music.apple.com/us/album/car/1820542978?i=1820543515&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4a/99/a7/4a99a7a5-3c5a-d37a-546c-e3166f3dc4fa/mzaf_2020002429490607291.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/1b/bf/a2/1bbfa200-28fb-828e-479a-273f36d2eac4/25UMGIM58665.rgb.jpg/600x600bb.jpg"
     }
   ]
 }
