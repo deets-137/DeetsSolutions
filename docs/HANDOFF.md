@@ -69,6 +69,23 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-27 — Mahjong claim window: tiers, the reveal, the eye (branch `claim-tiers` on
+both repos, cut from `end-jong`; NOT merged, NOT deployed).** His calls: the window asks
+win/pung/kong seats first and the chow seat only after they all pass; it waits with no
+deadline (no auto-pass); non-claimants see who's deciding only after 5 s; the panel sits
+centered on the felt (top-aligned when narrow), with a hold-to-fade eye in its corner
+([mahjong.md](mahjong.md), "Claim windows" and "Claim window"). The engine's state and
+the wire gained `ask` / `tier` (`claims.tier` in the view; `waiting` is the asked tier).
+Checked: engine 101/101 (the bot ladder check now runs 24 matches; at 6 its margin
+rode on RNG order), worker `vendor.mjs --check` + payload 86/86, and on the headless mock:
+the panel centered on the felt (wide) and at its top (900 px), the eye's fade, the 5 s
+reveal naming a held bot, tier 2 reaching me after a bot's pass, a 40 s soak with no page
+errors. Not checked: two humans in one window, live. One new `[ph]` string
+(`claimPeek`, the eye's label). The shut eye is my drawing of his open one; his to
+redraw. To ship: merge `end-jong` first, then this, both repos together; a worker
+deployed mid-window would hold an old-shape `g.claims` (no `ask`), so deploy between
+games.
+
 **2026-10-27 — The gate says Rejoin / Sit down / Spectate (Poker worker deployed; site and Mahjong NOT).** Peek
 now knows the asker (token header + session cookie) and answers `mine` and `adoptable`
 ([games.md](games.md), "Identity and rejoin"). Re-vendored and pushed: DeetsPoker

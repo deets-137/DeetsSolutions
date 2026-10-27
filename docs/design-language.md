@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-08-04
+updated: 2026-10-27
 ---
 # The design language — how a Deets game gets designed
 
@@ -88,8 +88,9 @@ kind the game has. A surface whose reason doesn't apply is dropped.
   no hidden state collapses it to a controls strip, and the honest bento
   is two tiles. Never keep a hand area because the siblings have one.
 - **Overlays dock over the big tile's right edge** for anything that
-  interrupts or negotiates (cities' trade hub, mahjong's claim window —
-  the same dock repurposed). They float; they never push.
+  negotiates (cities' trade hub). They float; they never push. A prompt
+  that interrupts play sits centered on the play area instead, with a
+  hold-to-see-through eye (mahjong's claim window, his call 2026-10-27).
 - **The log is the mechanical record** — terse Claude-authored lines
   rendered from typed events, never prose over the wire. Every game has
   one; a second pane on its rail (cities' Deck) exists only when the
@@ -116,7 +117,7 @@ art.
 
 | The new game needs… | The precedent | Where |
 | --- | --- | --- |
-| Simultaneous hidden commitment (all seats answer in secret, then resolve) | mahjong's claim window: public `waiting`, per-seat options on `you`, resolve when all answer, capped timer | mahjong.md, "Claim windows" |
+| Simultaneous hidden commitment (all seats answer in secret, then resolve) | mahjong's claim window: asked in priority tiers, public `waiting` (named on screen only after 5 s), per-seat options on `you`, resolve when the tier answers, no timer | mahjong.md, "Claim windows" |
 | An auction / sequential bidding | the claim window's shape + poker's betting line (actor-checked `raise {to}`) | mahjong.md, poker.md |
 | Offers, deals, negotiation | cities' trade hub: offers are **state, not notifications** — they persist until answered, die at phase end, and an incoming one auto-opens the dock | cities.md, "Trade overlay" |
 | Different clocks for different phases | ships' `cfg.timerBudget()` | games.md, "Teams" |

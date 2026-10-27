@@ -95,7 +95,7 @@
       pond: [],                             // chronological discards { seat, tile }; a claim pops its entry
       players: [],                          // seat-indexed
       turn: null,                           // { seat, drawn, justKonged, anyDiscard }
-      claims: null,                        // { tile, from, can, responses, robbing }
+      claims: null,                        // { tile, from, can, ask, tier, responses, robbing }
       handOver: null,                       // per-hand settlement summary
       results: [],                          // finished hands
       stats: { hands: 0, startedAt: ctx.now },
@@ -661,6 +661,19 @@
     if (n <= 7 && c[s + (n + 1)] && c[s + (n + 2)]) out.push([s + (n + 1), s + (n + 2)]);
     return out;
   }
+  /* The window asks in tiers (his call, 2026-10-27): every seat that can
+     win, pung or kong first, with all its options; the chow seat only if
+     tier 1 all passed (or it had no tier). Nothing expires a tier on a
+     table clock: it waits until every asked seat has answered. */
+  function claimTier(opts) {
+    return opts.some(function (o) { return o !== "chow"; }) ? 1 : 2;
+  }
+  function askTier(g, tier, events) {
+    var cl = g.claims;
+    cl.tier = tier;
+    cl.ask = Object.keys(cl.can).map(Number).filter(function (k) { return claimTier(cl.can[k]) === tier; });
+    events.push({ t: "claimsOpen", tile: cl.robbing ? null : cl.tile, from: cl.from, seats: cl.ask.slice(), tier: tier, robbing: cl.robbing });
+  }
   function openClaims(g, tile, from, events, robbing) {
     var can = {};
     var any = false;
@@ -670,9 +683,19 @@
       if (opts.length) { can[s] = opts; any = true; }
     }
     if (!any) return false;
-    g.claims = { tile: tile, from: from, can: can, responses: {}, robbing: !!robbing };
-    events.push({ t: "claimsOpen", tile: robbing ? null : tile, from: from, seats: Object.keys(can).map(Number), robbing: !!robbing });
+    g.claims = { tile: tile, from: from, can: can, ask: [], tier: 0, responses: {}, robbing: !!robbing };
+    var first = Object.keys(can).some(function (k) { return claimTier(can[k]) === 1; }) ? 1 : 2;
+    askTier(g, first, events);
     return true;
+  }
+  // every asked seat has answered: a claim in hand resolves, an all-pass
+  // tier 1 hands the window to the chow seat if there is one
+  function tierDone(g, ctx, events) {
+    var cl = g.claims;
+    var claimed = cl.ask.some(function (k) { return cl.responses[k].action !== "pass"; });
+    var chowSeat = Object.keys(cl.can).some(function (k) { return claimTier(cl.can[k]) === 2; });
+    if (!claimed && cl.tier === 1 && chowSeat) { askTier(g, 2, events); return null; }
+    return resolveClaims(g, ctx, events);
   }
   function resolveClaims(g, ctx, events) {
     var cl = g.claims;
@@ -900,16 +923,16 @@
       if (g.phase !== "play" || !g.claims) return err("phase");
       var seat = a.seat;
       var cl = g.claims;
-      if (seat == null || !cl.can[seat]) return err("turn");
+      if (seat == null || cl.ask.indexOf(seat) < 0) return err("turn");
       if (cl.responses[seat]) return err("turn");
       var act = a.action;
       if (act !== "pass" && cl.can[seat].indexOf(act) < 0) return err("loc");
       cl.responses[seat] = { action: act, tiles: a.tiles || null };
       events.push({ t: "claimAck", seat: seat, pass: act === "pass" });
-      var allIn = Object.keys(cl.can).every(function (k) { return !!cl.responses[k]; });
-      if (allIn) return resolveClaims(g, ctx, events);
+      var allIn = cl.ask.every(function (k) { return !!cl.responses[k]; });
+      if (allIn) return tierDone(g, ctx, events);
       // a win claim short-circuits nothing here: priority still needs the
-      // window (a nearer winner may still speak) — the timer bounds it
+      // tier (a nearer winner may still speak)
       return null;
     },
 
@@ -944,11 +967,13 @@
       if (g.handOver) return ACTIONS.nextHand(g, a, ctx, events);
       if (g.wall === null) return ACTIONS.rollBreak(g, { seat: dealerSeat(g) }, ctx, events);
       if (g.claims) {
-        // every unanswered seat passes
-        Object.keys(g.claims.can).forEach(function (k) {
+        // every unanswered seat in the tier passes. The tables arm no
+        // deadline on a claim window any more (it waits on its seats); this
+        // stays for the idle soak below and any caller that forces it.
+        g.claims.ask.forEach(function (k) {
           if (!g.claims.responses[k]) g.claims.responses[k] = { action: "pass" };
         });
-        return resolveClaims(g, ctx, events);
+        return tierDone(g, ctx, events);
       }
       if (g.turn) {
         var seat2 = g.turn.seat, p = g.players[seat2];
@@ -1080,8 +1105,8 @@
 
     // 2. a claim window — every bot that hasn't answered owes one
     if (g.claims) {
-      var ks = Object.keys(g.claims.can).filter(function (k) {
-        return !g.claims.responses[k] && isBot(+k);
+      var ks = g.claims.ask.filter(function (k) {
+        return !g.claims.responses[k] && isBot(k);
       });
       if (!ks.length) return null;
       var seat = +ks[0], T = tierOf(seat), o = g.claims.can[seat];
@@ -1141,8 +1166,8 @@
       return scope.some(function (s) { return !g.seating.rolls[s] && isBot(s); });
     }
     if (g.claims) {
-      return Object.keys(g.claims.can).some(function (k) {
-        return !g.claims.responses[k] && isBot(+k);
+      return g.claims.ask.some(function (k) {
+        return !g.claims.responses[k] && isBot(k);
       });
     }
     if (g.wall === null) return isBot(dealerSeat(g));
@@ -1443,7 +1468,7 @@
         g.pond = [{ seat: 1, tile: tile }];
         g.players[claimer].hand = hand.slice();
         var cn = {}; cn[claimer] = can;
-        g.claims = { tile: tile, from: 1, can: cn, responses: {}, robbing: false };
+        g.claims = { tile: tile, from: 1, can: cn, ask: [claimer], tier: claimTier(can), responses: {}, robbing: false };
         return g;
       }
 
@@ -1476,6 +1501,56 @@
       // the counters survive the deal that destroys the melds themselves
       p.melds = [];
       eq(p.stats.pungs, before, "the pung counter outlives the meld array");
+    })();
+
+    /* the claim window asks in tiers: win/pung/kong first, the chow seat
+       only once tier 1 has all passed */
+    (function () {
+      function tableWith(hands) {
+        var g = createGame({ settings: { minFaan: 3, capFaan: 13, winds: 1 } }, ctx);
+        g.phase = "play";
+        g.order = [0, 1, 2, 3];
+        g.round = { prevailing: 0, dealerIdx: 0, hand: 1 };
+        g.wall = ["m1", "m2", "m3", "m4"];
+        hands.forEach(function (h, s) { g.players[s].hand = h.slice(); });
+        g.turn = { seat: 1, drawn: null, justKonged: false, anyDiscard: true, firstTurn: false };
+        return g;
+      }
+      var junk = ["p1", "p4", "p7", "s1", "s4", "s7", "dr", "dg", "wn", "ws", "m9"];
+      // seat 1 throws m5; seat 2 (next in turn) can chow, seat 3 can pung
+      var g = tableWith([junk.concat(["wn", "ws"]), ["m5"].concat(junk, ["s9"]),
+                         ["m6", "m7"].concat(junk), ["m5", "m5"].concat(junk)]);
+      var r = applyAction(g, { type: "discard", seat: 1, tile: "m5" }, ctx);
+      ok(!r.error, "the discard opens a window");
+      g = r.game;
+      eq(g.claims.tier, 1, "tier 1 asks first");
+      eq(g.claims.ask.join(), "3", "only the pung seat is asked");
+      ok(!!applyAction(g, { type: "claim", seat: 2, action: "chow", tiles: ["m6", "m7"] }, ctx).error,
+        "the chow seat can't answer during tier 1");
+      r = applyAction(g, { type: "claim", seat: 3, action: "pass" }, ctx);
+      g = r.game;
+      ok(!!g.claims, "a tier-1 pass keeps the window open");
+      eq(g.claims.tier, 2, "…for tier 2");
+      eq(g.claims.ask.join(), "2", "…which asks the chow seat");
+      ok(r.events.some(function (e) { return e.t === "claimsOpen" && e.tier === 2; }), "tier 2 announces itself");
+      r = applyAction(g, { type: "claim", seat: 2, action: "chow", tiles: ["m6", "m7"] }, ctx);
+      ok(!r.error && !r.game.claims, "the chow resolves the window");
+      eq(r.game.players[2].melds.length, 1, "…and melds it");
+
+      // a tier-1 claim never asks the chow seat
+      g = tableWith([junk.concat(["wn", "ws"]), ["m5"].concat(junk, ["s9"]),
+                     ["m6", "m7"].concat(junk), ["m5", "m5"].concat(junk)]);
+      g = applyAction(g, { type: "discard", seat: 1, tile: "m5" }, ctx).game;
+      r = applyAction(g, { type: "claim", seat: 3, action: "pung" }, ctx);
+      ok(!r.error && !r.game.claims, "a pung resolves tier 1 outright");
+      ok(!r.events.some(function (e) { return e.t === "claimsOpen"; }), "…with no tier 2");
+
+      // only a chow on offer: the window opens straight at tier 2
+      g = tableWith([junk.concat(["wn", "ws"]), ["m5"].concat(junk, ["s9"]),
+                     ["m6", "m7"].concat(junk), junk.concat(["s2", "s3"])]);
+      g = applyAction(g, { type: "discard", seat: 1, tile: "m5" }, ctx).game;
+      eq(g.claims.tier, 2, "a chow-only window opens at tier 2");
+      eq(g.claims.ask.join(), "2", "…asking the chow seat");
     })();
 
     /* ── the bot ─────────────────────────────────────────────────
@@ -1521,8 +1596,10 @@
          "a settled hand is the timer's to advance, not a bot's");
 
       // the ladder: a hard seat should deal in far less than three easies
+      // (24 matches: at 6 the margin rode on the RNG's draw order, and the
+      // claim tiers' reordered draws tipped it, 2026-10-27)
       var dinHard = 0, dinEasy = 0, played = 0;
-      for (var n = 0; n < 6; n++) {
+      for (var n = 0; n < 24; n++) {
         var hardSeat = n % 4;
         var run2 = drive(function (seat) { return seat === hardSeat ? "hard" : "easy"; }, 313 + n * 977);
         if (!run2.over) continue;
@@ -1531,7 +1608,7 @@
           if (i === hardSeat) dinHard += p.stats.dealIns; else dinEasy += p.stats.dealIns;
         });
       }
-      ok(played >= 4, "tier ladder: enough matches finished (" + played + "/6)");
+      ok(played >= 16, "tier ladder: enough matches finished (" + played + "/24)");
       // three easy seats share dinEasy, so compare per-seat
       ok(dinHard < dinEasy / 3, "hard deals in less than an easy seat (" +
          dinHard + " vs " + (dinEasy / 3).toFixed(1) + ")");

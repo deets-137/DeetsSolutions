@@ -281,7 +281,7 @@ see [mahjong.md](mahjong.md).
 ### Decision order
 
 1. **Seating roll** — mechanical, no judgement.
-2. **A claim window** — every bot that has not answered owes a response.
+2. **A claim window** — every bot in the asked tier that has not answered owes a response.
    A **win is never declined**. Otherwise kong → pung → chow by tier
    probability, else pass.
 3. **Breaking the wall** — the dealer's, equally mechanical.

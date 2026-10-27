@@ -593,19 +593,45 @@
 @media (prefers-reduced-motion: reduce) { .mj-act.is-glow { animation: none; } }
 .mj-kongpick { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; align-items: center; }
 
-/* ── claim window (the trade-hub dock, repurposed) ────────────── */
+/* ── claim window ─────────────────────────────────────────────── */
+/* the claim panel: centered on the felt, measured by mahjong.js
+   placeClaim (--mj-claim-x/-y), and top-aligned on the felt when narrow */
 .mj-claim {
   grid-area: big;
-  position: absolute;
-  top: 0; right: 0;
-  width: 16rem;
-  max-width: 42%;
-  margin: var(--space-3);
+  position: absolute; inset: 0;
   z-index: 20;
   pointer-events: none;
 }
-.mj-claim:not([hidden]) { display: flex; flex-direction: column; }
-.mj-claim > * { pointer-events: auto; }
+.mj-claim[hidden] { display: none; }
+.mj-claimwrap {
+  position: absolute;
+  left: var(--mj-claim-x, 50%); top: var(--mj-claim-y, 50%);
+  transform: translate(-50%, -50%);
+  width: 16rem; max-width: calc(100% - 2 * var(--space-3));
+  pointer-events: auto;
+}
+.mj-claimwrap > .mj-claimbox { transition: opacity var(--dur-fast) var(--ease-ui); }
+/* held eye: the panel fades to a tenth so the tiles beneath read; the
+   eye itself stays whole */
+.mj-claimwrap.is-peek > .mj-claimbox { opacity: 0.1; pointer-events: none; }
+.mj-eye {
+  position: absolute; top: var(--space-2); right: var(--space-2);
+  display: inline-grid; place-items: center;
+  padding: 2px; background: none; border: 0; border-radius: var(--radius-control);
+  color: var(--subtext); cursor: pointer;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: color var(--dur-fast) var(--ease-ui);
+}
+.mj-eye:hover, .mj-claimwrap.is-peek .mj-eye { color: var(--title); }
+.mj-eye:focus-visible { outline: 2px solid var(--title); outline-offset: 1px; }
+.mj-eye svg {
+  width: var(--icon-glyph); height: var(--icon-glyph); display: block; overflow: visible;
+  fill: none; stroke: currentColor; stroke-width: calc(var(--icon-stroke) * 176 / 24);   /* the toolbar stroke, on a 176-unit drawing */
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.mj-eye__shut { opacity: 0; }
+.mj-claimwrap.is-peek .mj-eye__lid, .mj-claimwrap.is-peek .mj-eye__pupil { opacity: 0; }
+.mj-claimwrap.is-peek .mj-eye__shut { opacity: 1; }
 .mj-claimbox {
   background: var(--menu-surface);
   -webkit-backdrop-filter: var(--menu-backdrop);
@@ -623,7 +649,7 @@
   50%      { box-shadow: 0 0 0 1px var(--title), 0 0 14px -3px var(--title); }
 }
 @media (prefers-reduced-motion: reduce) { .mj-claimbox.is-incoming { animation: none; } }
-.mj-claimbox__title { margin: 0; color: var(--title); font-size: 0.95rem; }
+.mj-claimbox__title { margin: 0; padding-right: calc(var(--icon-glyph) + var(--space-2)); color: var(--title); font-size: 0.95rem; }
 .mj-claimbox__tile { display: flex; justify-content: center; padding: var(--space-1) 0; }
 .mj-claimbox__lbl { margin: 0; color: var(--subtext); font-size: 0.78rem; }
 .mj-claimbox__btns { display: flex; flex-direction: column; gap: var(--space-1); }
@@ -713,7 +739,7 @@
    side zones (felt ≈ 26rem + 2 × 7rem zones), and the felt slid over the
    right seat. Rather than shrink the one tile rectangle, the right column
    drops under the rack: board full width, rack beneath it, then
-   dice/wall | players | log as a row. The claim dock still docks on big. */
+   dice/wall | players | log as a row. The claim panel still sits on big. */
 @media (max-width: 64rem) {
   /* the narrow stage: the BAR (the wall panel, carrying the seats), a gap,
      then the board with the rack merged in. The dice, players and log
@@ -738,6 +764,7 @@
   /* the board runs tall here, so the hand-over and the scoring guide sit
      at its top instead of its middle, where they'd open below the fold */
   .mj-handover, .mj-guide { place-items: start center; padding-top: var(--space-4); }
+  .mj-claimwrap { top: calc(var(--mj-claim-top, 0px) + var(--space-4)); transform: translateX(-50%); }
   /* the bar sits above the board, so its Log popover must paint over it */
   .mj-tile--wall {
     height: var(--mjbarh); position: relative; z-index: 30;
@@ -910,7 +937,7 @@ button.mj-chick--toggle:hover { background: var(--surface-hover); border-color: 
    message while open, and anything replaying would flicker. Fixed
    panel width + internal scroll keep it perfectly still. */
 .mj-guide {
-  grid-area: big;   /* a bento sibling laid over the board, like the claim dock */
+  grid-area: big;   /* a bento sibling laid over the board, like the claim panel */
   position: absolute; inset: 0; z-index: 30;
   display: grid; place-items: center;
   background: color-mix(in srgb, var(--mjfelt) 30%, transparent);

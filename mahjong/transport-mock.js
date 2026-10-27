@@ -16,7 +16,6 @@
   var Engine = window.MahjongEngine;
   var Colors = window.DeetsColors;
 
-  var CLAIM_CAP_MS = 10000;  // a claim window never waits longer than this (timed tables)
 
   // legal self-kong tiles for the seat holding the draw (the VIEW's copy —
   // `you.kongs` is what lights the client's Kong pill; the bot's own copy
@@ -45,10 +44,7 @@
       var pendingHuman = scope.some(function (s) { return !g.seating.rolls[s] && human(s); });
       return timed && pendingHuman ? ms : null;
     }
-    if (g.claims) {
-      var waitHuman = Object.keys(g.claims.can).some(function (k) { return !g.claims.responses[k] && human(+k); });
-      return timed && waitHuman ? Math.min(ms, CLAIM_CAP_MS) : null;
-    }
+    if (g.claims) return null;                                // waits on its asked seats (his call, 2026-10-27)
     if (g.wall === null) return timed && human(Engine.dealerSeat(g)) ? ms : null;
     if (g.turn) return timed && human(g.turn.seat) ? ms : null;
     return null;
@@ -62,7 +58,7 @@
     if (g.handOver) return "over";
     if (g.phase === "seating") return "seating";
     var r = g.round, hid = r ? (r.prevailing + "/" + r.dealerIdx + "/" + r.hand) : "0";
-    if (g.claims) return "claim:" + g.claims.from + ":" + g.pond.length;
+    if (g.claims) return "claim:" + g.claims.from + ":" + g.pond.length + ":" + g.claims.tier;
     if (g.wall === null) return "break:" + hid;
     if (g.turn) return "turn:" + g.turn.seat + ":" + hid;
     return "x";
@@ -110,7 +106,8 @@
           from: g.claims.from,
           tile: g.claims.robbing ? null : g.claims.tile,   // a robbed kong's tile shows via the meld try, not here
           robbing: !!g.claims.robbing,
-          waiting: Object.keys(g.claims.can).filter(function (k) { return !g.claims.responses[k]; }).map(Number),
+          tier: g.claims.tier,
+          waiting: g.claims.ask.filter(function (k) { return !g.claims.responses[k]; }),
           acked: Object.keys(g.claims.responses).map(Number)
         };
       }
@@ -130,7 +127,7 @@
         view.you.hand = p.hand.slice();
         view.you.drawn = g.turn && g.turn.seat === seat ? g.turn.drawn : null;
         // my live options, computed server-side so the client stays dumb
-        if (g.claims && g.claims.can[seat] && !g.claims.responses[seat]) {
+        if (g.claims && g.claims.ask.indexOf(seat) >= 0 && !g.claims.responses[seat]) {
           view.you.claims = {
             options: g.claims.can[seat].slice(),
             chows: g.claims.robbing ? [] : Engine.chowChoices(p.hand, g.claims.tile)

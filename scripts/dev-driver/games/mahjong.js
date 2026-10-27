@@ -21,7 +21,7 @@ GAMES.mahjong = {
     return g.phase === "play" && !g.handOver && !g.claims && !!g.turn && g.turn.seat === seat && g.turn.drawn != null;
   },
   claimWaits: function (g, seat) {
-    return !!g.claims && !g.claims.robbing && (g.claims.waiting || Object.keys(g.claims.can || {}).map(Number)).indexOf(seat) >= 0 &&
+    return !!g.claims && !g.claims.robbing && (g.claims.ask || Object.keys(g.claims.can || {}).map(Number)).indexOf(seat) >= 0 &&
       !(g.claims.responses && g.claims.responses[seat]);
   },
   pass: function (send) { send({ type: "claim", action: "pass" }); },
@@ -40,8 +40,9 @@ GAMES.mahjong = {
       g.claims = null;
       g.turn = { seat: s, drawn: drawn, justKonged: false, anyDiscard: true, firstTurn: false };
       g.wall = [];
-      return [{ type: "discard", seat: s, tile: tile },
-        function (g2) { return g2.claims ? { type: "timerExpire" } : null; }];
+      // a pass per claim tier: win/pung/kong, then the chow seat
+      var passTier = function (g2) { return g2.claims ? { type: "timerExpire" } : null; };
+      return [{ type: "discard", seat: s, tile: tile }, passTier, passTier];
     },
     // a random seat self-draws a random hand that clears the table minimum
     Win: function (g) {

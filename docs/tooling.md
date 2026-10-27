@@ -248,7 +248,7 @@ disconnects ([games.md](games.md)).
 | `<Game>Transport.tables()` | the live table objects |
 
 A reloaded page picks a running table up where it stood: since 2026-10-26
-`boot()` re-arms its bots' next step and its deadline (a claim window's cap),
+`boot()` re-arms its bots' next step and its deadline (a claim window has none since 2026-10-27),
 which were timers and died with the old page. Before, a reloaded table sat
 still until someone acted.
 

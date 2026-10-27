@@ -27,7 +27,7 @@ const PROBE = `(function () {
     melds: G.players.map(function (p) { return p.melds.length; }), log: [].slice.call(document.querySelectorAll(".mj-log__list > *"), -3).map(function (n) { return n.textContent; }) };
   return { bad: bad, seen: seen, idle: !document.querySelector(".mj-fly") && !document.querySelector(".mj .is-pending"),
     mine: !!(me && G.turn && G.turn.seat === seat && G.turn.drawn != null && !G.claims),
-    claim: !!(G.claims && !G.claims.robbing && (G.claims.can || {})[seat] && !(G.claims.responses || {})[seat]) };
+    claim: !!(G.claims && !G.claims.robbing && (G.claims.ask || []).indexOf(seat) >= 0 && !(G.claims.responses || {})[seat]) };
 })()`;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -64,9 +64,10 @@ vendors the engine verbatim. **The worker is built and deployed, and
   ride the cities dice-tumble animation.
 - **Turn timer is a host setting** (Off / 45 / 60 / 90 / 120 s), same
   slots as cities. On expiry the engine auto-resolves: auto-roll,
-  auto-pass claims, auto-discard the drawn tile — and if the idle
+  auto-discard the drawn tile — and if the idle
   player's drawn tile already completes a legal win, it wins for them
-  (player-friendly, keeps a match finite).
+  (player-friendly, keeps a match finite). A claim window runs on no
+  clock at all ("Claim windows" below).
 - **A log, no deck pane** — mahjong's public record is the ponds; the
   log tile is a single pane.
 
@@ -112,8 +113,15 @@ robbing window), `claim {action: win|pung|kong|chow|pass, tiles}`,
 
 **Claim windows.** A discard computes, per other seat, which claims are
 legal (win checks the full hand at min-faan; chow only for the next
-seat in turn order). Only seats with an option are asked; the window
-resolves when all have answered (or `timerExpire` passes the rest).
+seat in turn order). The window asks in **two tiers** (his call,
+2026-10-27): every seat that can win, pung or kong first, offered all its
+options (the next seat's chow included); the chow-only seat is asked only
+once tier 1 has all passed. A window with no tier-1 seat opens straight
+at tier 2. `g.claims.ask` is the tier's seats and `tier` is 1 or 2; each
+tier opens with its own `claimsOpen` event (`seats`, `tier`). A tier
+resolves when all its seats have answered, with **no deadline**: the
+tables arm none on a claim window, so it waits on its seats however the
+timer is set (`timerExpire` still passes a tier, for the idle soak).
 Priority: **win > kong/pung > chow**, ties to the seat nearest the
 discarder in turn order. All-pass → the discard stands and the next
 seat draws. Wall empty on a required draw → exhaustive draw, dealer
@@ -171,7 +179,8 @@ the client rebuilds its per-game UI through the `onRematch` hook.
   flower/kong replacements), plus the public `pond` — the chronological
   discard list `[{seat, tile}]` (a claim pops its entry). All three are
   engine state the worker's views must relay unchanged.
-- a claim window broadcasts who may act (`claims.waiting`), but each
+- a claim window broadcasts its `tier` and who in it may still act
+  (`claims.waiting`: the asked tier only), but each asked
   seat's legal OPTIONS ride only its own `you.claims`
   (`{options, chows}`); a `claimAck` reveals pass-vs-claim only to the
   actor until resolution
@@ -477,10 +486,20 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   meaning. Reorder works any time; the drag-out-to-discard target only
   arms on your turn. Renders are suppressed while a drag is in flight
   (`dragActive`) so the strip stays stable under the pointer.
-- **Claim window**: the trade-hub dock (over the board's right quarter)
-  repurposed — the discarded tile writ large, my claim buttons (chow
+- **Claim window** (his calls, 2026-10-27): a panel centered on the
+  felt's own box (`placeClaim` measures it), top-aligned on the felt
+  below 64rem. The discarded tile writ large, my claim buttons (chow
   variants as tile-pair pickers), Pass; pulses while it awaits me. The
-  claimable tile in the pond pulses gold in sympathy.
+  claimable tile in the pond pulses gold in sympathy. **Who sees it:**
+  an asked seat sees its options at once; everyone else sees nothing
+  until the tier has stood `CLAIM_REVEAL_MS` (5 s), then the panel names
+  who's still deciding (the seat dots and the rack's "Waiting on claims…"
+  wait for the same reveal). So a quick pass names nobody, and a staller
+  is named. **The eye** in the panel's top right corner: held (pointer,
+  or Space/Enter), the panel fades to a tenth so the tiles beneath read,
+  and the eye shuts. Its open strokes are his drawing; the shut one swings
+  the upper lid down onto the lower. The panel rebuilds only when its
+  content changes, so a bot's ack can't drop a hold or restart the pulse.
 - **Fly layer** (`.mj-flylayer`): the tile flights below, and the
   settlement's gold score chips losers → winner (those still ride the
   shared chip layer, `games/flights.js`).
@@ -555,8 +574,9 @@ shared `--gseat-N` slots every game table uses (styles/table.css).
 
 One table deadline at a time (`turnEndsAt` in every broadcast, ticked
 client-side off `serverNow` skew): seating rolls, the break roll, the
-discard turn — all `timerSec` when a HUMAN must act; claim windows cap
-at 10 s. The hand-over interstitial has none: `nextHand` is a host verb
+discard turn — all `timerSec` when a HUMAN must act. Claim windows have
+no deadline: they wait until the asked tier answers (his call, 2026-10-27;
+before, they capped at 10 s and auto-passed). The hand-over interstitial has none: `nextHand` is a host verb
 (`HOST_VERBS`, [games.md](games.md)), so the table can talk between hands
 and moves on when the host deals (his call, 2026-10-27).
 

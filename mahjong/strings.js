@@ -201,6 +201,7 @@ window.MAHJONG_STRINGS = {
    chowPick: "Which run?",
    kongPick: "Which kong?",
    claimWaiting: "Waiting on claims…",
+   claimPeek: "[ph]Hold to see the table",
 
    /* ── hand over (settlement interstitial) ─────────────────────── */
    handWinLine: "{name} wins — {faan} faan",

@@ -591,7 +591,7 @@
       return scope.filter(function (s) { return !(model.seating && model.seating.rolls[s]); });
     }
     if (model.handOver) return [];
-    if (model.claims) return model.claims.waiting || [];
+    if (model.claims) return claimRevealed() ? model.claims.waiting || [] : [];
     if (model.needBreak) return [dealerSeat()];
     if (model.turn) return [model.turn.seat];
     return [];
@@ -2092,14 +2092,114 @@
     return line;
   }
 
-  /* ── CLAIM window (the trade-hub overlay, repurposed) ─────────── */
+  /* ── CLAIM window ───────────────────────────────────────────────
+     Centered over the felt (top-aligned when narrow). The window asks in
+     tiers, win/pung/kong, then the chow seat (engine claimTier), and
+     waits on them with no clock. An asked seat sees its options at once;
+     everyone else sees who's still deciding only after CLAIM_REVEAL_MS, so
+     a quick pass names nobody (his calls, 2026-10-27). The eye in the
+     panel's corner fades it while held, to read the tiles beneath. */
+  var CLAIM_REVEAL_MS = 5000;
+  var claimSeen = { key: null, at: 0, timer: 0 };
+  function claimRevealed() {
+    var cl = model.claims;
+    if (!cl) return false;
+    var key = cl.from + ":" + cl.tile + ":" + cl.tier + ":" + (model.pond ? model.pond.length : 0);
+    if (key !== claimSeen.key) {
+      claimSeen.key = key; claimSeen.at = Date.now();
+      clearTimeout(claimSeen.timer);
+      claimSeen.timer = setTimeout(render, CLAIM_REVEAL_MS);
+    }
+    return Date.now() - claimSeen.at >= CLAIM_REVEAL_MS;
+  }
+
+  // the eye: open while the panel shows, closed while held. Its strokes
+  // follow his drawing (chat, 2026-10-27); closing swings the upper lid
+  // down onto the lower one and hides the pupil.
+  function eyeSvg() {
+    function s(name, attrs, parent) {
+      var n = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (var k in attrs) n.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(n);
+      return n;
+    }
+    var svg = s("svg", { viewBox: "52 57 176 176", "aria-hidden": "true" });
+    s("path", { "class": "mj-eye__lid", d: "M62 152Q140 40 218 150" }, svg);
+    s("path", { "class": "mj-eye__shut", d: "M62 152Q140 196 218 150" }, svg);
+    s("path", { d: "M66 155Q140 228 214 152" }, svg);
+    s("ellipse", { "class": "mj-eye__pupil", cx: 145, cy: 157, rx: 24, ry: 33, transform: "rotate(12 145 157)" }, svg);
+    return svg;
+  }
+  var claimUI = null;    // { wrap, eye, box, sig }: built once, so a hold survives broadcasts
+  function claimShell() {
+    if (claimUI) return claimUI;
+    var wrap = el("div", "mj-claimwrap");
+    var eye = el("button", "mj-eye"); eye.type = "button";
+    eye.setAttribute("aria-label", S.claimPeek); eye.title = S.claimPeek;
+    eye.appendChild(eyeSvg());
+    function peek(on) {
+      wrap.classList.toggle("is-peek", on);
+      eye.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    eye.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      e.preventDefault();
+      try { eye.setPointerCapture(e.pointerId); } catch (_) {}
+      peek(true);
+    });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (t) {
+      eye.addEventListener(t, function () { peek(false); });
+    });
+    eye.addEventListener("keydown", function (e) {
+      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); peek(true); }
+    });
+    eye.addEventListener("keyup", function (e) { if (e.key === " " || e.key === "Enter") peek(false); });
+    eye.addEventListener("blur", function () { peek(false); });
+    eye.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    window.addEventListener("blur", function () { peek(false); });
+    window.addEventListener("resize", placeClaim);
+    if (window.ResizeObserver) new ResizeObserver(placeClaim).observe(BIG);   // a reflow that isn't a window resize
+    BIG.addEventListener("scroll", placeClaim, { passive: true });
+    wrap.appendChild(eye);
+    claimUI = { wrap: wrap, eye: eye, box: null, sig: null, peek: peek };
+    return claimUI;
+  }
+  // centre the panel on the felt's own box, not the board's; narrow, at its top
+  function placeClaim() {
+    if (!CLAIM || CLAIM.hidden) return;
+    var felt = BIG.querySelector(".mj-felt");
+    if (!felt) return;
+    var c = CLAIM.getBoundingClientRect(), f = felt.getBoundingClientRect();
+    CLAIM.style.setProperty("--mj-claim-x", (f.left + f.width / 2 - c.left) + "px");
+    CLAIM.style.setProperty("--mj-claim-y", (f.top + f.height / 2 - c.top) + "px");
+    CLAIM.style.setProperty("--mj-claim-top", Math.max(0, f.top - c.top) + "px");
+  }
+  function hideClaim() {
+    CLAIM.hidden = true;
+    if (claimUI) { claimUI.peek(false); claimUI.sig = null; }
+  }
   function renderClaim() {
     if (!CLAIM) return;
     var cl = model.claims;
     var my = model.you && model.you.claims;
-    // the dock opens once the discard has landed in the pond (tile flights)
-    if (!cl || model.phase !== "play" || HOLD.discard) { CLAIM.hidden = true; CLAIM.textContent = ""; return; }
-    CLAIM.hidden = false; CLAIM.textContent = "";
+    // the panel opens once the discard has landed in the pond (tile flights)
+    if (!cl || model.phase !== "play" || HOLD.discard) return hideClaim();
+    if (!my && !(claimRevealed() && cl.waiting && cl.waiting.length)) return hideClaim();
+    var ui2 = claimShell();
+    if (!ui2.wrap.parentNode) CLAIM.appendChild(ui2.wrap);
+    CLAIM.hidden = false;
+    // rebuild only when the panel's content changes, so a bot's ack doesn't
+    // restart the pulse or drop a hover
+    var sig = JSON.stringify([cl.from, cl.tile, cl.robbing, my || null, my ? null : cl.waiting]);
+    if (sig !== ui2.sig) {
+      ui2.sig = sig;
+      var box = buildClaimBox(cl, my);
+      if (ui2.box) ui2.wrap.replaceChild(box, ui2.box); else ui2.wrap.insertBefore(box, ui2.eye);
+      ui2.box = box;
+    }
+    placeClaim();
+  }
+  function buildClaimBox(cl, my) {
     var box = el("div", "mj-claimbox" + (my ? " is-incoming" : ""));
     var title = el("h3", "mj-claimbox__title",
       cl.robbing ? fmt(S.robTitle, { name: seatName(cl.from) }) : fmt(S.claimTitle, { name: seatName(cl.from) }));
@@ -2149,7 +2249,7 @@
       });
       box.appendChild(waitRow);
     }
-    CLAIM.appendChild(box);
+    return box;
   }
 
   /* ── ROLE tile: my rack + action pills ────────────────────────── */
@@ -2238,7 +2338,7 @@
         hint.title = fmt(S.nearWinLine, { n: nw.faan, min: nw.need });
         head.appendChild(hint);
       } else if (canDiscard) headNote(manual ? S.discardHintManual : S.discardHint);
-      else if (model.claims) headNote(S.claimWaiting);
+      else if (model.claims) { if (claimRevealed()) headNote(S.claimWaiting); }   // quiet until the reveal
       else if (model.turn) headNote(fmt(S.drawWaiting, { name: seatName(model.turn.seat) }));
       var pills = [];
       var canWin = canDiscard && model.you && model.you.canWin;
