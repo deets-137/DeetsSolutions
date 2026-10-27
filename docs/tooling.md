@@ -272,6 +272,25 @@ covers the look).
 The `build-*.py` / `.ps1` scripts generate art and data. Each one names its
 owning doc in its first line.
 
+## 5a. Cloudflare from the shell — the `cf` CLI
+
+[`cf`](https://developers.cloudflare.com/cf/) (Homebrew, `/opt/homebrew/bin/cf`,
+v0.15.0 as of 2026-10-27) is installed and **logged in to his account** (OAuth,
+`~/Library/Preferences/cloudflare/config/default.json`). Claude may use it. `cf auth
+whoami` confirms the login.
+
+- **Read and inspect: yes.** For example `cf workers list` (every `deets-*` worker),
+  `cf workers deployments list`, `cf workers versions`, `cf workers secrets`, and
+  zone analytics. These need no project config. Anything that changes live
+  resources (secrets, routes, deletes) is still his call, just like a deploy.
+- **Deploy: no, not yet.** `cf deploy` builds through a project-local wrangler and
+  wants a `cloudflare.config.ts`. Every worker repo uses `wrangler.jsonc`, and
+  Cloudflare's conversion path (`cf migrate`) isn't in v0.15.0. Converting a live
+  worker's config is its own decision, not a side effect of a deploy.
+- **Deploys stay `npx wrangler deploy`** in the sibling repo, and wrangler keeps its
+  **own** login. It does not read `cf`'s, so a "not authenticated" error from it
+  means he runs `npx wrangler login` in a terminal (it opens a browser).
+
 ## 6. Recipe — debugging a game UI against the mock
 
 0. Reach for `node scripts/dev-run.js` first (§3b): `turn`, `flight`,
