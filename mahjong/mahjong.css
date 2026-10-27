@@ -311,6 +311,9 @@
    dealt tile on its way to a hand — above the panels, never in the way */
 .mj-morph, .mj-dealfly { z-index: 36; pointer-events: none; }
 .mj-morph { overflow: hidden; }
+/* a seat box gliding into its hand-over row: solid, so the panel it
+   crosses doesn't read through it */
+.mj-hoglide { background: var(--menu-surface); }
 
 /* ── seating panel (dice pick the winds) ──────────────────────── */
 .mj-seating { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
@@ -732,6 +735,9 @@
      spectator's role tile auto-places into a row of its own instead. */
   .mj-tile--role { grid-area: auto; }
   .mj-tile--dice, .mj-tile--players, .mj-tile--log { display: none; }
+  /* the board runs tall here, so the hand-over and the scoring guide sit
+     at its top instead of its middle, where they'd open below the fold */
+  .mj-handover, .mj-guide { place-items: start center; padding-top: var(--space-4); }
   /* the bar sits above the board, so its Log popover must paint over it */
   .mj-tile--wall {
     height: var(--mjbarh); position: relative; z-index: 30;

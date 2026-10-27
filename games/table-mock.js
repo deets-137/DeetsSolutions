@@ -657,17 +657,23 @@
       kind: "mock",
       phantomStep: BOT_STEP,
 
-      peek: function (code) {
+      peek: function (code, token) {
         return new Promise(function (resolve) {
           setTimeout(function () {
             var t = TABLES[code];
             if (!t) return resolve({ exists: false });
+            var live = t.game && t.game.phase !== "over" && rejoinMode(t) === "anyone";
             resolve({
               exists: true,
               phase: t.game ? t.game.phase : "lobby",
               seated: seatedCount(t),
               capacity: capacity(t),
-              spectators: spectatorCount(t)
+              spectators: spectatorCount(t),
+              // the mock has no accounts, so a token is the whole identity
+              mine: seatOfToken(t, typeof token === "string" ? token.slice(0, 64) : "") != null,
+              adoptable: live ? t.seats.filter(function (s) {
+                return s && (s.bot || s.phantom || s.away) && !s.conceded;
+              }).length : 0
             });
           }, LATENCY);
         });

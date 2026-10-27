@@ -384,6 +384,26 @@ export class GameTable {
     return this.joinedSockets(except).filter((s) => token && s.att.token === token);
   }
 
+  // Reclaim target: this device's token, or — signed in — the account's
+  // seat from ANOTHER device, but only a DARK one: a seat whose token
+  // still has a live socket is never pulled out from under its session
+  // (hop out first, then in). The join handler and peek both ask it.
+  reclaimSeat(token, uid) {
+    const seats = this.t.seats;
+    const own = this.seatOfToken(token);
+    if (own != null || !uid) return own;
+    for (let i = 0; i < seats.length; i++) {
+      const s = seats[i];
+      if (s && s.uid === uid && !this.tokenConnected(s.token)) return i;
+    }
+    return null;
+  }
+  // seats a spectator could adopt mid-game — the toolbar's Sit down list
+  adoptableCount() {
+    const g = this.t.game;
+    if (!g || g.phase === "over" || this.rejoinMode() !== "anyone") return 0;
+    return this.t.seats.filter((s) => s && (this.isBot(s) || s.away) && !s.conceded).length;
+  }
   seatOfToken(token) {
     const seats = this.t.seats;
     for (let i = 0; i < seats.length; i++) if (seats[i] && seats[i].token === token) return i;
@@ -1123,12 +1143,19 @@ export class GameTable {
 
     if (leaf === "peek") {
       if (!this.exists()) return Response.json({ exists: false });
+      // who's asking (the device token header, the session cookie) decides
+      // the gate's pill: Rejoin for a seat that's theirs, Sit down for an
+      // adoptable one, else Spectate
+      const token = (req.headers.get("X-Table-Token") || "").slice(0, TOKEN_CAP);
+      const uid = await this.sessionUid(req);
       return Response.json({
         exists: true,
         phase: this.t.game ? this.t.game.phase : "lobby",
         seated: this.seatedCount(),
         capacity: this.capacity(),
         spectators: this.spectatorCount(),
+        mine: this.reclaimSeat(token, uid) != null,
+        adoptable: this.adoptableCount(),
       });
     }
 
@@ -1173,17 +1200,7 @@ export class GameTable {
       // reconnect supersedes: reap this device's own lingering sockets
       const mine = this.joinedSockets().filter((s) => s.ws !== ws && token && s.att.token === token);
       const others = this.joinedSockets().filter((s) => s.ws !== ws && !mine.includes(s));
-      // Reclaim target: this device's token, or — signed in — the account's
-      // seat from ANOTHER device, but only a DARK one: a seat whose token
-      // still has a live socket is never pulled out from under its session
-      // (hop out first, then in).
-      let reclaim = this.seatOfToken(token);
-      if (reclaim == null && uid) {
-        for (let i = 0; i < t.seats.length; i++) {
-          const s = t.seats[i];
-          if (s && s.uid === uid && !this.tokenConnected(s.token)) { reclaim = i; break; }
-        }
-      }
+      let reclaim = this.reclaimSeat(token, uid);
       // A PLAYER name is unique among live connections only. Seat names are
       // their own namespace (unique among seats, checked where a seat is
       // named): a seat keeps the name it was dealt under, so a bot holding
@@ -1290,6 +1307,10 @@ export function corsHeaders(env, req) {
   return {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": allowed.includes(origin) ? origin : allowed[0],
+    // peek carries the device token in a header and the session cookie
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Headers": "X-Table-Token",
+    "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   };
 }

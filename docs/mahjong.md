@@ -579,7 +579,9 @@ faces. All four lines share one scale, shrunk until the widest fits
 (`fitHandRows`, CSS `zoom`). As the hand ends, each seat's box glides off
 the board onto its row, one after another (`handOverBefore`/`handOverRun`,
 the opening's morph run the other way, on `--morph`), so the panel's own
-entrance is a plain fade. A summary without `hands` (an older worker)
+entrance is a plain fade. The gliding boxes are solid (`.mj-hoglide`) and
+drop the board's turn highlight (`is-active`). Below 64rem the hand-over
+and the scoring guide sit at the top of the board, not its middle. A summary without `hands` (an older worker)
 shows the winner's hand alone with the payments listed.
 Bots act on their own ~700 ms cadence, timer or no timer.
 

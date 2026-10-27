@@ -472,7 +472,10 @@
       var r = row.getBoundingClientRect();
       var k = [].indexOf.call(row.parentNode.children, row), delay = k * ms * 0.15;
       var g = z.el;
-      g.classList.add("mj-morph");
+      // the turn's highlight stays on the board: carried along, one box flew
+      // bolder than the rest and landed on whichever row it belonged to
+      g.classList.remove("is-active");
+      g.classList.add("mj-morph", "mj-hoglide");
       g.removeAttribute("data-zone");
       g.setAttribute("aria-hidden", "true");
       g.inert = true;

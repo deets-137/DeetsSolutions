@@ -167,9 +167,15 @@
     return {
       kind: "real",
 
-      /* GET /table/{code}/peek → {exists, phase, seated, capacity, spectators} */
-      peek: function (code) {
-        return fetch(api + "/table/" + encodeURIComponent(code) + "/peek")
+      /* GET /table/{code}/peek → {exists, phase, seated, capacity, spectators,
+         mine, adoptable}. The token rides a header (never the URL) and the
+         session cookie rides along, so the table can say whether a seat is
+         already this device's or this account's. */
+      peek: function (code, token) {
+        return fetch(api + "/table/" + encodeURIComponent(code) + "/peek", {
+          credentials: "include",
+          headers: token ? { "X-Table-Token": token } : {}
+        })
           .then(function (res) {
             if (!res.ok) throw new Error("peek " + res.status);
             return res.json();
