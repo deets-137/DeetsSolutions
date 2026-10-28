@@ -8,11 +8,11 @@
    rendered from typed event records (they pull display names from here).
 
    Radio convention, verbatim: Claude may ADD a string when wiring new UI, but
-   every Claude-authored value must be prefixed "[ph]" — a placeholder Aditya
+   every Claude-authored value must be prefixed '[ph]' — a placeholder Aditya
    rewrites, deleting the prefix as he goes. Claude never edits an un-prefixed
-   (handwritten) value, and nothing still carrying "[ph]" may ship. Aditya's
-   copy pass is UNDERWAY: un-prefixed values are his (some dictated in chat,
-   marked by section comments); [ph] entries still await him.
+   (handwritten) value, and nothing still carrying '[ph]' may ship. Aditya
+   cleared every remaining prefix in this file at once (chat, 2026-10-28):
+   the values stand as written until he rewrites one.
 
    {curly} tokens are filled by cities.js (fmt()). */
 window.CITIES_STRINGS = {
@@ -35,6 +35,12 @@ window.CITIES_STRINGS = {
   rejoinSeat:   "Rejoin",
   createLine:   "The '{code}' Table doesn't exist yet. Open it?",
   createButton: "Open the Table",
+  /* the open button beside the code (games/table.js cfg.openButton): the
+     + opens out to this; an existing table's button reuses sitButton /
+     watchButton. guestName seats a guest with no name, who lands in the
+     rename editor. Mahjong's wording (his, 2026-10-26) */
+  openPrompt:   "Open table?",
+  guestName:    "Guest",
   nameLabel:    "Your name",
   nameNeeded:   "Enter a name first.",
   joinRefused:  "Table no longer exists.",
@@ -60,7 +66,7 @@ window.CITIES_STRINGS = {
   timerCustom:     "#s",   /* the custom-seconds box — Aditya's, chat 2026-08-02 */
   bonusLabel:      "Trade Bonus Time",   /* Aditya's wording, chat 2026-08-05 */
   bonusOff:        "Off",
-  bettingLabel:    "[ph]Spectator betting",   // [ph] OK to ship — betting is unbuilt (v1.1); Aditya's call (chat 2026-07-21)
+  bettingLabel:    "Spectator betting",   // betting is unbuilt (v1.1); prefix cleared with the rest 2026-10-28
   bettingOn:       "On",
   bettingOff:      "Off",
   startButton:     "Start game",
@@ -81,8 +87,8 @@ window.CITIES_STRINGS = {
   rejoinNone:      "None",
   standConfirm:    "Confirm?",   // Aditya's wording (chat 2026-07-28), no [ph] — matches addBotGo
   sitDownPill:     "Take over for:",   // Aditya's wording (chat 2026-07-28), no [ph] — the pill reads INTO its popover's seat list
-  concededToast:   "[ph]{name} conceded.",
-  adoptedToast:    "[ph]{name} sat down.",
+  concededToast:   "{name} conceded.",
+  adoptedToast:    "{name} sat down.",
   /* host-added bots (the addBot verb): "+ Bot" on an open seat opens an
      inline name editor; clicking a bot's name renames (lobby-only) */
   addBotButton:     "Add Bot",
@@ -93,10 +99,10 @@ window.CITIES_STRINGS = {
   /* bot difficulty (docs/games.md, "Bots"): the segmented picker in the
      host's bot editor, and the badge on a bot's seat row. One entry per
      name in the engine's BOT_TIER_LIST — botTier_<name>. */
-  botTierAria:      "[ph]Bot difficulty",
-  botTier_easy:     "[ph]Easy",
-  botTier_normal:   "[ph]Normal",
-  botTier_hard:     "[ph]Hard",
+  botTierAria:      "Bot difficulty",
+  botTier_easy:     "Easy",
+  botTier_normal:   "Normal",
+  botTier_hard:     "Hard",
   /* single-letter forms for the seat-row picker (falls back to the raw
      tier name's first letter if an entry is missing) — Aditya's, chat
      2026-08-02 */
@@ -107,10 +113,10 @@ window.CITIES_STRINGS = {
      click-to-edit row; "Save" and "Reset" are Aditya's (chat 2026-07-27) */
   renameGo:         "Save",
   renameReset:      "Reset",
-  renameYouAria:    "[ph]Edit your name",
-  renameNameAria:   "[ph]Your name",
-  renameResetAria:  "[ph]Reset to your profile name",
-  renameCancelAria: "[ph]Cancel renaming",
+  renameYouAria:    "Edit your name",
+  renameNameAria:   "Your name",
+  renameResetAria:  "Reset to your profile name",
+  renameCancelAria: "Cancel renaming",
   /* seat-color picker (dot → slide-open expand) — "Your color",
      "{name}'s color", "Become...", "Custom:" and the six-digit help
      line are Aditya's wording (chat), no [ph] */
@@ -169,6 +175,14 @@ window.CITIES_STRINGS = {
   diceWaiting: "{name} to roll",
   diceRolling: "Rolling…",
   diceLast:    "{name} rolled {sum}",
+
+  /* ── seating roll (dice set the turn order; games/seating.js). Title,
+     re-roll and rolled lines are mahjong's, his wording; the note is new
+     (no [ph] this session, his call 2026-10-28) ─────────────────── */
+  seatingTitle:   "Roll for seats",
+  seatingNote:    "Highest roll goes first, lowest goes last.",
+  seatingReroll:  "Tie! {names} roll again.",
+  seatingRolled:  "{name} rolled {sum}",
 
   /* ── players tile ────────────────────────────────────────────── */
   vpShort:     "{n} VP",
@@ -278,8 +292,8 @@ window.CITIES_STRINGS = {
   // placement badge on the reveal (docs/stats.md). Competition ranking, so
   // two tied 3rds are BOTH 3rd and the next seat is 4th; placeTied marks the
   // shared ones. Indexed by rank - 1.
-  ordinals:    ["[ph]1st", "[ph]2nd", "[ph]3rd", "[ph]4th", "[ph]5th", "[ph]6th"],
-  placeTied:   "[ph]T-{place}",
+  ordinals:    ["1st", "2nd", "3rd", "4th", "5th", "6th"],
+  placeTied:   "T-{place}",
 
   /* ── in-game attention toasts ────────────────────────────────────
      stolenFromYou is Aditya's wording (chat 2026-07-22), no [ph] — the

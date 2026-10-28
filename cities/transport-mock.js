@@ -47,7 +47,7 @@
     Engine: Engine,
     Colors: Colors,
     extraState: { chips: function () { return {}; }, book: function () { return []; } },
-    gameVerbs: { roll: 1, place: 1, buyDev: 1, playDev: 1, discard: 1, moveRobber: 1,
+    gameVerbs: { rollSeat: 1, roll: 1, place: 1, buyDev: 1, playDev: 1, discard: 1, moveRobber: 1,
                  steal: 1, bankTrade: 1, offer: 1, respond: 1, close: 1, cancel: 1, endTurn: 1 },
 
     defaultSettings: function () { return { capacity: 3, timerSec: 0, tradeBonusSec: 10, betting: false, resView: true }; },
@@ -81,6 +81,8 @@
         });
       }
       view.turn = g.turn;                           // public (pending counts are public)
+      view.seating = g.seating;                     // public: the seating roll (rolls, re-roll scope)
+      view.order = g.order;                         // public: turn order, once the seating settles
       view.setup = g.setup;
       view.awards = g.awards;
       view.offers = g.offers.map(publicOffer);
@@ -238,20 +240,4 @@
   });
 
 
-  /* ── betting (v1.1 designed; transport side wired, UI deferred) ── */
-  function grantChips(t, token) {
-    if (!t.settings.betting) return;
-    if (t.chips[token] == null && seatOfToken(t, token) == null) t.chips[token] = 100;
-  }
-  function settleBets(t) {
-    (t.book || []).forEach(function (b) {
-      if (b.settled) return;
-      b.settled = true;
-      if (b.type === "winner" && b.params && b.params.seat === t.game.winner) {
-        t.chips[b.token] = (t.chips[b.token] || 0) + b.stake * 2;   // even money v1.1
-      }
-    });
-  }
-
-  /* ── command handlers (client → table) ────────────────────────── */
 })();

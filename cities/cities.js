@@ -63,6 +63,12 @@
      below. `model` is rebound by onModel on every broadcast, so the rest
      of the file reads it exactly as it always did. */
   var model = null;
+  /* fields the worker omits when absent must clear, not linger — every
+     broadcast is a full view, so an omission means genuinely gone. A
+     rematch omits the lot: the lobby must not paint a discarded board. */
+  var CLEAR_FIELDS = ["frame", "board", "buildings", "roads", "bank", "devLeft", "dice",
+                      "gained", "turn", "seating", "order", "setup", "awards", "offers", "vp", "players",
+                      "over", "turnEndsAt"];
   var TBL = window.DeetsTable.create({
     ns: "cities",
     api: "https://cities-api.deets.solutions",
@@ -76,15 +82,15 @@
     // cities opts into "None" (leaving = conceding): the engine speaks
     // `concede`, so a table can run bot-free (docs/cities.md)
     rejoinModes: ["anyone", "rejoin", "none"],
+    iconToolbar: true,   // Invite / Settings / Leave as icons (games/table.js)
+    openButton: true,    // the code's + / sit button stands in for the gate (games/table.js)
     startNeedsHint: S.startNeedsThree,
     logCap: 120,
     errExtra: { cost: S.errCost, loc: S.errLoc, rate: S.errRate, empty: S.errEmpty, supply: S.errSupply },
-    /* fields the worker omits when absent must clear, not linger — every
-       broadcast is a full view, so an omission means genuinely gone. A
-       rematch omits the lot: the lobby must not paint a discarded board. */
-    clearFields: ["frame", "board", "buildings", "roads", "bank", "devLeft", "dice",
-                  "gained", "turn", "setup", "awards", "offers", "vp", "players",
-                  "over", "turnEndsAt"],
+    clearFields: CLEAR_FIELDS,
+    // the seating roll's rest, then the pads' morph and the board being laid
+    // out, hold the table (games/table.js, "Staging")
+    stageMessage: stageTable,
     clearYouFields: ["hand", "dev", "harbors", "chips"],
     els: {
       bar: BAR_INPUT, codePop: CODE_POP, codeCtrl: document.querySelector(".gt-code"),
@@ -160,6 +166,7 @@
   ui.mode = null; ui.build = null; ui.plentyPick = []; ui.actionMenu = null;
   ui.tradeHub = false; ui.tradeTool = null; ui.embargoPop = null; ui.overExpanded = {};
   var spinUntil = 0;
+  var lastSeatRoll = null;   // the dice tile's seating roll: { seat, d }
   var LOGVIEW_KEY = "deets-cities-logview";
   var logView = load(LOGVIEW_KEY, "deck");   // log tile rail: "log" | "deck" — sticky across sessions, Deck by default
   var lastTurnSeat = null;   // players tile: scroll-to-active fires on change only
@@ -213,6 +220,13 @@
     else if (p.kind === "steal") ui.mode = "steal";
   }
   function handleEvent(e) {
+    // the seating roll tumbles on its pad and on the dice tile together
+    if (e.t === "seatRoll") {
+      lastSeatRoll = e;
+      spinUntil = Date.now() + (reduceMotion() ? 0 : ROLL_MS);
+      SEATING.spin(e.seat);
+    }
+    if (e.t === "seated") startLay();   // the opening: pads to strips, then the board is laid out
     if (e.t === "roll") {
       spinUntil = Date.now() + (reduceMotion() ? 0 : 620);
       // roll celebration: hexes whose number just hit glow once the dice
@@ -352,6 +366,9 @@
     var R = function (r) { return { res: r }; };
     var L = function () { return { parts: Array.prototype.slice.call(arguments) }; };
     switch (e.t) {
+      case "seatRoll": return L(n(e.seat) + " rolled " + (e.d[0] + e.d[1]) + " for order");
+      case "seatReroll": return L("Tie: " + e.seats.map(n).join(", ") + " roll again");
+      case "seated": return L(n(e.order[0]) + " goes first");
       case "roll": return L(n(e.seat) + " rolled " + (e.d[0] + e.d[1]) + " (" + e.d[0] + "+" + e.d[1] + ")");
       case "gain": return L(n(e.seat) + " +" + e.n + " ", R(e.res));
       case "build": return L(n(e.seat) + " built a " + (PIECE_NAME[e.kind] || e.kind).toLowerCase());
@@ -489,7 +506,8 @@
   }
   function autoSetupMode() {
     if (!model || model.phase !== "setup") return;
-    if (model.setup.seq[model.setup.i] !== mySeat()) { ui.mode = null; return; }
+    // the board is still being laid out: no targets until the last piece lands
+    if (laying() || model.setup.seq[model.setup.i] !== mySeat()) { ui.mode = null; return; }
     ui.mode = model.setup.need === "settlement" ? "place-settlement" : "place-road";
   }
 
@@ -497,6 +515,11 @@
   /* the shell's render frame calls this once the toolbar, the desktop-only
      guard and the gate/table visibility are settled (games/table.js) */
   function paint() {
+    var wasPhase = paintedPhase;
+    // the seating's pads, as they stand, before the render that leaves it
+    var pads = wasPhase === "seating" && model.phase !== "seating" && laying() ? SEATING.morphBefore() : null;
+    var before = seamBefore();
+    TABLE.dataset.phase = model.phase;   // CSS hook: the lobby is one card (cities.css)
     renderBig();
     renderDice();
     renderPlayers();
@@ -507,6 +530,193 @@
     fitRole();
     fitLog();   // sync: getBoundingClientRect forces the layout it needs (rAF is
                 // throttled when the tab's backgrounded, so don't defer to it)
+    STAGE.shift(before);
+    waveStart(wasPhase);
+    STAGE.apply();
+    // each pad flies into its seat's strip, in the order the roll set
+    if (pads) SEATING.morphRun(pads, function (seat) { return PLAYERS.querySelector('.cities-pstrip[data-seat="' + seat + '"]'); },
+      LAY.morph, STAGE.token("--morph").replace(/^\S+\s*/, "") || "ease-out");
+    layApply();
+  }
+
+  /* ═══ THE OPENING (his design, 2026-10-28; mahjong's seating roll) ═══
+     Start opens on the seating roll: every seat rolls two dice on its own
+     pad, highest first and lowest last, and only tied seats re-roll
+     (engine.js, seatingSettle). The shared board, tumble and staging are
+     games/seating.js, with mahjong's timing: a roll tumbles ROLL_MS, and the
+     roll that settles the order (or ties it) rests PAUSE_MS before the table
+     goes on. Then each pad flies into its seat's strip in the players tile,
+     now in turn order (--morph), and the board is laid out the way it is at
+     a real table: the terrain tiles one by one (row by row from the top),
+     then the number tokens on top of them, then the harbours round the
+     coast, then the robber on the desert (--lay-*). Only then may the first
+     player place: stageTable holds every broadcast behind the opening, so
+     a bot that goes first waits its turn too, and the placement targets
+     stay off until the last piece lands. Every beat is pinned to the
+     document timeline, so a render mid-lay picks it up where it stands. */
+  var ROLL_MS = window.DeetsSeating.ROLL_MS;
+  var SEATING = window.DeetsSeating.create({
+    root: BIG, bento: TABLE.querySelector(".cities-bento"),
+    S: { title: S.seatingTitle, note: S.seatingNote, reroll: S.seatingReroll }, fmt: fmt,
+    seating: function () { return model.seating; },
+    seats: function () { return model.seats; },
+    mySeat: function () { return mySeat(); },
+    seatName: function (i) { return seatName(i); },
+    seatDot: function (i) { return seatDot(i); },
+    accent: function (node, i) { TBL.seatAccent(node, i); },
+    die: function (v) { var d = dieFace(v); d.classList.add("cities-die--small"); return d; },
+    rollPill: function (enabled, onClick) {
+      var p = actionPill(S.pillRoll, enabled, onClick);
+      p.classList.add("cities-act--roll");
+      if (enabled) p.classList.add("is-glow");
+      return p;
+    },
+    roll: function () { send({ type: "rollSeat" }); }
+  });
+  function stageTable(msg, m) {
+    var staged = SEATING.stage(msg, m, CLEAR_FIELDS);
+    if (staged || !STAGE.motionOk() || msg.type !== "state") return staged;
+    // the opening: nothing more shows until the board is laid out
+    if ((msg.ev || []).some(function (e) { return e.t === "seated"; }) && msg.board) {
+      return { now: msg, ms: layPlan(msg.board).end + 20, later: [] };
+    }
+    return null;
+  }
+  /* The lay's schedule, from the board alone (so the hold and the render
+     agree): ms from the opening's start for every piece, by kind and key. */
+  function layPlan(board) {
+    var morph = STAGE.ms("--morph"), drop = STAGE.ms("--lay-drop"), gap = STAGE.ms("--lay-gap");
+    var tileStep = STAGE.ms("--lay-tile"), tokStep = STAGE.ms("--lay-token"), portStep = STAGE.ms("--lay-port");
+    var at = { tile: {}, token: {}, port: {}, robber: {} };
+    // row by row from the top, left to right in a row
+    var hexes = board.hexes.slice().sort(function (a, b) {
+      var ca = hexCenter(a.q, a.r), cb = hexCenter(b.q, b.r);
+      return (ca.y - cb.y) || (ca.x - cb.x);
+    });
+    var t = morph;
+    hexes.forEach(function (h, i) { at.tile[h.q + "," + h.r] = t + i * tileStep; });
+    t += (hexes.length - 1) * tileStep + drop + gap;
+    var toks = hexes.filter(function (h) { return h.token != null; });
+    toks.forEach(function (h, i) { at.token[h.q + "," + h.r] = t + i * tokStep; });
+    t += Math.max(0, toks.length - 1) * tokStep + drop + gap;
+    // the harbours clockwise round the coast, from the top
+    var cx = 0, cy = 0;
+    board.hexes.forEach(function (h) { var c = hexCenter(h.q, h.r); cx += c.x; cy += c.y; });
+    cx /= board.hexes.length; cy /= board.hexes.length;
+    var ports = (board.harbors || []).map(function (hb) {
+      var a = vertexXY(hb.vertices[0]), b = vertexXY(hb.vertices[1]);
+      return { edge: hb.edge, ang: Math.atan2((a.x + b.x) / 2 - cx, cy - (a.y + b.y) / 2) };
+    }).sort(function (a, b) { return ((a.ang + 2 * Math.PI) % (2 * Math.PI)) - ((b.ang + 2 * Math.PI) % (2 * Math.PI)); });
+    ports.forEach(function (p, i) { at.port[p.edge] = t + i * portStep; });
+    t += Math.max(0, ports.length - 1) * portStep + drop + gap;
+    at.robber[board.robber] = t;
+    return { at: at, morph: morph, drop: drop, end: t + drop };
+  }
+  var LAY = null;   // { t0, plan, morph, done: WeakSet, end }
+  function tl() { return document.timeline ? document.timeline.currentTime : performance.now(); }
+  function startLay() {
+    if (!STAGE.motionOk() || !model || !model.board) { LAY = null; return; }
+    var plan = layPlan(model.board);
+    LAY = { t0: tl(), plan: plan, morph: plan.morph, done: new WeakSet(), end: tl() + plan.end };
+    // the placement targets (and a bot's first move) come up once the last piece lands
+    var lay = LAY;
+    setTimeout(function () { if (LAY === lay && model) TBL.render(); }, plan.end + 30);
+  }
+  // the lay is ON only while its time runs — never on a flag alone, so a
+  // late or lost timer can't leave the board hidden
+  function laying() { return !!LAY && tl() < LAY.end; }
+  function stopLay() { LAY = null; }
+  // each piece's START, offset 0 said outright: a lone keyframe without it
+  // is read as the END, and the board showed whole, then faded piece by piece
+  var LAY_FROM = {
+    tile: { offset: 0, opacity: 0, translate: "0 -18px", scale: "1.08" },
+    token: { offset: 0, opacity: 0, scale: "0.4" },
+    port: { offset: 0, opacity: 0, scale: "0.6" },
+    robber: { offset: 0, opacity: 0, translate: "0 -26px" }
+  };
+  function layApply() {
+    if (!laying()) return;
+    var svg = BIG.querySelector(".cities-board");
+    if (!svg) return;
+    var ease = STAGE.token("--lay-ease") || "ease-out";
+    [].forEach.call(svg.querySelectorAll("[data-lay]"), function (n) {
+      if (LAY.done.has(n)) return;
+      LAY.done.add(n);
+      var kind = n.getAttribute("data-lay"), key = n.getAttribute("data-lay-k");
+      var delay = LAY.plan.at[kind] && LAY.plan.at[kind][key];
+      if (delay == null) return;
+      var a = n.animate([LAY_FROM[kind]], { duration: LAY.plan.drop, delay: delay, easing: ease, fill: "backwards" });
+      a.startTime = LAY.t0;
+    });
+  }
+
+  /* ── the stage (mahjong's, his ask 2026-10-28): every phase fills one
+     footprint, so a phase change only moves the dividers between panels.
+     The lobby is one card (its settings + seats); Start melts its border
+     into the game's panels, and their pieces arrive in a nested wave. How
+     both run is shared: games/stage.js. This file says when a wave starts
+     and what arrives in what order. */
+  var BENTO = TABLE.querySelector(".cities-bento");
+  var STAGE = window.DeetsStage.create({
+    root: TABLE, bento: BENTO, panel: "cities-tile", strip: /^(data-cities|id$|aria-)/,
+    tree: waveTree,
+    // the stats' own entrance (cities-overin) would double the wave: the wave is its entrance now
+    beforeApply: function () {
+      STAGE.live(".cities-over").forEach(function (o) {
+        o.getAnimations().forEach(function (a) { if (a.animationName === "cities-overin") a.cancel(); });
+      });
+    }
+  });
+  var paintedPhase = null;
+  // the panels as they stand, each with its ghost, when this render changes phase
+  function seamBefore() {
+    var was = paintedPhase;
+    paintedPhase = model.phase;
+    return STAGE.before(!!was && was !== model.phase);
+  }
+  // every phase change waves, bar setup → main: that is the same board
+  // carrying on, and a wave there would re-raise the pieces just placed
+  function waveStart(wasPhase) {
+    if (!wasPhase || wasPhase === model.phase) return;
+    if (wasPhase === "setup" && model.phase === "main") return;
+    STAGE.wave("phase");
+  }
+  // the pieces whose own pieces arrive after them, in order
+  var WAVE_ALL = ["cities-dice__faces", "cities-dice__dice", "cities-logwrap", "cities-lograil",
+    "cities-log__pane", "cities-deck", "cities-log__list", "cities-play", "cities-play__hand",
+    "cities-hand", "cities-hand__res", "cities-play__ctrl", "cities-gauge", "cities-actions",
+    "cities-tray", "cities-over", "cities-over__supers", "cities-over__reveal"];
+  function waveKids(n) {
+    var shell = STAGE.shellKids(n);
+    if (shell) return shell;
+    var c = n.classList;
+    if (c.contains("cities-board")) {
+      // the hexes ripple out from the middle, ring by ring (each hex's
+      // nodes as one), then the harbors land round the coast
+      var rings = [], harbors = [];
+      [].forEach.call(n.querySelectorAll(":scope > [data-ring]"), function (k) {
+        var r = k.getAttribute("data-ring");
+        if (r === "harbor") harbors.push(k);
+        else (rings[+r] = rings[+r] || []).push(k);
+      });
+      rings = rings.filter(Boolean);
+      return harbors.length ? rings.concat([harbors]) : rings;
+    }
+    if (c.contains("cities-pstrip")) return [].slice.call(n.querySelectorAll(".cities-pstrip__head, .cities-pstrip__awards, .cities-pstrip__stat"));
+    for (var i = 0; i < WAVE_ALL.length; i++) if (c.contains(WAVE_ALL[i])) return [].slice.call(n.children);
+    return [];
+  }
+  // the board itself holds still: its hexes do the arriving
+  function boardHeld(n) { return n.classList.contains("cities-board"); }
+  // every piece with its raw offset: the panels in turn, then their pieces.
+  // The opening's own beats stand in for the board's and the strips' wave:
+  // the pads fly into the strips, and the board is laid out piece by piece.
+  function waveTree() {
+    var out = [];
+    (laying() ? [DICE, LOG, ROLE] : [BIG, DICE, PLAYERS, LOG, ROLE])
+      .filter(function (p) { return !p.hidden && p.getClientRects().length; })
+      .forEach(function (p, i) { STAGE.walk([].slice.call(p.children), i, STAGE.NEST, waveKids, out, boardHeld); });
+    return out;
   }
   // Lock the role tile's height at the full play-area state (pills + reserved
   // tray) so the interrupt prompts — robber, steal, roads — that replace it
@@ -523,6 +733,7 @@
   function renderBig() {
     BIG.textContent = "";
     if (model.phase === "lobby") return TBL.renderLobby(BIG);
+    if (model.phase === "seating") return BIG.appendChild(SEATING.render());
     if (model.phase === "over") return renderOver();
     renderBoard();
   }
@@ -587,7 +798,7 @@
     // robber mode: tokens (and the robber marker) go pointer-transparent so
     // the click lands on the target hex under them — the disc sits dead
     // center, exactly where people aim (odds hover resumes after the pick)
-    var svg = svgEl("svg", { class: "cities-board" + (ui.mode === "robber" ? " is-picking" : ""), viewBox: vb, role: "img", "aria-label": "Board" });
+    var svg = svgEl("svg", { class: "cities-board" + (ui.mode === "robber" ? " is-picking" : "") + (laying() ? " is-laying" : ""), viewBox: vb, role: "img", "aria-label": "Board" });
     var defs = svg.appendChild(svgEl("defs", {}));   // per-hex clipPaths for the terrain art
     var cx0 = (minX + maxX) / 2, cy0 = (minY + maxY) / 2;   // board centroid — the harbor flag's "off-map" compass
 
@@ -601,6 +812,7 @@
     // hex fills + tokens
     model.board.hexes.forEach(function (h) {
       var hk = h.q + "," + h.r, c = hexCenter(h.q, h.r);
+      var mark = svg.childNodes.length;   // this hex's nodes, for the wave's ring tag below
       var poly = svgEl("polygon", { points: hexCorners(h.q, h.r), class: "cities-hex", fill: "var(--cterr-" + h.terrain + ")" });
       var robberHere = model.board.robber === hk;
       // the robber-blocked hex sits out the party — it produced nothing
@@ -670,6 +882,19 @@
           svg.appendChild(svgEl("circle", { cx: c.x, cy: c.y - 2, r: 11, class: "cities-robber" + heist + arrived }));
         }
       }
+      // the phase wave ripples out from the middle (waveKids): every node
+      // of this hex (art, outline, wash, icon, token, robber) carries its
+      // ring, counted in hex widths from the board's centroid
+      var ring = Math.round(Math.sqrt((c.x - cx0) * (c.x - cx0) + (c.y - cy0) * (c.y - cy0)) / (SIZE * Math.sqrt(3)));
+      for (var k = mark; k < svg.childNodes.length; k++) {
+        var node = svg.childNodes[k];
+        node.setAttribute("data-ring", ring);
+        // the opening lays it out (layApply): the tile, then its token, the robber last
+        var cl = node.classList;
+        node.setAttribute("data-lay", cl.contains("cities-tokeng") ? "token"
+          : cl.contains("cities-robber") || cl.contains("cities-robber--sprite") ? "robber" : "tile");
+        node.setAttribute("data-lay-k", hk);
+      }
     });
 
     // roads — one built since the last render draws itself in (pathLength
@@ -703,7 +928,8 @@
     (model.board.harbors || []).forEach(function (hb) {
       var a = vertexXY(hb.vertices[0]), b = vertexXY(hb.vertices[1]);
       var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      var grp = svgEl("g", { class: "cities-harbor" });
+      // the wave's last ring; the opening lays the harbours after the tokens
+      var grp = svgEl("g", { class: "cities-harbor", "data-ring": "harbor", "data-lay": "port", "data-lay-k": hb.edge });
       // native tooltip: the visible label shows the rate (3:1 / 2:1), hover
       // reveals the traded resource ("Any" for a 3:1)
       var tip = svgEl("title", {});
@@ -1502,7 +1728,9 @@
   function renderDice() {
     if (tumbleHandle) { clearInterval(tumbleHandle); tumbleHandle = null; }
     DICE.textContent = "";
-    var d = model.turn && model.turn.dice;
+    // the seating roll shows here too, the latest pad's dice
+    var seatingNow = model.phase === "seating";
+    var d = seatingNow ? lastSeatRoll && lastSeatRoll.d : model.turn && model.turn.dice;
     var spinning = Date.now() < spinUntil;
     // the spin's scheduled re-render lands just past spinUntil: that render
     // (and only renders in its brief window) wears the one-shot settle bounce
@@ -1531,6 +1759,7 @@
     DICE.appendChild(row);
     var caption = model.phase === "main"
       ? (model.turn.rolled && d ? fmt(S.diceLast, { name: seatName(model.turn.seat), sum: d[0] + d[1] }) : fmt(S.diceWaiting, { name: seatName(model.turn.seat) }))
+      : seatingNow && d ? fmt(S.seatingRolled, { name: seatName(lastSeatRoll.seat), sum: d[0] + d[1] })
       : "";
     DICE.appendChild(el("p", "cities-dice__cap", spinning ? S.diceRolling : caption));
     if (spinning) setTimeout(function () { if (Date.now() >= spinUntil) renderDice(); }, spinUntil - Date.now() + 20);
@@ -1611,7 +1840,11 @@
       });
       return;
     }
-    (model.players || []).forEach(function (p, i) {
+    // in turn order once the seating roll has set it (seat order before)
+    var seq = model.order || model.players.map(function (p, i) { return i; });
+    seq.forEach(function (i) {
+      var p = model.players[i];
+      if (!p) return;
       var active = model.phase === "main" && model.turn.seat === i;
       var conceded = model.seats[i] && model.seats[i].conceded;
       var strip = el("div", "cities-pstrip" + (active ? " is-active" : "") +
@@ -2280,7 +2513,9 @@
   }
   /* ── leaving: the shell drops the socket, the model and its own lobby
      state; this clears what's DeetsCities' alone ─────────────────── */
-  function onLeave() { resetGameUi(); }
+  function onLeave() {   // the next table's first phase isn't a change
+    resetGameUi(); STAGE.stop(); stopLay(); paintedPhase = null; lastSeatRoll = null;
+  }
 
   /* ═══ BOOT ═════════════════════════════════════════════════════ */
   TBL.boot();

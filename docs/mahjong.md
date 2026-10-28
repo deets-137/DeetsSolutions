@@ -1,7 +1,7 @@
 ---
 status: live
-sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py, styles/skin.css]
-updated: 2026-10-27
+sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py, styles/skin.css, games/stage.js, games/seating.js]
+updated: 2026-10-28
 ---
 # DeetsMahjong — the Hong Kong mahjong tab
 
@@ -285,7 +285,8 @@ on desktop, bar + gap + merged board below 64rem (`--mjbarh` is the
 desktop wall panel's height). `--mjrackh` and the
 narrow `--mjboardh` are the measured maxima across all six skins plus
 slack. Raise them if the rack or merged board grows. A phase change
-moves only the dividers (`seamShift` in mahjong.js, 2026-10-25): each
+moves only the dividers (the seams, 2026-10-25; shared since 2026-10-28 in
+`games/stage.js`, see [games.md](games.md), "The stage"): each
 panel whose rect changes is cloned just before the render (a ghost,
 its CSS animations landed on their end state and its scroll kept) and
 laid over the new layout at its old rect. The ghosts' contents fade
@@ -298,8 +299,9 @@ edge never dims. `--seam-shift` / `--seam-ease` in skin.css. A phase
 that moves no divider (play → over) doesn't animate; leaving a table
 resets it; reduced motion skips it.
 
-**Waves** (`waveStart` / `waveApply` in mahjong.js, his call
-2026-10-25): the pieces inside the panels arrive in nested waves at three
+**Waves** (his call 2026-10-25; the engine is `games/stage.js`, while
+mahjong.js's `waveStart` picks the kind and `waveTree` / `waveKids` the
+order): the pieces inside the panels arrive in nested waves at three
 moments. A **phase change** waves every panel's contents, starting as the
 dividers are half dissolved. A **new hand** builds the wall, side by side
 from the dealer. **The break** deals the hands seat by seat from the dealer
@@ -315,8 +317,9 @@ the point its wave has reached. Scroll boxes with nothing to scroll are
 held at `overflow: hidden` for the wave (a rising piece would flash a
 scrollbar); in one that already scrolls (a long log) pieces only fade.
 While a wave runs, the stats reveal's own `mj-overin` is cancelled.
-The lobby's pieces are shell-rendered (`gt-`) nodes; the wave only
-animates them from mahjong.js and never restyles them.
+The lobby's pieces are shell-rendered (`gt-`) nodes; their order is the
+shared `shellKids` in `games/stage.js`, and the wave only animates them,
+never restyles them.
 
 A phase with one
 panel stretches it to fill: the lobby at every width, and seating below
@@ -406,6 +409,10 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   the pause have their rolls queued, and they tumble together when it
   lifts.
 - **The opening (his design, 2026-10-26; "THE OPENING" in mahjong.js).**
+  The seating board, its tumble, the roll's staging and the pads' morph
+  are shared with cities since 2026-10-28 (`games/seating.js`,
+  [games.md](games.md), "The seating roll"); the wall, the break and the
+  deal stay mahjong's.
   1. After the seating pause, each pad's clone flies and resizes into
      its seat box (`--morph`). The box fades in under it as it lands.
      The phase wave leaves the seat boxes and the board alone while this

@@ -71,7 +71,35 @@
    strip into view on turn change. */
 .cities-tile--players { grid-area: players; height: 21.25rem; overflow-y: auto; position: relative; }
 .cities-tile--log { grid-area: log; min-height: 0; display: flex; overflow: hidden; }
-.cities-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); }
+.cities-tile--role { grid-area: role; position: relative; display: flex; flex-direction: column; gap: var(--space-3); min-height: var(--croleh); }
+
+/* ── the STAGE (mahjong's, his ask 2026-10-28): every phase fills one
+   footprint, the board + gap + role row, so Start never moves the page
+   and a phase change only moves the dividers (games/stage.js). --croleh
+   is the role row's measured maximum across the six skins (Press, 242px
+   at 1440 wide, 2026-10-28) plus slack; raise it if the row grows. */
+.cities { --croleh: 15.5rem; --cstageh: calc(42rem + var(--space-3) + var(--croleh)); }
+/* the lobby is one card: its settings + seats, nothing else */
+[data-cities-table][data-phase="lobby"] .cities-bento {
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "big";
+}
+[data-cities-table][data-phase="lobby"] .cities-tile--big { height: var(--cstageh); }
+[data-cities-table][data-phase="lobby"] .cities-tile--dice,
+[data-cities-table][data-phase="lobby"] .cities-tile--players,
+[data-cities-table][data-phase="lobby"] .cities-tile--log,
+[data-cities-table][data-phase="lobby"] .cities-tile--role { display: none; }
+/* the seating roll: the board tile holds the pads at the full stage height
+   beside the dice, players and log; the role row sits it out (the Roll
+   rides each seat's own pad), as in mahjong */
+[data-cities-table][data-phase="seating"] .cities-bento {
+  grid-template-rows: auto auto minmax(6rem, 1fr);
+  grid-template-areas: "big dice" "big players" "big log";
+}
+[data-cities-table][data-phase="seating"] .cities-tile--big { height: var(--cstageh); }
+[data-cities-table][data-phase="seating"] .cities-tile--role { display: none; }
+/* the opening lays the board out piece by piece (cities.js layApply): each
+   piece scales about its own middle, not the board's origin */
+.cities-board.is-laying [data-lay] { transform-box: fill-box; transform-origin: center; }
 
 /* ── board SVG ────────────────────────────────────────────────── */
 .cities-board { width: 100%; height: 100%; margin: auto; }
@@ -268,10 +296,14 @@
    backing and let it fill; pixelated keeps Aditya's pixel grid crisp */
 .cities-die--art { background: none; }
 .cities-die__art { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
-.cities-dice__faces.is-spinning .cities-die { animation: cities-diespin 0.14s steps(2) infinite; }
+/* a seating pad's dice (games/seating.js): smaller, tumbling the same way */
+.cities-die--small { width: 1.8rem; height: 1.8rem; font-size: 1rem; }
+.cities-dice__faces.is-spinning .cities-die,
+.gt-seating__dice.is-spinning .cities-die { animation: cities-diespin 0.14s steps(2) infinite; }
 @keyframes cities-diespin { to { transform: translateY(-2px) rotate(8deg); } }
 /* the spin's end re-render wears a one-shot settle bounce — the dice land */
-.cities-dice__faces.is-settled .cities-die { animation: cities-diesettle 0.34s var(--ease-ui); }
+.cities-dice__faces.is-settled .cities-die,
+.gt-seating__dice.is-settled .cities-die { animation: cities-diesettle 0.34s var(--ease-ui); }
 @keyframes cities-diesettle {
   0% { transform: translateY(-5px) scale(1.06); }
   60% { transform: translateY(1px) scale(0.98); }
@@ -280,7 +312,10 @@
 /* one line is always reserved (radio's meta idiom) so the caption appearing
    at game start doesn't grow the tile */
 .cities-dice__cap { margin: var(--space-2) 0 0; text-align: center; color: var(--subtext); font-size: 0.85rem; min-height: 1.5em; min-height: 1lh; }
-@media (prefers-reduced-motion: reduce) { .cities-dice__faces.is-spinning .cities-die, .cities-dice__faces.is-settled .cities-die { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cities-dice__faces.is-spinning .cities-die, .cities-dice__faces.is-settled .cities-die,
+  .gt-seating__dice.is-spinning .cities-die, .gt-seating__dice.is-settled .cities-die { animation: none; }
+}
 
 /* ── players tile ─────────────────────────────────────────────── */
 .cities-pstrip {

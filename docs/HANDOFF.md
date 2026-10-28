@@ -69,6 +69,24 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-28 — Cities to mahjong's standard (built on site branch `gamerz-unite`,
+uncommitted, not visual-passed).** Step 1, the toolbar: cities opts into the shell's
+`iconToolbar` and `openButton` ([cities.md](cities.md), "Toolbar pills"); he checked it
+works. Step 2, the stage: mahjong's seams + wave were promoted to `games/stage.js` (mahjong
+now runs on it, checked lobby → seating → play in the mock), and cities' lobby is one card at
+the game's full height that melts into the panels at Start, the board rippling out from the
+centre ([games.md](games.md), "The stage"; [cities.md](cities.md), "The stage"). Also: a stale
+`grantChips` in cities' mock broke betting tables (fixed), and he cleared every `[ph]` in
+`cities/strings.js`. Step 3, the opening: cities now opens on mahjong's seating roll
+(highest first, only ties re-roll; `game.order` is the turn order), the pads fly into the
+player strips, and the board is laid out tile by tile, then tokens, harbours, the robber,
+before the first placement ([cities.md](cities.md), "The opening"). The seating board,
+staging and morph were promoted to `games/seating.js`, and mahjong runs on it.
+**DeetsCities worker:** engine re-vendored and `src/index.js` updated on its
+`gamerz-unite` (uncommitted, NOT deployed). Site and worker must ship together: the live
+worker opens no seating phase, and a new worker would break the old page. Next: his look at
+both games, his go-ahead to commit and deploy, then the next piece of mahjong's standard.
+
 **2026-10-27 — DeetsMusic admin dashboard (LIVE: branch `audio-assists` merged to master and
 published 2026-10-27; no worker change).** The admin page became an overview (headline tiles, a
 *Needs a look* flag list) plus Growth / Inbox / Releases / Settings tabs, all drawn from today's
@@ -96,8 +114,11 @@ old-shape `g.claims` (no `ask`) and won't resolve it; a new game clears it.
 now knows the asker (token header + session cookie) and answers `mine` and `adoptable`
 ([games.md](games.md), "Identity and rejoin"). Re-vendored and pushed: DeetsPoker
 `master`, deployed 2026-10-27 (version `cbcac442`); DeetsMahjong went out with the
-`end-jong` merge (version `484e2361`), and the site's gate with it. DeetsCities' `src/` is three months behind the site (colors, engine,
-table-do), so it needs its own re-vendor and test before it gets this.
+`end-jong` merge (version `484e2361`), and the site's gate with it. **DeetsCities caught up
+2026-10-28:** live Cities couldn't open a table (its old `table-do.js` answered the credentialed
+peek without `Access-Control-Allow-Credentials`, so browsers dropped it). Re-vendored on
+DeetsCities `gamerz-unite` (c404b3a, pushed, not yet merged to its `master`), payload check
+157/157, deployed (version `c6da57fc`); live preflight and create verified.
 
 **2026-10-27 — Save every hand (designed, not built).** A table only reports at game
 over, so nights that break up early are lost: D1 holds one real group game (Oct 8). Each

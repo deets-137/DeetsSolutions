@@ -1,7 +1,7 @@
 ---
 status: foundation
-sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, styles/table.css]
-updated: 2026-10-27
+sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, games/stage.js, games/seating.js, styles/table.css]
+updated: 2026-10-28
 ---
 # Deets games — the shared foundation
 
@@ -32,6 +32,8 @@ games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
 games/table.js         the browser table shell (gate, lobby, toolbar, frame,
                        seat accent, turn-timer readouts)
 games/flights.js       the steering chip-flight layer (every game's fly-ins)
+games/stage.js         a phase change: seams that melt, pieces in a wave
+games/seating.js       the seating roll's board, staging and pad morph
 games/table-do.js      the Durable Object base every worker subclasses
 games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
 styles/chrome.css      shared site chrome + the token @imports (every page)
@@ -578,6 +580,64 @@ Two things are load-bearing if this is ever touched:
   `document.title` — a game whose title happened to equal the alert
   string would stick.
 
+### The stage: `games/stage.js`
+
+A game whose phases all fill **one footprint** (his call, 2026-10-25:
+switching screens shouldn't jitter) moves only the dividers between its
+panels when the phase changes. Mahjong built it; cities became the second
+user on 2026-10-28, so it was promoted. `DeetsStage.create({ root, bento,
+panel, strip, tree, beforeApply })` gives the game:
+
+- `before(changed)` just before its render, `shift(snap)` just after: the
+  **seams**. Each panel is cloned (a `gt-seam-ghost`); the ghosts of panels
+  that moved dissolve over the new layout, a new panel spanning an old
+  divider fills in through a mask (`gt-seam-cut`), and the shadows
+  crossfade on a layer under them (`gt-seam-shade`). `--seam-shift`,
+  `--seam-ease`.
+- `wave(kind)` then `apply()` after every paint: the **wave**. The game's
+  `tree(kind)` returns `[{ el, at }]`, built with `walk(list, start, step,
+  kids, out, skip)`. Siblings step apart, each level at `NEST` (0.6) of its
+  parent's step, a list entry may be an array (a group that arrives as
+  one), and the whole tree fits `--wave-span`. Each piece rises by
+  `--boot-rise` over `--boot-dur`. `shellKids(n)` is the shell lobby's own
+  order, so no game restates it.
+- `stop()` on leave; `token`, `ms`, `motionOk`, `live(sel)` (pieces of live
+  panels, never a ghost's), `waving()`, `seaming()`.
+
+The game keeps **what** arrives in what order and **when** a wave starts.
+Mahjong also waves a new hand's wall (`build`) and the deal (`deal`); its
+opening is its own. Cities waves every phase change except setup → main (the
+same board carrying on), and its board ripples out from the centre hex, ring
+by ring, harbours last. Its stage is the board + gap + role row
+(`--cstageh`, with `--croleh` the role row's measured maximum across skins);
+the lobby is one card of that height. Details: [mahjong.md](mahjong.md),
+"One stage for every phase", and [cities.md](cities.md), "The stage".
+
+### The seating roll: `games/seating.js`
+
+Mahjong (winds) and cities (turn order) open on the same roll: every seat
+rolls two dice on its own pad, and only tied seats roll again. Each
+engine owns the rule (`seating: { rolls, reroll }`, `rollSeat`, the
+`seatRoll` / `seatReroll` / `seated` events), so the two needn't agree on
+what ties mean. Mahjong re-rolls only a tie for the lead; cities breaks
+every tie, one at a time from the top. `DeetsSeating.create({ root,
+bento, S, fmt, seating, seats, mySeat, seatName, seatDot, accent, die,
+rollPill, roll })` is the page half:
+
+- `render()`: the board (title, note, pads, my Roll). The game's `die(v)`
+  draws its own dice and `rollPill` its own button.
+- `spin(seat)` on a `seatRoll`: that pad tumbles `ROLL_MS` (0.5 s).
+- `stage(msg, m, clearFields)` from the game's `stageMessage`: the roll
+  that settles (or ties) rests `ROLL_MS + PAUSE_MS` (1 s) before the
+  broadcast behind it shows.
+- `morphBefore()` before the render that leaves seating, then
+  `morphRun(pads, target, ms, ease)`: each pad flies into
+  `target(seat)`, the box that seat takes in play (mahjong's seat zone,
+  cities' player strip).
+
+What follows is the game's own opening: mahjong builds the wall and deals,
+and cities lays the board out ([cities.md](cities.md), "The opening").
+
 ### Fly-ins: `games/flights.js`
 
 **A game does not write a flight loop.** Cities grew one, mahjong copied
@@ -717,6 +777,10 @@ matches what you're changing, and check the blast radius before you start.
 | **How that game's bot plays, or its difficulty tiers** | `<game>/engine.js` (`botAct`, `BOT_TIERS`) | That game only | **Re-vendor**, redeploy — see "Bots" |
 | The tier's wire field, validation, and the lobby picker | `games/table-do.js` + `table-mock.js` + `table.js` | **Every game** | **Re-vendor** the base into every game worker, redeploy |
 | The table shell's chrome (gate, lobby, seats, toolbar) | `games/table.js` + `styles/table.css` | **Every game** | — (browser-only) |
+| How a phase change moves (seams, the wave engine, the lobby's wave order) | `games/stage.js` + `styles/table.css` (`gt-seam-*`) | **Mahjong + cities** | — (browser-only) |
+| What a game's wave carries, and in what order | that game's `waveTree` / `waveKids` | That game only | — |
+| The seating roll's board, tumble, staging, pad morph | `games/seating.js` + `styles/table.css` (`gt-seating*`, `gt-morph`) | **Mahjong + cities** | — (browser-only) |
+| The seating roll's RULE (`rollSeat`, ties, the order) | that game's `engine.js` | That game only | **Re-vendor**, redeploy |
 | Seat colours / the accent contract | `games/colors.js` | **Every game + `/profile/`** | **Re-vendor** into all three worker repos |
 | The turn timer, grace window, rejoin, bots, reconnect, teams | `games/table-do.js` | **Every game** | **Re-vendor** into every game worker, redeploy |
 | Away seats (`awayAction`/`adoptAction`), the `standCopy()` wording hook | `games/table.js` + `table-mock.js` + `table-do.js` | **Every game** (no-op without the spec keys) | **Re-vendor** all three workers |
@@ -850,7 +914,7 @@ the seat accent, the turn timer and its readouts, kick, host fallback, the
 toolbar, grace countdowns, the alarm, the fuse, or any of their CSS.
 Two opt-in flags restyle that chrome: `iconToolbar` (icon pills) and
 `openButton` (one + / sit button beside the code in place of the gate, with
-the unfurl-and-wave arrival). Mahjong uses both; see
+the unfurl-and-wave arrival). Mahjong and cities use both; see
 [mahjong.md](mahjong.md), "The open button". One hook holds the table on a
 moment: `stageMessage(msg, model)` may return `{ now, ms, later }`. The shell
 applies `now`, applies `later` after `ms`, and queues every message in

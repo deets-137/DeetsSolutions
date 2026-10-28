@@ -1,7 +1,7 @@
 ---
 status: live
-sources: [cities/engine.js, cities/cities.js, cities/strings.js, games/table.js]
-updated: 2026-08-05
+sources: [cities/engine.js, cities/cities.js, cities/cities.css, cities/strings.js, games/table.js, games/stage.js, games/seating.js]
+updated: 2026-10-28
 ---
 # DeetsCities — design + build log
 
@@ -25,7 +25,7 @@ below is updated to match, and the **Page layout** section carries the
 
 - **Spectator betting** — the server half exists; there is no UI to place
   a bet, and spectators see a "lands in a later build" note.
-- **Copy** — 23 of 214 strings still carry `[ph]` and await Aditya.
+- **Copy** — no `[ph]` left: he cleared every prefix at once (2026-10-28).
 - **Art** — the board and cards render as geometric placeholders.
 
 Design for the **DeetsCities** tab (`cities/`, nav label "DeetsCities"):
@@ -224,6 +224,21 @@ call it; the DO persists `game` and broadcasts `events`; illegal
 actions return typed errors and change nothing. Every rule below is
 enforced **server-side**; client affordances (disabled pills, dimmed
 vertices) are cosmetic.
+
+**The seating roll** (his call, 2026-10-28; mahjong's roll). A new game
+opens in `phase: "seating"`, not the draft. Every live seat sends
+`{type: "rollSeat"}` and rolls two dice (`seatRoll {seat, d}`). Once all
+have rolled, the seats rank by sum, highest first and lowest last. Seats
+tied on a sum re-roll among themselves (`seatReroll {seats}`), one tie at a
+time from the top, and a re-roll only orders the tied seats within their
+own slot. When nothing is tied, `game.order` holds the ranking
+(`seated {order}`) and the phase becomes `setup`, with the draft snaking
+that order forward then back. Every later turn passes in `order`
+(`nextTurn`, `firstLive`); a game saved before the roll existed has no
+`order` and plays in seat order. A seat that concedes mid-seating rolls
+no more and plays last. Bots roll their own (`botAct`), and `timerExpire`
+rolls for stragglers. Cities arms no clock before the main phase, so a
+person who never rolls holds the table, as the draft already does.
 
 **Concede** (`{type: "concede", seat}`, the `conceded` event) — cities'
 opt-in to the "None" re-join mode ([games.md](games.md), "The re-join
@@ -435,7 +450,12 @@ Denials answer `{type:"error", code}` — `perm`, `phase`, `turn`,
 | `kicked` / `closed` | as radio: land back at the gate |
 | `replaced` | client-synthesized, not a server frame: the socket closed with **4408** because another tab on this device joined. Final — no reconnect (retrying restarts the eviction war), sticky toast, back to the gate |
 
-**Events (`ev`)** are typed records, never prose: `{t:"roll", seat, d:[3,5]}`,
+The view also carries `seating` (`{rolls, reroll, groups}` while seating,
+else null) and `order` (the turn order once seated, else null); both are
+public. `rollSeat` joins the game verbs.
+
+**Events (`ev`)** are typed records, never prose: `{t:"seatRoll", seat, d}`,
+`{t:"seatReroll", seats}`, `{t:"seated", order}`, `{t:"roll", seat, d:[3,5]}`,
 `{t:"gain", seat, res, n, src:"roll"|"steal"|"trade"|"dev"}`,
 `{t:"build", seat, kind, loc}`, `{t:"robber", seat, hex}`,
 `{t:"stealHidden", from, to}` (the resource rides only the two parties'
@@ -574,13 +594,20 @@ one hover away — hover is a transient peek, **click pins it open**
 through the shared popover kit, so Esc/outside-click dismiss it and the
 pin survives toolbar re-renders) · Watch/Sit toggle where legal · Leave
 · host-only
-Close. Deep links `cities/#code`. **No meta line** under the bar (a
+Close. **Since 2026-10-28 the toolbar matches mahjong's:** cities opts into
+the shell's `iconToolbar` (Invite, Settings, Sit/Stand, Leave and Close as
+link, cog, sit/stand, door and power glyphs, the words kept as tooltip and
+accessible name) and `openButton` (the + / sit button beside the code in
+place of the gate). Both are shell code; [mahjong.md](mahjong.md) describes
+the glyphs and the arrival. Its two strings (`openPrompt`, `guestName`)
+copy mahjong's wording. Deep links `cities/#code`. **No meta line** under the bar (a
 departure from the journals, Aditya's call): the game state already says
 everything a status line would, so the bento sits flush under the bar
 and transient notices (join refusals, reconnects) ride the toast host.
 
-The content is one bento grid, **stable across all phases** — tiles
-change contents, never places:
+The content is one bento grid. In the game phases (setup, main, over) it
+is **stable** — tiles change contents, never places; the lobby is the one
+exception, a single card (see "The stage" below):
 
 ```
 ┌───────────────────────────────┬──────────────┐
@@ -596,6 +623,50 @@ change contents, never places:
 │              spectator:  betting panel        │
 └──────────────────────────────────────────────┘
 ```
+
+**The stage (mahjong's, his ask 2026-10-28).** Every phase fills one
+footprint: the board's 42rem + gap + the role row, `--cstageh` in
+cities.css. The role row holds at least `--croleh` (15.5rem: Press's
+242px at 1440 wide, the tallest of the six skins, plus slack), so the
+footprint is the same in every skin. **The lobby is one card**: only the
+big tile shows, at the full stage height, holding the settings and seats;
+dice, players, log and role sit it out. Start melts that card's border
+into the seating roll's panels (the seams): the big tile holds the pads at
+the full stage height beside dice, players and log, and the role row sits
+it out. The pieces arrive in a nested wave: the panels in turn, each one's
+pieces after it. When the board itself waves (a rematch's next phase, a
+phase change without the opening), its hexes ripple out from the centre,
+ring by ring (each hex's art, outline, icon, token and robber as one,
+tagged `data-ring` in `renderBoard`), harbours last. Every phase change
+waves except setup → main, the same board carrying on; seating → setup
+leaves the board and the strips to the opening below. Rematch (over →
+lobby) melts back into the one card. The engine is shared,
+`games/stage.js` ([games.md](games.md), "The stage"); `waveKids` /
+`waveTree` in cities.js say what arrives in what order.
+
+**The opening (his design, 2026-10-28; "THE OPENING" in cities.js).**
+1. **The seating roll.** One pad per seat (the shared board,
+   `games/seating.js`): dot, name, two dice, the sum, my Roll right of my
+   dice. A roll tumbles `ROLL_MS` (0.5 s) on its pad and on the dice tile
+   together. The roll that settles the order, or ties it, then rests
+   `PAUSE_MS` (1 s) before the table goes on (mahjong's timing, the
+   shared staging). Only tied seats roll again.
+2. **The pads take their places.** Each pad's clone flies and resizes into
+   its seat's strip in the players tile, which is now in turn order
+   (`--morph`). The strip fades in under it as it lands.
+3. **The board is laid out** (`layPlan` / `layApply`, `--lay-*` in
+   skin.css): the terrain tiles one by one, row by row from the top; then
+   the number tokens on top of them, in the same order; then the harbours,
+   clockwise round the coast from the top; then the robber on the desert.
+   Each kind waits `--lay-gap` after the last, and each piece sets down over
+   `--lay-drop`. That is about 4.4 s on the base board, morph included.
+4. **Only then may the first player place.** `stageTable` holds every
+   broadcast behind the opening, so a bot that goes first waits too
+   (measured: its first settlement shows 4.50 s after the flip, the lay
+   ends at 4.44 s). The placement targets stay off while `laying()`.
+Every beat is pinned to the document timeline, so a render mid-lay picks
+it up where it stands. A reconnect mid-opening, or reduced motion, just
+shows the board.
 
 - **Big tile.** Lobby: the settings panel (host edits, everyone watches
   live) + the Start button (enabled at 3+ seated — bots count; shows
@@ -1030,11 +1101,10 @@ lands in a later build." The design for the missing panel is in
 
 **Not built — Aditya's passes.**
 
-- **Copy**: 7 of 213 strings in `cities/strings.js` still carry `[ph]`:
-  the two re-join toasts (`adoptedToast`, `concededToast`), the four
-  rename ARIA labels, and `bettingLabel` (which ships prefixed on
-  purpose — betting is unbuilt, his call). Everything un-prefixed is
-  his; Claude edits none of it.
+- **Copy**: none of `cities/strings.js` carries `[ph]` any more. He
+  cleared every remaining prefix at once (chat, 2026-10-28), so the
+  values stand as written; Claude edits none of them, and a new string
+  still starts with `[ph]`.
 - **Art**: the board and cards are geometric placeholders under
   `assets/sprites/cities/`, swappable by landing a file at the same path
   and size.

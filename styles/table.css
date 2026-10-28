@@ -120,6 +120,52 @@
 @media (prefers-reduced-motion: reduce) {
   .gt-go__say, .gt-go__icon [data-plus], .gt-go__icon [data-sit] { transition: none; }
 }
+/* ── phase seams (games/stage.js) ────────────────────────────────
+   While the dividers move, the bento isolates so the shade layer can sit
+   under every panel, and the panels hand their shadows to it. Ghosts (the
+   old panels, cloned; placed inline so a game's own panel `position`
+   can't outrank them) sit over everything, mahjong's narrow bar (z 30)
+   included. Their contents' entrance motion is skipped to its end state
+   in JS (a settled die keeps its pips), never restarted or stripped. */
+@property --seam-a { syntax: "<number>"; inherits: false; initial-value: 1; }
+.gt-seaming { isolation: isolate; }
+.gt-seaming > .gt-seam-panel { box-shadow: none; }
+.gt-seam-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none; isolation: isolate; }
+.gt-seam-shade__set { position: absolute; inset: 0; mix-blend-mode: plus-lighter; }
+.gt-seam-shade__set > div { position: absolute; border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+.gt-seam-ghost { z-index: 35; pointer-events: none; }
+.gt-seam-ghost, .gt-seam-ghost * { transition: none !important; }
+/* a panel spanning an old divider: --seam-cut is the old panels' shape,
+   and the solid layer's alpha (--seam-a, 0 → 1) fills the rest in */
+.gt-seam-cut {
+  -webkit-mask: linear-gradient(rgb(0 0 0 / var(--seam-a)) 0 0), var(--seam-cut) 0 0 / 100% 100% no-repeat;
+  mask: linear-gradient(rgb(0 0 0 / var(--seam-a)) 0 0), var(--seam-cut) 0 0 / 100% 100% no-repeat;
+}
+/* ── the seating roll (games/seating.js) ─────────────────────────
+   One pad per seat: its dot and name, two dice (the game's own art) and
+   the sum, my Roll at the right. A tumbling pad hides its sum until the
+   dice stop; a game animates its own dice inside .is-spinning /
+   .is-settled. A pad on its way to its seat's box in play (.gt-morph)
+   rides above the panels, never in the way. */
+.gt-seating { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.gt-seating__title { margin: 0; color: var(--title); font-family: var(--font-title); font-size: calc(var(--fs-title) * 1.1); }
+.gt-seating__note { margin: 0; color: var(--subtext); }
+.gt-seating__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.gt-seating__pad {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gseat, var(--border));
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+}
+.gt-seating__pad.is-waiting { border-color: var(--title); box-shadow: 0 0 0 1px var(--title); }
+.gt-seating__head { display: flex; align-items: center; gap: var(--space-2); }
+.gt-seating__name { color: var(--text); }
+.gt-seating__dice { display: flex; align-items: center; gap: var(--space-2); }
+.gt-seating__sum { color: var(--title); font-weight: 700; margin-left: var(--space-2); }
+.gt-seating__dice.is-spinning .gt-seating__sum { visibility: hidden; }
+.gt-seating__roll { margin-left: auto; }
+.gt-morph { z-index: 36; pointer-events: none; overflow: hidden; }
 /* Look-change cover (chrome.css): a game board never rises; it only gets
    the veil. */
 .site-main { --boot-from-opacity: 1; --boot-from: none; }

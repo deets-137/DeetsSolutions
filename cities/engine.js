@@ -5,7 +5,7 @@
    `ctx = { rand, now }` (rand() → [0,1), like Math.random). applyAction never
    mutates its input; it clones, mutates the clone, and returns it.
 
-     createGame(opts, ctx)            → game            (deals board, → setup)
+     createGame(opts, ctx)            → game            (deals board, → seating roll)
      applyAction(game, action, ctx)   → { game, events } | { error: {code} }
 
    Illegal actions return a typed error and change nothing. Every rule is
@@ -154,7 +154,77 @@
     return { frame: frame, hexes: hexes, robber: hkey(desert.q, desert.r), harbors: harbors };
   }
 
-  /* ── new game (lobby → setup) ─────────────────────────────────── */
+  /* ── turn order: g.order once the seating settles; a game saved
+     before the seating roll existed has none and plays in seat order ── */
+  function orderOf(g) {
+    if (g.order) return g.order;
+    var o = [];
+    for (var s = 0; s < g.seatCount; s++) o.push(s);
+    return o;
+  }
+  // the snake draft: the order forward, then back (conceded seats sit out)
+  function beginSetup(g, order) {
+    g.order = order.slice();
+    var live = order.filter(function (s) { return !g.players[s].conceded; });
+    g.phase = "setup";
+    g.seating = null;
+    g.setup = { seq: live.concat(live.slice().reverse()), i: 0, need: "settlement", lastVid: null };
+    g.turn.seat = g.setup.seq[0];
+  }
+  /* the seats still owing a seating roll: every live seat, or only the
+     tied ones on a re-roll */
+  function seatingOwed(g) {
+    var st = g.seating, out = [];
+    for (var s = 0; s < g.seatCount; s++) {
+      if (g.players[s].conceded || st.rolls[s]) continue;
+      if (!st.reroll || st.reroll.indexOf(s) >= 0) out.push(s);
+    }
+    return out;
+  }
+  /* everyone in scope has rolled: rank by sum, highest first. Seats tied on
+     the same sum re-roll among themselves, and a re-roll only orders the
+     tied seats within their own slot: it never moves them past a seat
+     outside the tie. `rank` holds the settled order so far, as groups. */
+  function seatingSettle(g, events) {
+    var st = g.seating;
+    if (seatingOwed(g).length) return;
+    var live = function (s) { return !g.players[s].conceded; };
+    // a seat that conceded mid-seating leaves its group (it rolls no more)
+    var groups = (st.groups || [orderOf(g)])
+      .map(function (grp) { return grp.filter(live); })
+      .filter(function (grp) { return grp.length; });
+    var next = [];
+    var sum = function (s) { return st.rolls[s] ? st.rolls[s][0] + st.rolls[s][1] : -1; };
+    groups.forEach(function (grp) {
+      // a settled seat, or a tie still waiting its turn to re-roll
+      if (grp.length < 2 || (st.reroll && grp.join() !== st.reroll.join())) { next.push(grp); return; }
+      var sorted = grp.slice().sort(function (x, y) { return sum(y) - sum(x) || x - y; });
+      // split into runs of equal sums, in order
+      var run = [sorted[0]];
+      for (var i = 1; i <= sorted.length; i++) {
+        if (i < sorted.length && sum(sorted[i]) === sum(run[0])) { run.push(sorted[i]); continue; }
+        next.push(run);
+        if (i < sorted.length) run = [sorted[i]];
+      }
+    });
+    st.groups = next;
+    var tied = next.filter(function (grp) { return grp.length > 1; })[0] || null;
+    if (tied) {
+      // the first tie re-rolls; a later one waits its turn
+      tied.forEach(function (s) { st.rolls[s] = null; });
+      st.reroll = tied;
+      events.push({ t: "seatReroll", seats: tied.slice() });
+      return;
+    }
+    var order = [];
+    next.forEach(function (grp) { order.push.apply(order, grp); });
+    // conceded seats play nowhere, but keep a place at the end of the order
+    for (var s = 0; s < g.seatCount; s++) if (order.indexOf(s) < 0) order.push(s);
+    beginSetup(g, order);
+    events.push({ t: "seated", order: order.slice() });
+  }
+
+  /* ── new game (lobby → seating → setup) ───────────────────────── */
   function createGame(opts, ctx) {
     var seats = opts.seats;                 // [{name,color}]
     var n = seats.length;
@@ -179,16 +249,14 @@
     });
     deck = shuffle(ctx, deck);
 
-    // snake-draft order: seats forward, then reverse
-    var order = [];
-    for (var s = 0; s < n; s++) order.push(s);
-    for (var s2 = n - 1; s2 >= 0; s2--) order.push(s2);
-
     var bank = {};
     RES.forEach(function (rr) { bank[rr] = def.bank; });
 
+    var rolls = [];
+    for (var s = 0; s < n; s++) rolls.push(null);
+
     var game = {
-      phase: "setup",
+      phase: "seating",                     // seating → setup → main → over
       frame: frame,
       board: board,
       seatCount: n,
@@ -202,8 +270,13 @@
       roadLens: [],                         // per-seat longest contiguous road (public)
       offers: [],
       offerSeq: 0,
-      turn: { seat: order[0], rolled: false, dice: null, devPlayed: false, pending: null, bonusMs: 0 },
-      setup: { seq: order, i: 0, need: "settlement", lastVid: null },
+      // seating (his call, 2026-10-28; mahjong's roll): every seat rolls two
+      // dice, highest first and lowest last; only tied seats re-roll, to
+      // break their tie. The ranking is the turn order for the whole game.
+      seating: { rolls: rolls, reroll: null },
+      order: null,                          // order[k] = the seat that plays k-th (null: seat order)
+      turn: { seat: null, rolled: false, dice: null, devPlayed: false, pending: null, bonusMs: 0 },
+      setup: null,                          // the draft, once the seating settles (beginSetup)
       winner: null,
       stats: newStats(n, ctx.now),
       startedAt: ctx.now
@@ -426,6 +499,19 @@
   }
 
   var ACTIONS = {
+    /* ── seating: each seat rolls two dice (seatingSettle ranks them) ── */
+    rollSeat: function (g, a, ctx, events) {
+      if (g.phase !== "seating") return err("phase");
+      var seat = a.seat;
+      if (seat == null || !g.players[seat]) return err("turn");
+      if (seatingOwed(g).indexOf(seat) < 0) return err("turn");
+      var d = [die(ctx), die(ctx)];
+      g.seating.rolls[seat] = d;
+      events.push({ t: "seatRoll", seat: seat, d: d });
+      seatingSettle(g, events);
+      return null;
+    },
+
     /* ── setup: snake-draft settlement + road ─────────────────── */
     place: function (g, a, ctx, events) {
       if (g.phase === "setup") return placeSetup(g, a, ctx, events);
@@ -469,7 +555,7 @@
        machine skips a conceded seat forever. Fewer than two live
        seats left ends the game on current standings. */
     concede: function (g, a, ctx, events) {
-      if (g.phase !== "setup" && g.phase !== "main") return err("phase");
+      if (g.phase !== "seating" && g.phase !== "setup" && g.phase !== "main") return err("phase");
       var seat = a.seat;
       if (seat == null || !g.players[seat] || g.players[seat].conceded) return err("turn");
       var pl = g.players[seat];
@@ -505,6 +591,11 @@
         }
         g.winner = w;
         events.push({ t: "win", seat: w });
+        return null;
+      }
+      if (g.phase === "seating") {
+        // they roll no more; the rest may now all have rolled
+        seatingSettle(g, events);
         return null;
       }
       if (g.phase === "setup") {
@@ -1053,19 +1144,29 @@
   function nextTurn(g) {
     g.offers = [];
     // skip conceded seats; concede() ends the game before this could spin
-    do { g.turn.seat = (g.turn.seat + 1) % g.seatCount; }
+    // the next seat in the seating roll's order
+    var order = orderOf(g), k = order.indexOf(g.turn.seat);
+    do { k = (k + 1) % order.length; g.turn.seat = order[k]; }
     while (g.players[g.turn.seat].conceded);
     g.turn.rolled = false; g.turn.dice = null; g.turn.devPlayed = false; g.turn.pending = null;
     g.turn.bonusMs = 0;                 // the trade bonus is the TURN's, and dies with it
     g.stats.turns++;
   }
   function firstLive(g) {
-    for (var s = 0; s < g.seatCount; s++) if (!g.players[s].conceded) return s;
-    return 0;
+    var order = orderOf(g);
+    for (var k = 0; k < order.length; k++) if (!g.players[order[k]].conceded) return order[k];
+    return order[0];
   }
 
   /* ── timer expiry (auto-resolve the pending obligation, end turn) ─ */
   function timerExpire(g, a, ctx, events) {
+    if (g.phase === "seating") {
+      // roll for every straggler (a re-roll may follow; it waits on them again)
+      seatingOwed(g).forEach(function (s) {
+        if (g.phase === "seating" && seatingOwed(g).indexOf(s) >= 0) ACTIONS.rollSeat(g, { seat: s }, ctx, events);
+      });
+      return null;
+    }
     if (g.phase !== "main") return err("phase");
     var t = g.turn, p = t.pending;
     if (p && p.kind === "discard") {
@@ -1289,6 +1390,12 @@
     var rand = ctx.rand;
     var geo = geoOf(g.board);
 
+    // 0. the seating roll — public theater, no judgement in it
+    if (g.phase === "seating") {
+      var sb = seatingOwed(g).filter(isBot)[0];
+      return sb == null ? null : { type: "rollSeat", seat: sb };
+    }
+
     // 1. a forced discard, owed by any bot, whoever's turn it is
     if (g.phase === "main" && g.turn.pending && g.turn.pending.kind === "discard") {
       var owed = g.turn.pending.owed;
@@ -1452,6 +1559,7 @@
      every alarm, so it stays a cheap predicate — no applyAction probes. */
   function botPending(g, isBot) {
     if (!g || g.phase === "over") return false;
+    if (g.phase === "seating") return seatingOwed(g).some(isBot);
     if (g.phase === "setup") return isBot(g.setup.seq[g.setup.i]);
     if (g.phase !== "main") return false;
     var p = g.turn.pending;
@@ -1494,6 +1602,78 @@
     var seq = 12345;
     function rng() { seq = (seq * 1103515245 + 12345) & 0x7fffffff; return seq / 0x7fffffff; }
     var ctx = { rand: rng, now: 1000 };
+    // a game past its seating roll, in seat order: what every rules test
+    // below starts from (the seating roll has its own tests)
+    function fresh(opts, c) {
+      var g = createGame(opts, c);
+      beginSetup(g, orderOf(g));
+      return g;
+    }
+
+    /* seating — everyone rolls; highest first; only tied seats re-roll */
+    (function () {
+      var g = createGame({ seats: [{}, {}, {}, {}], settings: {} }, ctx);
+      eq(g.phase, "seating", "a new game opens on the seating roll");
+      eq(applyAction(g, { type: "place", seat: 0, kind: "settlement", loc: "x" }, ctx).error.code, "phase", "no placing before the seating settles");
+      // rig the dice: each seat's two dice come from a script
+      function rigged(faces) {
+        var i = 0;
+        return { rand: function () { return (faces[i++] - 1) / 6 + 0.01; }, now: 1000 };
+      }
+      function roll(game, seat, faces) {
+        var r = applyAction(game, { type: "rollSeat", seat: seat }, rigged(faces));
+        ok(!r.error, "seat " + seat + " may roll" + (r.error ? " (" + r.error.code + ")" : ""));
+        return r;
+      }
+      // sums 9, 4, 11, 7 → order 2, 0, 3, 1
+      var r = roll(g, 0, [4, 5]); r = roll(r.game, 1, [2, 2]); r = roll(r.game, 2, [5, 6]);
+      eq(applyAction(r.game, { type: "rollSeat", seat: 2 }, ctx).error.code, "turn", "a seat rolls once");
+      r = roll(r.game, 3, [3, 4]);
+      eq(r.game.phase, "setup", "the last roll settles the seating");
+      eq(r.game.order.join(), "2,0,3,1", "highest roll plays first, lowest last");
+      eq(r.game.setup.seq.join(), "2,0,3,1,1,3,0,2", "the draft snakes the rolled order");
+      eq(r.game.turn.seat, 2, "the top roller places first");
+      ok(r.events.some(function (e) { return e.t === "seated"; }), "seated event");
+
+      // two ties: 8, 8 at the top and 5, 5 at the bottom (seats 1 2 / 0 3)
+      var g2 = createGame({ seats: [{}, {}, {}, {}], settings: {} }, ctx);
+      var t = roll(g2, 0, [2, 3]); t = roll(t.game, 1, [4, 4]); t = roll(t.game, 2, [3, 5]); t = roll(t.game, 3, [1, 4]);
+      eq(t.game.phase, "seating", "a tie keeps the table seating");
+      eq(t.game.seating.reroll.join(), "1,2", "the top tie re-rolls first");
+      ok(t.events.some(function (e) { return e.t === "seatReroll"; }), "seatReroll event");
+      eq(applyAction(t.game, { type: "rollSeat", seat: 0 }, ctx).error.code, "turn", "a seat outside the tie can't re-roll");
+      t = roll(t.game, 2, [6, 6]); t = roll(t.game, 1, [1, 1]);
+      eq(t.game.seating.reroll.join(), "0,3", "then the bottom tie re-rolls");
+      t = roll(t.game, 0, [1, 2]); t = roll(t.game, 3, [6, 5]);
+      eq(t.game.phase, "setup", "both ties settled");
+      eq(t.game.order.join(), "2,1,3,0", "a re-roll orders its seats within their own slot");
+
+      // a concede mid-seating: the others settle without them, who play last
+      var g3 = createGame({ seats: [{}, {}, {}], settings: {} }, ctx);
+      var c = roll(g3, 0, [6, 6]); c = roll(c.game, 1, [1, 1]);
+      c = applyAction(c.game, { type: "concede", seat: 2 }, ctx);
+      eq(c.game.phase, "setup", "a concede can settle the seating");
+      eq(c.game.order.join(), "0,1,2", "the conceded seat sits at the end");
+      eq(c.game.setup.seq.join(), "0,1,1,0", "and out of the draft");
+
+      // the timer rolls for stragglers; bots roll their own
+      var g4 = createGame({ seats: [{}, {}, {}], settings: {} }, ctx);
+      var tx = applyAction(g4, { type: "timerExpire" }, ctx);
+      ok(tx.game.phase === "setup" || tx.game.seating.reroll, "timerExpire rolls every straggler");
+      var allB = function () { return true; };
+      eq(botPending(g4, allB), true, "a bot owes its seating roll");
+      eq(botAct(g4, allB, { tier: "normal" }, ctx).type, "rollSeat", "and rolls it");
+      var g5 = g4;
+      for (var k = 0; k < 30 && g5.phase === "seating"; k++) g5 = applyAction(g5, botAct(g5, allB, { tier: "normal" }, ctx), ctx).game;
+      eq(g5.phase, "setup", "bots alone settle the seating");
+      // turns follow the order, not the seat numbers
+      var gt = fresh({ seats: [{}, {}, {}], settings: {} }, ctx);
+      gt.order = [2, 0, 1]; gt.turn.seat = 2;
+      nextTurn(gt);
+      eq(gt.turn.seat, 0, "the turn passes in the rolled order");
+      nextTurn(gt); nextTurn(gt);
+      eq(gt.turn.seat, 2, "and wraps");
+    })();
 
     /* geometry — both frames close, every coastal vertex degree 2 */
     ["base", "expanded"].forEach(function (frame) {
@@ -1521,7 +1701,7 @@
 
     /* board deal — token counts, 6/8 non-adjacency, robber on desert */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: {} }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: {} }, ctx);
       eq(g.frame, "base", "3 players → base frame");
       var withTok = g.board.hexes.filter(function (h) { return h.token != null; }).length;
       eq(withTok, 18, "18 tokens placed");
@@ -1543,7 +1723,7 @@
 
     /* full setup snake draft + a scripted hot-seat game to `over` */
     (function () {
-      var g = createGame({ seats: [{ name: "A" }, { name: "B" }, { name: "C" }], settings: { timerSec: 0 } }, ctx);
+      var g = fresh({ seats: [{ name: "A" }, { name: "B" }, { name: "C" }], settings: { timerSec: 0 } }, ctx);
       var geo = geoOf(g.board);
       // helper: apply and unwrap, asserting success
       function act(a) {
@@ -1622,7 +1802,7 @@
       // longest road: isolate the DFS on a clean board — a true 5-edge simple
       // path with no opponent buildings breaking it
       (function () {
-        var gc = createGame({ seats: [{}, {}, {}], settings: {} }, ctx);
+        var gc = fresh({ seats: [{}, {}, {}], settings: {} }, ctx);
         var gco = geoOf(gc.board);
         gc.buildings = {}; gc.roads = {}; gc.phase = "main";
         var chain = simplePath(gco, 5);
@@ -1680,7 +1860,7 @@
 
     /* trading: no empty side (no gifts) */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: {} }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: {} }, ctx);
       g.phase = "main"; g.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null };
       var r = applyAction(g, { type: "offer", seat: 0, give: { wood: 1 }, get: {} }, ctx);
       ok(r.error && r.error.code === "rate", "empty-side offer rejected (no gifts)");
@@ -1710,7 +1890,7 @@
     /* the trade bonus: both trade shapes pay, it accumulates uncapped,
        it dies with the turn, and a clockless table never accrues one */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 60, tradeBonusSec: 10 } }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: { timerSec: 60, tradeBonusSec: 10 } }, ctx);
       g.phase = "main"; g.setup = null;
       g.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null, bonusMs: 0 };
       g.stats.turns = 1;
@@ -1737,7 +1917,7 @@
       eq(g.turn.bonusMs, 0, "bonus: the next turn starts clean");
 
       // 5. no clock (or the bonus set to Off) accrues nothing
-      var g2 = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0, tradeBonusSec: 10 } }, ctx);
+      var g2 = fresh({ seats: [{}, {}, {}], settings: { timerSec: 0, tradeBonusSec: 10 } }, ctx);
       g2.phase = "main"; g2.setup = null;
       g2.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null, bonusMs: 0 };
       g2.players[0].hand.wood = 4;
@@ -1747,7 +1927,7 @@
 
     /* immutability: a rejected action leaves the input untouched */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: {} }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: {} }, ctx);
       var snap = JSON.stringify(g);
       applyAction(g, { type: "roll" }, ctx);            // illegal in setup
       eq(JSON.stringify(g), snap, "rejected action does not mutate input");
@@ -1789,7 +1969,7 @@
       for (var trial = 0; trial < 8; trial++) {
         seeds = 999 + trial * 7;
         var fctx = { rand: frng, now: 5000 };
-        var g = createGame({ seats: [{}, {}, {}, {}], settings: { timerSec: 0 } }, fctx);
+        var g = fresh({ seats: [{}, {}, {}, {}], settings: { timerSec: 0 } }, fctx);
         var start = BOARDS.BOARDS[g.frame].bank;
         function check() {
           for (var i = 0; i < RES.length; i++) {
@@ -1817,7 +1997,7 @@
 
     /* concede — bank return, deck integrity, turn skipping, standings end */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
       var geo = geoOf(g.board);
       function act(a) {
         var r = applyAction(g, a, ctx);
@@ -1870,7 +2050,7 @@
 
     /* concede during the draft — struck picks, live first turn */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
       var geo = geoOf(g.board);
       function act(a) {
         var r = applyAction(g, a, ctx);
@@ -1908,7 +2088,7 @@
        must land on the acting seat exactly as their manual twins do, and the
        steal keeps one victim counter now that lost.robbed is gone */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}], settings: { timerSec: 30 } }, ctx);
+      var g = fresh({ seats: [{}, {}, {}], settings: { timerSec: 30 } }, ctx);
       var geo = geoOf(g.board);
       function act(a) {
         var r = applyAction(g, a, ctx);
@@ -1947,7 +2127,10 @@
 
       // 2. a timer-forced robber move counts like a manual one
       var mseat = g.turn.seat, moved = g.stats.seats[mseat].robber.moved;
+      // a robber move follows a roll: with the turn unrolled, the expiry's
+      // own auto-roll could land a second 7 and move it again
       g.turn.pending = { kind: "robber", viaKnight: false };
+      g.turn.rolled = true;
       act({ type: "timerExpire" });
       eq(g.stats.seats[mseat].robber.moved, moved + 1, "timer-forced robber move counts");
 
@@ -1964,7 +2147,7 @@
     /* standings — competition ranking over totalVP, and the ptp trade
        counters, which are the only record a player-to-player trade leaves */
     (function () {
-      var g = createGame({ seats: [{}, {}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var g = fresh({ seats: [{}, {}, {}, {}], settings: { timerSec: 0 } }, ctx);
       var geo = geoOf(g.board);
       function vAt(i) { return Object.keys(geo.vertexHexes)[i]; }
 
@@ -1998,7 +2181,7 @@
       eq(Object.keys(seen).length, 4, "standings lists each seat exactly once");
 
       // ptp: a 2-for-1 trade, counted from both sides
-      var g2 = createGame({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
+      var g2 = fresh({ seats: [{}, {}, {}], settings: { timerSec: 0 } }, ctx);
       g2.phase = "main";
       g2.turn = { seat: 0, rolled: true, dice: [3, 4], devPlayed: false, pending: null };
       g2.players[0].hand.wood = 2; g2.players[1].hand.ore = 1;
@@ -2088,7 +2271,7 @@
         var s = seed;
         function r() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
         var c = { rand: r, now: 1000 };
-        var gg = createGame({ seats: [{ name: "a", color: "#ff0000" },
+        var gg = fresh({ seats: [{ name: "a", color: "#ff0000" },
                                       { name: "b", color: "#00ff00" },
                                       { name: "c", color: "#0000ff" }], settings: {} }, c);
         var isBot = function () { return true; };

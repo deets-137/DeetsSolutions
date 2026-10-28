@@ -150,9 +150,9 @@
   --dur-spin: 0.9s;   /* busy spinners (radio account button) */
   --ease-ui:  cubic-bezier(0.2, 0, 0.2, 1);
   --hover-lift: none;                 /* nav links / chips rise on hover; a skin opts in */
-  --seam-shift: 0.5s;                 /* a phase change's dividers dissolving open or filling in (mahjong) */
+  --seam-shift: 0.5s;                 /* a phase change's dividers dissolving open or filling in (games/stage.js) */
   --seam-ease:  cubic-bezier(0.37, 0, 0.63, 1); /* sine in-out: no edge to the start or the stop */
-  --wave-span:  0.5s;                 /* a phase change's or deal's nested wave, first piece to last (mahjong) */
+  --wave-span:  0.5s;                 /* a phase change's or deal's nested wave, first piece to last (games/stage.js) */
   /* mahjong's opening (docs/mahjong.md, "The opening"): the seating pads
      morph into the seat boxes, the wall goes up in two layers, and after
      the break the hands are dealt 4-4-4-1 from the wall */
@@ -162,6 +162,15 @@
   --deal-step:   0.15s;               /* one chunk after the next, round the table */
   --deal-fly:    0.38s cubic-bezier(0.3, 0.7, 0.3, 1); /* a chunk's flight, wall to hand */
   --deal-gap:    0.03s;               /* the tiles of one chunk, one after the next */
+  /* cities' opening (docs/cities.md, "The opening"): the seating pads morph
+     into the player strips (--morph above), then the board is laid out —
+     every tile one by one, the number tokens, the harbours, the robber */
+  --lay-tile:    0.055s;              /* one terrain tile after the next */
+  --lay-token:   0.035s;              /* one number token after the next */
+  --lay-port:    0.045s;              /* one harbour after the next, round the coast */
+  --lay-drop:    0.36s;               /* one piece setting down */
+  --lay-gap:     0.15s;               /* the pause between one kind of piece and the next */
+  --lay-ease:    cubic-bezier(0.2, 0.9, 0.3, 1.15); /* lands with a small overshoot */
   /* a mahjong tile's flight (docs/mahjong.md, "Tile flights"). One turn is a
      discard (lift + glide + settle), the beat, then a draw at 0.6/0.7/0.6 of
      the same three, and it must finish inside the worker's 700 ms bot step:
