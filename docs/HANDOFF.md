@@ -69,8 +69,8 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-28 — Cities to mahjong's standard (built on site branch `gamerz-unite`,
-uncommitted, not visual-passed).** Step 1, the toolbar: cities opts into the shell's
+**2026-10-28 — Cities to mahjong's standard (site `bdd6679` on `gamerz-unite`, pushed and
+fast-forwarded to master, so LIVE on Pages; his look passed in the mock).** Step 1, the toolbar: cities opts into the shell's
 `iconToolbar` and `openButton` ([cities.md](cities.md), "Toolbar pills"); he checked it
 works. Step 2, the stage: mahjong's seams + wave were promoted to `games/stage.js` (mahjong
 now runs on it, checked lobby → seating → play in the mock), and cities' lobby is one card at
@@ -82,10 +82,11 @@ centre ([games.md](games.md), "The stage"; [cities.md](cities.md), "The stage").
 player strips, and the board is laid out tile by tile, then tokens, harbours, the robber,
 before the first placement ([cities.md](cities.md), "The opening"). The seating board,
 staging and morph were promoted to `games/seating.js`, and mahjong runs on it.
-**DeetsCities worker:** engine re-vendored and `src/index.js` updated on its
-`gamerz-unite` (uncommitted, NOT deployed). Site and worker must ship together: the live
-worker opens no seating phase, and a new worker would break the old page. Next: his look at
-both games, his go-ahead to commit and deploy, then the next piece of mahjong's standard.
+**DeetsCities worker:** engine re-vendored and `src/index.js` updated (`2e8f3df` on its
+`gamerz-unite`, pushed, master fast-forwarded) but **NOT deployed**. Until it is, live cities
+skips the seating roll and opens straight on the draft in seat order (the new page handles
+the old worker; the reverse would break). Next: his go-ahead to `npx wrangler deploy` in
+`../DeetsCities`, then the next piece of mahjong's standard.
 
 **2026-10-27 — DeetsMusic admin dashboard (LIVE: branch `audio-assists` merged to master and
 published 2026-10-27; no worker change).** The admin page became an overview (headline tiles, a
