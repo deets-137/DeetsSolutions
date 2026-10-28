@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -83,10 +83,9 @@ player strips, and the board is laid out tile by tile, then tokens, harbours, th
 before the first placement ([cities.md](cities.md), "The opening"). The seating board,
 staging and morph were promoted to `games/seating.js`, and mahjong runs on it.
 **DeetsCities worker:** engine re-vendored and `src/index.js` updated (`2e8f3df` on its
-`gamerz-unite`, pushed, master fast-forwarded) but **NOT deployed**. Until it is, live cities
-skips the seating roll and opens straight on the draft in seat order (the new page handles
-the old worker; the reverse would break). Next: his go-ahead to `npx wrangler deploy` in
-`../DeetsCities`, then the next piece of mahjong's standard.
+`gamerz-unite`, pushed, master fast-forwarded) and **DEPLOYED 2026-10-28** (version
+`54d0cc94`; peek smoke-tested). Live cities now opens on the seating roll; a real live game
+through it is his to try. Next: the next piece of mahjong's standard.
 
 **2026-10-27 — DeetsMusic admin dashboard (LIVE: branch `audio-assists` merged to master and
 published 2026-10-27; no worker change).** The admin page became an overview (headline tiles, a
