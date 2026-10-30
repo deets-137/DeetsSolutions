@@ -754,6 +754,68 @@ page."
   public there (counts only, never a deleted post's text); and the thread page's address
   (`#t=` and `#p=` today, which the app's Open and every saved link use).
 
+### Deets posts: polls and suggestions every install receives — DESIGNED 2026-10-30, not built
+
+His ask, 2026-10-30: "how I can send out a poll to be answered in app or a general suggestion
+filed by Deets that everyone receives, we can doc it in with the forum page rebuild." It builds
+on DeetsMusic `docs/ideas/owner-polls.md` (2026-10-27: what existed, the open questions; his
+first poll is interest in voice capability).
+
+**His calls (2026-10-30):**
+- **D1 A — one record.** A Deets post is a forum post: he writes it on the admin page (a poll
+  or a suggestion), it is pinned at the top of the forum page, and the app receives the same
+  post. One record, one result count, two windows.
+- **D2 A — an app answer under a per-poll random key.** The app's first answer makes a random
+  key for that one poll, kept on that PC; the answer is stored under it, so the user can change
+  it and an honest install counts once. The key joins to nothing: not another poll, not the
+  usage counts, not the PC (the `usage_seen` keys are the precedent, DeetsMusic USAGE-COUNTS.md
+  §12.9 A4). A script can still make keys, so an app count is interest, not a ballot; the admin
+  page shows app answers apart from signed-in website votes (the board polls' honest ballot).
+- **D3 A — a toast once, then the Updates panel.** The first time the app sees a post, one
+  toast: "Deets asks: …" with Answer and Not now. The post then stays in the Updates button's
+  panel with the New dot until it is answered or ends. It interrupts once, never twice.
+- **D4 A (his call, 2026-10-30): a signing key in his browser** — of the three below. How far
+  the app trusts what the worker sends. His question first: can it rely on
+  his sign-in? His sign-in guards who can *write* a post (`OWNER_UID` on every `/admin/`
+  route). It does not guard what the worker *serves*: a takeover of the worker (a leaked
+  Cloudflare token, a bad deploy) needs no sign-in, and `SESSION_SECRET` is shared with
+  DeetsAccounts, so a leak from either worker forges his cookie (the local test setup signs one
+  the same way). The options, with the text limits below under all of them:
+  - **A (recommended): a signing key in his browser.** The admin page makes a key once
+    (WebCrypto, non-extractable, in the browser's storage); the app has the public key built
+    in; each post is signed in the browser and checked by the app. One click to post; a worker
+    takeover or a leaked secret cannot forge a post. Cost: the key lives in that browser on that
+    PC; a new one reaches users by an app update, or by a hand-over signed with the old key.
+  - **B: his sign-in only.** The app trusts the worker.
+  - **C: sign with a command on his PC** (CSP.md §7's method). Not one click.
+
+**What follows (no choice in it):**
+- **The text limits:** plain text; a button goes only to deets.solutions or to a place in the
+  app (a card, a Settings row, a Compass verb); a picture only from our own host.
+- **Delivery:** at launch, on the `/config` read the release app already makes, and every 6 h
+  while it runs (the reply check's rhythm). No socket, no new connection.
+- **A *seen* count follows the usage-counts switch;** an answer is the user's own click and
+  does not.
+- **Results on the admin page:** per answer, app answers and website votes apart, by version.
+
+### Pictures on posts — DESIGNED 2026-10-30, not built
+
+His ask, 2026-10-30: "attach screenshots / images to posts so I can convey to users certain
+things are available (or not)".
+
+- **His call P1 A: he attaches publicly; users attach privately.** His pictures show to
+  everyone, on the forum and in the app (a Deets post, a reply, an edit). A user may attach a
+  screenshot to a report from the app or the site; only Aditya and that poster see it, unless
+  he chooses to show it.
+- **Storage:** a new R2 bucket of its own (not `deetsmusic-releases`), served from
+  `support.deets.solutions/img/<id>`; a private picture answers only to the post's code or his
+  cookie. The app's CSP (`tauri.conf.json` › `img-src`) and this site's (`_headers` ›
+  `img-src`) each gain that one host.
+- **Limits:** PNG, JPEG or WebP, about 2 MB. The app and the site re-save each picture before
+  it is sent, which drops hidden data such as GPS location.
+- **A deleted post keeps its pictures** with its archive copy (his call 1B: the whole post,
+  for good).
+
 ## Editing posts — an idea (his ask, 2026-10-30)
 
 His words: "I want to be able to edit my posts (deets editing his post, and ways for users to
