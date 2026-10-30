@@ -3584,7 +3584,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__flag[data-tone="pause"] { border-inline-start-color: var(--pause); }
 .dm-dash__flag[data-tone="go"] { border-inline-start-color: var(--go); color: var(--subtext); }
 .dm-dash__glyph { flex: none; min-inline-size: 1.2em; font-weight: var(--fw-title); color: var(--title); }
-/* Tiles: seven columns (the active-installs tile spans three), so the row is always full.
+/* Tiles: seven columns (the active-installs tile spans two), so the row is always full.
    Each tile is four rows on a subgrid (label, number, meaning, foot): across a row the
    numbers, the lines under them and the sparklines all sit on the same lines. */
 .dm-dash__tiles {
@@ -3599,7 +3599,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   row-gap: var(--space-1);
   min-inline-size: 0;
 }
-.dm-dash__tile.is-wide { grid-column: span 3; }
+.dm-dash__tile.is-wide { grid-column: span 2; }
 /* The Inbox's three counts: a label and a number each, nothing under them. */
 .dm-dash__tiles--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .dm-dash__tiles--three .dm-dash__tile { grid-row: auto; display: flex; flex-direction: column; gap: var(--space-1); }
@@ -3737,6 +3737,53 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__stats dt { color: var(--subtext); }
 .dm-dash__stats dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }
 .dm-chip[data-tone="flag"] { color: var(--title); border-color: var(--stop); }
+
+/* Health: the four checks as status rows in the flags' shape, two to a row. */
+.dm-dash__checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-2);
+  align-self: stretch;
+}
+@media (max-width: 40rem) { .dm-dash__checks { grid-template-columns: minmax(0, 1fr); } }
+.dm-dash__check {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-inline-start: 3px solid var(--border);
+  background: var(--surface);
+  border-radius: calc(var(--radius-control) / 2);
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.dm-dash__check[data-tone="stop"] { border-inline-start-color: var(--stop); }
+.dm-dash__check[data-tone="pause"] { border-inline-start-color: var(--pause); }
+.dm-dash__check[data-tone="go"] { border-inline-start-color: var(--go); }
+.dm-dash__checkname { flex: 1; }
+.dm-dash__check:only-child { grid-column: 1 / -1; }
+.dm-dash__minihead { margin: 0 0 var(--space-1); color: var(--subtext); font-size: 0.8rem; font-weight: var(--fw-title); }
+.dm-dash__checknum { color: var(--subtext); font-variant-numeric: tabular-nums; }
+.dm-dash__check:not([data-tone="go"]) .dm-dash__checknum { color: var(--title); }
+/* A heading whose explanation is its hover hint: a dotted underline says there is one. */
+.dm-usage__sub[title] { cursor: help; text-decoration: underline dotted var(--subtext); text-underline-offset: 0.25em; justify-self: start; align-self: flex-start; }
+/* The Apple summary: errors as chips, read left-aligned; the total row stands apart. */
+.dm-dash__sum td:last-child { text-align: start; white-space: normal; }
+.dm-dash__err {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-inline-end: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+}
+.dm-dash__err b { color: var(--title); font-weight: var(--fw-title); }
+.dm-dash__sum tr.is-total th, .dm-dash__sum tr.is-total td { border-block-end: 0; font-weight: var(--fw-title); color: var(--text); }
+.dm-usage__grid tr.is-on th, .dm-usage__grid tr.is-on td { background: var(--surface); color: var(--title); }
+.dm-usage__grid tr.is-pick { cursor: pointer; }
+.dm-usage__grid tr.is-pick:hover th, .dm-usage__grid tr.is-pick:hover td { background: var(--surface-hover); }
 
 /* Heat cells: the value's shade of --title under the number (admin.js heat()). */
 .dm-dash__heat td { background: color-mix(in oklab, var(--title) var(--heat, 0%), transparent); }

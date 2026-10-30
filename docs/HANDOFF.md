@@ -69,6 +69,15 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-30 — DeetsMusic admin: the Health tab (LIVE: committed on `master` and published
+2026-10-30; no worker change).** The Apple calls table read 0 % everywhere: the page read health
+for the current week, and a week's reports arrive during the week after. Health is now its own
+tab on the newest week with reports (the 7 weeks before it read too), with a ✓ line, the Apple
+calls per group (installs, successful calls at least, error chips), the log as bars, and week by
+week; the overview gained an Apple Music calls tile; weeks read as dates. Strings approved
+("No ph needed for this session"). Also `scripts/dev.js`: the local sign-in checks the cookie's
+signature ([support.md](support.md), "The Health tab"). Next: his look at live data.
+
 **2026-10-30 — DeetsMusic forum archive, edits and local testing (LIVE 2026-10-30: the D1
 migration ran, worker version `0dfc4b0d` deployed with the Setup.exe byte ranges, this site's
 `master` fast-forwarded to `f36fc01` and published; DeetsSupport `master` = `f08916b`; the

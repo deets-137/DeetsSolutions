@@ -421,7 +421,12 @@
   // own call (&a=&b=&from=&to=). Counts only: the worker never sends a raw
   // settings row. Real numbers, no small-group limit (his call, 2026-10-13).
   var USAGE_BOX = $("[data-dm-usage]");
-  var usage = { channel: "live", week: null, data: null, setting: "skin", a: "skin", b: "surface", v: "", seq: 0, crossSeq: 0, pills: null };
+  /* `hw` the health reports of the chosen week and the HEALTH_WEEKS - 1 before it, newest
+     first ([{ week, rows }]); `hweek` the week the Health tab shows (the newest with a report
+     unless picked). The worker stores a week's report under the week it covers, and it
+     arrives during the week after, so the chosen week alone is nearly always empty. */
+  var usage = { channel: "live", week: null, data: null, setting: "skin", a: "skin", b: "surface", v: "", seq: 0, crossSeq: 0, pills: null, hw: null, hweek: null, hpicked: false };
+  var HEALTH_WEEKS = 8;
   var USAGE_CHANNELS = ["live", "beta", "owner", "dev"];
   /* The first version whose counts move on an update (USAGE-COUNTS.md §12.2): a week that
      holds an older one may show an updated install under its old version. */
@@ -619,15 +624,18 @@
         function () { return USAGE_CHANNELS.map(function (c) { return [c, s("usageCh_" + c)]; }); },
         function (c) { usage.channel = c; usage.week = null; loadUsage(); }),
       usagePill($("[data-dm-usage-tools]"), s("usageWeekPill"), function () { return usage.week || ""; },
-        function () { return usageWeeks().map(function (w) { return [w, w]; }); },
+        function () { return usageWeeks().map(function (w) { return [w, weekName(w)]; }); },
         function (w) { usage.week = w; loadUsage(); }),
+      usagePill($("[data-dm-usage-healthtool]"), s("hWeekPill"), function () { return usage.hweek || ""; },
+        function () { return reportWeeks().map(function (w) { return [w, weekName(w)]; }); },
+        function (w) { usage.hweek = w; usage.hpicked = true; renderHealthTab(); paintDash(); }),
       usagePill($("[data-dm-usage-crosstools]"), s("usageCrossA"), function () { return usage.a; }, keys,
         function (k) { usage.a = k; loadCross(); paintUsagePills(); }),
       usagePill($("[data-dm-usage-crosstools]"), s("usageCrossB"), function () { return usage.b; }, keys,
         function (k) { usage.b = k; loadCross(); paintUsagePills(); }),
       usagePill($("[data-dm-usage-healthtool]"), s("usageVersionPill"), function () { return usage.v; },
         function () { return [["", s("usageAllVersions")]].concat(usageVersions().map(function (v) { return [v, v]; })); },
-        function (v) { usage.v = v; renderUsage(); }),
+        function (v) { usage.v = v; renderHealthTab(); }),
     ];
     paintUsagePills();
   }
@@ -647,11 +655,72 @@
       }
       usage.data = res.data;
       usage.week = res.data.week;
+      usage.hw = null;
+      usage.hpicked = false;
       state.hidden = true;
       renderUsage();
       loadCross();
       loadPrev();
+      loadHealth();
     });
+  }
+
+  /* The health reports of the chosen week (already in hand) and the weeks before it. Each is
+     the same read with &week=: the worker answers one week's health per call. */
+  function loadHealth() {
+    var seq = usage.seq, weeks = [];
+    for (var k = 0; k < HEALTH_WEEKS; k++) weeks.push(weekShift(usage.week, -k));
+    Promise.all(weeks.map(function (w, k) {
+      if (!k) return Promise.resolve(usage.data.health);
+      return ownerApi("GET", "/admin/usage?channel=" + encodeURIComponent(usage.channel) + "&week=" + encodeURIComponent(w))
+        .then(function (res) { return res.ok && res.data && res.data.week === w ? res.data.health || [] : null; });
+    })).then(function (all) {
+      if (seq !== usage.seq) return;
+      usage.hw = weeks.map(function (w, k) { return { week: w, rows: all[k], failed: all[k] == null }; });
+      if (!usage.hpicked || reportWeeks().indexOf(usage.hweek) < 0) usage.hweek = reportWeeks()[0] || null;
+      renderHealthTab();
+      paintDash();
+    });
+  }
+  // The weeks in hand that hold at least one report, newest first.
+  function reportWeeks() {
+    return (usage.hw || []).filter(function (x) { return summarize(x.rows || []).reports; }).map(function (x) { return x.week; });
+  }
+  function reportRows() {
+    var x = (usage.hw || []).filter(function (w) { return w.week === usage.hweek; })[0];
+    return x && x.rows ? x.rows : [];
+  }
+
+  // ── ISO weeks: "2026-W43" ⇄ its Monday (UTC), and a name a person reads ──
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function weekMonday(w) {
+    var m = /^(\d{4})-W(\d{2})$/.exec(w || "");
+    if (!m) return null;
+    var jan4 = Date.UTC(+m[1], 0, 4), dow = (new Date(jan4).getUTCDay() + 6) % 7;
+    return new Date(jan4 - dow * 864e5 + (+m[2] - 1) * 7 * 864e5);
+  }
+  function isoWeekOf(d) {
+    var t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    t.setUTCDate(t.getUTCDate() - (t.getUTCDay() + 6) % 7 + 3);   // the week's Thursday names its year
+    var y = t.getUTCFullYear();
+    return y + "-W" + pad2(1 + Math.floor((t - Date.UTC(y, 0, 4)) / 864e5 / 7 + ((new Date(Date.UTC(y, 0, 4)).getUTCDay() + 6) % 7) / 7));
+  }
+  function weekShift(w, k) {
+    var m = weekMonday(w);
+    return m ? isoWeekOf(new Date(m.getTime() + k * 7 * 864e5)) : w;
+  }
+  // "Oct 19 – 25", "Oct 26 – Nov 1"; the year only when it is not this year.
+  function weekSpan(w) {
+    var a = weekMonday(w);
+    if (!a) return w || "";
+    var b = new Date(a.getTime() + 6 * 864e5), yr = new Date().getUTCFullYear();
+    var o = { month: "short", day: "numeric", timeZone: "UTC" };
+    var from = a.toLocaleDateString("en-US", o);
+    var to = b.getUTCMonth() === a.getUTCMonth() ? String(b.getUTCDate()) : b.toLocaleDateString("en-US", o);
+    return from + " – " + to + (b.getUTCFullYear() !== yr ? ", " + b.getUTCFullYear() : "");
+  }
+  function weekName(w) {
+    return w === isoWeekOf(new Date()) ? s("weekNow", { span: weekSpan(w) }) : weekSpan(w);
   }
 
   function usageWeeks() {
@@ -670,7 +739,8 @@
   }
   function usageVersions() {
     var seen = {};
-    ((usage.data && usage.data.health) || []).forEach(function (r) { seen[r.v] = 1; });
+    reportRows().forEach(function (r) { seen[r.v] = 1; });
+    if (usage.v) seen[usage.v] = 1;
     return Object.keys(seen).sort(cmpVersionDesc);
   }
   function sumActive(period) {
@@ -694,9 +764,7 @@
     renderInstallsChart();
     renderUpdates();
     renderReleases();
-    renderHealth();
-    renderHeat();
-    renderApple();
+    renderHealthTab();
     renderShares();
   }
   function weekByVersion() {
@@ -819,7 +887,7 @@
      column is the reports minus the other ranges. */
   function renderHealth() {
     var cells = {}, reports = 0, logs = {};
-    usage.data.health.forEach(function (r) {
+    reportRows().forEach(function (r) {
       if (usage.v && r.v !== usage.v) return;
       if (r.metric === "reports") { reports += r.n; return; }
       if (r.metric.indexOf("log.") === 0) logs[r.metric] = 1;
@@ -864,7 +932,7 @@
       [s("usageUpVersion"), s("usageUpDownloaded"), s("usageUpApplied"), s("usageUpWaiting"), s("usageUpRollback"), s("usageUpSince")],
       vs.map(function (v) {
         var x = by[v];
-        return [v, x.downloaded, x.applied, Math.max(0, x.downloaded - x.applied), x.rollback, fmtDay(x.since)];
+        return [v, x.downloaded, x.applied, x.downloaded < x.applied ? "–" : x.downloaded - x.applied, x.rollback, fmtDay(x.since)];
       })));
   }
 
@@ -938,7 +1006,7 @@
     drop: 0.15,                                   // mean daily active, last 7 whole days vs the 7 before
     waitDays: 3,                                  // a post waiting on him
   };
-  var TABS = ["growth", "inbox", "releases", "settings", "history"];
+  var TABS = ["growth", "inbox", "health", "releases", "settings", "history"];
   var SERIES = 4;               // versions a chart names; the rest are Older
   var NS = "http://www.w3.org/2000/svg";
   var tabsWired = false;
@@ -978,9 +1046,9 @@
   }
   /* The week's health per version: its reports, and per metric the reports that counted it
      above 0 (a metric is stored only above 0, so every row but `reports` is one). */
-  function healthStats() {
+  function healthStats(rows) {
     var rep = {}, above = {};
-    usage.data.health.forEach(function (r) {
+    (rows || reportRows()).forEach(function (r) {
       if (r.metric === "reports") { rep[r.v] = (rep[r.v] || 0) + r.n; return; }
       var m = above[r.metric] = above[r.metric] || {};
       m[r.v] = (m[r.v] || 0) + r.n;
@@ -988,6 +1056,35 @@
     return { versions: Object.keys(rep).sort(cmpVersionDesc), reports: rep, above: above };
   }
   function isTrouble(metric) { return !/\.2xx$/.test(metric); }
+  /* One week's reports added up across versions (or for `v` alone): the reports, and per
+     metric the installs that counted it above 0 and the least count those installs add up
+     to (each range's low end: a report stores a count only as its range). */
+  var BUCKET_LOW = { "1-9": 1, "10-99": 10, "100-999": 100, "1000+": 1000 };
+  function summarize(rows, v) {
+    var out = { reports: 0, installs: {}, least: {} };
+    rows.forEach(function (r) {
+      if (v && r.v !== v) return;
+      if (r.metric === "reports") { out.reports += r.n; return; }
+      out.installs[r.metric] = (out.installs[r.metric] || 0) + r.n;
+      out.least[r.metric] = (out.least[r.metric] || 0) + r.n * (BUCKET_LOW[r.bucket] || 0);
+    });
+    return out;
+  }
+  // The error class most installs hit, Apple's or the log's: { metric, n } or null.
+  function topMetric(sum, test) {
+    return Object.keys(sum.installs).filter(test).reduce(function (best, m) {
+      return !best || sum.installs[m] > best.n ? { metric: m, n: sum.installs[m] } : best;
+    }, null);
+  }
+  function isAppleErr(m) { return m.indexOf("apple.") === 0 && isTrouble(m); }
+  function isLogErr(m) { return m.indexOf("log.error.") === 0; }
+  function appleName(m) {
+    var p = m.split(".");
+    return s("hGroup_" + p[1]) + " " + (p[2] === "net" ? s("hClass_net") : p[2]);
+  }
+  function okCalls(sum) {
+    return USAGE_GROUPS.reduce(function (n, g) { return n + (sum.least["apple." + g + ".2xx"] || 0); }, 0);
+  }
   // When the poster last spoke: their last shown reply, else the post itself.
   function waitSince(p) {
     return (inbox.threads[p.code] || []).reduce(function (m, r) {
@@ -1117,16 +1214,17 @@
         out.push({ tone: "stop", text: s("flagRollback", { v: "v" + uv, pct: pct(u.rollback / u.applied), n: fmtCount(u.rollback), of: fmtCount(u.applied) }) });
         rel[uv] = 1;
       }
-      var h = healthStats(), hv = h.versions[0], pv = h.versions[1];
+      // Health reads the Health tab's week: the newest with reports, not the chosen one.
+      var h = healthStats(), hv = h.versions[0], pv = h.versions[1], span = weekSpan(usage.hweek);
       var share = function (m, v) { return h.reports[v] ? ((h.above[m] || {})[v] || 0) / h.reports[v] : 0; };
       if (hv) {
         var panics = (h.above.panics || {})[hv] || 0;
         if (panics) {
-          out.push({ tone: "stop", text: s("flagPanics", { v: "v" + hv, n: fmtCount(panics) }) });
+          out.push({ tone: "stop", text: s("flagPanicsW", { v: "v" + hv, n: fmtCount(panics), span: span }) });
           cells["panics|" + hv] = 1;
         }
         if (share("freezes", hv) > FLAG.freezes) {
-          out.push({ tone: "pause", text: s("flagFreezes", { v: "v" + hv, pct: pct(share("freezes", hv)) }) });
+          out.push({ tone: "pause", text: s("flagFreezesW", { v: "v" + hv, pct: pct(share("freezes", hv)), span: span }) });
           cells["freezes|" + hv] = 1;
         }
         if (pv && h.reports[hv] >= FLAG.healthMin && h.reports[pv] >= FLAG.healthMin) {
@@ -1247,15 +1345,24 @@
           sub: s("tileNewestSub", { n: fmtCount(byV[newest]), of: fmtCount(week), v: "v" + newest }), meter: byV[newest] / week,
         });
       }
-      var h = healthStats(), sum = function (o) { return Object.keys(o || {}).reduce(function (n, v) { return n + o[v]; }, 0); };
-      var reports = sum(h.reports);
-      if (reports) {
-        var free = 1 - sum(h.above.panics) / reports;
+      // The health tiles read the newest week with reports (the Health tab's week).
+      var hs = summarize(reportRows()), span = weekSpan(usage.hweek);
+      if (!usage.hw) {
+        tile(host, s("tilePanicFreeTitle"), "–", { sub: s("hLoading") });
+        tile(host, s("tileApple"), "–", { sub: s("hLoading") });
+      } else if (hs.reports) {
+        var free = 1 - (hs.installs.panics || 0) / hs.reports;
         tile(host, s("tilePanicFreeTitle"), pct(free), {
-          sub: s("tilePanicFreeSub", { n: fmtCount(reports), pct: pct(sum(h.above.freezes) / reports) }), meter: free,
+          sub: s("tileHealthSub", { n: fmtCount(hs.reports), span: span, pct: pct((hs.installs.freezes || 0) / hs.reports) }), meter: free,
+        });
+        var top = topMetric(hs, isAppleErr);
+        tile(host, s("tileApple"), fmtCount(okCalls(hs)) + "+", {
+          sub: s("tileAppleSub", { span: span }),
+          delta: top ? s("tileAppleErr", { what: appleName(top.metric), n: fmtCount(top.n), of: fmtCount(hs.reports) }) : s("tileAppleNoErr"),
         });
       } else {
-        tile(host, s("tilePanicFreeTitle"), "–", { sub: s("tileNoHealth") });
+        tile(host, s("tilePanicFreeTitle"), "–", { sub: s("tileHealthNone") });
+        tile(host, s("tileApple"), "–", { sub: s("tileHealthNone") });
       }
     }
     // Always drawn, so the row keeps its shape while the posts are still being read.
@@ -1307,7 +1414,10 @@
     var host = $("[data-dm-releases]");
     host.textContent = "";
     var by = updatesByVersion(), vs = Object.keys(by).sort(cmpVersionDesc);
+    // Downloads are counted from 1.2.0 on, so an update from an older version is only a restart.
+    $("[data-dm-dl-note]").hidden = !vs.some(function (v) { return by[v].downloaded < by[v].applied; });
     if (!vs.length) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    var byV = weekByVersion(), week = sumActive(usage.week);
     vs.forEach(function (v) {
       var x = by[v], card = el("article", "dm-dash__release");
       var head = el("div", "dm-dash__relhead");
@@ -1315,8 +1425,10 @@
       if (x.applied) head.appendChild(chip(s("dashRollbackRate", { pct: pct(x.rollback / x.applied) }), usage.flags && usage.flags.releases[v] ? "flag" : null));
       card.appendChild(head);
       var dl = el("dl", "dm-dash__stats");
-      [["usageUpDownloaded", fmtCount(x.downloaded)], ["usageUpApplied", fmtCount(x.applied)],
-       ["usageUpWaiting", fmtCount(Math.max(0, x.downloaded - x.applied))], ["usageUpRollback", fmtCount(x.rollback)],
+      var runs = byV[v] || 0;
+      [["relRuns", fmtCount(runs) + (week ? " · " + pct(runs / week) : "")],
+       ["usageUpDownloaded", fmtCount(x.downloaded)], ["usageUpApplied", fmtCount(x.applied)],
+       ["usageUpWaiting", x.downloaded < x.applied ? "–" : fmtCount(x.downloaded - x.applied)], ["usageUpRollback", fmtCount(x.rollback)],
        ["usageUpSince", fmtDay(x.since)]].forEach(function (p) {
         var row = el("div");
         row.appendChild(el("dt", null, s(p[0])));
@@ -1338,13 +1450,159 @@
       host.appendChild(card);
     });
   }
+  // ── Health: the newest week with reports, then the weeks before it ──
+  function renderHealthTab() {
+    if (!usage.data) return;
+    paintUsagePills();
+    var title = $("[data-dm-health-title]"), lead = $("[data-dm-usage-healthlead]");
+    var parts = ["[data-dm-checks]", "[data-dm-apple-sum]", "[data-dm-logs]", "[data-dm-hweeks]", "[data-dm-heat]", "[data-dm-apple]", "[data-dm-usage-health]"];
+    var clear = function () { parts.forEach(function (p) { $(p).textContent = ""; }); };
+    if (!usage.hw) { clear(); title.textContent = s("hLoading"); lead.textContent = ""; return; }
+    if (!usage.hweek) {
+      clear();
+      title.textContent = s("hNone", { n: HEALTH_WEEKS });
+      lead.textContent = "";
+      return;
+    }
+    var span = weekSpan(usage.hweek), all = summarize(reportRows()), sum = summarize(reportRows(), usage.v);
+    var active = sumActive(usage.hweek);
+    title.textContent = s("hTitle", { span: span });
+    lead.textContent = active && !usage.v
+      ? s("hLead", { n: fmtCount(all.reports), active: fmtCount(active) })
+      : s("hLeadNoActive", { n: fmtCount(sum.reports) });
+    renderChecks(sum);
+    renderAppleSum(sum);
+    renderLogs(sum);
+    renderWeeks();
+    renderHeat();
+    renderApple();
+    renderHealth();
+  }
+  /* The four plain metrics: one row per metric some install counted, then one ✓ row for the
+     rest (all four when the week is clean). */
+  function renderChecks(sum) {
+    var host = $("[data-dm-checks]");
+    host.textContent = "";
+    var row = function (tone, glyph, name, num) {
+      var r = el("div", "dm-dash__check");
+      r.setAttribute("data-tone", tone);
+      r.appendChild(el("span", "dm-dash__glyph", glyph));
+      r.appendChild(el("span", "dm-dash__checkname", name));
+      if (num) r.appendChild(el("span", "dm-dash__checknum", num));
+      host.appendChild(r);
+    };
+    var of = fmtCount(sum.reports), clean = [];
+    USAGE_PLAIN.forEach(function (m) {
+      var n = sum.installs[m] || 0;
+      if (!n) { clean.push(s("hCheck_" + m)); return; }
+      row(m === "panics" ? "stop" : "pause", "!", s("hCheck_" + m), s("hCheckOn", { n: fmtCount(n), of: of, pct: pct(n / sum.reports) }));
+    });
+    if (clean.length === USAGE_PLAIN.length) row("go", "✓", s("hAllClear", { of: of }));
+    else if (clean.length) row("go", "✓", s("hChecksRest", { of: of, names: clean.join(" · ") }));
+  }
+  /* One row per call group: installs with a successful call, the least number of successful
+     calls, and each error result with the installs that hit it, most first. */
+  function renderAppleSum(sum) {
+    var host = $("[data-dm-apple-sum]");
+    host.textContent = "";
+    var errsOf = function (g) {
+      return USAGE_CLASSES.filter(function (c) { return c !== "2xx" && sum.installs["apple." + g + "." + c]; })
+        .sort(function (a, b) { return sum.installs["apple." + g + "." + b] - sum.installs["apple." + g + "." + a]; });
+    };
+    var rows = USAGE_GROUPS.map(function (g) {
+      var ok = "apple." + g + ".2xx";
+      return [s("hGroup_" + g), sum.installs[ok] || 0, sum.least[ok] ? fmtCount(sum.least[ok]) + "+" : 0, ""];
+    });
+    rows.push([s("hAppleAll"), "", fmtCount(okCalls(sum)) + "+", ""]);
+    var t = usageTable([s("hAppleCalls"), s("hAppleInstalls"), s("hAppleOk"), s("hAppleErr")], rows);
+    t.classList.add("dm-dash__sum");
+    $all("tbody tr", t).forEach(function (tr, i) {
+      if (i === USAGE_GROUPS.length) { tr.classList.add("is-total"); return; }
+      // Each error result a chip: the result, then the installs that hit it.
+      var cell = $all("td", tr)[2], errs = errsOf(USAGE_GROUPS[i]);
+      if (!errs.length) { cell.className = "is-zero"; cell.textContent = s("hAppleNoErr"); return; }
+      errs.forEach(function (c) {
+        var n = sum.installs["apple." + USAGE_GROUPS[i] + "." + c];
+        var c1 = el("span", "dm-dash__err");
+        c1.appendChild(el("span", null, c === "net" ? s("hClass_net") : c));
+        c1.appendChild(el("b", null, fmtCount(n)));
+        c1.title = s("hCheckOn", { n: fmtCount(n), of: fmtCount(sum.reports), pct: pct(n / sum.reports) });
+        cell.appendChild(c1);
+      });
+    });
+    host.appendChild(t);
+  }
+  /* Log lines by area: installs with an ERROR line and with a WARN line, errors first. */
+  function renderLogs(sum) {
+    var host = $("[data-dm-logs]");
+    host.textContent = "";
+    var areas = {};
+    Object.keys(sum.installs).forEach(function (m) {
+      var p = /^log\.(error|warn)\.(.+)$/.exec(m);
+      if (!p) return;
+      var a = areas[p[2]] = areas[p[2]] || { error: 0, warn: 0 };
+      a[p[1]] = sum.installs[m];
+    });
+    if (!Object.keys(areas).length) { host.appendChild(el("p", "dm-empty", s("hLogNone"))); return; }
+    // Two bar lists side by side, each bar the share of the week's reports; areas at 0 left out.
+    ["error", "warn"].forEach(function (lv) {
+      var col = el("div");
+      col.appendChild(el("h4", "dm-dash__minihead", s(lv === "error" ? "hLogErrs" : "hLogWarns")));
+      var bars = el("div", "dm-usage__bars");
+      var names = Object.keys(areas).filter(function (a) { return areas[a][lv]; })
+        .sort(function (a, b) { return areas[b][lv] - areas[a][lv] || (a < b ? -1 : 1); });
+      if (!names.length) bars.appendChild(el("p", "dm-empty", s("hNoErrs")));
+      else renderBars(bars, names.map(function (a) { return [a, areas[a][lv]]; }), sum.reports);
+      col.appendChild(bars);
+      host.appendChild(col);
+    });
+  }
+  /* One row per week in hand, newest first: how many reported and the headline of each. */
+  function renderWeeks() {
+    var host = $("[data-dm-hweeks]");
+    host.textContent = "";
+    // Weeks older than the first with any count are before counting began: left out.
+    var weeks = usage.hw.slice();
+    while (weeks.length > 1) {
+      var x0 = weeks[weeks.length - 1];
+      if (x0.failed || summarize(x0.rows || []).reports || sumActive(x0.week)) break;
+      weeks.pop();
+    }
+    var rows = weeks.map(function (x) {
+      var sm = summarize(x.rows || []), act = sumActive(x.week), r = sm.reports;
+      if (x.failed) return [weekName(x.week), "–", act, "", "", "", "", ""];
+      var tA = topMetric(sm, isAppleErr), tL = topMetric(sm, isLogErr);
+      return [
+        weekName(x.week), r, act,
+        r ? pct(1 - (sm.installs.panics || 0) / r) : "–",
+        r ? fmtCount(sm.installs.freezes || 0) : "–",
+        tA ? appleName(tA.metric) + " · " + tA.n : "–",
+        tL ? tL.metric.slice(10) + " · " + tL.n : "–",
+        r ? fmtCount(okCalls(sm)) + "+" : "–",
+      ];
+    });
+    var t = usageTable([s("hWk"), s("hWkReports"), s("hWkActive"), s("hWkPanicFree"), s("hWkFreezes"), s("hWkTopApple"), s("hWkTopLog"), s("hWkOk")], rows);
+    $all("tbody tr", t).forEach(function (tr, i) {
+      var w = weeks[i].week;
+      if (w === usage.hweek) tr.classList.add("is-on");
+      if (w === usage.hweek || !summarize(weeks[i].rows || []).reports) return;
+      // A week with reports: a click shows it above, as the Week pill does.
+      tr.classList.add("is-pick");
+      tr.tabIndex = 0;
+      var go = function () { usage.hweek = w; usage.hpicked = true; renderHealthTab(); paintDash(); };
+      tr.addEventListener("click", go);
+      tr.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    });
+    host.appendChild(t);
+  }
+
   /* Rows are the trouble metrics some version counted above 0 (2xx is not trouble), columns
      the versions, newest first; a cell is the share of that version's reports. */
   function renderHeat() {
     var h = healthStats(), host = $("[data-dm-heat]");
     host.textContent = "";
     var reports = h.versions.reduce(function (n, v) { return n + h.reports[v]; }, 0);
-    $("[data-dm-usage-healthlead]").textContent = s("dashHeatLead", { n: fmtCount(reports) });
+    $("[data-dm-heat-lead]").textContent = s("hHeatLead", { n: fmtCount(reports), span: weekSpan(usage.hweek) });
     var rank = function (m) { return USAGE_PLAIN.indexOf(m) >= 0 ? "0" + USAGE_PLAIN.indexOf(m) : m.indexOf("log.") === 0 ? "1" + m : "2" + m; };
     var metrics = Object.keys(h.above).filter(function (m) {
       return isTrouble(m) && h.versions.some(function (v) { return (h.above[m][v] || 0) > 0; });
@@ -1559,6 +1817,7 @@
 
   // ── Boot ───────────────────────────────────────────────────────
   $all("[data-s]").forEach(function (n) { n.textContent = s(n.getAttribute("data-s")); });
+  $all("[data-hint]").forEach(function (n) { n.title = s(n.getAttribute("data-hint")); });
   var badge = $("[data-dm-mock]");
   if (badge) badge.hidden = !MOCK;
   watchOwner();

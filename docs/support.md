@@ -477,8 +477,49 @@ worker change: every chart is drawn from today's `GET /admin/usage` and the Inbo
 - **Published to see live data** (his call, 2026-10-27: "I'm the only admin so that's fine"):
   the owner's cookie never reaches localhost, so live numbers in this layout can only be
   seen on deets.solutions; `?mock` covers the look locally.
-- **Later, if he wants it (needs the worker):** health across weeks, update and download
-  history beyond 14 days.
+- **Later, if he wants it (needs the worker):** update and download history beyond 14 days.
+
+### The Health tab — BUILT 2026-10-30, not published
+
+His ask, 2026-10-30: the Apple Music calls table read 0 % in every cell. **The cause:** an install
+reports a finished week once, during the week after, and the worker files it under the week it
+covers. The page read health for the chosen week, which defaults to the newest settings week:
+the current week, which has no reports until next week. **No worker change:** `loadHealth()` reads
+the chosen week and the 7 before it (`&week=` per call) and shows the newest week with reports.
+Then his ask, the same day: "think like a sys admin dashboard … overall scale … making it clear
+what's being displayed".
+
+- **Its own tab, Health** (after Inbox), out of Releases. Its title names the week ("Reports
+  for the week of Oct 19 – 25"); its own Week and Version pills. The lead gives the reports
+  and the week's active installs as two counts (they come from different sends, so a ratio
+  read 108 % on live data and was dropped).
+- **Four checks** (panics, freezes, DB write fails, 429 back-offs) as status rows: installs of
+  the reports. **Apple Music calls** as one row per group: installs with a successful call,
+  successful calls at least (each range's low end, summed: a report stores only the range),
+  each error result with its installs. **The log** by area: installs with ERROR / WARN lines.
+  **Week by week**: up to 8 weeks from the first with counts; a click on a week shows it.
+  **By version**: the old heat table. Under Table: the 48-cell Apple grid and the raw buckets.
+- **Less text (his note the same day: "This feels like a wall of text"):** each heading's
+  explanation is its hover hint (`data-hint`, a dotted underline), the lead is one line
+  ("14 installs reported · 13 active that week"), a clean week is one ✓ row ("All clear on 14
+  installs …"), Apple errors are chips (result, installs), the log is two bar lists (Errors,
+  Warnings; areas at 0 left out), and By version is folded.
+- **Overview:** the health tile and a new **Apple Music calls** tile read the Health tab's week
+  ("3,784+ successful calls, Oct 19 – 25 · top error: …"). The tiles are 7 columns, active
+  installs spanning 2. The health flags read that week too (`flagPanicsW`, `flagFreezesW`).
+- **Weeks read as dates** in every pill ("Oct 26 – Nov 1 (this week)"), never "2026-W44".
+- **Releases:** each card adds *Runs on it this week* (installs and share). Waiting reads –
+  where Downloaded is below Restarted: downloads are counted from v1.2.0 on, so an update from an
+  older version is only a restart (a note says so).
+- **Copy:** the block after `dashSettingsOther`, approved by him the same day ("No ph needed
+  for this session"). The old
+  `dashHeatLead`, `dashAppleLead`, `tileNoHealth`, `tilePanicFreeSub`, `flagPanics`,
+  `flagFreezes` are unused now and kept, his words.
+- **Checked** on the local worker with the live rows (`npm run support:pull`), signed in as the
+  local owner, at 1440 and 400 px wide.
+- **Local sign-in fix (`scripts/dev.js`):** `/__support/owner` now checks the cookie's signature
+  against this run's secret, as the worker does. Before, any `ds_sess` read as signed in, so after a
+  restart (a new secret) the page showed "Aditya (local)" while the admin page said "owner only".
 
 ---
 

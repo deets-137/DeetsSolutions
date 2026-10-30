@@ -157,11 +157,22 @@ const SUPPORT = process.env.DEETS_SUPPORT_URL || '';
 const SUPPORT_SECRET = process.env.DEETS_SUPPORT_SECRET || '';
 const SUPPORT_TAG = '<script src="/__support/env.js"></script>';
 
+function ownerSig(payload) {
+  return require('crypto').createHmac('sha256', SUPPORT_SECRET).update(payload).digest('base64url');
+}
 function ownerCookieValue() {
-  const crypto = require('crypto');
   const payload = Buffer.from(JSON.stringify({ u: 'local-owner', iat: Math.floor(Date.now() / 1000) })).toString('base64url');
-  const sig = crypto.createHmac('sha256', SUPPORT_SECRET).update(payload).digest('base64url');
-  return encodeURIComponent(`${payload}.${sig}`);
+  return encodeURIComponent(`${payload}.${ownerSig(payload)}`);
+}
+// Signed in only when the cookie is signed with THIS run's secret, as the worker checks it.
+// A cookie from an earlier run is still in the browser, and the worker refuses it
+// (2026-10-30: the page read "Aditya (local)" while the admin page said "owner only").
+function ownerCookieValid(header) {
+  const m = /(?:^|;\s*)ds_sess=([^;]+)/.exec(header || '');
+  if (!m) return false;
+  const [payload, sig] = decodeURIComponent(m[1]).split('.');
+  const want = payload ? ownerSig(payload) : '';
+  return !!sig && sig.length === want.length && require('crypto').timingSafeEqual(Buffer.from(sig), Buffer.from(want));
 }
 
 function supportRoute(req, res) {
@@ -179,7 +190,7 @@ function supportRoute(req, res) {
       res.setHeader('set-cookie', 'ds_sess=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
       return send(res, 200, { owner: false });
     }
-    return send(res, 200, { owner: /(?:^|;\s*)ds_sess=[^;]+/.test(req.headers.cookie || '') });
+    return send(res, 200, { owner: ownerCookieValid(req.headers.cookie) });
   }
   send(res, 404, { ok: false, error: 'unknown support route' });
 }

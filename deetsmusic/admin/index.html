@@ -32,15 +32,15 @@
     <link rel="preload" href="../../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/skin.css?v=2026-10-28" as="style" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-30" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-30c" />
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-10-30" defer></script>
+    <script src="../strings.js?v=2026-10-30c" defer></script>
     <script src="../mock.js?v=2026-10-30" defer></script>
     <!-- Generated from DeetsMusic: scripts/build-usage-settings.mjs (support.md, "The dashboard"). -->
     <script src="./usage-settings.js?v=2026-10-27c" defer></script>
-    <script src="./admin.js?v=2026-10-30" defer></script>
+    <script src="./admin.js?v=2026-10-30c" defer></script>
   </head>
 
   <body>
@@ -117,6 +117,7 @@
         <div class="dm-dash__tabs" role="tablist" data-dm-tabs>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-growth" aria-controls="growth" data-tab="growth" data-s="dashTab_growth"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-inbox" aria-controls="inbox" data-tab="inbox" data-s="inboxTitle"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-health" aria-controls="health" data-tab="health" data-s="dashTab_health"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-releases" aria-controls="releases" data-tab="releases" data-s="dashTab_releases"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-settings" aria-controls="settings" data-tab="settings" data-s="dashTab_settings"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-history" aria-controls="history" data-tab="history" data-s="dashTab_history"></button>
@@ -164,25 +165,49 @@
           <div class="dm-inbox__list" data-dm-inbox-list></div>
         </section>
 
-        <!-- Releases: one card per version with update counts, then health. -->
+        <!-- Health: the newest week that has health reports (each install reports a finished
+             week during the next one, so the current week is nearly always empty), the weeks
+             before it, and the full tables under Table. -->
+        <section class="dm-box dm-box--wide dm-dash__panel" id="health" role="tabpanel" aria-labelledby="dm-tab-health" data-panel="health" hidden>
+          <div class="dm-usage__body">
+            <!-- The explanations are hover hints on the headings (data-hint), not lines of text. -->
+            <div class="dm-usage__subhead">
+              <h3 class="dm-usage__sub dm-dash__weekhead" data-dm-health-title data-hint="hLeadHint"></h3>
+              <div class="dm-board__tools" data-dm-usage-healthtool></div>
+            </div>
+            <p class="dm-hint" data-dm-usage-healthlead></p>
+            <div class="dm-dash__checks" data-dm-checks></div>
+            <h3 class="dm-usage__sub" data-s="dashApple" data-hint="hAppleLead"></h3>
+            <div class="dm-usage__table" data-dm-apple-sum></div>
+            <h3 class="dm-usage__sub" data-s="hLogTitle" data-hint="hLogLead"></h3>
+            <div class="dm-dash__pair" data-dm-logs></div>
+            <h3 class="dm-usage__sub" data-s="hWeeksTitle" data-hint="hWeeksLead"></h3>
+            <div class="dm-usage__table" data-dm-hweeks></div>
+            <details class="dm-dash__table">
+              <summary data-s="hByVersion"></summary>
+              <p class="dm-hint" data-dm-heat-lead></p>
+              <div class="dm-usage__table" data-dm-heat></div>
+            </details>
+            <details class="dm-dash__table">
+              <summary data-s="dashTable"></summary>
+              <p class="dm-hint" data-s="hAppleGridLead"></p>
+              <div class="dm-usage__table" data-dm-apple></div>
+              <p class="dm-hint" data-s="hRawLead"></p>
+              <div class="dm-usage__table" data-dm-usage-health></div>
+            </details>
+          </div>
+        </section>
+
+        <!-- Releases: one card per version with update counts. -->
         <section class="dm-box dm-box--wide dm-dash__panel" id="releases" role="tabpanel" aria-labelledby="dm-tab-releases" data-panel="releases" hidden>
           <div class="dm-usage__body">
             <h3 class="dm-usage__sub" data-s="usageUpdates"></h3>
             <p class="dm-hint" data-s="usageUpdatesLead"></p>
+            <p class="dm-hint" data-dm-dl-note data-s="relDownloadsNote" hidden></p>
             <div class="dm-dash__releases" data-dm-releases></div>
-            <h3 class="dm-usage__sub" data-s="usageHealth"></h3>
-            <p class="dm-hint" data-dm-usage-healthlead></p>
-            <div class="dm-usage__table" data-dm-heat></div>
-            <div class="dm-usage__subhead">
-              <h3 class="dm-usage__sub" data-s="dashApple"></h3>
-              <div class="dm-board__tools" data-dm-usage-healthtool></div>
-            </div>
-            <p class="dm-hint" data-s="dashAppleLead"></p>
-            <div class="dm-usage__table" data-dm-apple></div>
             <details class="dm-dash__table">
               <summary data-s="dashTable"></summary>
               <div class="dm-usage__table" data-dm-usage-updates></div>
-              <div class="dm-usage__table" data-dm-usage-health></div>
             </details>
           </div>
         </section>
