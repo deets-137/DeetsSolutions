@@ -145,8 +145,48 @@ function copyRoute(req, res) {
   send(res, 404, { ok: false, error: 'unknown copy route' });
 }
 
+/* A LOCAL DeetsSupport worker (DeetsMusic `npm run dev:app -- --support-local` starts this
+   server with DEETS_SUPPORT_URL and DEETS_SUPPORT_SECRET; docs/support.md, "Local testing").
+   Then every page gets /__support/env.js first in its <head>, which tells deetsmusic.js and
+   admin.js to read that worker, and tells account.js to sign in as the LOCAL OWNER instead of
+   through id.deets.solutions (whose cookie never reaches localhost). /__support/owner signs a
+   `ds_sess` cookie for localhost with the run's secret, which only that local worker knows;
+   the browser sends it to the worker's port too, since a cookie ignores the port. The live
+   sign-in is never read, copied or needed. Without the two variables, none of this exists. */
+const SUPPORT = process.env.DEETS_SUPPORT_URL || '';
+const SUPPORT_SECRET = process.env.DEETS_SUPPORT_SECRET || '';
+const SUPPORT_TAG = '<script src="/__support/env.js"></script>';
+
+function ownerCookieValue() {
+  const crypto = require('crypto');
+  const payload = Buffer.from(JSON.stringify({ u: 'local-owner', iat: Math.floor(Date.now() / 1000) })).toString('base64url');
+  const sig = crypto.createHmac('sha256', SUPPORT_SECRET).update(payload).digest('base64url');
+  return encodeURIComponent(`${payload}.${sig}`);
+}
+
+function supportRoute(req, res) {
+  const route = req.url.split('?')[0];
+  if (route === '/__support/env.js') {
+    res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' });
+    return res.end(`window.DEETS_SUPPORT_LOCAL = ${JSON.stringify({ base: SUPPORT })};\n`);
+  }
+  if (route === '/__support/owner') {
+    if (req.method === 'POST') {
+      res.setHeader('set-cookie', `ds_sess=${ownerCookieValue()}; Path=/; HttpOnly; SameSite=Lax`);
+      return send(res, 200, { owner: true });
+    }
+    if (req.method === 'DELETE') {
+      res.setHeader('set-cookie', 'ds_sess=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+      return send(res, 200, { owner: false });
+    }
+    return send(res, 200, { owner: /(?:^|;\s*)ds_sess=[^;]+/.test(req.headers.cookie || '') });
+  }
+  send(res, 404, { ok: false, error: 'unknown support route' });
+}
+
 function proxy(inner, devRoute) {
   return (req, res) => {
+    if (SUPPORT && req.url.startsWith('/__support/')) return supportRoute(req, res);
     if (req.url.startsWith('/__copy/')) return copyRoute(req, res);
     if (req.url.startsWith('/__dev/')) return devRoute(req, res);
     const headers = { ...req.headers };
@@ -172,6 +212,8 @@ function proxy(inner, devRoute) {
         ur.on('end', () => {
           let html = Buffer.concat(chunks).toString('utf8');
           html = html.includes('</body>') ? html.replace('</body>', INJECT + '</body>') : html + INJECT;
+          // First in <head>, not deferred: it must run before account.js and the page scripts.
+          if (SUPPORT) html = html.replace(/<head[^>]*>/i, (m) => m + SUPPORT_TAG);
           const out = { ...ur.headers };
           delete out['content-length'];
           delete out['etag'];

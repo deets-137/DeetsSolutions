@@ -1,7 +1,7 @@
 ---
 status: live
-sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, js/home.js]
-updated: 2026-10-27
+sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, deetsmusic/mock.js, js/home.js]
+updated: 2026-10-30
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -316,7 +316,8 @@ page's boards list hidden posts too (dashed, tagged Hidden), and
 right-clicking a post opens a menu: **Status** (new / open / planned /
 fixed / won't fix), **Hide / Show**, **Reply** (opens the post page; the
 reply goes in as "Aditya") and **Delete** (two clicks; takes the replies
-with it).
+with it). Since 2026-10-30 a delete first copies the post, whole, into the
+archive ("The archive" below).
 
 - **Who is the owner is the worker's call.** The page asks
   `GET /admin/me` with credentials; the worker verifies the `ds_sess`
@@ -606,6 +607,203 @@ already reads `/t/<code>`.
   first, then `/health` and `/token` checked after, `wrangler rollback` ready. B: hold it for
   the next worker change and deploy both together. (Reading Workers Logs by hand needs no
   deploy, but it puts nothing on the admin page, so it is not an option here.)
+
+---
+
+## The archive — BUILT 2026-10-30, not deployed
+
+His ask, 2026-10-30: "a D1/R2 archive and move all deleted (and future deleted) posts there
+… so I can keep track of things like ticket counts and such historically as we get more
+users."
+
+**His calls (2026-10-30):**
+- **What it keeps: the whole post, for good** (1B). The post row, the whole thread (replies,
+  his replies, members' comments, hidden ones too), the polls, their options and their votes.
+  The other choices were the post for 90 days and then the counts only, or the counts only.
+- **No "Delete for good"** (2B). If a post must go for real (a secret pasted into it), he
+  deletes the archive row by hand: `npx wrangler d1 execute deets-support --remote
+  --command "DELETE FROM archived_posts WHERE code = '<code>'"`.
+- **History on the admin page** (3A), as a first draft for him to design; his longer-term
+  wish is the forum page ("The forum page" below).
+- **The local test runs the site too** (4A): DeetsMusic `npm run dev:app -- --support-local`
+  (DeetsMusic DEBUGGING.md § A local support worker).
+
+**Posts deleted before 2026-10-30 are gone.** The worker kept nothing. D1 Time Travel can
+only roll back the whole live database, which would erase every post and vote since, so the
+history starts on the day this deploys.
+
+**What Claude decided inside his calls:**
+- **D1, not R2.** A table `archived_posts` in the same database
+  (`migrations/2026-10-30-archive.sql`, also in `schema.sql`). In the same database, the copy
+  and the delete run in one batch, which D1 runs as one transaction: if the copy fails, nothing
+  is deleted. It is also what SQL can count. R2 stores files; a post has none.
+- **The row:** the facts as columns, for counting (app, kind, state at the delete, public,
+  source, `meta.version`, title, interest, filed, updated, `deleted_at`, `deleted_by`, and the
+  counts of thread rows, his replies, comments, polls and votes), then `post` and `thread` as
+  JSON. `deleted_by` is `owner` today; `poster` once a poster can delete ("Editing posts").
+- **One SQL statement** makes the copy (`ARCHIVE_SQL` in `src/index.js`), first in the
+  delete's batch. It reads the rows by the same `code` the deletes use.
+- **Only post deletes are archived**, as he asked. A comment deleted on its own
+  (`DELETE /admin/replies/<id>`) is still deleted for good; under a deleted post, every
+  comment goes into the copy.
+- **The reporter's code gives 404** after a delete, as before, for every caller but the
+  thread view (next).
+
+**The poster's view (his ask, 2026-10-30):** the poster's link (`#t=<code>`, the app's Open)
+shows the archived post instead of "No post matches this link". The thread view asks
+`GET /t/<code>?open=1&archive=1`; for a deleted post the worker answers from the archive
+(`archivedTicket`): the post, the thread without its hidden rows (the owner sees those too),
+and `archived: { deleted_at }`. No polls, no read marks. The page shows a *Closed* chip in
+place of the state, *Closed {date}* in the meta line, one line saying it is no longer on the
+boards, and no reply box. (His call the same day: "Removed" read as clinical, so the poster
+sees *Closed*; the strings keep the `ticketRemoved*` keys. The app's My reports still says
+*Removed*.) There is no owner menu on it. **Only `archive=1` gets it:** the app's status reads (every
+installed version) still get the 404, which My reports reads as *Removed*; an old install
+would otherwise take a deleted post for a live one.
+
+**The routes (owner only, `GET`):**
+- `/admin/archive?app=` — the deleted posts, newest delete first, without the JSON (up to 500).
+- `/admin/archive/<code>` — one deleted post: the facts, `post` and `thread` parsed.
+- `/admin/history?app=` — `filed`: rows of month × kind × source with `live` and `archived`
+  counts (by the month it was filed); `deleted`: rows of month × kind with `n` (by the month of
+  the delete). A delete never takes a post out of the counts.
+
+**History on the admin page** (`#history`, the fifth tab, `showHistory` in `admin.js`), laid
+out like the Inbox tab (his ask, 2026-10-30: "neaten it out so its more elegant and usable as
+a dashboard"): three tiles (*Posts filed* all time with the bugs / suggestions split;
+*Deleted* with its share; *Filed this month* with the app / website split), the last 12
+months as stacked columns (bugs, suggestions; the Inbox's weekly chart), every month with its
+split under *Table*, then the deleted posts in **DeetsLeague's match row** (his ask, the same
+day: "the same style we use for DeetsLeague matches"; `league.js` `renderMatches`, the
+`.lol-match` classes used as they are): a card whose top row is one button, the title with
+the kind and source, then a facts line (filed, version, replies, ▲) on the left; the state
+at the delete and *Deleted {date}* on the right; a hover shade. A click opens the post's text
+and its thread under a hairline (`.dm-archive__body`, laid out like the match's scoreboard),
+read once. The strings are his call "remove the [ph]s
+everywhere" (`history*`, `ticketRemoved*` in `strings.js`). `?mock` answers both routes from
+the mock's own archive (a mock delete archives too).
+
+**The app's My reports** (DeetsMusic `settings-card.ts`, his ask the same day): the open
+reports first, then a *Resolved* fold (shut until opened; the section headers' chevron and
+count) holding every report whose last read state is closed, fixed, won't fix or removed
+(gone). A resolved report has no Close; its rows slide in when the fold opens (`enterRows`,
+a section fold's motion). His calls, the same day: resolved reports **stay until cleared**
+(right-click › Clear; the one-day expiry of 2026-09-14 is gone, the list keeps its cap of 100
+on each send), and a removed (gone) report reads **Closed** in the app too.
+
+**Deploy (his call; DeetsSupport holds no sockets, so a deploy drops nothing):**
+0. The privacy page's new DeetsMusic paragraph (written 2026-10-30), published first ("Editing
+   posts" › The privacy page): the worker now keeps a signed-in poster's account id.
+1. `npx wrangler d1 execute deets-support --remote --file=migrations/2026-10-30-archive.sql`
+   FIRST. It makes the archive table and four columns (`replies.edited_at`,
+   `posts.edited_at`, `posts.uid`). A worker deployed without it: every delete fails whole
+   (nothing is lost); thread reads, edits' stamps and intake fall back and keep working.
+2. `npx wrangler deploy` in DeetsSupport; then `/health` and `/token` answer 200.
+3. Publish this site (the History tab, the owner menu and Edit, the closed post's page,
+   `deetsmusic.js`'s local-worker switch, `account.js`'s local owner).
+
+**Desk test** (run by Claude 2026-10-30 on a local worker, through the real routes): a post
+filed in the app's shape with `meta.version`, a reply and a status set, then a delete. After:
+`/t/<code>` 404; `/admin/archive` lists it with `replies 1, owner_replies 1, version 1.2.1`;
+`/admin/archive/<code>` has the body and the thread; `/admin/history` still counts it, now as
+`archived`, with one delete that month; the routes answer 403 with no owner cookie. The copy
+SQL alone was run on a post with a reply, a comment, a poll, an option and a vote: every count
+right, and the thread nests as real JSON. Open: the admin page's tab on the live site after the
+deploy (his eye; the owner cookie never reaches localhost).
+
+### Local testing — BUILT 2026-10-30
+
+His asks, 2026-10-30: test the forum from the app's side with no live post; then, on the local
+site, use the owner tools without his Google sign-in (which never returns to localhost), on
+real data, and reply as himself or as a user, back and forth.
+
+- **The run:** DeetsMusic `npm run dev:app -- --support-local` starts the real DeetsSupport
+  worker on a local D1 (port 8790 up) and this site's `scripts/dev.js` (8787 up), passing it
+  `DEETS_SUPPORT_URL` and `DEETS_SUPPORT_SECRET` (a secret made for that run only).
+- **The page:** with those set, `dev.js` puts `/__support/env.js` first in every page's
+  `<head>`. It sets `window.DEETS_SUPPORT_LOCAL`, and `deetsmusic.js` and `admin.js` read that
+  worker. On deets.solutions the variable never exists.
+- **Sign-in is the switch.** `account.js` signs in as the **local owner** ("Aditya (local)")
+  through `/__support/owner`, which sets a `ds_sess` cookie for localhost signed with the run's
+  secret. The worker reads it as the owner; a cookie ignores the port, so it reaches the
+  worker too. Signed in, you are Aditya: the boards' owner menu, a thread's reply as Aditya,
+  the admin page (Inbox, History). Signed out, you are any visitor; a report's `#t=<code>` link
+  replies as its poster. Your live sign-in is never read, copied or needed.
+- **Real data:** DeetsMusic `npm run support:pull` copies the live database's rows into the
+  local one (`wrangler d1 export --remote --no-schema`, a read). Nothing on the local site can
+  write to live. The copy replaces every local row, test posts included.
+- DeetsMusic DEBUGGING.md § A local support worker has the app side and the commands.
+
+---
+
+## The forum page — an idea (his ask, 2026-10-30)
+
+His words: "I want to create a whole page at deets.solutions/deetsmusic/forum where users and
+me can get a better view of everything going on rather than being at the bottom of the main
+page."
+
+- **Today** the boards (suggestions and issues) and the threads sit at the bottom of the
+  DeetsMusic page (`deetsmusic/index.html`, `deetsmusic.js`), and his own view is the admin
+  page's Inbox and History.
+- **The idea:** a page of its own at `/deetsmusic/forum/` for everyone, with more room for the
+  boards, the threads and what is going on. His own tools (the Inbox, History) may live there
+  for him when he is signed in, or stay on the admin page.
+- **Not designed.** He leads the page's design ("The page" above). Open questions for that
+  pass: what moves off the DeetsMusic page and what stays (a link, a short list?); what a
+  visitor sees first (newest activity, most wanted, by state?); whether History's counts are
+  public there (counts only, never a deleted post's text); and the thread page's address
+  (`#t=` and `#p=` today, which the app's Open and every saved link use).
+
+## Editing posts — an idea (his ask, 2026-10-30)
+
+His words: "I want to be able to edit my posts (deets editing his post, and ways for users to
+do so within 2 hours of posting as well and an option for them to delete it which can archive
+it if so)".
+
+- **His replies — BUILT 2026-10-30 (not deployed).** Right-click his own reply on a post's page
+  › **Edit**: the text becomes the reply box's field with Save and Cancel (Escape cancels,
+  Ctrl+Enter saves). `PATCH /admin/replies/<id> {body}` changes an `owner` row only (403 on
+  anyone else's words) and stamps `replies.edited_at` (in `migrations/2026-10-30-archive.sql`;
+  the worker reads it with a fallback, so a deploy before the migration still reads every
+  thread). Every reader sees *edited* beside the date; the archive copy keeps `edited_at`.
+  Tested on the local worker: his reply edits and shows *edited* on a public read; a poster's
+  reply answers 403.
+- **The owner menu on a post's page — BUILT 2026-10-30.** Right-click the post on its own page
+  (`#t=` or `#p=`) for the boards' menu: Status, Hide / Show, Delete (Reply is left out: the
+  box is on the page). A change reloads the page; a delete returns to the boards. `#p=` takes
+  the code from his board list.
+- **His edits of any post — BUILT 2026-10-30 (his call 1A, not deployed).** A post has no
+  account behind it, so "my posts" could not be told apart; his call: he edits any post's
+  title and text, never silently. The owner menu's **Edit** (on the post's page; from a board
+  it opens the page and starts there) turns the title and text into the post form's fields
+  with Save and Cancel. `PATCH /admin/posts/<code> {title?, body?}` keeps the intake's title
+  rules (10 words, 120 characters) and stamps `posts.edited_at`; every reader's meta line
+  shows *Edited by Aditya {date}* (`postEditedAt`, read with a fallback). Tested locally:
+  the edit and the stamp; an 11-word title answers 400 `title_words`.
+- **Who filed it — BUILT 2026-10-30 (his call, not deployed): `posts.uid`.** A post filed on
+  the website while signed in to DeetsAccounts keeps that account's id (the form now sends
+  the cookie); a signed-out post and every app post keep none. Never sent out. It is for
+  what comes next: a poster editing or deleting their own post. His question, the same day:
+  should the app send its own install id? No such id exists, by his rule (DeetsMusic
+  USAGE-COUNTS.md §2, "No ID"), and the reply notices do not need one: each install keeps its
+  posts' codes and asks the worker about them; the worker never reaches an install. Tested
+  locally: a signed-in post keeps the id; an anonymous one has none; a read never shows it.
+- **The privacy page — DONE 2026-10-30 (his OK of the draft).** `privacy/index.html` said "Posts on the DeetsMusic
+  page are anonymous … There is no account", and "If this ever starts storing more than the
+  above, this page gets updated first." `posts.uid` stores more, so his new wording for that
+  paragraph had to go live before the worker does. The new paragraph is his OK of Claude's draft:
+  signed-in posts keep the opaque ID, never shown; app and signed-out posts are tied to none.
+- **A poster edits their post within 2 hours** of posting: the title and the body. The code is
+  the poster's credential (the app keeps it in My reports; the site in *Your posts*), so the
+  edit rides it, as Close does (`POST /t/<code>/close`).
+- **A poster deletes their own post**, and the delete goes into the archive
+  (`deleted_by = 'poster'`, "The archive" above).
+- **Not designed.** Questions for that pass: whether a member edits a comment the same way
+  (it carries a DeetsAccounts sign-in, not a code); whether an edit shows as edited and keeps
+  the first text (in the archive, or a history table); whether the 2 hours count from the post
+  or from the last edit; whether a poster's delete is allowed after he replied; the app side
+  (My reports' right-click: Edit, Delete) and the site side (*Your posts*); and what an edit
+  does to `+1`s and polls already on the post.
 
 ---
 

@@ -32,15 +32,15 @@
     <link rel="preload" href="../../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/skin.css?v=2026-10-28" as="style" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-27c" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-30" />
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-10-27c" defer></script>
-    <script src="../mock.js?v=2026-10-27" defer></script>
+    <script src="../strings.js?v=2026-10-30" defer></script>
+    <script src="../mock.js?v=2026-10-30" defer></script>
     <!-- Generated from DeetsMusic: scripts/build-usage-settings.mjs (support.md, "The dashboard"). -->
     <script src="./usage-settings.js?v=2026-10-27c" defer></script>
-    <script src="./admin.js?v=2026-10-27c" defer></script>
+    <script src="./admin.js?v=2026-10-30" defer></script>
   </head>
 
   <body>
@@ -119,6 +119,7 @@
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-inbox" aria-controls="inbox" data-tab="inbox" data-s="inboxTitle"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-releases" aria-controls="releases" data-tab="releases" data-s="dashTab_releases"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-settings" aria-controls="settings" data-tab="settings" data-s="dashTab_settings"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-history" aria-controls="history" data-tab="history" data-s="dashTab_history"></button>
         </div>
 
         <!-- Growth: active installs by version, the version mix, the download funnel. -->
@@ -199,6 +200,28 @@
             <p class="dm-hint" data-s="usageCrossLead"></p>
             <div class="dm-usage__table" data-dm-usage-cross></div>
           </div>
+        </section>
+
+        <!-- History (support.md, "The archive" › History): posts filed per month, the deleted
+             ones included, then every deleted post. GET /admin/history and /admin/archive.
+             A first draft; he designs it, and the forum page (support.md, "The forum page")
+             may take it over. -->
+        <section class="dm-box dm-box--wide dm-inbox dm-dash__panel" id="history" role="tabpanel" aria-labelledby="dm-tab-history" data-panel="history" data-dm-history hidden>
+          <div class="dm-dash__tiles dm-dash__tiles--three" data-dm-history-tiles></div>
+          <div>
+            <h3 class="dm-usage__sub" data-s="historyMonthsTitle"></h3>
+            <p class="dm-hint" data-s="historyMonthsLead"></p>
+            <div class="dm-usage__chart" data-dm-history-chart></div>
+            <details class="dm-dash__table">
+              <summary data-s="dashTable"></summary>
+              <div class="dm-usage__table" data-dm-history-months></div>
+            </details>
+          </div>
+          <div class="dm-box__head">
+            <h3 class="dm-usage__sub" data-s="historyArchiveTitle"></h3>
+          </div>
+          <p class="dm-hint" data-s="historyArchiveLead"></p>
+          <div class="dm-inbox__list" data-dm-history-archive></div>
         </section>
       </div>
     </main>

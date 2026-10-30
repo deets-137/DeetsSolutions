@@ -69,6 +69,18 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-10-30 — DeetsMusic forum archive, edits and local testing (committed on branch
+`forum-archive` here and in DeetsSupport, pushed; NOT on master, NOT deployed).** A deleted
+post is copied whole into D1 `archived_posts` with its delete, kept for good; the admin page's
+**History** tab (tiles, a 12-month chart, the deleted posts in DeetsLeague's match row); a
+deleted post's link shows it as *Closed*; the owner menu on a post's own page; Edit for any
+post (marked *Edited by Aditya*) and for his own replies; a signed-in poster's account id kept
+(the privacy page says so now); and a local worker with a local owner sign-in for testing
+([support.md](support.md), "The archive", "Local testing", "Editing posts"). Next: he works on
+a few more things, then the release: the migration, the worker deploy, and this branch merged
+to master (in that order, "The archive" › Deploy). Ideas for later design: "The forum page",
+and a poster editing or deleting their own post.
+
 **2026-10-28 — Cities to mahjong's standard (site `bdd6679` on `gamerz-unite`, pushed and
 fast-forwarded to master, so LIVE on Pages; his look passed in the mock).** Step 1, the toolbar: cities opts into the shell's
 `iconToolbar` and `openButton` ([cities.md](cities.md), "Toolbar pills"); he checked it

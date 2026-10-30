@@ -283,7 +283,7 @@
     }
     // mock-member-9 is blocked, which is why its comment above is hidden.
     return { mode: MODE, posts: posts, replies: replies, blocked: ["mock-member-9"],
-             polls: polls, pollOptions: pollOptions, pollVotes: pollVotes };
+             polls: polls, pollOptions: pollOptions, pollVotes: pollVotes, archived: [] };
   }
 
   var db = (function () {
@@ -293,6 +293,7 @@
         d.posts.forEach(function (x) { if (!x.pid) x.pid = code16(); });   // a db saved before the id split
         if (!Array.isArray(d.blocked)) d.blocked = [];                    // …or before comments
         if (!Array.isArray(d.polls)) { d.polls = []; d.pollOptions = []; d.pollVotes = []; }   // …or before polls
+        if (!Array.isArray(d.archived)) d.archived = [];                  // …or before the archive
         return d;
       }
     } catch (e) {}
@@ -552,6 +553,13 @@
         var rr = db.replies.filter(function (x) { return x.id === Number(rm[1]); })[0];
         if (!rr) return res(404, { error: "reply" });
         if (method === "PATCH") {
+          // {body}: his own reply only, stamped edited (the worker's rule).
+          if (body.body !== undefined) {
+            if (rr.author !== "owner") return res(403, { error: "author" });
+            var eb = str(body.body, 4000); if (!eb) return res(400, { error: "body" });
+            rr.body = eb; rr.edited_at = Math.floor(Date.now() / 1000); save();
+            return res(200, { ok: true });
+          }
           if (typeof body.hidden !== "boolean") return res(400, { error: "hidden" });
           rr.hidden = body.hidden ? 1 : 0; save();
           return res(200, { ok: true });
@@ -581,6 +589,46 @@
         return res(200, { blocked: true });
       }
 
+      // The archive and the history — the worker's /admin/archive and /admin/history.
+      var mockMonth = function (t) { return new Date(t * 1000).toISOString().slice(0, 7); };
+      var factsOf = function (a) {
+        var x = a.post;
+        var meta = null; try { meta = typeof x.meta === "string" ? JSON.parse(x.meta) : x.meta; } catch (e) {}
+        return { code: x.code, pid: x.pid, app: x.app, kind: x.kind, state: x.state, public: !!x.public,
+          source: x.source, version: (meta && meta.version) || null, title: x.title, interest: x.interest || 0,
+          created_at: x.created_at, updated_at: x.updated_at, deleted_at: a.deleted_at, deleted_by: "owner",
+          replies: a.replies.length, owner_replies: a.replies.filter(function (r) { return r.author === "owner"; }).length,
+          comments: a.replies.filter(function (r) { return r.author === "member"; }).length, polls: 0, votes: 0 };
+      };
+      if (p === "/admin/archive" && method === "GET") return res(200, { posts: db.archived.map(factsOf) });
+      var arm = /^\/admin\/archive\/([A-Za-z0-9_-]{8,32})$/.exec(p);
+      if (arm && method === "GET") {
+        var hit = db.archived.filter(function (a) { return a.post.code === arm[1]; })[0];
+        if (!hit) return res(404, { error: "ticket" });
+        var one = factsOf(hit);
+        one.post = hit.post;
+        one.thread = { replies: hit.replies, polls: [], poll_options: [], poll_votes: [] };
+        return res(200, one);
+      }
+      if (p === "/admin/history" && method === "GET") {
+        var filed = {}, gone = {};
+        var add = function (x, live) {
+          var k = mockMonth(x.created_at) + "|" + x.kind + "|" + x.source;
+          var f = filed[k] = filed[k] || { month: mockMonth(x.created_at), kind: x.kind, source: x.source, live: 0, archived: 0 };
+          f[live ? "live" : "archived"] += 1;
+        };
+        db.posts.forEach(function (x) { add(x, true); });
+        db.archived.forEach(function (a) {
+          add(a.post, false);
+          var g = mockMonth(a.deleted_at) + "|" + a.post.kind;
+          gone[g] = gone[g] || { month: mockMonth(a.deleted_at), kind: a.post.kind, n: 0 };
+          gone[g].n += 1;
+        });
+        var byMonth = function (a, b) { return a.month < b.month ? -1 : a.month > b.month ? 1 : 0; };
+        return res(200, { filed: Object.keys(filed).map(function (k) { return filed[k]; }).sort(byMonth),
+          deleted: Object.keys(gone).map(function (k) { return gone[k]; }).sort(byMonth) });
+      }
+
       var am = /^\/admin\/posts\/([A-Za-z0-9_-]{8,32})(\/replies)?$/.exec(p);
       var ap = am && db.posts.filter(function (x) { return x.code === am[1]; })[0];
       if (am && !ap) return res(404, { error: "ticket" });
@@ -589,10 +637,19 @@
         if (!am[2] && method === "PATCH") {
           if (body.state !== undefined) ap.state = body.state;
           if (body.public !== undefined) ap.public = body.public ? 1 : 0;
+          // His edit of the title or text, stamped (the worker's rule).
+          if (body.title !== undefined || body.body !== undefined) {
+            if (body.title !== undefined) { var et = str(body.title, 120); if (!et) return res(400, { error: "title" }); ap.title = et; }
+            if (body.body !== undefined) { var ebd = str(body.body, 4000); if (!ebd) return res(400, { error: "body" }); ap.body = ebd; }
+            ap.edited_at = at;
+          }
           ap.updated_at = at; save();
           return res(200, { ok: true });
         }
         if (!am[2] && method === "DELETE") {
+          // The worker's archive (support.md, "The archive"): the post and its thread, kept.
+          var thread = db.replies.filter(function (r) { return r.code === ap.code; });
+          db.archived.unshift({ post: JSON.parse(JSON.stringify(ap)), replies: thread, deleted_at: at });
           db.posts = db.posts.filter(function (x) { return x.code !== ap.code; });
           dropPollsFor(function (pl) { return pl.code === ap.code; });
           db.replies = db.replies.filter(function (r) { return r.code !== ap.code; });

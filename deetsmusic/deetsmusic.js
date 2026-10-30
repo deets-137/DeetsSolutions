@@ -37,6 +37,12 @@
     support: "https://support.deets.solutions",
     music: "https://music-api.deets.solutions"
   };
+  // A LOCAL DeetsSupport worker (DeetsMusic `npm run dev:app -- --support-local`; support.md,
+  // "Local testing"): scripts/dev.js puts DEETS_SUPPORT_LOCAL on the page. Only on localhost,
+  // and only a localhost worker; the live site never has it.
+  var LOCAL_SUPPORT = window.DEETS_SUPPORT_LOCAL && window.DEETS_SUPPORT_LOCAL.base;
+  if (LOCAL_SUPPORT && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) &&
+      /^http:\/\/localhost:\d+$/.test(LOCAL_SUPPORT)) HOSTS.support = LOCAL_SUPPORT;
   var MOCK = window.DM_MOCK || null;
 
   var LS_MINE = "deets-dm-mine";          // [{ code, kind, title, at }] — this browser's posts
@@ -705,7 +711,9 @@
     if (onPick) b.addEventListener("click", onPick);
     return b;
   }
-  function openMenu(p, x, y) {
+  /* onPage: the menu on the post's own page (his ask, 2026-10-30: right-click the post there
+     for the same owner options). Reply is left out there: the reply box is already on it. */
+  function openMenu(p, x, y, onPage) {
     closeMenu();
     var menu = el("div", "tb-pop dm-menu");
     menu.setAttribute("role", "menu");
@@ -722,7 +730,15 @@
       ownerAct(p, "PATCH", { public: p.public === false });
     }));
     // The owner's list is the one board response that still carries codes.
-    menu.appendChild(menuOpt(s("menuReply"), function () { closeMenu(); location.hash = "t=" + p.code; }));
+    if (!onPage) menu.appendChild(menuOpt(s("menuReply"), function () { closeMenu(); location.hash = "t=" + p.code; }));
+    /* Edit the title and the text (support.md, "Editing posts" › His edits, his call 1A): in
+       place on the post's page; from a board, the page opens and the edit starts there. */
+    menu.appendChild(menuOpt(s("menuEdit"), function () {
+      closeMenu();
+      if (onPage) { editPost(); return; }
+      PENDING_EDIT = p.code;
+      location.hash = "t=" + p.code;
+    }));
     // Delete is two clicks: the first arms it and says so.
     var del = menuOpt(s("menuDelete"));
     del.classList.add("dm-menu__danger");
@@ -758,6 +774,10 @@
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", s("replyMenuAria", { who: r.name || s("authorPoster") }));
 
+    // Edit: his own replies only (the worker refuses anyone else's words).
+    if (r.author === "owner") {
+      menu.appendChild(menuOpt(s("menuEdit"), function () { closeMenu(); editReply(r); }));
+    }
     menu.appendChild(menuOpt(s(r.hidden ? "menuShow" : "menuHide"), function () {
       replyAct(r, "PATCH", "/admin/replies/" + r.id, { hidden: !r.hidden });
     }));
@@ -798,6 +818,52 @@
       reloadOpenPost();
     });
   }
+  /* Edit one of his replies in place (support.md, "Editing posts" › His replies): the row's
+     text becomes the reply box's field with Save and Cancel, the reply form's own controls.
+     Escape cancels; Ctrl+Enter saves. The worker stamps it edited for every reader. */
+  function editReply(r) {
+    var li = $('[data-reply="' + r.id + '"]');
+    var bodyEl = li && $(".dm-reply__body", li);
+    if (!bodyEl || $(".dm-reply__edit", li)) return;
+    var form = el("form", "dm-reply__edit");
+    form.noValidate = true;
+    var area = el("textarea", "dm-field__input dm-field__area");
+    area.rows = Math.min(10, Math.max(3, r.body.split("\n").length + 1));
+    area.maxLength = 4000;
+    area.value = r.body;
+    area.setAttribute("aria-label", s("menuEdit"));
+    form.appendChild(area);
+    var actions = el("div", "dm-form__actions");
+    var save = el("button", "home__cta", s("editSave"));
+    save.type = "submit";
+    var cancel = el("button", "home__cta home__cta--soft", s("editCancel"));
+    cancel.type = "button";
+    actions.appendChild(save);
+    actions.appendChild(cancel);
+    form.appendChild(actions);
+    bodyEl.hidden = true;
+    li.appendChild(form);
+    area.focus();
+    area.setSelectionRange(area.value.length, area.value.length);
+    var done = function () { form.remove(); bodyEl.hidden = false; };
+    cancel.addEventListener("click", done);
+    area.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); done(); }
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); }
+    });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var text = area.value.trim();
+      if (!text) { area.focus(); return; }
+      if (text === r.body) { done(); return; }
+      save.disabled = true;
+      ownerApi("PATCH", "/admin/replies/" + r.id, { body: text }).then(function (res) {
+        save.disabled = false;
+        if (!res.ok) { toast("error", errText(res)); return; }
+        reloadOpenPost();
+      });
+    });
+  }
 
   function wireReplyMenu() {
     var list = $("[data-dm-replies]");
@@ -826,6 +892,94 @@
     ownerApi(method, "/admin/posts/" + p.code, body).then(function (res) {
       if (!res.ok) { toast("error", errText(res)); return; }
       loadBoards();
+      // On the post's own page: show the change there, or, after a delete, the boards.
+      if (ticketCode === p.code || (threadPid && threadPid === p.pid)) {
+        if (method === "DELETE") location.hash = "";
+        else reloadOpenPost();
+      }
+    });
+  }
+  /* His edit of the open post (support.md, "Editing posts" › His edits): the title and the
+     text become the post form's own fields, with Save and Cancel. Escape cancels; Ctrl+Enter
+     saves. The worker keeps the intake's title rules and stamps "Edited by Aditya". */
+  var PENDING_EDIT = null;   // a code (or pid) whose page should open in edit, from a board's menu
+  function editPost() {
+    var body = $("[data-dm-ticket-body]");
+    var titleEl = body && $(".dm-ticket__title", body);
+    var textEl = body && $(".dm-ticket__body", body);
+    var code = ticketCode || (threadPid && POSTS[threadPid] && POSTS[threadPid].code);
+    if (!titleEl || !textEl || !code || !OPEN_POST || $(".dm-post-edit", body)) return;
+    var post = OPEN_POST;
+    var form = el("form", "dm-post-edit");
+    form.noValidate = true;
+    var title = el("input", "dm-field__input");
+    title.type = "text";
+    title.maxLength = 120;
+    title.value = post.title;
+    title.setAttribute("aria-label", s("editTitleAria"));
+    var area = el("textarea", "dm-field__input dm-field__area");
+    area.rows = Math.min(12, Math.max(4, post.body.split("\n").length + 1));
+    area.maxLength = 4000;
+    area.value = post.body;
+    area.setAttribute("aria-label", s("editBodyAria"));
+    var err = el("p", "dm-form__err");
+    err.hidden = true;
+    var actions = el("div", "dm-form__actions");
+    var save = el("button", "home__cta", s("editSave"));
+    save.type = "submit";
+    var cancel = el("button", "home__cta home__cta--soft", s("editCancel"));
+    cancel.type = "button";
+    actions.appendChild(save);
+    actions.appendChild(cancel);
+    form.appendChild(title);
+    form.appendChild(area);
+    form.appendChild(err);
+    form.appendChild(actions);
+    titleEl.hidden = true;
+    textEl.hidden = true;
+    titleEl.parentNode.insertBefore(form, titleEl);
+    title.focus();
+    var done = function () { form.remove(); titleEl.hidden = false; textEl.hidden = false; };
+    cancel.addEventListener("click", done);
+    form.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); done(); }
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); }
+    });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var t = title.value.trim(), b = area.value.trim();
+      if (!t) { title.focus(); return; }
+      if (!b) { area.focus(); return; }
+      var patch = {};
+      if (t !== post.title) patch.title = t;
+      if (b !== post.body) patch.body = b;
+      if (!patch.title && !patch.body) { done(); return; }
+      save.disabled = true;
+      err.hidden = true;
+      ownerApi("PATCH", "/admin/posts/" + code, patch).then(function (res) {
+        save.disabled = false;
+        if (!res.ok) { err.textContent = errText(res); err.hidden = false; return; }
+        loadBoards();
+        reloadOpenPost();
+      });
+    });
+  }
+
+  /* The post's own page (his ask, 2026-10-30): right-click the post for the boards' owner
+     menu. #t= carries the code; #p= takes it from his board list, the one response that
+     carries codes. A closed-and-archived post has no menu: nothing there can change. */
+  function wirePostMenu() {
+    var body = $("[data-dm-ticket-body]");
+    if (!body) return;
+    body.addEventListener("contextmenu", function (e) {
+      if (!OWNER || !OPEN_POST || REMOVED) return;
+      var known = threadPid ? POSTS[threadPid] : null;
+      var code = ticketCode || (known && known.code);
+      if (!code) return;
+      e.preventDefault();
+      var p = Object.assign({}, known || {}, OPEN_POST, { code: code });
+      if (known && known.public !== undefined) p.public = known.public;
+      openMenu(p, e.clientX, e.clientY, true);
     });
   }
   function wireOwnerMenu() {
@@ -1366,7 +1520,10 @@
       if (v) payload.meta = { version: v };
       send.disabled = true;
       send.textContent = s("formSending");
-      api("support", "POST", "/posts", payload).then(function (res) {
+      /* With the account cookie: a signed-in poster's post keeps their account id, for editing
+         or deleting their own post later (support.md, "Editing posts" › Who filed it). The
+         worker never sends it out. Signed out, nothing changes. */
+      api("support", "POST", "/posts", payload, { creds: true }).then(function (res) {
         send.disabled = false;
         send.textContent = s("formSend");
         if (res.status !== 201 || !res.data || !res.data.code) return showErr(errText(res));
@@ -1475,12 +1632,15 @@
     window.scrollTo(0, 0);
     open();
   }
+  // The #t= post is deleted and read from the archive: { deleted_at }, else null.
+  var REMOVED = null;
+  var OPEN_POST = null;   // the post on its own page, as last rendered (wirePostMenu)
   function showTicket(code) {
-    ticketCode = code; threadPid = null;
+    ticketCode = code; threadPid = null; REMOVED = null;
     showPost(function () { loadTicket(code); });
   }
   function showThread(pid) {
-    threadPid = pid; ticketCode = null;
+    threadPid = pid; ticketCode = null; REMOVED = null;
     showPost(function () { loadThread(pid); });
   }
   function reloadOpenPost() {
@@ -1491,6 +1651,7 @@
   function hideTicket() {
     ticketCode = null;
     threadPid = null;
+    OPEN_POST = null;
     paintCommentBox();
     $("[data-dm-ticket]").hidden = true;
     $("[data-dm-home]").hidden = false;
@@ -1506,11 +1667,15 @@
     /* open=1: this is the filer opening the thread, so the worker marks Aditya's
        replies opened (support.md, "Read marks"). The cookie goes too, so his own
        visit is told apart and marks nothing. */
-    api("support", "GET", "/t/" + code + "?open=1", undefined, { creds: true }).then(function (res) {
+    /* archive=1: a deleted post comes back from the archive, marked `archived`, so its
+       poster reads it instead of "no post matches" (support.md, "The archive" › The poster's
+       view). Only this view asks; the app's status reads still get the 404. */
+    api("support", "GET", "/t/" + code + "?open=1&archive=1", undefined, { creds: true }).then(function (res) {
       if (ticketCode !== code) return;
       body.textContent = "";
       if (res.status === 404) { body.appendChild(el("p", "dm-empty", s("ticketMissing"))); return; }
       if (!res.ok || !res.data || !res.data.post) { body.appendChild(el("p", "dm-empty", s("ticketFailed"))); return; }
+      REMOVED = res.data.archived || null;
       renderTicket(res.data.post, Array.isArray(res.data.replies) ? res.data.replies : [], false);
     });
   }
@@ -1541,20 +1706,32 @@
     // so their count becomes the seen count and the New reply mark goes.
     if (!pub && !OWNER) remember({ code: post.code, kind: post.kind, title: post.title, seen: ownerReplies(replies) });
 
+    OPEN_POST = post;
+    var removed = !pub && REMOVED;
     var chips = el("div", "dm-ticket__chips");
     chips.appendChild(chip(s("ticketKind_" + post.kind)));
-    chips.appendChild(chip(s("state_" + post.state), post.state));
-    if (!pub) chips.appendChild(chip(s(post.public ? "ticketPublic" : "ticketPrivate")));
+    // A removed post's state is the one it had when it was removed; "Removed" says it all.
+    if (removed) chips.appendChild(chip(s("ticketRemoved"), "closed"));   // the closed state's own tone, not Hidden's
+    else chips.appendChild(chip(s("state_" + post.state), post.state));
+    if (!pub && !removed) chips.appendChild(chip(s(post.public ? "ticketPublic" : "ticketPrivate")));
     body.appendChild(chips);
 
     body.appendChild(el("h2", "dm-ticket__title", post.title));
     var meta = [s("ticketSent", { date: fmtUnixNumeric(post.created_at) })];
-    if (post.updated_at && post.updated_at !== post.created_at) meta.push(s("ticketUpdated", { date: fmtUnixNumeric(post.updated_at) }));
+    if (removed) meta.push(s("ticketRemovedOn", { date: fmtUnixNumeric(removed.deleted_at) }));
+    else if (post.updated_at && post.updated_at !== post.created_at) meta.push(s("ticketUpdated", { date: fmtUnixNumeric(post.updated_at) }));
     // #p= carries no meta; the worker extracts the version for it instead.
     var version = pub ? (post.version == null ? "" : String(post.version)) : parseVersion(post.meta);
     if (version) meta.push(version === "all" ? s("ticketVersionAll") : s("ticketVersion", { v: version }));
+    // Never silent (support.md, "Editing posts" › His edits): every reader sees he edited it.
+    if (post.edited_at) meta.push(s("ticketEditedBy", { date: fmtUnixNumeric(post.edited_at) }));
     body.appendChild(el("p", "dm-ticket__meta", meta.join(" · ")));
     body.appendChild(el("p", "dm-ticket__body", post.body));
+    if (removed) body.appendChild(el("p", "dm-hint", s("ticketRemovedLead")));
+    if (PENDING_EDIT && PENDING_EDIT === (ticketCode || threadPid)) {
+      PENDING_EDIT = null;
+      if (OWNER && !removed) editPost();
+    }
 
     var keep = el("div", "dm-keep");
     keep.appendChild(el("p", "dm-hint", s(pub ? "threadShare" : "ticketKeep")));
@@ -1589,6 +1766,8 @@
       if (r.author === "member" && r.color) nameEl.style.setProperty("--dm-who", r.color);
       who.appendChild(nameEl);
       who.appendChild(el("span", null, fmtUnix(r.created_at)));
+      // Every reader sees that he edited it (support.md, "Editing posts" › His replies).
+      if (r.edited_at) who.appendChild(el("span", "dm-reply__edited", s("replyEdited")));
       // Only the owner is sent hidden rows at all (the worker filters them).
       // Only the owner is sent hidden rows, or `blocked` at all.
       if (r.hidden) { li.classList.add("is-hidden-reply"); who.appendChild(chip(s("tagHidden"), "hidden")); }
@@ -1630,7 +1809,8 @@
     if (!form || !signin) return;
     var onThread = !!threadPid;
     var open = !onThread || !!ME;                   // #t= never asks for an account
-    form.hidden = !(ticketCode || threadPid) || !open;
+    // A removed post takes no replies (the worker would refuse them: it is not in posts).
+    form.hidden = !(ticketCode || threadPid) || !open || !!(ticketCode && REMOVED);
     signin.hidden = !onThread || !!ME;
     $("[data-dm-reply-label]", form).textContent = s(onThread ? "commentLabel" : "replyLabel");
     $("[data-dm-send]", form).textContent = s(onThread ? "commentSend" : "replySend");
@@ -2172,6 +2352,7 @@
   wireShots();
   wireVersionPick();
   wireOwnerMenu();
+  wirePostMenu();
   $all("[data-dm-form]").forEach(wireForm);
   wireReply();
   wirePollForm();

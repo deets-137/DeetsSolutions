@@ -3821,6 +3821,22 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-inbox > .dm-dash__tiles, .dm-inbox > .dm-dash__pair { align-self: stretch; }
 .dm-inbox__post { cursor: default; }
 .dm-inbox__post:hover { border-color: var(--border); }
+/* History's deleted posts (admin.js renderArchived; support.md, "The archive" › History): the
+   DeetsLeague match row (.lol-match, above), as it is. Only the opened part is its own, laid
+   out like the match's scoreboard (.lol-board: a hairline on top, the card's padding), one
+   column: the post's text, then its thread. */
+.dm-inbox > div:has(> [data-dm-history-chart]) { align-self: stretch; }
+.dm-inbox__list > .dm-archive { align-self: stretch; }
+.dm-archive .lol-match__champ { font-weight: 600; overflow-wrap: anywhere; }
+.dm-archive__body[hidden] { display: none; }   /* display:flex below would override [hidden] */
+.dm-archive__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.dm-archive__body .dm-inbox__thread { margin-block-start: 0; }
 .dm-inbox__body {
   margin: 0;
   color: var(--text);
@@ -4636,6 +4652,11 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* His own reply, edited in place (deetsmusic.js editReply): the reply box's field and
+   buttons where the text was. Every reader sees "edited" beside the date. */
+.dm-reply__edit, .dm-post-edit { display: flex; flex-direction: column; gap: var(--space-2); }
+.dm-post-edit { align-self: stretch; }
+.dm-reply__edited { font-style: italic; }
 
 .dm-chip[data-tone="poll"] { color: var(--title); }
 

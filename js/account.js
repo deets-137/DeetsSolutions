@@ -32,6 +32,19 @@
   /* color is a hex, the colors.js contract — same shape /me serves. */
   var MOCK_USER = { id: "mock-user", name: "Deets", color: "#d94141" };
 
+  /* A local DeetsSupport run (scripts/dev.js sets DEETS_SUPPORT_LOCAL; docs/support.md,
+     "Local testing"): sign-in is the LOCAL owner, a cookie the dev server signs for the local
+     worker. Signed in = Aditya on the local forum; signed out = any visitor, so a #t= thread
+     replies as its poster. localhost only; the live site never has the variable. */
+  var LOCAL = !MOCK && !!window.DEETS_SUPPORT_LOCAL && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  var LOCAL_USER = { id: "local-owner", name: "Aditya (local)", color: "#d94141" };
+  function localOwner(method) {
+    return fetch("/__support/owner", { method: method || "GET" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { setState(d && d.owner ? LOCAL_USER : false); return state; })
+      .catch(function () { setState(false); return state; });
+  }
+
   var state = null;      // null = unknown, false = signed out, object = user
   var listeners = [];
   var pending = false;
@@ -77,6 +90,7 @@
 
   function refresh() {
     if (MOCK) { setState(MOCK_USER); return Promise.resolve(MOCK_USER); }
+    if (LOCAL) return localOwner();
     return fetch(API + "/me", { credentials: "include" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (u) { setState(u || false); return state; })
@@ -90,6 +104,7 @@
 
   function signIn() {
     if (MOCK) { setState(MOCK_USER); return; }
+    if (LOCAL) { localOwner("POST"); return; }
     var ret = location.origin + "/auth/done.html";
     /* window.open MUST be synchronous inside the click handler or the
        popup blocker eats it — nothing may be awaited before this line.
@@ -132,6 +147,7 @@
 
   function signOut() {
     if (MOCK) { setState(false); return Promise.resolve(); }
+    if (LOCAL) return localOwner("DELETE").then(function () {});
     return fetch(API + "/logout", { method: "POST", credentials: "include" })
       .then(function () { setState(false); })
       .catch(function () { setState(false); });

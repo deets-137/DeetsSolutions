@@ -16,6 +16,10 @@
   if (!ROOT || !S) return;
 
   var HOSTS = { support: "https://support.deets.solutions" };
+  // A local DeetsSupport run (deetsmusic.js has the same lines; support.md, "Local testing").
+  var LOCAL_SUPPORT = window.DEETS_SUPPORT_LOCAL && window.DEETS_SUPPORT_LOCAL.base;
+  if (LOCAL_SUPPORT && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) &&
+      /^http:\/\/localhost:\d+$/.test(LOCAL_SUPPORT)) HOSTS.support = LOCAL_SUPPORT;
   var MOCK = window.DM_MOCK || null;
 
   // ── Helpers (deetsmusic.js's, the parts this page needs) ────────
@@ -133,6 +137,7 @@
         gate(yes ? null : "adminNotOwner");
         showInbox(yes);
         showUsage(yes);
+        showHistory(yes);
       });
     });
   }
@@ -455,6 +460,146 @@
       entry.value.textContent = hit ? hit[1] : get();
     };
     return entry;
+  }
+
+  // ── History (support.md, "The archive" › History) ───────────────
+  // Posts filed per month, the deleted ones included (GET /admin/history), and every deleted
+  // post (GET /admin/archive), each read whole on open (GET /admin/archive/<code>). A first
+  // draft for his design; the strings are [ph].
+  var hist = { loaded: false, posts: {} };
+  function showHistory(yes) {
+    if (!yes || hist.loaded || !$("[data-dm-history]")) return;
+    hist.loaded = true;
+    ownerApi("GET", "/admin/history?app=deetsmusic").then(renderHistoryTable);
+    ownerApi("GET", "/admin/archive?app=deetsmusic").then(renderArchive);
+  }
+  function monthLabel(m) {
+    return new Date(m + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+  }
+  // The last `n` months as "YYYY-MM", oldest first, ending with this one (UTC).
+  function lastMonths(n) {
+    var d = new Date(), out = [];
+    for (var k = n - 1; k >= 0; k--) {
+      out.push(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - k, 1)).toISOString().slice(0, 7));
+    }
+    return out;
+  }
+  /* The tiles (all time, deleted, this month), the 12-month chart (bugs and suggestions
+     stacked, the Inbox's weekly chart) and, under Table, every month with its split. */
+  function renderHistoryTable(res) {
+    var host = $("[data-dm-history-months]");
+    var tiles = $("[data-dm-history-tiles]");
+    var chart = $("[data-dm-history-chart]");
+    host.textContent = ""; tiles.textContent = "";
+    if (!res.ok || !res.data) { chart.textContent = ""; chart.appendChild(el("p", "dm-empty", s("historyFailed"))); return; }
+    var by = {}, all = { filed: 0, issue: 0, suggestion: 0, app: 0, web: 0, deleted: 0 };
+    function month(m) {
+      return by[m] = by[m] || { filed: 0, issue: 0, suggestion: 0, app: 0, web: 0, deleted: 0 };
+    }
+    (res.data.filed || []).forEach(function (r) {
+      var x = month(r.month), n = r.live + r.archived;
+      [x, all].forEach(function (t) {
+        t.filed += n;
+        if (r.kind === "issue" || r.kind === "suggestion") t[r.kind] += n;
+        if (r.source === "app" || r.source === "web") t[r.source] += n;
+      });
+    });
+    (res.data.deleted || []).forEach(function (r) { month(r.month).deleted += r.n; all.deleted += r.n; });
+    var now = lastMonths(1)[0], cur = by[now] || month(now);
+
+    tile(tiles, s("historyTileFiled"), fmtCount(all.filed), { sub: s("historyKinds", { bugs: all.issue, ideas: all.suggestion }) });
+    tile(tiles, s("historyTileDeleted"), fmtCount(all.deleted), { sub: all.filed ? pct(all.deleted / all.filed) : "" });
+    tile(tiles, s("historyTileMonth"), fmtCount(cur.filed), { sub: s("historySources", { app: cur.app, web: cur.web }) });
+
+    var span = lastMonths(12);
+    columns(chart, span.map(monthLabel), [
+      { label: s("inboxKind_issue"), cls: "dm-ser-0", values: span.map(function (m) { return (by[m] || {}).issue || 0; }) },
+      { label: s("inboxKind_suggestion"), cls: "dm-ser-2", values: span.map(function (m) { return (by[m] || {}).suggestion || 0; }) },
+    ], null, s("historyMonthsTitle"));
+
+    var months = Object.keys(by).filter(function (m) { return by[m].filed || by[m].deleted; }).sort().reverse();
+    if (!months.length) { host.appendChild(el("p", "dm-empty", s("historyNone"))); return; }
+    host.appendChild(usageTable(
+      [s("historyMonth"), s("historyFiled"), s("historyBugs"), s("historySuggestions"), s("historyApp"), s("historyWeb"), s("historyDeleted")],
+      months.map(function (m) {
+        var x = by[m];
+        return [monthLabel(m), x.filed, x.issue, x.suggestion, x.app, x.web, x.deleted];
+      })));
+  }
+  function renderArchive(res) {
+    var host = $("[data-dm-history-archive]");
+    host.textContent = "";
+    var posts = res.ok && res.data && res.data.posts;
+    if (!Array.isArray(posts)) { host.appendChild(el("p", "dm-empty", s("historyFailed"))); return; }
+    if (!posts.length) { host.appendChild(el("p", "dm-empty", s("historyNone"))); return; }
+    posts.forEach(function (p) { host.appendChild(renderArchived(p)); });
+  }
+  /* One deleted post, in DeetsLeague's match row (his ask, 2026-10-30: "the same style we use
+     for DeetsLeague matches"; league.js renderMatches, the .lol-match classes in main.css, used
+     as they are): a card whose whole top row is the button, the title and its facts on the
+     left, the state and the delete date on the right. A click opens the post's text and its
+     thread under a hairline, read once from /admin/archive/<code>. */
+  function renderArchived(p) {
+    var row = el("article", "lol-match dm-archive");
+    var btn = el("button", "lol-match__row");
+    btn.type = "button";
+    btn.setAttribute("aria-expanded", "false");
+    var mid = el("span", "lol-match__mid");
+    var head = el("span", "lol-match__head");
+    head.appendChild(el("span", "lol-match__champ", p.title));
+    var from = p.source === "app" || p.source === "web" ? " · " + s("inboxFrom_" + p.source) : "";
+    head.appendChild(el("span", "lol-match__queue", s("ticketKind_" + p.kind) + from));
+    mid.appendChild(head);
+    var nums = [s("historyFiledOn", { date: fmtUnix(p.created_at) })];
+    if (p.version) nums.push("v" + p.version);
+    nums.push(s(p.replies === 1 ? "historyThreadOne" : "historyThreadMany", { n: p.replies }));
+    nums.push(s("inboxInterest", { n: p.interest || 0 }));
+    mid.appendChild(el("span", "lol-match__nums", nums.join(" · ")));
+    btn.appendChild(mid);
+    var side = el("span", "lol-match__side");
+    side.appendChild(chip(s("state_" + p.state), p.state));
+    side.appendChild(el("span", "lol-match__when", s("historyDeletedOn", { date: fmtUnix(p.deleted_at) })));
+    btn.appendChild(side);
+    row.appendChild(btn);
+    var body = el("div", "dm-archive__body");
+    body.hidden = true;
+    row.appendChild(body);
+    btn.addEventListener("click", function () {
+      var open = body.hidden;
+      body.hidden = !open;
+      btn.setAttribute("aria-expanded", String(open));
+      if (!open || body.getAttribute("data-read")) return;
+      body.setAttribute("data-read", "1");
+      body.appendChild(el("p", "dm-lead", s("inboxLoading")));
+      ownerApi("GET", "/admin/archive/" + p.code).then(function (r) {
+        body.textContent = "";
+        if (!r.ok || !r.data || !r.data.post) {
+          body.removeAttribute("data-read");
+          body.appendChild(el("p", "dm-empty", s("historyFailed")));
+          return;
+        }
+        body.appendChild(el("p", "dm-inbox__body", r.data.post.body));
+        var rows = (r.data.thread && r.data.thread.replies) || [];
+        if (!rows.length) { body.appendChild(el("p", "dm-hint", s("historyThreadNone"))); return; }
+        var ol = el("ol", "dm-replies dm-inbox__thread");
+        rows.forEach(function (x) {
+          var li = el("li", "dm-reply" + (x.author === "owner" ? " is-owner" : ""));
+          if (x.hidden) li.classList.add("is-hidden-reply");
+          var who = el("div", "dm-reply__who");
+          var label = x.author === "owner" ? s("authorOwner") : x.author === "member" ? (x.name || s("authorPoster")) : s("authorPoster");
+          var nameEl = el("span", "dm-reply__name", label);
+          if (x.author === "member" && x.color) nameEl.style.setProperty("--dm-who", x.color);
+          who.appendChild(nameEl);
+          who.appendChild(el("span", null, fmtUnix(x.created_at)));
+          if (x.hidden) who.appendChild(chip(s("tagHidden"), "hidden"));
+          li.appendChild(who);
+          li.appendChild(el("p", "dm-reply__body", x.body));
+          ol.appendChild(li);
+        });
+        body.appendChild(ol);
+      });
+    });
+    return row;
   }
 
   // The whole dashboard: the overview, the tabs and their panels (the Inbox among them).
@@ -793,7 +938,7 @@
     drop: 0.15,                                   // mean daily active, last 7 whole days vs the 7 before
     waitDays: 3,                                  // a post waiting on him
   };
-  var TABS = ["growth", "inbox", "releases", "settings"];
+  var TABS = ["growth", "inbox", "releases", "settings", "history"];
   var SERIES = 4;               // versions a chart names; the rest are Older
   var NS = "http://www.w3.org/2000/svg";
   var tabsWired = false;
@@ -850,7 +995,7 @@
     }, p.created_at);
   }
 
-  // ── Tabs: Growth · Inbox · Releases · Settings, kept in the hash ──
+  // ── Tabs: Growth · Inbox · Releases · Settings · History, kept in the hash ──
   function tabFromHash() {
     var h = location.hash.slice(1);
     if (h === "usage") return "growth";             // the old anchor
