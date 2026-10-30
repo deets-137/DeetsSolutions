@@ -1005,6 +1005,7 @@
     finish: 0.8, finishMin: 20,                   // site + Store downloads finished, 7 days
     drop: 0.15,                                   // mean daily active, last 7 whole days vs the 7 before
     waitDays: 3,                                  // a post waiting on him
+    newErrMin: 1,                                 // installs with a new error kind on the newest version
   };
   var TABS = ["growth", "inbox", "health", "releases", "settings", "history"];
   var SERIES = 4;               // versions a chart names; the rest are Older
@@ -1227,9 +1228,16 @@
           out.push({ tone: "pause", text: s("flagFreezesW", { v: "v" + hv, pct: pct(share("freezes", hv)), span: span }) });
           cells["freezes|" + hv] = 1;
         }
+        // An error kind on the newest version that no other version and no earlier week has.
+        Object.keys(h.above).sort().forEach(function (m) {
+          var n = (h.above[m] || {})[hv] || 0, p = m.indexOf("err.") === 0 && parseFp(m);
+          if (!p || n < FLAG.newErrMin || seenBefore(m, usage.hweek, hv)) return;
+          out.push({ tone: "pause", text: s("flagNewErr", { v: "v" + hv, what: p.type, where: p.place, n: fmtCount(n), span: span }) });
+          cells[m + "|" + hv] = 1;
+        });
         if (pv && h.reports[hv] >= FLAG.healthMin && h.reports[pv] >= FLAG.healthMin) {
           Object.keys(h.above).sort().forEach(function (m) {
-            if (!isTrouble(m) || m === "panics" || m === "freezes") return;
+            if (!isTrouble(m) || m === "panics" || m === "freezes" || cells[m + "|" + hv]) return;
             var a = share(m, hv), b = share(m, pv);
             if (a > b * FLAG.healthRatio && a - b >= FLAG.healthGap) {
               out.push({ tone: "pause", text: s("flagHealth", { v: "v" + hv, metric: m, pct: pct(a), prev: pct(b), pv: "v" + pv }) });
@@ -1455,7 +1463,7 @@
     if (!usage.data) return;
     paintUsagePills();
     var title = $("[data-dm-health-title]"), lead = $("[data-dm-usage-healthlead]");
-    var parts = ["[data-dm-checks]", "[data-dm-apple-sum]", "[data-dm-logs]", "[data-dm-hweeks]", "[data-dm-heat]", "[data-dm-apple]", "[data-dm-usage-health]"];
+    var parts = ["[data-dm-checks]", "[data-dm-errkinds]", "[data-dm-apple-sum]", "[data-dm-logs]", "[data-dm-hweeks]", "[data-dm-heat]", "[data-dm-apple]", "[data-dm-usage-health]"];
     var clear = function () { parts.forEach(function (p) { $(p).textContent = ""; }); };
     if (!usage.hw) { clear(); title.textContent = s("hLoading"); lead.textContent = ""; return; }
     if (!usage.hweek) {
@@ -1471,6 +1479,7 @@
       ? s("hLead", { n: fmtCount(all.reports), active: fmtCount(active) })
       : s("hLeadNoActive", { n: fmtCount(sum.reports) });
     renderChecks(sum);
+    renderErrKinds(sum);
     renderAppleSum(sum);
     renderLogs(sum);
     renderWeeks();
@@ -1500,6 +1509,52 @@
     if (clean.length === USAGE_PLAIN.length) row("go", "✓", s("hAllClear", { of: of }));
     else if (clean.length) row("go", "✓", s("hChecksRest", { of: of, names: clean.join(" · ") }));
   }
+  /* Error kinds (DeetsMusic USAGE-COUNTS.md §16): one row per fingerprint, `err.<how>.<type>@
+     <place>`, most installs first. "new" when no earlier week in hand has it. */
+  function parseFp(metric) {
+    var fp = metric.slice(4), at = fp.indexOf("@");
+    if (at < 0) return null;
+    var head = fp.slice(0, at), dot = head.indexOf(".");
+    return { how: head.slice(0, dot), type: head.slice(dot + 1), place: fp.slice(at + 1).replace("<", " ← ") };
+  }
+  // Is `metric` in any week on the tab before `week`, or (with `notV`) on another version?
+  function seenBefore(metric, week, notV) {
+    return (usage.hw || []).some(function (x) {
+      return (x.rows || []).some(function (r) {
+        return r.metric === metric && (x.week < week || (notV && x.week === week && r.v !== notV));
+      });
+    });
+  }
+  function renderErrKinds(sum) {
+    var host = $("[data-dm-errkinds]");
+    host.textContent = "";
+    var ms = Object.keys(sum.installs).filter(function (m) { return m.indexOf("err.") === 0; })
+      .sort(function (a, b) {
+        var oa = a === "err.other", ob = b === "err.other";        // past the cap: always last
+        return oa !== ob ? (oa ? 1 : -1) : sum.installs[b] - sum.installs[a] || (a < b ? -1 : 1);
+      });
+    if (!ms.length) { host.appendChild(el("p", "dm-empty", s("hErrNone"))); return; }
+    var rows = ms.map(function (m) {
+      var p = parseFp(m), vs = {};
+      reportRows().forEach(function (r) { if (r.metric === m) vs[r.v] = 1; });
+      var n = sum.installs[m];
+      return [
+        p ? p.place : s("hErrOther"), p ? p.type : "", p ? (S["hHow_" + p.how] ? s("hHow_" + p.how) : p.how) : "",
+        fmtCount(n) + " · " + pct(n / sum.reports),
+        Object.keys(vs).sort(cmpVersionDesc).map(function (v) { return "v" + v; }).join(" "),
+      ];
+    });
+    var t = usageTable([s("hErrWhere"), s("hErrType"), s("hErrHow"), s("hErrInstalls"), s("hErrVersions")], rows);
+    t.classList.add("dm-dash__errs");
+    $all("tbody tr", t).forEach(function (tr, i) {
+      if (!parseFp(ms[i]) || seenBefore(ms[i], usage.hweek)) return;
+      var tag = chip(s("hErrNew"), "flag");
+      tag.title = s("hErrNewHint");
+      tr.querySelector("th").appendChild(tag);
+    });
+    host.appendChild(t);
+  }
+
   /* One row per call group: installs with a successful call, the least number of successful
      calls, and each error result with the installs that hit it, most first. */
   function renderAppleSum(sum) {

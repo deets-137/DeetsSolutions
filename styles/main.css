@@ -3780,6 +3780,12 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   color: var(--subtext);
 }
 .dm-dash__err b { color: var(--title); font-weight: var(--fw-title); }
+/* Error kinds: a long place breaks anywhere; a new kind wears a chip. */
+.dm-dash__errs th[scope="row"] { white-space: normal; word-break: break-all; }
+.dm-dash__errs th[scope="row"] .dm-chip { margin-inline-start: var(--space-2); }
+.dm-dash__errs td:last-child { white-space: normal; }
+.dm-dash__errs td:nth-child(2), .dm-dash__errs td:nth-child(3), .dm-dash__errs td:nth-child(5),
+.dm-dash__errs thead th:nth-child(2), .dm-dash__errs thead th:nth-child(3), .dm-dash__errs thead th:nth-child(5) { text-align: start; }
 .dm-dash__sum tr.is-total th, .dm-dash__sum tr.is-total td { border-block-end: 0; font-weight: var(--fw-title); color: var(--text); }
 .dm-usage__grid tr.is-on th, .dm-usage__grid tr.is-on td { background: var(--surface); color: var(--title); }
 .dm-usage__grid tr.is-pick { cursor: pointer; }
