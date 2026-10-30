@@ -610,7 +610,7 @@ already reads `/t/<code>`.
 
 ---
 
-## The archive — BUILT 2026-10-30, not deployed
+## The archive — LIVE 2026-10-30 (worker version 0dfc4b0d, site f36fc01)
 
 His ask, 2026-10-30: "a D1/R2 archive and move all deleted (and future deleted) posts there
 … so I can keep track of things like ticket counts and such historically as we get more
@@ -822,7 +822,7 @@ His words: "I want to be able to edit my posts (deets editing his post, and ways
 do so within 2 hours of posting as well and an option for them to delete it which can archive
 it if so)".
 
-- **His replies — BUILT 2026-10-30 (not deployed).** Right-click his own reply on a post's page
+- **His replies — LIVE 2026-10-30.** Right-click his own reply on a post's page
   › **Edit**: the text becomes the reply box's field with Save and Cancel (Escape cancels,
   Ctrl+Enter saves). `PATCH /admin/replies/<id> {body}` changes an `owner` row only (403 on
   anyone else's words) and stamps `replies.edited_at` (in `migrations/2026-10-30-archive.sql`;
@@ -830,11 +830,11 @@ it if so)".
   thread). Every reader sees *edited* beside the date; the archive copy keeps `edited_at`.
   Tested on the local worker: his reply edits and shows *edited* on a public read; a poster's
   reply answers 403.
-- **The owner menu on a post's page — BUILT 2026-10-30.** Right-click the post on its own page
+- **The owner menu on a post's page — LIVE 2026-10-30.** Right-click the post on its own page
   (`#t=` or `#p=`) for the boards' menu: Status, Hide / Show, Delete (Reply is left out: the
   box is on the page). A change reloads the page; a delete returns to the boards. `#p=` takes
   the code from his board list.
-- **His edits of any post — BUILT 2026-10-30 (his call 1A, not deployed).** A post has no
+- **His edits of any post — LIVE 2026-10-30 (his call 1A).** A post has no
   account behind it, so "my posts" could not be told apart; his call: he edits any post's
   title and text, never silently. The owner menu's **Edit** (on the post's page; from a board
   it opens the page and starts there) turns the title and text into the post form's fields
@@ -842,7 +842,7 @@ it if so)".
   rules (10 words, 120 characters) and stamps `posts.edited_at`; every reader's meta line
   shows *Edited by Aditya {date}* (`postEditedAt`, read with a fallback). Tested locally:
   the edit and the stamp; an 11-word title answers 400 `title_words`.
-- **Who filed it — BUILT 2026-10-30 (his call, not deployed): `posts.uid`.** A post filed on
+- **Who filed it — LIVE 2026-10-30 (his call): `posts.uid`.** A post filed on
   the website while signed in to DeetsAccounts keeps that account's id (the form now sends
   the cookie); a signed-out post and every app post keep none. Never sent out. It is for
   what comes next: a poster editing or deleting their own post. His question, the same day:

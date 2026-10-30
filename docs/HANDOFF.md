@@ -69,17 +69,22 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-10-30 — DeetsMusic forum archive, edits and local testing (committed on branch
-`forum-archive` here and in DeetsSupport, pushed; NOT on master, NOT deployed).** A deleted
+**2026-10-30 — DeetsMusic forum archive, edits and local testing (LIVE 2026-10-30: the D1
+migration ran, worker version `0dfc4b0d` deployed with the Setup.exe byte ranges, this site's
+`master` fast-forwarded to `f36fc01` and published; DeetsSupport `master` = `f08916b`; the
+rollback target was `dec25899`, the D1 bookmark before the migration
+`000037aa-00000000-00005114-ad3718faa05256ee725634a3a947ad70`).** A deleted
 post is copied whole into D1 `archived_posts` with its delete, kept for good; the admin page's
 **History** tab (tiles, a 12-month chart, the deleted posts in DeetsLeague's match row); a
 deleted post's link shows it as *Closed*; the owner menu on a post's own page; Edit for any
 post (marked *Edited by Aditya*) and for his own replies; a signed-in poster's account id kept
 (the privacy page says so now); and a local worker with a local owner sign-in for testing
-([support.md](support.md), "The archive", "Local testing", "Editing posts"). Next: he works on
-a few more things, then the release: the migration, the worker deploy, and this branch merged
-to master (in that order, "The archive" › Deploy). Ideas for later design: "The forum page",
-and a poster editing or deleting their own post.
+([support.md](support.md), "The archive", "Local testing", "Editing posts"). Checked after
+the deploy: `/health`, `/token`'s health, `/config`, the boards, the feed and its signature,
+a whole 1.2.1 package (200), a middle byte range (206) on a package and a Setup.exe, the owner
+routes (403 with no cookie), a public post's read (no uid in it). Next: his look at the live
+History tab, a closed post's page and the privacy page. Designed, not built: "Deets posts"
+(polls and suggestions every install receives) and "Pictures on posts", in "The forum page".
 
 **2026-10-28 — Cities to mahjong's standard (site `bdd6679` on `gamerz-unite`, pushed and
 fast-forwarded to master, so LIVE on Pages; his look passed in the mock).** Step 1, the toolbar: cities opts into the shell's
