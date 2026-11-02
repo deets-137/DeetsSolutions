@@ -3523,6 +3523,7 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-usage__chart { display: flex; flex-direction: column; gap: var(--space-1); }
 .dm-usage__svg { display: block; inline-size: 100%; block-size: 8rem; overflow: visible; }
 .dm-usage__line { fill: none; stroke: var(--title); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.dm-usage__line--mean { stroke: var(--subtext); stroke-width: 1.5; stroke-dasharray: 4 3; }
 .dm-usage__area { fill: var(--title); fill-opacity: 0.1; stroke: none; }
 .dm-usage__hit { fill: transparent; }
 .dm-usage__hit:hover { fill: var(--surface-hover); }

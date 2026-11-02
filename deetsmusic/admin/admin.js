@@ -425,7 +425,7 @@
      first ([{ week, rows }]); `hweek` the week the Health tab shows (the newest with a report
      unless picked). The worker stores a week's report under the week it covers, and it
      arrives during the week after, so the chosen week alone is nearly always empty. */
-  var usage = { channel: "live", week: null, data: null, setting: "skin", a: "skin", b: "surface", v: "", seq: 0, crossSeq: 0, pills: null, hw: null, hweek: null, hpicked: false };
+  var usage = { channel: "live", week: null, data: null, setting: "skin", a: "skin", b: "surface", v: "", seq: 0, crossSeq: 0, pills: null, hw: null, hweek: null, hpicked: false, listenDay: null };
   var HEALTH_WEEKS = 8;
   var USAGE_CHANNELS = ["live", "beta", "owner", "dev"];
   /* The first version whose counts move on an update (USAGE-COUNTS.md §12.2): a week that
@@ -756,6 +756,8 @@
     paintUsagePills();
     paintDash();
     renderDaily();
+    renderListen();
+    renderListenByV();
     var byV = weekByVersion();
     renderBars($("[data-dm-usage-versions]"), Object.keys(byV).sort(cmpVersionDesc).map(function (v) { return [v, byV[v]]; }), sumActive(usage.week));
     $("[data-dm-usage-lag]").hidden = !Object.keys(byV).some(function (v) { return cmpVersionDesc(v, USAGE_MOVES_FROM) > 0; });
@@ -841,6 +843,133 @@
     host.appendChild(plot);
     host.appendChild(legend(series));
     host.appendChild(el("p", "dm-hint", s("usageDailyAxis", { from: fmtDay(days[0]), to: fmtDay(days[days.length - 1]), max: fmtCount(max) })));
+  }
+
+  /* Minutes listened (DeetsMusic USAGE-COUNTS.md §17). The worker sends `listen`: one line per
+     (day, version, minutes) with how many rows hold it. A row is filed under the last day its
+     install sent a count, so a day fills in over the days after it, and today is never there.
+     The line is each day's median, the dashed line its average; a click on a day picks the
+     spread below. The spread's ranges are drafts. */
+  var LISTEN_BINS = [[0, 0, "0"], [1, 29, "1–29"], [30, 119, "30–119"], [120, 299, "120–299"], [300, 1440, "300+"]];
+  /* { day: [[minutes, n], …] }, one version only when `v` is given. */
+  function listenByDay(v) {
+    var by = {};
+    (usage.data.listen || []).forEach(function (r) {
+      if (v && r.v !== v) return;
+      (by[r.day] = by[r.day] || []).push([r.minutes, r.n]);
+    });
+    return by;
+  }
+  /* The count, average, median and the rows at 0 of [[minutes, n], …]; null when empty. */
+  function listenStats(list) {
+    var n = 0, sum = 0, zero = 0;
+    list.forEach(function (p) { n += p[1]; sum += p[0] * p[1]; if (!p[0]) zero += p[1]; });
+    if (!n) return null;
+    var sorted = list.slice().sort(function (a, b) { return a[0] - b[0]; });
+    var at = function (k) {                                    // the k-th row's minutes, 0-based
+      for (var i = 0, seen = 0; i < sorted.length; i++) { seen += sorted[i][1]; if (k < seen) return sorted[i][0]; }
+      return sorted[sorted.length - 1][0];
+    };
+    return { n: n, mean: sum / n, median: (at(Math.floor((n - 1) / 2)) + at(Math.ceil((n - 1) / 2))) / 2, zero: zero };
+  }
+  function renderListen() {
+    var host = $("[data-dm-usage-listen]");
+    host.textContent = "";
+    var by = listenByDay();
+    var days = [];
+    for (var i = USAGE_DAYS; i >= 1; i--) days.push(dayAgo(i));
+    while (days.length > 2 && !by[days[0]]) days.shift();
+    var stats = days.map(function (d) { return by[d] ? listenStats(by[d]) : null; });
+    var max = stats.reduce(function (m, st) { return st ? Math.max(m, st.median, st.mean) : m; }, 0);
+    if (!stats.some(Boolean)) {
+      host.appendChild(el("p", "dm-empty", s("usageNone")));
+      renderSpread(null);
+      return;
+    }
+    if (!usage.listenDay || !by[usage.listenDay]) {
+      usage.listenDay = days.filter(function (d) { return by[d]; }).pop();
+    }
+    var W = 600, H = 160, step = W / Math.max(1, days.length - 1);
+    var x = function (k) { return (k * step).toFixed(1); };
+    var y = function (n) { return (H - (max ? n / max : 0) * (H - 4)).toFixed(1); };
+    var line = function (pick) {
+      return days.map(function (d, k) { return stats[k] ? x(k) + "," + y(pick(stats[k])) : null; }).filter(Boolean).join(" ");
+    };
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", "class": "dm-usage__svg dm-dash__area", role: "img", "aria-label": s("usageListen") });
+    svgEl("polyline", { points: line(function (st) { return st.mean; }), "class": "dm-usage__line dm-usage__line--mean", "vector-effect": "non-scaling-stroke" }, svg);
+    svgEl("polyline", { points: line(function (st) { return st.median; }), "class": "dm-usage__line", "vector-effect": "non-scaling-stroke" }, svg);
+    var cross = svgEl("line", { x1: 0, x2: 0, y1: 0, y2: H, "class": "dm-dash__cross", "vector-effect": "non-scaling-stroke" }, svg);
+    cross.style.display = "none";
+
+    var plot = el("div", "dm-dash__plot");
+    plot.appendChild(svg);
+    var tip = el("div", "dm-dash__tip");
+    tip.hidden = true;
+    plot.appendChild(tip);
+    var dayAt = function (e) {
+      var r = svg.getBoundingClientRect();
+      return Math.max(0, Math.min(days.length - 1, Math.round((e.clientX - r.left) / r.width * (days.length - 1))));
+    };
+    svg.addEventListener("pointermove", function (e) {
+      var k = dayAt(e), st = stats[k], r = svg.getBoundingClientRect();
+      cross.setAttribute("x1", x(k));
+      cross.setAttribute("x2", x(k));
+      cross.style.display = "";
+      tip.textContent = "";
+      tip.appendChild(el("strong", null, fmtDay(days[k])));
+      if (st) {
+        tip.appendChild(tipRow(s("usageListenMedian"), "dm-ser-0", st.median));
+        tip.appendChild(tipRow(s("usageListenMean"), null, st.mean));
+        tip.appendChild(tipRow(s("usageListenRows"), null, st.n));
+        tip.appendChild(tipRow(s("usageListenZero"), null, st.zero));
+      } else {
+        tip.appendChild(el("span", null, s("usageNone")));
+      }
+      tip.hidden = false;
+      tip.style.insetInlineStart = (k / Math.max(1, days.length - 1) * r.width).toFixed(0) + "px";
+      tip.classList.toggle("is-flip", k > (days.length - 1) / 2);
+    });
+    svg.addEventListener("pointerleave", function () { tip.hidden = true; cross.style.display = "none"; });
+    svg.addEventListener("click", function (e) {
+      var d = days[dayAt(e)];
+      if (!by[d]) return;
+      usage.listenDay = d;
+      renderSpread(by[d]);
+    });
+    host.appendChild(plot);
+    host.appendChild(el("p", "dm-hint", s("usageListenAxis", { from: fmtDay(days[0]), to: fmtDay(days[days.length - 1]), max: fmtCount(max) })));
+    renderSpread(by[usage.listenDay]);
+  }
+  /* One day's spread over the ranges of LISTEN_BINS. */
+  function renderSpread(list) {
+    var head = $("[data-dm-usage-spreadhead]");
+    var host = $("[data-dm-usage-spread]");
+    var st = list && listenStats(list);
+    head.textContent = st ? s("usageListenSpread", { day: fmtDay(usage.listenDay), n: fmtCount(st.n) }) : s("usageListen");
+    renderBars(host, st ? LISTEN_BINS.map(function (b) {
+      return [b[2], list.reduce(function (n, p) { return p[0] >= b[0] && p[0] <= b[1] ? n + p[1] : n; }, 0)];
+    }) : [], st ? st.n : 0);
+  }
+  /* The last 7 whole days by version: the rows, the median, the average, the share at 0. */
+  function listenByVersion() {
+    var lo = dayAgo(7), hi = dayAgo(1), by = {};
+    (usage.data.listen || []).forEach(function (r) {
+      if (r.day < lo || r.day > hi) return;
+      (by[r.v] = by[r.v] || []).push([r.minutes, r.n]);
+    });
+    return by;
+  }
+  function renderListenByV() {
+    var host = $("[data-dm-usage-listenv]");
+    host.textContent = "";
+    var by = listenByVersion(), vs = Object.keys(by).sort(cmpVersionDesc);
+    if (!vs.length) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    host.appendChild(usageTable(
+      [s("usageListenV"), s("usageListenRows"), s("usageListenMedian"), s("usageListenMean"), s("usageListenZeroPct")],
+      vs.map(function (v) {
+        var st = listenStats(by[v]);
+        return [v, st.n, st.median, st.mean, pct(st.zero / st.n)];
+      })));
   }
 
   /* Bars on the Status strip's track: one row per value, its count and share. */
@@ -1006,6 +1135,7 @@
     drop: 0.15,                                   // mean daily active, last 7 whole days vs the 7 before
     waitDays: 3,                                  // a post waiting on him
     newErrMin: 1,                                 // installs with a new error kind on the newest version
+    silent: 0.2, silentMin: 20,                   // installs at 0 minutes on their last day, newest version, 7 days
   };
   var TABS = ["growth", "inbox", "health", "releases", "settings", "history"];
   var SERIES = 4;               // versions a chart names; the rest are Older
@@ -1258,6 +1388,12 @@
       var now7 = mean(1, 7), prev7 = mean(8, 14);
       if (prev7 && (prev7 - now7) / prev7 > FLAG.drop) {
         out.push({ tone: "pause", text: s("flagDrop", { pct: pct((prev7 - now7) / prev7), now: fmtCount(now7), prev: fmtCount(prev7) }) });
+      }
+      // The minutes (USAGE-COUNTS.md §17): an install that opens and plays nothing points to
+      // broken playback. The newest version with enough rows in the last 7 days.
+      var lv = listenByVersion(), lnew = Object.keys(lv).sort(cmpVersionDesc)[0], lst = lnew && listenStats(lv[lnew]);
+      if (lst && lst.n >= FLAG.silentMin && lst.zero / lst.n > FLAG.silent) {
+        out.push({ tone: "pause", text: s("flagSilent", { v: "v" + lnew, pct: pct(lst.zero / lst.n), n: fmtCount(lst.zero), of: fmtCount(lst.n) }) });
       }
     }
     (inbox.posts || []).forEach(function (p) {
