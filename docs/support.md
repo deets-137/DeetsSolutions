@@ -427,8 +427,13 @@ worker change: every chart is drawn from today's `GET /admin/usage` and the Inbo
   columns (Active installs on its own row), and at 40rem 1. A bar list is one grid, so its tracks
   start and end together. Release cards fill their row. The Settings sections flow down
   balanced columns.
-- **Tabs** (Growth · Inbox · Releases · Settings), kept in the URL hash (`#growth`, `#inbox`,
-  `#releases`, `#settings`; the old `#usage` opens Growth):
+- **Tabs** (Growth · Inbox · Health · Releases · Settings · History · Stats), kept in the URL
+  hash (`#growth`, `#inbox`, `#releases`, `#settings`, `#stats` …; the old `#usage` opens Growth):
+  - **Stats** (his call, 2026-11-01): minutes listened (DeetsMusic USAGE-COUNTS.md §17) as four
+    tiles in one row, on the overview's tile pattern: *Total minutes* with its change against
+    the 7 days before, *Average*, *Median* (minutes per install a day) and *At 0 min*, each with
+    a 30-day sparkline. The tiles read the 7 days that end the day before yesterday, since
+    yesterday is still filling in (`LISTEN_LAST`).
   - **Growth:** active installs per day as a stacked area by version (newest on top, the four
     newest named, the rest as *Older*), with a hover readout; the week's version mix; the
     download funnel per source (started → finished, the finish rate); finished downloads per day

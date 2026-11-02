@@ -32,15 +32,15 @@
     <link rel="preload" href="../../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../../styles/skin.css?v=2026-10-28" as="style" />
-    <link rel="stylesheet" href="../../styles/main.css?v=2026-10-30d" />
+    <link rel="stylesheet" href="../../styles/main.css?v=2026-11-01" />
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-10-30d" defer></script>
-    <script src="../mock.js?v=2026-10-30" defer></script>
+    <script src="../strings.js?v=2026-11-01" defer></script>
+    <script src="../mock.js?v=2026-11-01" defer></script>
     <!-- Generated from DeetsMusic: scripts/build-usage-settings.mjs (support.md, "The dashboard"). -->
     <script src="./usage-settings.js?v=2026-10-27c" defer></script>
-    <script src="./admin.js?v=2026-10-30d" defer></script>
+    <script src="./admin.js?v=2026-11-01" defer></script>
   </head>
 
   <body>
@@ -121,6 +121,7 @@
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-releases" aria-controls="releases" data-tab="releases" data-s="dashTab_releases"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-settings" aria-controls="settings" data-tab="settings" data-s="dashTab_settings"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-history" aria-controls="history" data-tab="history" data-s="dashTab_history"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-stats" aria-controls="stats" data-tab="stats" data-s="dashTab_stats"></button>
         </div>
 
         <!-- Growth: active installs by version, the version mix, the download funnel. -->
@@ -128,13 +129,9 @@
           <div class="dm-usage__body">
             <h3 class="dm-usage__sub" data-s="usageDaily"></h3>
             <div class="dm-usage__chart" data-dm-usage-daily></div>
-            <h3 class="dm-usage__sub" data-s="usageListen"></h3>
-            <p class="dm-hint" data-s="usageListenLead"></p>
-            <div class="dm-usage__chart" data-dm-usage-listen></div>
-            <h3 class="dm-usage__sub" data-dm-usage-spreadhead></h3>
-            <div class="dm-usage__bars" data-dm-usage-spread></div>
-            <h3 class="dm-usage__sub" data-s="usageListenByV"></h3>
-            <div data-dm-usage-listenv></div>
+            <h3 class="dm-usage__sub" data-s="usageUses"></h3>
+            <p class="dm-hint" data-s="usageUsesLead"></p>
+            <div data-dm-usage-uses></div>
             <h3 class="dm-usage__sub" data-s="usageVersions"></h3>
             <div class="dm-usage__bars" data-dm-usage-versions></div>
             <p class="dm-hint" data-dm-usage-lag data-s="usageVersionsLag" hidden></p>
@@ -256,6 +253,15 @@
           </div>
           <p class="dm-hint" data-s="historyArchiveLead"></p>
           <div class="dm-inbox__list" data-dm-history-archive></div>
+        </section>
+
+        <!-- Stats: minutes listened (DeetsMusic USAGE-COUNTS.md §17), four tiles in one row. -->
+        <section class="dm-box dm-box--wide dm-dash__panel" id="stats" role="tabpanel" aria-labelledby="dm-tab-stats" data-panel="stats" hidden>
+          <div class="dm-usage__body">
+            <h3 class="dm-usage__sub" data-s="usageListen"></h3>
+            <p class="dm-hint" data-s="usageListenLead"></p>
+            <div class="dm-dash__tiles dm-dash__tiles--four" data-dm-usage-listen></div>
+          </div>
         </section>
       </div>
     </main>

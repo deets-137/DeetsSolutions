@@ -3605,6 +3605,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__tiles--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .dm-dash__tiles--three .dm-dash__tile { grid-row: auto; display: flex; flex-direction: column; gap: var(--space-1); }
 .dm-dash__tiles--three .dm-dash__sub:empty, .dm-dash__tiles--three .dm-dash__foot:empty { display: none; }
+/* The Stats tab's minutes: four tiles, one row (two by two when narrower, below). */
+.dm-dash__tiles--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 /* Narrower: the active-installs tile takes a row of its own, the other four go two by two. */
 @media (max-width: 72rem) {
   .dm-dash__tiles:not(.dm-dash__tiles--three) { grid-template-columns: repeat(2, minmax(0, 1fr)); }

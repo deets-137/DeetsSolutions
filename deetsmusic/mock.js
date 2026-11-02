@@ -934,7 +934,25 @@
       ev(ed, sv, "setup.start", "bot", 3);
       ev(ed, sv, "install.first", "", 58 + (e % 4) * 7);
     }
-    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health, events: events };
+    /* Minutes listened (DeetsMusic USAGE-COUNTS.md §17): the worker's `listen`, one line per
+       (day, version, minutes) with its count, the last 90 days, never today. Weekends run
+       longer; 0.28.0's last three days have a quarter of its installs at 0, so the flag shows. */
+    var listen = [];
+    var MIN = [[0, 0.1], [12, 0.12], [38, 0.18], [74, 0.2], [131, 0.17], [208, 0.12], [356, 0.08], [612, 0.03]];
+    for (var ld = 1; ld < 90; ld++) {
+      var ldd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ld));
+      var wknd = ldd.getUTCDay() === 0 || ldd.getUTCDay() === 6 ? 1.25 : 1;
+      var lbase = 380 - ld * 1.5;
+      VERS.forEach(function (v) {
+        var silent = v[0] === "0.28.0" && ld <= 3;
+        MIN.forEach(function (m, i) {
+          var share = !i && silent ? 0.25 : (silent ? m[1] * 0.83 : m[1]);
+          var c = n(lbase * v[1] * share);
+          if (c) listen.push({ day: day(ldd), v: v[0], minutes: m[0] ? Math.min(1440, Math.round(m[0] * wknd + (ld % 5))) : 0, n: c });
+        });
+      });
+    }
+    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health, events: events, listen: listen };
   }
 
   window.DM_MOCK = {

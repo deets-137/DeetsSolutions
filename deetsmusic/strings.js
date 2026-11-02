@@ -13,7 +13,9 @@
    page, comments, moderation) on 2026-09-15; and the POLL block on 2026-09-15
    — section comments below name the lines he dictated; the release-notes
    layout strings on 2026-09-16. The product pass-1 block was approved
-   2026-10-06 in full; anything added from here carries [ph].
+   2026-10-06 in full; anything added from here carries [ph], except the
+   admin pages' strings (deetsmusic/admin/): those need no [ph] (his call,
+   2026-11-01; CLAUDE.md › Copy).
 
    {curly} tokens are filled by deetsmusic.js — keep a token if you keep
    the fact it carries; drop it freely otherwise. */
@@ -433,18 +435,31 @@ window.DM_STRINGS = {
   usageDaily:        "Active installs per day",
   usageDailyAxis:    "{from} to {to} · peak {max}",
   usageNone:         "No counts yet.",
-  /* Minutes listened (DeetsMusic USAGE-COUNTS.md §17) — drafts, for Aditya to edit */
-  usageListen:       "Minutes listened per day",
-  usageListenLead:   "Each install sends the minutes of the last day it sent a count, the next time it opens. So a day fills in over the days after it. Click a day for its spread.",
-  usageListenAxis:   "{from} to {to} · line: median · dashed: average · peak {max} min",
-  usageListenMedian: "Median, min",
-  usageListenMean:   "Average, min",
-  usageListenRows:   "Installs",
-  usageListenZero:   "At 0 min",
-  usageListenSpread: "Spread on {day} · {n} installs",
-  usageListenByV:    "By version, the last 7 days",
-  usageListenV:      "Version",
-  usageListenZeroPct: "At 0 min",
+  /* Minutes listened (DeetsMusic USAGE-COUNTS.md §17), the Stats tab — drafts, for Aditya to edit */
+  dashTab_stats:     "Stats",
+  usageListen:       "Minutes listened",
+  usageListenLead:   "Each install sends a day's minutes the next time it opens, so yesterday is still filling in. The tiles read the 7 days before it.",
+  usageListenSpan:   "{from} to {to}",
+  tileListenSum:     "Total minutes",
+  tileListenMean:    "Average",
+  tileListenMedian:  "Median",
+  tileListenPer:     "Minutes per install a day",
+  tileListenZero:    "At 0 min",
+  tileListenZeroSub: "{n} of {of} install-days",
+  /* Feature use (DeetsMusic USAGE-COUNTS.md §18) — admin page, no [ph] (his call, 2026-11-01) */
+  usageUses:         "Feature use, the last 7 days",
+  usageUsesLead:     "Each install sends a day's counts with that day's minutes. Installs: how many used it at least once. Share: of the installs that sent that day's counts.",
+  usageUsesName:     "Use",
+  usageUsesInstalls: "Installs",
+  usageUsesTotal:    "Times",
+  usageUsesShare:    "Share",
+  usageUsesReports:  "{n} installs sent their counts",
+  "use.later.save.menu":    "Listen Later, from a right-click",
+  "use.later.save.compass": "Listen Later, from the Compass",
+  "use.later.save.agent":   "Listen Later, from an AI app",
+  "use.later.auto":         "Songs taken out after a full play",
+  "use.later.skip":         "Songs taken out on a skip",
+  "use.later.undo":         "Undo on a Listen Later toast",
   usageVersions:    "Version mix this week",
   usageVersionsLag:  "Before 1.2.0, an install that updated during the week stays under its old version for that week and month.",
   /* Updates, first starts and Setup.exe downloads (DeetsMusic USAGE-COUNTS.md §12.4) — drafts, for Aditya to edit */
