@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-01T02:00:18Z",
+  "generated_at": "2026-11-02T02:00:18Z",
   "channel": "song-of-the-day",
-  "count": 470,
+  "count": 471,
   "songs": [
     {
       "post_id": 1,
@@ -10812,6 +10812,29 @@
       "apple_music_url": "https://music.apple.com/us/album/a-waltz-for-a-night/1534801760?i=1534801763&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/fb/02/63/fb026356-6f4b-512d-178f-1440171e4ee7/mzaf_15594774630281680913.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/1e/13/e1/1e13e142-f338-3b42-19db-f6c48a8b26be/886448328575.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 33846,
+      "posted_at": "2026-11-01T08:38:21.916000+00:00",
+      "date": "2026-10-31",
+      "day": "Sat",
+      "month": "10_2026",
+      "track_name": "You're Mine",
+      "artist_name": "Anderson .Paak & Cordae",
+      "album": "Heavy Is The Crown",
+      "genre": "Hip-Hop/Rap",
+      "duration": "2:47",
+      "duration_sec": 167,
+      "release_date": "2026-10-23",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/youre-mine/6801692287?i=6801692301",
+      "apple_music_url": "https://music.apple.com/us/album/youre-mine/6801692287?i=6801692301&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7f/35/f5/7f35f51f-5da9-8eda-ceb3-18887f360c12/mzaf_13820571865180749841.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/2b/81/23/2b8123af-f191-32ea-e856-fc4ad33599b6/199316732108_cover.jpg/600x600bb.jpg"
     }
   ]
 }
