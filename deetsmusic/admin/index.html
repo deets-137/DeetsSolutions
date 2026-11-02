@@ -132,6 +132,13 @@
             <h3 class="dm-usage__sub" data-s="usageUses"></h3>
             <p class="dm-hint" data-s="usageUsesLead"></p>
             <div data-dm-usage-uses></div>
+            <!-- Feature reach and the AI-app routes (DeetsMusic USAGE-COUNTS.md §21). -->
+            <h3 class="dm-usage__sub" data-s="usageReach"></h3>
+            <p class="dm-hint" data-s="usageReachLead"></p>
+            <div data-dm-usage-reach></div>
+            <h3 class="dm-usage__sub" data-s="usageAgents"></h3>
+            <p class="dm-hint" data-s="usageAgentsLead"></p>
+            <div data-dm-usage-agents></div>
             <h3 class="dm-usage__sub" data-s="usageVersions"></h3>
             <div class="dm-usage__bars" data-dm-usage-versions></div>
             <p class="dm-hint" data-dm-usage-lag data-s="usageVersionsLag" hidden></p>
@@ -255,12 +262,27 @@
           <div class="dm-inbox__list" data-dm-history-archive></div>
         </section>
 
-        <!-- Stats: minutes listened (DeetsMusic USAGE-COUNTS.md §17), four tiles in one row. -->
+        <!-- Stats: minutes listened (DeetsMusic USAGE-COUNTS.md §17), four tiles in one row; library size (§19). -->
         <section class="dm-box dm-box--wide dm-dash__panel" id="stats" role="tabpanel" aria-labelledby="dm-tab-stats" data-panel="stats" hidden>
           <div class="dm-usage__body">
             <h3 class="dm-usage__sub" data-s="usageListen"></h3>
             <p class="dm-hint" data-s="usageListenLead"></p>
             <div class="dm-dash__tiles dm-dash__tiles--four" data-dm-usage-listen></div>
+          </div>
+          <!-- Library size (DeetsMusic USAGE-COUNTS.md §19): the newest week's tiles and spread, then each version's first starts. -->
+          <div class="dm-usage__body">
+            <h3 class="dm-usage__sub" data-s="usageLibrary"></h3>
+            <p class="dm-hint" data-s="usageLibraryLead"></p>
+            <div class="dm-dash__tiles dm-dash__tiles--four" data-dm-usage-library></div>
+            <div class="dm-usage__bars" data-dm-usage-library-bars></div>
+            <h3 class="dm-usage__sub" data-s="usageLibraryMoved"></h3>
+            <div data-dm-usage-library-versions></div>
+          </div>
+          <!-- Library sync speed (DeetsMusic USAGE-COUNTS.md §20): the newest week's four tiles. -->
+          <div class="dm-usage__body">
+            <h3 class="dm-usage__sub" data-s="usageSync"></h3>
+            <p class="dm-hint" data-s="usageSyncLead"></p>
+            <div class="dm-dash__tiles dm-dash__tiles--four" data-dm-usage-sync></div>
           </div>
         </section>
       </div>

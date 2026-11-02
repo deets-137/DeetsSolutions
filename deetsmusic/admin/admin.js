@@ -757,6 +757,10 @@
     paintDash();
     renderDaily();
     renderListenTiles();
+    renderLibrary();
+    renderSyncs();
+    renderReach();
+    renderAgents();
     renderUses();
     var byV = weekByVersion();
     renderBars($("[data-dm-usage-versions]"), Object.keys(byV).sort(cmpVersionDesc).map(function (v) { return [v, byV[v]]; }), sumActive(usage.week));
@@ -919,6 +923,132 @@
     return by;
   }
 
+  /* Library size (DeetsMusic USAGE-COUNTS.md §19), the Stats tab. Each count is one install's
+     songs, rounded up to 100 by the app. The worker sends `libraries`: per (week, version, songs)
+     the installs from the weekly health reports; and `events` holds `update.library` per (day,
+     version, songs) from the first start on a version. One install is in both, and in every
+     week, so the page never adds weeks or the two together: the tiles read one week (the newest,
+     which fills in during the week after it), and the table reads the versions. */
+  var LIBRARY_WEEKS = 12;
+  var LIBRARY_BINS = [0, 1000, 2500, 5000, 10000, 25000];   // a bar's highest count; the last is "more"
+  /* The installs, median, 90th percentile and largest of [[songs, n], …]; null when empty. */
+  function libraryStats(list) {
+    var n = list.reduce(function (a, p) { return a + p[1]; }, 0);
+    if (!n) return null;
+    var sorted = list.slice().sort(function (a, b) { return a[0] - b[0]; });
+    var at = function (k) {                                    // the k-th install's songs, 0-based
+      for (var i = 0, seen = 0; i < sorted.length; i++) { seen += sorted[i][1]; if (k < seen) return sorted[i][0]; }
+      return sorted[sorted.length - 1][0];
+    };
+    return {
+      n: n,
+      median: (at(Math.floor((n - 1) / 2)) + at(Math.ceil((n - 1) / 2))) / 2,
+      p90: at(Math.ceil(0.9 * n) - 1),
+      max: sorted[sorted.length - 1][0],
+    };
+  }
+  /* { week: [[songs, n], …] } from the health reports, all versions together. */
+  function libraryByWeek() {
+    var by = {};
+    (usage.data.libraries || []).forEach(function (r) {
+      (by[r.week] = by[r.week] || []).push([+r.songs, r.n]);
+    });
+    return by;
+  }
+  function renderLibrary() {
+    var host = $("[data-dm-usage-library]"), bars = $("[data-dm-usage-library-bars]"), table = $("[data-dm-usage-library-versions]");
+    host.textContent = "";
+    table.textContent = "";
+    var by = libraryByWeek(), weeks = Object.keys(by).sort().slice(-LIBRARY_WEEKS);
+    var week = weeks[weeks.length - 1], st = week && libraryStats(by[week]);
+    if (!st) {
+      host.appendChild(el("p", "dm-empty", s("usageNone")));
+      bars.textContent = "";
+    } else {
+      var before = weeks.length > 1 ? libraryStats(by[weeks[weeks.length - 2]]) : null;
+      var trend = weeks.map(function (w) { return libraryStats(by[w]); });
+      var spark = function (pick) { return trend.map(function (t) { return t ? pick(t) : 0; }); };
+      var cap = s("tileCapWeeks", { n: weeks.length });
+      tile(host, s("tileLibraryInstalls"), fmtCount(st.n), { sub: s("usageLibraryWeek", { week: weekSpan(week) }), spark: spark(function (t) { return t.n; }), sparkCap: cap });
+      tile(host, s("tileLibraryMedian"), fmtCount(st.median), {
+        sub: s("tileLibrarySongs"),
+        delta: before && before.median ? arrow(st.median / before.median - 1) + s("tileVsBefore", { pct: pct(Math.abs(st.median / before.median - 1)) }) : null,
+        spark: spark(function (t) { return t.median; }), sparkCap: cap,
+      });
+      tile(host, s("tileLibraryP90"), fmtCount(st.p90), { sub: s("tileLibraryP90Sub"), spark: spark(function (t) { return t.p90; }), sparkCap: cap });
+      tile(host, s("tileLibraryMax"), fmtCount(st.max), { sub: s("tileLibrarySongs"), spark: spark(function (t) { return t.max; }), sparkCap: cap });
+      // The spread of that week, in bars grouped here (the counts stay at 100 songs).
+      var counts = LIBRARY_BINS.concat([Infinity]).map(function () { return 0; });
+      by[week].forEach(function (p) {
+        var k = 0;
+        while (k < LIBRARY_BINS.length && p[0] > LIBRARY_BINS[k]) k++;
+        counts[k] += p[1];
+      });
+      renderBars(bars, counts.map(function (c, k) {
+        var lo = k ? LIBRARY_BINS[k - 1] + 1 : 0, hi = LIBRARY_BINS[k];
+        var label = k === 0 ? "0" : hi == null ? s("usageLibraryOver", { n: fmtCount(lo - 1) }) : fmtCount(lo) + "–" + fmtCount(hi);
+        return [label, c];
+      }), st.n);
+    }
+    // The installs that started each version, from their first start on it: the newest first.
+    var byV = {};
+    (usage.data.events || []).forEach(function (r) {
+      if (r.metric === "update.library") (byV[r.v] = byV[r.v] || []).push([+r.bucket, r.n]);
+    });
+    var vs = Object.keys(byV).sort(cmpVersionDesc).slice(0, SERIES + 1);
+    if (!vs.length) { table.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    table.appendChild(usageTable(
+      [s("usageLibraryVersion"), s("tileLibraryInstalls"), s("tileLibraryMedian"), s("tileLibraryP90"), s("tileLibraryMax")],
+      vs.map(function (v) {
+        var t = libraryStats(byV[v]);
+        return ["v" + v, t.n, t.median, t.p90, t.max];
+      })));
+  }
+
+  /* Library sync speed (DeetsMusic USAGE-COUNTS.md §20), the Stats tab, under the library size.
+     The worker sends `syncs`: per (week, version, metric, bucket) from the weekly health reports.
+     `sync.<kind>.ms` holds each install's average time that week (its bucket, in ms), `sync.<kind>`
+     its count as a range, `sync.per1k` its full syncs' time per 1,000 songs. Kinds: full, quick,
+     and fallback (a quick sync that could not account for Apple's count, then a full one). Four
+     tiles for the newest week, each the median across installs, with a spark of the weeks. */
+  function syncByWeek(metric) {
+    var by = {};
+    (usage.data.syncs || []).forEach(function (r) {
+      if (r.metric === metric) (by[r.week] = by[r.week] || []).push([+r.bucket, r.n]);
+    });
+    return by;
+  }
+  function fmtSec(ms) { return s("usageSyncSec", { s: (ms / 1000).toFixed(1) }); }
+  function renderSyncs() {
+    var host = $("[data-dm-usage-sync]");
+    host.textContent = "";
+    var full = syncByWeek("sync.full.ms"), quick = syncByWeek("sync.quick.ms"), per1k = syncByWeek("sync.per1k");
+    var fell = syncByWeek("sync.fallback");
+    var weeks = Object.keys(full).concat(Object.keys(quick)).filter(function (w, k, a) { return a.indexOf(w) === k; }).sort().slice(-LIBRARY_WEEKS);
+    var week = weeks[weeks.length - 1];
+    if (!week) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    var cap = s("tileCapWeeks", { n: weeks.length });
+    var median = function (by, w) { var t = by[w] && libraryStats(by[w]); return t ? t.median : 0; };
+    var installs = function (by, w) { return (by[w] || []).reduce(function (n, p) { return n + p[1]; }, 0); };
+    var kind = function (label, by) {
+      var st = by[week] && libraryStats(by[week]);
+      tile(host, label, st ? fmtSec(st.median) : "–", {
+        sub: s("tileSyncInstalls", { n: fmtCount(st ? st.n : 0) }),
+        spark: weeks.map(function (w) { return median(by, w); }), sparkCap: cap,
+      });
+    };
+    kind(s("tileSyncFull"), full);
+    kind(s("tileSyncQuick"), quick);
+    var p = per1k[week] && libraryStats(per1k[week]);
+    tile(host, s("tileSyncPer1k"), p ? fmtSec(p.median) : "–", {
+      sub: s("tileSyncPer1kSub"), spark: weeks.map(function (w) { return median(per1k, w); }), sparkCap: cap,
+    });
+    tile(host, s("tileSyncFell"), fmtCount(installs(fell, week)), {
+      sub: s("tileSyncFellSub", { n: fmtCount(installs(quick, week)) }),
+      spark: weeks.map(function (w) { return installs(fell, w); }), sparkCap: cap,
+    });
+  }
+
   /* Feature use (DeetsMusic USAGE-COUNTS.md §18). The worker sends `uses`: day counters per
      (day, version, metric, bucket). A metric's ranges count the installs that used it; its "sum"
      bucket is the times; `use.reports` counts the installs that sent that day's counts. Like
@@ -942,6 +1072,54 @@
         return [s(m), u.installs, u.total, pct(u.installs / reports)];
       })));
     host.appendChild(el("p", "dm-hint", s("usageUsesReports", { n: fmtCount(reports) })));
+  }
+
+  /* Feature reach (DeetsMusic USAGE-COUNTS.md §21). The worker sends `reach`: per (period,
+     version, metric) the installs whose first use of a feature in that ISO week or month it
+     was; `reach.reports` the installs that sent uses in the period. One row per "use." label in
+     strings.js, 0 included, so a feature nobody used shows. The week and month are the current
+     ones (a week fills in as it goes); the times are the last 7 days of `uses`. Sorted by the
+     week's share, then the month's. */
+  function renderReach() {
+    var host = $("[data-dm-usage-reach]");
+    host.textContent = "";
+    var now = new Date(), week = isoWeekOf(now), month = usageDay(now).slice(0, 7), wk = {}, mo = {};
+    (usage.data.reach || []).forEach(function (r) {
+      var into = r.period === week ? wk : r.period === month ? mo : null;
+      if (into) into[r.metric] = (into[r.metric] || 0) + r.n;
+    });
+    var times = {}, lo = dayAgo(7), hi = dayAgo(1);
+    (usage.data.uses || []).forEach(function (r) {
+      if (r.day >= lo && r.day <= hi && r.bucket === "sum") times[r.metric] = (times[r.metric] || 0) + r.n;
+    });
+    var wr = wk["reach.reports"] || 0, mr = mo["reach.reports"] || 0;
+    if (!wr && !mr) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    var share = function (n, of) { return of ? n / of : 0; };
+    var names = Object.keys(S).filter(function (k) { return k.indexOf("use.") === 0 && k.indexOf("use.later.") !== 0; }).map(function (k) { return k.slice(4); });
+    var rows = names.map(function (n) {
+      var w = wk["reach." + n] || 0, m = mo["reach." + n] || 0;
+      return { n: n, w: w, m: m, ws: share(w, wr), ms: share(m, mr), t: times["use." + n] || 0 };
+    }).sort(function (a, b) { return b.ws - a.ws || b.ms - a.ms; });
+    host.appendChild(usageTable(
+      [s("usageReachName"), s("usageReachWeek"), s("usageReachMonth"), s("usageReachTimes")],
+      rows.map(function (r) {
+        return [s("use." + r.n), fmtCount(r.w) + " · " + pct(r.ws), fmtCount(r.m) + " · " + pct(r.ms), r.t];
+      })));
+    host.appendChild(el("p", "dm-hint", s("usageReachOf", { n: fmtCount(wr), m: fmtCount(mr) })));
+  }
+  /* The AI-app and terminal routes (§21): the newest week's installs per route, from `agents`
+     (one health report per install per week, so each range row is installs). */
+  function renderAgents() {
+    var host = $("[data-dm-usage-agents]");
+    host.textContent = "";
+    var rows = usage.data.agents || [];
+    var week = rows.reduce(function (w, r) { return r.week > w ? r.week : w; }, "");
+    var by = {};
+    rows.forEach(function (r) { if (r.week === week) by[r.metric] = (by[r.metric] || 0) + r.n; });
+    var keys = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; });
+    if (!keys.length) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    host.appendChild(usageTable([s("usageAgentsRoute"), s("usageAgentsInstalls")],
+      keys.map(function (k) { return [k.slice(6), by[k]]; })));
   }
 
   /* Bars on the Status strip's track: one row per value, its count and share. */
