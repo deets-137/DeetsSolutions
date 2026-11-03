@@ -772,6 +772,7 @@
     renderReleases();
     renderHealthTab();
     renderShares();
+    renderRaw();
   }
   function weekByVersion() {
     var byV = {};
@@ -854,7 +855,7 @@
      last day its install sent a count, so a day fills in over the days after it: today is never
      there, and yesterday is still filling. So the tiles read the 7 days that end the day before
      yesterday (LISTEN_LAST days ago), against the 7 before them. */
-  var LISTEN_LAST = 2;
+  var LISTEN_LAST = 2;          // a day this close to today is still filling in (marked, not held back)
   /* { day: [[minutes, n], …] }, one version only when `v` is given. */
   function listenByDay(v) {
     var by = {};
@@ -887,7 +888,10 @@
   function renderListenTiles() {
     var host = $("[data-dm-usage-listen]");
     host.textContent = "";
-    var by = listenByDay(), last = LISTEN_LAST;
+    var by = listenByDay(), newest = Object.keys(by).sort().pop();
+    if (!newest) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
+    // The 7 days that end on the newest day received (his call, 2026-11-03: no wait).
+    var last = Math.max(1, Math.round((Date.parse(dayAgo(0)) - Date.parse(newest)) / 864e5));
     var st = listenStats(listenSpan(by, last, last + 6));
     if (!st) { host.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
     var before = listenStats(listenSpan(by, last + 7, last + 13));
@@ -896,7 +900,8 @@
     while (daily.length > 2 && !daily[0]) daily.shift();      // no slope up from before the first count
     var spark = function (pick) { return daily.map(function (d) { return d ? pick(d) : 0; }); };
     var cap = s("tileCapDays", { n: 30 });
-    var span = s("usageListenSpan", { from: fmtDay(dayAgo(last + 6)), to: fmtDay(dayAgo(last)) });
+    var span = s("usageListenSpan", { from: fmtDay(dayAgo(last + 6)), to: fmtDay(dayAgo(last)) }) +
+      (last < LISTEN_LAST ? " · " + s("rawFilling") : "");
     tile(host, s("tileListenSum"), fmtCount(st.sum), {
       sub: span,
       delta: before && before.sum ? arrow(st.sum / before.sum - 1) + s("tileVsBefore", { pct: pct(Math.abs(st.sum / before.sum - 1)) }) : null,
@@ -959,8 +964,18 @@
     var host = $("[data-dm-usage-library]"), bars = $("[data-dm-usage-library-bars]"), table = $("[data-dm-usage-library-versions]");
     host.textContent = "";
     table.textContent = "";
+    // The installs that started each version, from their first start on it.
+    var byV = {};
+    (usage.data.events || []).forEach(function (r) {
+      if (r.metric === "update.library") (byV[r.v] = byV[r.v] || []).push([+r.bucket, r.n]);
+    });
+    var vs = Object.keys(byV).sort(cmpVersionDesc).slice(0, SERIES + 1);
     var by = libraryByWeek(), weeks = Object.keys(by).sort().slice(-LIBRARY_WEEKS);
-    var week = weeks[weeks.length - 1], st = week && libraryStats(by[week]);
+    var week = weeks[weeks.length - 1], list = week && by[week], first = s("usageLibraryWeek", { week: weekSpan(week) });
+    // No health week yet (his call, 2026-11-03: no weekly gate): the newest version's first
+    // starts, each install once, so the tiles show what has come in.
+    if (!list && vs.length) { weeks = []; list = byV[vs[0]]; first = s("usageLibraryFirst", { v: vs[0] }); }
+    var st = list && libraryStats(list);
     if (!st) {
       host.appendChild(el("p", "dm-empty", s("usageNone")));
       bars.textContent = "";
@@ -969,7 +984,7 @@
       var trend = weeks.map(function (w) { return libraryStats(by[w]); });
       var spark = function (pick) { return trend.map(function (t) { return t ? pick(t) : 0; }); };
       var cap = s("tileCapWeeks", { n: weeks.length });
-      tile(host, s("tileLibraryInstalls"), fmtCount(st.n), { sub: s("usageLibraryWeek", { week: weekSpan(week) }), spark: spark(function (t) { return t.n; }), sparkCap: cap });
+      tile(host, s("tileLibraryInstalls"), fmtCount(st.n), { sub: first, spark: spark(function (t) { return t.n; }), sparkCap: cap });
       tile(host, s("tileLibraryMedian"), fmtCount(st.median), {
         sub: s("tileLibrarySongs"),
         delta: before && before.median ? arrow(st.median / before.median - 1) + s("tileVsBefore", { pct: pct(Math.abs(st.median / before.median - 1)) }) : null,
@@ -979,7 +994,7 @@
       tile(host, s("tileLibraryMax"), fmtCount(st.max), { sub: s("tileLibrarySongs"), spark: spark(function (t) { return t.max; }), sparkCap: cap });
       // The spread of that week, in bars grouped here (the counts stay at 100 songs).
       var counts = LIBRARY_BINS.concat([Infinity]).map(function () { return 0; });
-      by[week].forEach(function (p) {
+      list.forEach(function (p) {
         var k = 0;
         while (k < LIBRARY_BINS.length && p[0] > LIBRARY_BINS[k]) k++;
         counts[k] += p[1];
@@ -990,12 +1005,7 @@
         return [label, c];
       }), st.n);
     }
-    // The installs that started each version, from their first start on it: the newest first.
-    var byV = {};
-    (usage.data.events || []).forEach(function (r) {
-      if (r.metric === "update.library") (byV[r.v] = byV[r.v] || []).push([+r.bucket, r.n]);
-    });
-    var vs = Object.keys(byV).sort(cmpVersionDesc).slice(0, SERIES + 1);
+    // The table: the newest first.
     if (!vs.length) { table.appendChild(el("p", "dm-empty", s("usageNone"))); return; }
     table.appendChild(usageTable(
       [s("usageLibraryVersion"), s("tileLibraryInstalls"), s("tileLibraryMedian"), s("tileLibraryP90"), s("tileLibraryMax")],
@@ -1159,6 +1169,167 @@
     });
     t.appendChild(tb);
     return t;
+  }
+
+  /* ── Every stream as it arrives (his call, 2026-11-03: "add all data we receive", "clean, neat
+     and organized"). One shape for each: what is in hand on one line, columns per day or week
+     (stacked by version, or by name), and every line in a closed table. Nothing is held back:
+     a period still filling in shows in a lighter shade, its label says so. */
+  var RAW_DAYS = 90, RAW_WEEKS = 26;
+  function periodName(p) {
+    if (!p) return "–";
+    if (p.length === 10) return fmtDay(p);
+    if (p.indexOf("-W") > 0) return weekSpan(p);
+    if (p.length === 7) return monthLabel(p);
+    return p;
+  }
+  // Every day or week from the first to the last in `ps`, at most the newest `cap`.
+  function rawSpan(kind, ps) {
+    var sorted = ps.slice().sort(), out = [], a = sorted[0], b = sorted[sorted.length - 1];
+    if (kind === "day") {
+      for (var t = Date.parse(a); t <= Date.parse(b); t += 864e5) out.push(usageDay(new Date(t)));
+      return out.slice(-RAW_DAYS);
+    }
+    for (var w = a, k = 0; w <= b && k < 520; w = weekShift(w, 1), k++) out.push(w);
+    return out.slice(-RAW_WEEKS);
+  }
+  /* o: { title, what, rows, kind ("day" | "week" | null: a table only), period(r), value(r) (a
+     number for the columns, or null), stack(r), byVersion, filling(p), head, cells(r), note } */
+  function rawBlock(host, o) {
+    var box = el("div", "dm-raw");
+    box.appendChild(el("h4", "dm-raw__title", o.title));
+    var rows = o.rows || [];
+    if (!rows.length) { box.appendChild(el("p", "dm-empty", s("rawNone"))); host.appendChild(box); return; }
+    var kindOf = function (p) { return p.length === 10 ? "day" : p.indexOf("-W") > 0 ? "week" : p.length === 7 ? "month" : ""; };
+    // The span line reads the charted kind only, so days and weeks are never one range.
+    var ps = rows.map(o.period || function () { return ""; }).filter(function (p) { return p && (!o.kind || kindOf(p) === o.kind); }).sort();
+    box.appendChild(el("p", "dm-hint", ps.length
+      ? s("rawMeta", { n: fmtCount(rows.length), from: periodName(ps[0]), to: periodName(ps[ps.length - 1]) })
+      : s("rawMetaLines", { n: fmtCount(rows.length) })));
+    if (o.note) box.appendChild(el("p", "dm-hint", o.note));
+    if (o.kind) {
+      var charted = rows.filter(function (r) { return o.value(r) != null && kindOf(o.period(r)) === o.kind; });
+      if (charted.length) {
+        var labels = rawSpan(o.kind, charted.map(o.period)), at = {}, cell = {}, tot = {};
+        labels.forEach(function (p, k) { at[p] = k; });
+        charted.forEach(function (r) {
+          var k = at[o.period(r)];
+          if (k == null) return;
+          var key = o.stack ? o.stack(r) : "";
+          (cell[key] = cell[key] || labels.map(function () { return 0; }))[k] += o.value(r);
+          tot[key] = (tot[key] || 0) + o.value(r);
+        });
+        var keys = Object.keys(cell).sort(o.byVersion ? cmpVersionDesc : function (a, b) { return tot[b] - tot[a] || (a < b ? -1 : 1); });
+        var series = keys.slice(0, SERIES).map(function (key, k) {
+          return { label: !o.stack ? o.title : o.byVersion ? "v" + key : key || "–", cls: "dm-ser-" + k, values: cell[key] };
+        });
+        if (keys.length > SERIES) series.push({ label: s("dashOlder"), cls: "dm-ser-" + SERIES, values: labels.map(function (p, k) {
+          return keys.slice(SERIES).reduce(function (n, key) { return n + cell[key][k]; }, 0);
+        }) });
+        var faint = labels.map(function (p) { return !!(o.filling && o.filling(p)); });
+        var chart = el("div", "dm-usage__chart");
+        columns(chart, labels.map(function (p, k) { return periodName(p) + (faint[k] ? " · " + s("rawFilling") : ""); }), series, null, o.title, faint);
+        box.appendChild(chart);
+        if (o.what) box.appendChild(el("p", "dm-hint", o.what));
+      }
+    }
+    var det = el("details", "dm-dash__table");
+    det.appendChild(el("summary", null, s("rawRows", { n: fmtCount(rows.length) })));
+    var wrap = el("div", "dm-usage__table");
+    var sorted = rows.slice().sort(function (a, b) {
+      var pa = o.period ? o.period(a) : "", pb = o.period ? o.period(b) : "";
+      return pa < pb ? 1 : pa > pb ? -1 : 0;
+    });
+    wrap.appendChild(usageTable(o.head, sorted.map(o.cells)));
+    det.appendChild(wrap);
+    box.appendChild(det);
+    host.appendChild(box);
+  }
+  function bucketName(b) { return b == null || b === "" ? "–" : String(b); }
+  // A day counter is filling in on today; a day filed by the next open, on yesterday too; a
+  // weekly report, during its own week and the week after it.
+  function fillToday(p) { return p === dayAgo(0); }
+  function fillNext(p) { return p >= dayAgo(1); }
+  function fillWeek(p) { return p >= weekShift(isoWeekOf(new Date()), -1); }
+  function renderRaw() {
+    var d = usage.data, v = function (r) { return "v" + r.v; };
+    var day = function (r) { return r.day; }, wk = function (r) { return r.week; }, per = function (r) { return r.period; };
+    var n = function (r) { return r.n; };
+    var put = function (sel) { var h = $(sel); h.textContent = ""; return h; };
+
+    rawBlock(put("[data-dm-raw-listen]"), {
+      title: s("rawListen"), what: s("rawWhatMinutes"), rows: d.listen, kind: "day", period: day,
+      value: function (r) { return r.minutes * r.n; }, stack: function (r) { return r.v; }, byVersion: true, filling: fillNext,
+      head: [s("rawDay"), s("rawVersion"), s("rawMinutes"), s("rawInstalls")],
+      cells: function (r) { return [fmtDay(r.day), v(r), r.minutes, r.n]; },
+    });
+    rawBlock(put("[data-dm-raw-library]"), {
+      title: s("rawLibraryWeek"), what: s("rawWhatInstalls"), rows: d.libraries, kind: "week", period: wk,
+      value: n, stack: function (r) { return r.v; }, byVersion: true, filling: fillWeek,
+      head: [s("rawWeek"), s("rawVersion"), s("rawSongs"), s("rawInstalls")],
+      cells: function (r) { return [weekSpan(r.week), v(r), +r.songs, r.n]; },
+    });
+    rawBlock(put("[data-dm-raw-moved]"), {
+      title: s("rawLibraryMoved"), what: s("rawWhatInstalls"), kind: "day", period: per,
+      rows: (d.events || []).filter(function (r) { return r.metric === "update.library"; }),
+      value: n, stack: function (r) { return r.v; }, byVersion: true, filling: fillToday,
+      head: [s("rawDay"), s("rawVersion"), s("rawSongs"), s("rawInstalls")],
+      cells: function (r) { return [fmtDay(r.period), v(r), +r.bucket, r.n]; },
+    });
+    rawBlock(put("[data-dm-raw-sync]"), {
+      title: s("rawSync"), what: s("rawWhatByName"), rows: d.syncs, kind: "week", period: wk,
+      value: function (r) { return /\.ms$/.test(r.metric) ? r.n : null; }, stack: function (r) { return r.metric; }, filling: fillWeek,
+      head: [s("rawWeek"), s("rawVersion"), s("rawMetric"), s("rawBucket"), s("rawInstalls")],
+      cells: function (r) { return [weekSpan(r.week), v(r), r.metric, bucketName(r.bucket), r.n]; },
+    });
+
+    var all = put("[data-dm-raw-all]");
+    rawBlock(all, {
+      title: s("rawActive"), what: s("rawWhatInstalls"), rows: d.active, kind: "day", period: per,
+      value: n, stack: function (r) { return r.v; }, byVersion: true, filling: fillToday,
+      head: [s("rawPeriod"), s("rawVersion"), s("rawInstalls")],
+      cells: function (r) { return [periodName(r.period), v(r), r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawEvents"), what: s("rawWhatByName"), rows: d.events, kind: "day", period: per,
+      value: n, stack: function (r) { return r.metric; }, filling: fillToday,
+      head: [s("rawDay"), s("rawVersion"), s("rawMetric"), s("rawBucket"), s("rawCount")],
+      cells: function (r) { return [fmtDay(r.period), v(r), r.metric, bucketName(r.bucket), r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawUses"), what: s("rawWhatReports"), rows: d.uses, kind: "day", period: day,
+      value: function (r) { return r.metric === "use.reports" ? r.n : null; }, stack: function (r) { return r.v; }, byVersion: true, filling: fillNext,
+      head: [s("rawDay"), s("rawVersion"), s("rawName"), s("rawBucket"), s("rawCount")],
+      cells: function (r) { return [fmtDay(r.day), v(r), r.metric, bucketName(r.bucket), r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawReach"), what: s("rawWhatReports"), rows: d.reach, kind: "week", period: per,
+      value: function (r) { return r.metric === "reach.reports" ? r.n : null; }, stack: function (r) { return r.v; }, byVersion: true, filling: fillWeek,
+      head: [s("rawPeriod"), s("rawVersion"), s("rawName"), s("rawInstalls")],
+      cells: function (r) { return [periodName(r.period), v(r), r.metric, r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawAgents"), what: s("rawWhatByName"), rows: d.agents, kind: "week", period: wk,
+      value: n, stack: function (r) { return r.metric; }, filling: fillWeek,
+      head: [s("rawWeek"), s("rawVersion"), s("rawRoute"), s("rawBucket"), s("rawInstalls")],
+      cells: function (r) { return [weekSpan(r.week), v(r), r.metric, bucketName(r.bucket), r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawWeeks"), what: s("rawWhatWeekly"), rows: d.weeks, kind: "week", period: wk,
+      value: n, filling: fillWeek,
+      head: [s("rawWeek"), s("rawReports")],
+      cells: function (r) { return [weekSpan(r.week), r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawShares", { week: weekSpan(d.week) }), note: s("rawChosenWeek"), rows: d.shares,
+      head: [s("rawSetting"), s("rawValue"), s("rawInstalls")],
+      cells: function (r) { return [r.key, r.value == null ? "–" : String(r.value), r.n]; },
+    });
+    rawBlock(all, {
+      title: s("rawHealth", { week: weekSpan(d.week) }), note: s("rawChosenWeek"), rows: d.health,
+      head: [s("rawVersion"), s("rawMetric"), s("rawBucket"), s("rawCount")],
+      cells: function (r) { return [v(r), r.metric, bucketName(r.bucket), r.n]; },
+    });
   }
 
   /* Every health metric: the four plain ones, the whole Apple table, and every
@@ -1441,7 +1612,7 @@
   }
   /* Stacked columns, one per label: `series` [{ label, cls, values }] stack bottom-up and
      `dots` { label, values } sit on the same scale. Each column's hover title reads it out. */
-  function columns(host, labels, series, dots, aria) {
+  function columns(host, labels, series, dots, aria, faint) {
     host.textContent = "";
     var totals = labels.map(function (l, k) { return series.reduce(function (t, se) { return t + se.values[k]; }, 0); });
     var max = Math.max.apply(null, totals.concat(dots ? dots.values : []));
@@ -1457,7 +1628,7 @@
         lines.push(se.label + ": " + fmtCount(v));
         if (!v) return;
         var hh = h(v);
-        svgEl("rect", { x: x0.toFixed(1), y: (H - h(acc) - hh).toFixed(1), width: bw.toFixed(1), height: Math.max(1, hh - 1.5).toFixed(1), "class": "dm-dash__col " + se.cls }, svg);
+        svgEl("rect", { x: x0.toFixed(1), y: (H - h(acc) - hh).toFixed(1), width: bw.toFixed(1), height: Math.max(1, hh - 1.5).toFixed(1), "class": "dm-dash__col " + se.cls + (faint && faint[k] ? " is-filling" : "") }, svg);
         acc += v;
       });
       if (dots) {

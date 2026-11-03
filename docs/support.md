@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, deetsmusic/mock.js, js/home.js]
-updated: 2026-10-30
+updated: 2026-11-03
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -432,8 +432,17 @@ worker change: every chart is drawn from today's `GET /admin/usage` and the Inbo
   - **Stats** (his call, 2026-11-01): minutes listened (DeetsMusic USAGE-COUNTS.md §17) as four
     tiles in one row, on the overview's tile pattern: *Total minutes* with its change against
     the 7 days before, *Average*, *Median* (minutes per install a day) and *At 0 min*, each with
-    a 30-day sparkline. The tiles read the 7 days that end the day before yesterday, since
-    yesterday is still filling in (`LISTEN_LAST`).
+    a 30-day sparkline. **Since 2026-11-03 (his call: "add all data we receive", "clean, neat and
+    organized")** the tiles read the 7 days that end on the newest day received, and the span says
+    *still filling* when that day is under `LISTEN_LAST` (2) days old. The library tiles read the
+    newest health week; with none yet, the first starts on the newest version (`update.library`).
+    Under each section, and in *Everything else the worker sends* at the tab's end, one
+    **as received** block per stream (`rawBlock` in admin.js): a line of what is in hand, columns
+    per day or week stacked by version (or by name), a lighter column for a period still filling
+    in, and every line in a closed table. Streams: minutes, both library sizes, sync times, the
+    day / week / month counts, updates and downloads, feature use, reach, AI routes, settings
+    reports per week, and the chosen week's settings shares and health metrics. The mock carries
+    made-up `libraries`, `update.library` and `uses` for it.
   - **Growth:** active installs per day as a stacked area by version (newest on top, the four
     newest named, the rest as *Older*), with a hover readout; the week's version mix; the
     download funnel per source (started → finished, the finish rate); finished downloads per day
