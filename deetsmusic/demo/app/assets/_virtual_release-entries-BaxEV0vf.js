@@ -1,4 +1,14 @@
-const e=[{version:"1.3.0",date:"2026-11-01",body:`**Find out What's New.** Each sizable update now starts with a full page of what's changed, the
+const e=[{version:"1.3.1",date:"2026-11-02",body:`**Flip flip (the side of the Queue and Now Playing).** In Settings > Window, there now exists two
+new settings rows. Now Playing and Queue in Max chooses which side the playing card and queue
+appear while you have 1/2/4 other cards on screen. Queue in the full player sets which side of
+the player the queue falls in while the player is expanded to be fullscreen.
+
+**Mouse back button support.** The back button on your mouse can now be used to go back one step
+in the card your pointer is over, like leaving an album you opened for details. It’s the same
+step as Escape or the card’s Back arrow.
+
+**Fixes.** The app no longer keeps trying to reconnect to a listening room that ended while it
+was closed, asleep or offline.`},{version:"1.3.0",date:"2026-11-01",body:`**Find out What's New.** Each sizable update now starts with a full page of what's changed, the
 relevant settings that have been added, and updated defaults. Search through patch notes as
 needed and check what's about to go in so you don't get defaults or settings you'd rather not
 have. To see after you've closed it, you can always open the update panel (the up/down arrow

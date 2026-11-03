@@ -88,6 +88,8 @@
         // layout.ts sets it again with a rule's value, once the rules have loaded.
         var M = S && S.maxCards;
         document.documentElement.setAttribute("data-max-cards", /^(4|2cols|2rows|1)$/.test(M) ? M : "4");
+        // Now Playing and Queue in Max (MAX-CARDS.md §13): the stage's side, the same way.
+        document.documentElement.setAttribute("data-stage-side", S && S.maxStageSide === "right" ? "right" : "left");
         // Reduce motion (GRAPHICS-FALLBACK.md §10.4): Windows' setting or your row, so the first
         // paint already holds still. reduce-motion.ts sets it again with the graphics rule's value.
         var reduced = S && S.reduceMotion === true;
@@ -140,9 +142,9 @@
          loopback auth page loads. `player.ts` configures it lazily on first play.
          A launch with no network fails this load; the flag lets player.ts load it again
          (TOASTS.md §5, the Apple health offline row). -->
-    <script type="module" crossorigin src="./assets/main-DBWnXtv0.js"></script>
+    <script type="module" crossorigin src="./assets/main-CjgWJq1m.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-Ct5FWWRu.js">
-    <link rel="stylesheet" crossorigin href="./assets/main-BISotBqB.css">
+    <link rel="stylesheet" crossorigin href="./assets/main-BBRpGxiB.css">
   </head>
 
   <body>
