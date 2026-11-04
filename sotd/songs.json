@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-03T02:00:17Z",
+  "generated_at": "2026-11-04T02:00:18Z",
   "channel": "song-of-the-day",
-  "count": 472,
+  "count": 473,
   "songs": [
     {
       "post_id": 1,
@@ -10858,6 +10858,29 @@
       "apple_music_url": "https://music.apple.com/us/album/small-town/6805707169?i=6805707171&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d6/bf/2e/d6bf2e96-71cb-54e4-880d-a3b92a0435d6/mzaf_12465041037840229150.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/81/24/65/812465c4-b20f-af62-4303-59a120c4199f/196874725467.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 34791,
+      "posted_at": "2026-11-03T08:18:53.399000+00:00",
+      "date": "2026-11-02",
+      "day": "Mon",
+      "month": "11_2026",
+      "track_name": "lime ocean paradise",
+      "artist_name": "slenderbodies",
+      "album": "are we?",
+      "genre": "Alternative",
+      "duration": "2:59",
+      "duration_sec": 179,
+      "release_date": "2021-05-21",
+      "release_year": 2021,
+      "age_yrs": 5,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1566430748",
+      "apple_music_url": "https://music.apple.com/us/album/lime-ocean-paradise/1566430324?i=1566430748&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/e8/bc/ea/e8bcea93-ebb4-125b-0ef7-1d2cf8a50573/mzaf_13126362008226348998.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/cf/25/9a/cf259a7c-55d6-4467-e511-0e73144d13f5/21UMGIM39927.rgb.jpg/600x600bb.jpg"
     }
   ]
 }
