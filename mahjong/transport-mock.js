@@ -97,6 +97,7 @@
       view.breakRoll = g.breakRoll;
       view.seating = g.seating;                       // rolls are public theater
       view.needBreak = g.phase === "play" && g.wall === null && !g.handOver;
+      view.breakOpenAt = g.breakOpenAt;               // any seat may roll past this (engine.js, armBreak)
       view.wallLeft = g.wall ? g.wall.length : null;
       view.wallBack = g.wallBack || 0;                // rear draws this hand — places the wall's tail gap
       view.pond = g.pond.slice();                     // chronological discards { seat, tile } — public record

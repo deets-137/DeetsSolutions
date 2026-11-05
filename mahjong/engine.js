@@ -90,6 +90,7 @@
       order: null,                          // order[windIdx 0..3] = seat (fixed for the match)
       round: null,                          // { prevailing, dealerIdx, hand }
       breakRoll: null,                      // dealer's 3-dice wall-break roll (ceremonial, logged)
+      breakOpenAt: null,                    // when any seat may roll it for an idle dealer (armBreak)
       wall: null,
       wallBack: 0,                          // rear draws taken this hand (flower/kong replacements — public count)
       pond: [],                             // chronological discards { seat, tile }; a claim pops its entry
@@ -834,17 +835,22 @@
       g.phase = "play";
       g.round = { prevailing: 0, dealerIdx: 0, hand: 1 };
       g.seating = null;
+      armBreak(g, ctx);
       events.push({ t: "seated", order: ranked });
       return null;
     },
 
-    /* the dealer's ceremonial wall-break roll → the deal */
+    /* the dealer's ceremonial wall-break roll → the deal. Past breakOpenAt
+       any seat may roll it for a dealer who hasn't (his call, 2026-11-04);
+       the event names whoever actually rolled. */
     rollBreak: function (g, a, ctx, events) {
       if (g.phase !== "play" || g.wall !== null || g.handOver) return err("phase");
-      if (a.seat != null && a.seat !== dealerSeat(g)) return err("turn");
+      var open = g.breakOpenAt != null && ctx.now >= g.breakOpenAt;
+      if (a.seat != null && a.seat !== dealerSeat(g) && !open) return err("turn");
       var d = [die(ctx), die(ctx), die(ctx)];
       g.breakRoll = d;
-      events.push({ t: "breakRoll", seat: dealerSeat(g), d: d });
+      g.breakOpenAt = null;
+      events.push({ t: "breakRoll", seat: a.seat != null ? a.seat : dealerSeat(g), d: d });
       deal(g, ctx, events);
       return null;
     },
@@ -946,6 +952,7 @@
       g.handOver = null;
       g.wall = null;                        // rollBreak deals the next hand
       g.breakRoll = null;
+      armBreak(g, ctx);
       events.push({ t: "nextHand", dealer: dealerSeat(g), hand: g.round.hand, prevailing: g.round.prevailing });
       return null;
     },
@@ -1201,6 +1208,14 @@
     if (g.turn && g.turn.firstTurn && !g.pond.length && g.turn.seat === dealerSeat(g)) return OPENING_MS.deal;
     return 0;
   }
+  /* The break's failsafe (his call, 2026-11-04): the dealer has the Roll to
+     themself for BREAK_GRACE_MS once the wall stands, then any seat may roll
+     it. Kept as a server time and checked here, so the five seconds hold
+     whatever a client sends; the page reads it to show the button. */
+  var BREAK_GRACE_MS = 5000;
+  function armBreak(g, ctx) {
+    g.breakOpenAt = (ctx.now || 0) + openingBonusMs(g) + BREAK_GRACE_MS;
+  }
 
   var API = {
     KINDS: KINDS,
@@ -1291,6 +1306,16 @@
       // the opening's clock pause: the first break waits out the seating
       // rest, the morph and the build; the dealer's first turn, the deal
       eq(openingBonusMs(g), OPENING_MS.seated + OPENING_MS.morph + OPENING_MS.build, "first break: opening pause");
+      // the break's failsafe: another seat is refused until breakOpenAt, then
+      // rolls in the dealer's place and is the one named
+      var other = (dealerSeat(g) + 1) % 4;
+      eq(g.breakOpenAt, ctx.now + openingBonusMs(g) + BREAK_GRACE_MS, "seated arms the break's failsafe");
+      var early = applyAction(clone(g), { type: "rollBreak", seat: other }, { rand: rng, now: g.breakOpenAt - 1 });
+      ok(early.error, "a seat can't roll for the dealer inside the grace");
+      var late = applyAction(clone(g), { type: "rollBreak", seat: other }, { rand: rng, now: g.breakOpenAt });
+      ok(!late.error, "any seat can roll once the grace is up");
+      eq(late.events.filter(function (e) { return e.t === "breakRoll"; })[0].seat, other, "the event names who rolled");
+      eq(late.game.breakOpenAt, null, "the roll clears the failsafe");
       act({ type: "rollBreak", seat: dealerSeat(g) });
       eq(openingBonusMs(g), OPENING_MS.deal, "dealer's first turn: the deal's pause");
       ok(g.turn && g.turn.drawn != null, "dealer holds the first draw");

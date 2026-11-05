@@ -69,6 +69,13 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-11-04 — Mahjong: the break's failsafe and panel (BUILT, committed on branch
+`mahjong-break-failsafe` in both repos, unmerged and unpushed, worker not deployed; he's holding
+the deploy).** After 5 s any seated player can roll for an idle dealer, enforced in the engine;
+the prompt sits on a claim-style panel ([mahjong.md](mahjong.md), "The opening"). Next, on his
+word: deploy the worker first (`engine.js` re-vendored, `view.breakOpenAt`), then merge and push
+the site.
+
 **2026-11-04 — Mahjong: All Terminals + the Blue deck (LIVE: site on `master`, worker `c588176`
 deployed as `6fc9029d`).** All Terminals is a limit hand (only 1s and 9s). Blue is a third tile
 deck and is site-only ([mahjong.md](mahjong.md), "Art"). **Blue is the default deck for a few

@@ -289,15 +289,16 @@ html[data-mj-deck="blue"] .mj-tilef {
   display: grid; place-items: center;
   color: var(--mjglow); font-size: 0.85rem; text-align: center;
 }
-/* the break, centered on the felt once the wall stands: who's rolling,
-   and the dealer's Roll (the opening, docs/mahjong.md) */
+/* the break, centered on the felt once the wall stands: the claim panel's
+   box with who's rolling and the Roll (the opening, docs/mahjong.md) */
 .mj-felt__break {
   position: absolute; inset: 0;
-  display: grid; place-content: center; justify-items: center; gap: var(--space-2);
+  display: grid; place-items: center;
   pointer-events: none;
 }
 .mj-felt__break > * { pointer-events: auto; }
-.mj-felt__break .mj-felt__note { position: static; display: block; }
+.mj-felt__break .mj-claimbox { width: 16rem; max-width: calc(100% - 2 * var(--space-3)); }
+.mj-felt__break .mj-claimbox__title { padding-right: 0; text-align: center; }   /* no eye to clear */
 /* the opening's travellers: a seating pad on its way to its seat box, a
    dealt tile on its way to a hand — above the panels, never in the way */
 .mj-morph, .mj-dealfly { z-index: 36; pointer-events: none; }

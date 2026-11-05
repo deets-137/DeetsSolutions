@@ -422,9 +422,17 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
      sides build at once, each from its player's right hand (a
      pinwheel). The first pass sets every stack at the one-tile 0.55
      look, and the second fills it in with a small pop.
-  3. Only then does the break's **Roll** appear, in the middle of the
-     felt and only for the dealer. Others see who's rolling. The role
-     tile no longer has the break Roll.
+  3. Only then does the break's panel appear, in the middle of the felt
+     (the claim panel's box). The dealer gets the **Roll**; others see
+     who's rolling. The role tile no longer has the break Roll.
+     **The failsafe (his call, 2026-11-04):** if the dealer hasn't rolled
+     5 s after the wall stands, every seated player gets the Roll too
+     (spectators don't). The engine holds the line: `armBreak` stamps
+     `g.breakOpenAt` (server time: opening pause + `BREAK_GRACE_MS`) at
+     `seated` and `nextHand`, `rollBreak` refuses another seat before it,
+     and the view carries it so the page can show the button. The
+     `breakRoll` event names whoever rolled. A bot dealer rolls by itself
+     well inside the 5 s.
   4. After the roll tumbles on the dice tile (`BREAK_MS`), the deal
      comes off the wall clockwise from the break. It goes 4 tiles a seat
      from the dealer round the table, twice more, then 1 each

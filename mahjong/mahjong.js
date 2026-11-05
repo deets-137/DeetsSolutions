@@ -49,7 +49,7 @@
   var BREAK_MS = 620;   // the wall-break roll's tumble (three dice, the dice tile)
   var CLEAR_FIELDS = ["claims", "handOver", "turnEndsAt", "seating", "breakRoll", "turn",
                       // a rematch omits the whole game — the lobby must not paint one
-                      "order", "round", "needBreak", "wallLeft", "wallBack", "pond", "players", "over"];
+                      "order", "round", "needBreak", "breakOpenAt", "wallLeft", "wallBack", "pond", "players", "over"];
 
   /* ═══ THE TABLE SHELL ══════════════════════════════════════════
      games/table.js owns the socket, the code combobox, the gate, the
@@ -1177,21 +1177,39 @@
       pond.appendChild(ct);
     }
     felt.appendChild(pond);
-    // the break, in the middle of the felt — once the wall stands. The
-    // dealer gets the Roll; everyone else is told who's rolling.
+    // the break, on a panel in the middle of the felt — once the wall
+    // stands. The dealer gets the Roll; everyone else is told who's rolling,
+    // and gets the Roll too if the dealer hasn't by breakOpenAt (the engine
+    // holds that line; this only shows the button).
+    clearTimeout(breakTimer);
     if (model.needBreak && !building()) {
-      var brkBox = el("div", "mj-felt__break");
       var meBreaks = dealerSeat() === mySeat();
-      brkBox.appendChild(el("p", "mj-felt__note",
+      var openIn = breakOpensIn();
+      var canRoll = meBreaks || (mySeat() != null && openIn === 0);
+      var brkWrap = el("div", "mj-felt__break");
+      var brkBox = el("div", "mj-claimbox" + (canRoll ? " is-incoming" : ""));
+      brkBox.appendChild(el("h3", "mj-claimbox__title",
         meBreaks ? S.breakPromptYou : fmt(S.breakPrompt, { name: seatName(dealerSeat()) })));
-      if (meBreaks) {
+      if (canRoll) {
+        var brkBtns = el("div", "mj-claimbox__btns");
         var bp = actionPill(S.rollPill, true, function () { send({ type: "rollBreak" }); });
         bp.classList.add("mj-act--roll", "is-glow");
-        brkBox.appendChild(bp);
+        brkBtns.appendChild(bp);
+        brkBox.appendChild(brkBtns);
+      } else if (mySeat() != null && openIn > 0) {
+        breakTimer = setTimeout(function () { if (model) TBL.render(); }, openIn + 20);
       }
-      felt.appendChild(brkBox);
+      brkWrap.appendChild(brkBox);
+      felt.appendChild(brkWrap);
     }
     return wrap;
+  }
+  // ms until any seat may roll the break, on the server's clock; null when
+  // the table sent no time (a worker from before the failsafe)
+  var breakTimer = null;
+  function breakOpensIn() {
+    if (model.breakOpenAt == null) return null;
+    return Math.max(0, model.breakOpenAt - (Date.now() - TBL.skew()));
   }
   // a sideways board tile: the shared rectangle transposed, face rotated
   // toward the table center (left seat +90°, right seat −90°)
