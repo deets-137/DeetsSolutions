@@ -271,12 +271,18 @@
     if (!motionOk()) { OPEN = null; return; }
     var t0 = tl(), m = morph ? tokenMs("--morph") : 0, layer = tokenMs("--build-layer");
     OPEN = { t0: t0, morph: morph, morphMs: m, buildT0: t0 + m, layer: layer, buildEnd: t0 + m + 2 * layer, done: new WeakSet() };
-    // the break's Roll appears once the wall stands
+    // the break's panel appears once the wall stands. The timer says so
+    // itself (built): tl() can lag it, and asking tl() here once left the
+    // panel undrawn until some other render, a resize say
     var o = OPEN;
-    setTimeout(function () { if (OPEN === o && model) TBL.render(); }, m + 2 * layer + 20);
+    setTimeout(function () {
+      if (OPEN !== o) return;
+      o.built = true;
+      if (model) TBL.render();
+    }, m + 2 * layer + 20);
   }
-  function building() { return !!OPEN && tl() < OPEN.buildEnd; }
-  function morphing() { return !!OPEN && OPEN.morph && tl() < OPEN.buildEnd; }
+  function building() { return !!OPEN && !OPEN.built && tl() < OPEN.buildEnd; }
+  function morphing() { return building() && OPEN.morph; }
   function dealMs() {
     return 15 * tokenMs("--deal-step") + 3 * tokenMs("--deal-gap") + tokenMs("--deal-fly");
   }
