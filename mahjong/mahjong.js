@@ -149,24 +149,28 @@
     return fmt(S.tileNum, { n: n, suit: suit });
   }
   /* sprite swap points (assets/sprites/mahjong/{deck}/): tile-{id}.png
-     replaces a face's glyphs; back.png replaces the woven tile back. Two
+     replaces a face's glyphs; back.png replaces the woven tile back. Three
      deck styles ship (numeral — big number + suit glyph; traditional —
-     drawn pips, bamboo sticks, characters); the deck is a PER-VIEWER
+     drawn pips, bamboo sticks, characters; blue — traditional on a sky
+     blue face and sapphire back); the deck is a PER-VIEWER
      setting (localStorage, never on the wire) — tile art is a legibility
      call, not a table rule, so no host picks it for you and it can flip
      mid-hand. Every file of every deck is probed ONCE at load — a missing
      sprite costs one quiet 404 and that face falls back to the CSS glyph. */
   var SPRITE_ROOT = "../assets/sprites/mahjong/";
-  var DECKS = ["numeral", "traditional"];
+  var DECKS = ["numeral", "traditional", "blue"];
   var deckPref = (function () {
     var d = load(DECK_KEY, null);
-    return DECKS.indexOf(d) >= 0 ? d : "numeral";
+    return DECKS.indexOf(d) >= 0 ? d : "blue";   // his call 2026-11-04, for a few days: he'll revisit (was "numeral")
   })();
+  document.documentElement.setAttribute("data-mj-deck", deckPref);   // the tile box's palette (mahjong.css)
   function curDeck() { return deckPref; }
-  function deckName(d) { return d === "traditional" ? S.deckTraditional : S.deckNumeral; }
+  function deckName(d) { return { numeral: S.deckNumeral, traditional: S.deckTraditional, blue: S.deckBlue }[d]; }
+  function deckShort(d) { return { numeral: S.deckNumeralShort, traditional: S.deckTraditionalShort, blue: S.deckBlueShort }[d]; }
   function setDeck(d) {
     if (DECKS.indexOf(d) < 0 || d === deckPref) return;
     deckPref = d; save(DECK_KEY, d);
+    document.documentElement.setAttribute("data-mj-deck", d);
     if (model) render();
   }
   var sprites = {};
@@ -890,7 +894,7 @@
     var b = el("button", "tb-pill"); b.type = "button";
     b.setAttribute("aria-haspopup", "true"); b.setAttribute("aria-expanded", "false");
     b.appendChild(el("span", "tb-pill__label", S.deckPillLabel));
-    var val = el("span", "tb-pill__value", curDeck() === "traditional" ? S.deckTraditionalShort : S.deckNumeralShort);
+    var val = el("span", "tb-pill__value", deckShort(curDeck()));
     b.title = S.deckLabel + ": " + deckName(curDeck());
     b.appendChild(val);
     b.appendChild(el("span", "tb-pill__caret", "▾"));
@@ -1427,7 +1431,7 @@
       items: [["selfDraw", "1"], ["concealed", "1"], ["robbingKong", "1"], ["kongReplacement", "1"], ["lastTileDraw", "1"], ["lastTileDiscard", "1"]] },
     { head: "guideSecFlowers", items: [["noFlowers", "1"], ["seatFlower", "1"], ["flowerQuad", "+2"]] }
   ];
-  var GUIDE_LIMITS = ["thirteenOrphans", "heavenly", "earthly", "allHonors", "greatDragons", "greatWinds", "allKongs", "nineGates"];
+  var GUIDE_LIMITS = ["thirteenOrphans", "heavenly", "earthly", "allHonors", "allTerminals", "greatDragons", "greatWinds", "allKongs", "nineGates"];
   function guideDesc(key) {
     var k = "guideDesc" + key.charAt(0).toUpperCase() + key.slice(1);
     return S[k] || "";

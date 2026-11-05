@@ -1,22 +1,25 @@
 # DeetsMahjong tile-template generator (docs/mahjong.md, "Art").
 #
-# Renders BOTH placeholder decks into assets/sprites/mahjong/{deck}/:
+# Renders the placeholder decks into assets/sprites/mahjong/{deck}/:
 #   numeral/     big number + suit glyph (the CSS placeholder look)
 #   traditional/ drawn pips, bamboo sticks, CJK characters
+#   blue/        traditional's art on the BLUE palette below
 # 43 PNGs per deck: tile-{id}.png for every face + back.png.
 #
 # These are TEMPLATES for Aditya to draw over in LibreSprite — re-running
 # the script overwrites whatever is in the output folders, so never run it
-# once hand art has landed unless you mean to reset a deck.
+# once hand art has landed unless you mean to reset a deck. Name decks to
+# render only those; with no names it renders all of them.
 #
 # Canvas is 256x352 (4x the original 64x88 grid). The page downscales with
 # plain smooth filtering (no image-rendering: pixelated), so a 4x source
 # stays crisp at every tile size including HiDPI. Draw the WHOLE tile —
 # face, border, bottom edge — the image fully replaces the CSS box's look.
 #
-#   python scripts/build-mahjong-tiles.py
+#   python scripts/build-mahjong-tiles.py [deck ...]
 
 import os
+import sys
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 256, 352
@@ -43,6 +46,19 @@ def blend(base, top, k):
 
 BLACK, WHITE = (0, 0, 0, 255), (255, 255, 255, 255)
 OUTLINE = blend(FACE, BLACK, .35)
+
+# the blue deck's overrides; mirrors html[data-mj-deck="blue"] in mahjong.css
+IVORY = dict(FACE=FACE, EDGE=EDGE, BACK=BACK, INK_P=INK_P)
+BLUE = dict(
+    FACE=(191, 230, 251, 255),    # light sky blue
+    EDGE=(150, 200, 230, 255),
+    BACK=(15, 82, 186, 255),      # sapphire
+    INK_P=(200, 84, 0, 255),      # orange dots: blue ones would sink into the face
+)
+
+def use_palette(pal):
+    globals().update(pal)
+    globals()["OUTLINE"] = blend(pal["FACE"], BLACK, .35)
 
 FONT_PATH = "C:/Windows/Fonts/msyhbd.ttc"   # Microsoft YaHei Bold (CJK)
 def font(px):
@@ -199,14 +215,22 @@ TILES = ([k + str(n) for k in "mps" for n in range(1, 10)]
          + ["w" + w for w in "eswn"] + ["d" + c for c in "rgw"]
          + [k + str(n) for k in "fg" for n in range(1, 5)])
 
+DECKS = {
+    "numeral": (numeral_tile, IVORY),
+    "traditional": (traditional_tile, IVORY),
+    "blue": (traditional_tile, BLUE),
+}
+
 def main():
-    back = back_tile()
-    for deck, fn in (("numeral", numeral_tile), ("traditional", traditional_tile)):
+    names = sys.argv[1:] or list(DECKS)
+    for deck in names:
+        fn, pal = DECKS[deck]
+        use_palette(pal)
         out = os.path.join(ROOT, deck)
         os.makedirs(out, exist_ok=True)
         for t in TILES:
             fn(t).save(os.path.join(out, "tile-" + t + ".png"))
-        back.save(os.path.join(out, "back.png"))
+        back_tile().save(os.path.join(out, "back.png"))
         print(deck + ": " + str(len(TILES) + 1) + " PNGs -> " + out)
 
 if __name__ == "__main__":

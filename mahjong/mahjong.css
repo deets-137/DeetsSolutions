@@ -133,6 +133,16 @@
   border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 2px;
 }
 .mj-tilef--back.is-art::after { content: none; }   /* the sprite draws its own frame */
+/* the Blue deck recolors the tile box too, or the ivory edge shows around
+   the sprite. On html so tile copies flying outside .mj keep it; on
+   .mj-tilef so the dice and wind chips keep the ivory. Mirrors BLUE in
+   scripts/build-mahjong-tiles.py. */
+html[data-mj-deck="blue"] .mj-tilef {
+  --mjface: #bfe6fb;
+  --mjface-edge: #96c8e6;
+  --mjback: #0f52ba;
+  --mjink-p: #c85400;
+}
 
 /* ── the board: four seat zones around a center well ──────────── */
 .mj-board {

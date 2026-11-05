@@ -155,7 +155,7 @@ he dictated in chat.
 | Page | State of his pass |
 | --- | --- |
 | Radio | Done — handwritten throughout |
-| Mahjong | Done, but strings added *since* carry `[ph]` and still await him |
+| Mahjong | Done — he cleared every remaining `[ph]` at once (chat, 2026-11-04); zero `[ph]` left |
 | Cities | Done — he cleared every remaining `[ph]` at once (chat, 2026-10-28); zero `[ph]` left |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 | Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |

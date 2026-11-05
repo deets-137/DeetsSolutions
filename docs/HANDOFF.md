@@ -69,6 +69,12 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-11-04 — Mahjong: All Terminals + the Blue deck (built, not yet shipped).** All Terminals
+is a limit hand (only 1s and 9s) and needs the worker re-vendored and deployed with the site. Blue
+is a third tile deck and is site-only ([mahjong.md](mahjong.md), "Art"). **Blue is the default deck
+for a few days: he'll revisit,** and going back is one word in `mahjong.js` (`deckPref`). Every
+`[ph]` in mahjong is cleared. Next: his visual pass, then ship both.
+
 **2026-10-30 — DeetsMusic admin: the Health tab (LIVE: committed on `master` and published
 2026-10-30; no worker change).** The Apple calls table read 0 % everywhere: the page read health
 for the current week, and a week's reports arrive during the week after. Health is now its own

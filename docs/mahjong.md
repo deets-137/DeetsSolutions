@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [mahjong/engine.js, mahjong/mahjong.js, mahjong/mahjong.css, mahjong/transport-mock.js, scripts/build-mahjong-tiles.py, styles/skin.css, games/stage.js, games/seating.js]
-updated: 2026-10-28
+updated: 2026-11-04
 ---
 # DeetsMahjong — the Hong Kong mahjong tab
 
@@ -138,7 +138,7 @@ split, so a hand that parses as both chows and pungs scores as pungs):
 
 | faan | hands |
 | --- | --- |
-| cap (limit) | Thirteen Orphans, Heavenly/Earthly, All Honors, Great Dragons, Great Winds, All Kongs, Nine Gates |
+| cap (limit) | Thirteen Orphans, Heavenly/Earthly, All Honors, All Terminals (only 1s and 9s), Great Dragons, Great Winds, All Kongs, Nine Gates |
 | 7 | Pure One Suit |
 | 4 | Seven Pairs (seven *different* pairs, nothing melded; the scorer weighs it against every set split) |
 | 3 | All Pungs, Mixed One Suit, Small Dragons (+the 2 dragon-pung faan → 5 total), Small Winds (+wind-pung faan) |
@@ -623,20 +623,28 @@ UI arrives as `[ph]` and waits for him.
 ## Art
 
 Placeholders are glyph-on-ivory CSS tiles (萬/筒/條 + number, wind and
-dragon characters, the white dragon as an empty frame). Two sprite decks
-ship above them: `assets/sprites/mahjong/numeral/` (number + suit glyph)
-and `traditional/` (drawn pips / bamboo sticks / characters), 43 PNGs
+dragon characters, the white dragon as an empty frame). Three sprite decks
+ship above them: `assets/sprites/mahjong/numeral/` (number + suit glyph),
+`traditional/` (drawn pips / bamboo sticks / characters) and `blue/`
+(traditional's art on a sky blue face and sapphire back, with orange dots
+so they hold against the face; his call, 2026-11-04), 43 PNGs
 each (`tile-{id}.png` per face, `back.png` for the woven back) — all
 generated 256×352 templates from `scripts/build-mahjong-tiles.py`, drawn
 over in LibreSprite tile by tile (`assets/sprites/mahjong/README.md`).
+The tile box has its own face and edge colors under the sprite, so Blue
+also sets `data-mj-deck` on `<html>`, and mahjong.css recolors `.mj-tilef`
+from it. That palette and `BLUE` in the script must match. Dice and the
+wind chips stay ivory.
 Every file of both decks is probed once at load; a face with no sprite
 falls back to the CSS glyph. The deck is a **per-viewer** setting, not a
-table one (`deets-mahjong-deck` in localStorage, `"numeral"` default) —
+table one (`deets-mahjong-deck` in localStorage; `"blue"` default for now, his call
+2026-11-04, to revisit in a few days; it was `"numeral"`. A viewer who ever
+picked a deck keeps it) —
 tile art is a legibility call, so no host picks it for anyone else and it
 never touches the wire. Two mirrored controls write it: the lobby chips
 (live for guests, unlike the host-only faan/winds/timer rows above them)
-and an "Art" toolbar pill (value `#` = Numerals, `萬` = Traditional; his
-words, 2026-10-25) whose popover is open in **every** phase,
+and an "Art" toolbar pill (value `#` = Numerals, `萬` = Traditional,
+`D` = Blue; his words, 2026-10-25 and 2026-11-04) whose popover is open in **every** phase,
 so an unreadable deck is swappable mid-hand. Neither carries a "yours
 only" caption — the pill's own value readout says which deck you're on,
 and that's enough (his call).
@@ -688,11 +696,10 @@ at once.
 - **A real four-browser game** — the mock models no disconnects, so
   grace, bot takeover and rejoin are testable only live.
 
-**Copy: his pass is done, but six newer strings await him.** Everything
-un-prefixed in `mahjong/strings.js` is Aditya's and Claude edits none of
-it. Six entries added *after* that pass still carry `[ph]`: the re-join
-wiring (`rejoinButton`, `adoptedToast`) and the four rename ARIA labels.
-Nothing carrying `[ph]` may ship.
+**Copy: his pass is done.** He cleared every remaining `[ph]` at once
+(chat, 2026-11-04), so everything in `mahjong/strings.js` is Aditya's and
+Claude edits none of it. New strings still arrive as `[ph]`, and nothing
+carrying `[ph]` may ship.
 
 **Known gaps in the stats the engine keeps** — relevant to
 [stats.md](stats.md): there are no pung or chow counters (only kongs),

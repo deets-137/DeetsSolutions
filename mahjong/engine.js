@@ -389,6 +389,9 @@
       var dragonPungs = pungs.filter(function (s) { return DRAGONS.indexOf(s.tile) >= 0; });
       var windPungs = pungs.filter(function (s) { return WINDS.indexOf(s.tile) >= 0; });
       if (suitN === 0) lim("allHonors");
+      // only 1s and 9s: no honors, so it can't be Thirteen Orphans, and six
+      // kinds can't make seven different pairs, so it's always pungs and kongs
+      if (allTiles.every(function (t) { return numOf(t) === 1 || numOf(t) === 9; })) lim("allTerminals");
       if (dragonPungs.length === 3) lim("greatDragons");
       if (windPungs.length === 4) lim("greatWinds");
       if (kongs.length === 4) lim("allKongs");
@@ -1377,6 +1380,21 @@
       var t13 = ["m1","m9","p1","p9","s1","s9","we","ws","ww","wn","dr","dg","dw","dr"];
       var sc13 = scoreHand(g, 0, t13, { seat: 0, selfDraw: false, discarder: 1 });
       ok(sc13 && sc13.limit && sc13.faan === 13, "thirteen orphans is a limit hand");
+      var win = { seat: 0, selfDraw: false, discarder: 1 };
+      function hasPart(s, key) { return !!s && s.parts.some(function (x) { return x.key === key; }); }
+      // all terminals: concealed, then with melds (a kong's four tiles count)
+      var scT = scoreHand(g, 0, ["m1","m1","m1","m9","m9","m9","p1","p1","p1","s9","s9","s9","p9","p9"], win);
+      ok(scT && scT.limit && scT.faan === 13 && hasPart(scT, "allTerminals"), "all terminals is a limit hand");
+      g.players[0].melds = [{ kind: "pung", tile: "m1", from: 1 }, { kind: "kong", tile: "s9", from: 2 }];
+      var scM = scoreHand(g, 0, ["m9","m9","m9","p1","p1","p1","p9","p9"], win);
+      ok(hasPart(scM, "allTerminals"), "all terminals counts melded tiles");
+      // one honor or one middle tile anywhere, melds included, breaks it
+      var scH = scoreHand(g, 0, ["m9","m9","m9","p1","p1","p1","dr","dr"], win);
+      ok(scH && !hasPart(scH, "allTerminals"), "an honor pair isn't all terminals");
+      g.players[0].melds = [{ kind: "chow", tile: "m1", from: 3 }];
+      var scC = scoreHand(g, 0, ["m9","m9","m9","p1","p1","p1","p9","p9","p9","s1","s1"], win);
+      ok(scC && !hasPart(scC, "allTerminals"), "a melded 1-2-3 isn't all terminals");
+      g.players[0].melds = [];
     })();
 
     /* scoreProgress: mid-hand facts only (the guide's live marks) */

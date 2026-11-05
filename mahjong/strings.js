@@ -28,7 +28,7 @@ window.MAHJONG_STRINGS = {
       or your account's dark seat): peek knows, so it says Rejoin. The
       hedged rejoinButton is the fallback for a worker whose peek predates
       that, where joining decides: your seat back, else spectating. */
-   rejoinButton: "[ph]Rejoin or spectate",
+   rejoinButton: "Rejoin or spectate",
    rejoinSeat: "Rejoin",
    createLine: "The '{code}' Table doesn't exist yet. Open it?",
    createButton: "Open the Table",
@@ -69,14 +69,16 @@ window.MAHJONG_STRINGS = {
    deckLabel: "Tile art",
    deckNumeral: "Numerals",
    deckTraditional: "Traditional",
+   deckBlue: "Blue",
    /* the toolbar's deck pill, short: Aditya's words, chat 2026-10-25 —
       # for Numerals, 萬 (the character-suit glyph) for Traditional */
    /* the Beginner chick (lobby seat rows; a badge in play) */
-   beginnerOn: "[ph]Beginner: wins at 0 faan",
-   beginnerOff: "[ph]Beginner: off",
+   beginnerOn: "Beginner: wins at 0 faan",
+   beginnerOff: "Beginner: off",
    deckPillLabel: "Art",
    deckNumeralShort: "#",
    deckTraditionalShort: "萬",
+   deckBlueShort: "D",
    startButton: "Start game",
    shufflePill: "Shuffle",
    startHint: "Dice roll on press for seating.",
@@ -94,7 +96,7 @@ window.MAHJONG_STRINGS = {
    rejoinRejoin: "Rejoin",
    standConfirm: "Confirm?",   // Aditya's wording (chat 2026-07-28), no [ph] — matches addBotGo
    sitDownPill: "Take over for:",   // Aditya's wording (chat 2026-07-28), no [ph] — the pill reads INTO its popover's seat list
-   adoptedToast: "[ph]{name} sat down.",
+   adoptedToast: "{name} sat down.",
    addBotButton: "Add Bot",
    addBotGo: "Confirm?",
    addBotNameAria: "Bot name",
@@ -103,10 +105,10 @@ window.MAHJONG_STRINGS = {
    /* bot difficulty (docs/games.md, "Bots"): the segmented picker in the
       host's bot editor, and the badge on a bot's seat row. One entry per
       name in the engine's BOT_TIER_LIST — botTier_<name>. */
-   botTierAria: "[ph]Bot difficulty",
-   botTier_easy: "[ph]Easy",
-   botTier_normal: "[ph]Normal",
-   botTier_hard: "[ph]Hard",
+   botTierAria: "Bot difficulty",
+   botTier_easy: "Easy",
+   botTier_normal: "Normal",
+   botTier_hard: "Hard",
    /* single-letter forms for the seat-row picker (falls back to the raw
       tier name's first letter if an entry is missing) — Aditya's, chat
       2026-08-02 */
@@ -117,10 +119,10 @@ window.MAHJONG_STRINGS = {
       click-to-edit row; "Save" and "Reset" are Aditya's (chat 2026-07-27) */
    renameGo: "Save",
    renameReset: "Reset",
-   renameYouAria: "[ph]Edit your name",
-   renameNameAria: "[ph]Your name",
-   renameResetAria: "[ph]Reset to your profile name",
-   renameCancelAria: "[ph]Cancel renaming",
+   renameYouAria: "Edit your name",
+   renameNameAria: "Your name",
+   renameResetAria: "Reset to your profile name",
+   renameCancelAria: "Cancel renaming",
    botSeatTag: "{name} (bot)",
    /* seat-color picker */
    colorYours: "Your color",
@@ -201,7 +203,7 @@ window.MAHJONG_STRINGS = {
    chowPick: "Which run?",
    kongPick: "Which kong?",
    claimWaiting: "Waiting on claims…",
-   claimPeek: "[ph]Hold to see the table",
+   claimPeek: "Hold to see the table",
 
    /* ── hand over (settlement interstitial) ─────────────────────── */
    handWinLine: "{name} wins — {faan} faan",
@@ -213,8 +215,8 @@ window.MAHJONG_STRINGS = {
    paysLabel: "{name} pays {n}",
    nextHandButton: "Next hand",
    nextHandAuto: "Next hand in {n}s…",
-   nextHandWait: "[ph]Waiting on {name} to deal.",
-   nextHandWaitHost: "[ph]Waiting on the host to deal.",
+   nextHandWait: "Waiting on {name} to deal.",
+   nextHandWaitHost: "Waiting on the host to deal.",
 
    /* faan part names (engine part keys) */
    faanThirteenOrphans: "Thirteen Orphans",
@@ -243,7 +245,8 @@ window.MAHJONG_STRINGS = {
    faanNoFlowers: "No Flowers",
    faanSeatFlower: "Seat Flower",
    faanFlowerQuad: "Flower Quad",
-   faanSevenPairs: "[ph] Seven Pairs",
+   faanSevenPairs: "Seven Pairs",
+   faanAllTerminals: "All Terminals",
 
    /* ── scoring guide (the Scoring pill's popup) ────────────────
       approved by Aditya in chat (2026-07-24, scoring-guide session) —
@@ -297,7 +300,8 @@ window.MAHJONG_STRINGS = {
    guideDescGreatWinds: "triplets of all 4 winds",
    guideDescAllKongs: "four kongs",
    guideDescNineGates: "concealed 1112345678999 + one more",
-   guideDescSevenPairs: "[ph] seven different pairs, nothing melded",
+   guideDescSevenPairs: "seven different pairs, nothing melded",
+   guideDescAllTerminals: "only 1s and 9s",
 
    /* ── in-game attention toasts ────────────────────────────────── */
    claimToast: "You can claim {name}'s {tile}!",
@@ -311,8 +315,8 @@ window.MAHJONG_STRINGS = {
    rematchButton: "Rematch",
    // placement badge on the reveal (docs/stats.md). Competition ranking:
    // tied seats share a rank and the next one skips. Indexed by rank - 1.
-   ordinals:    ["[ph]1st", "[ph]2nd", "[ph]3rd", "[ph]4th"],
-   placeTied:   "[ph]T-{place}",
+   ordinals:    ["1st", "2nd", "3rd", "4th"],
+   placeTied:   "T-{place}",
    superMostWins: "Most wins",
    superBestHand: "Biggest hand",
    superMostDealIns: "Most deal-ins",

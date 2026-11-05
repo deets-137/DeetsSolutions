@@ -1,7 +1,7 @@
 # DeetsMahjong sprites
 
 Hand-drawn tile art for the mahjong tab (docs/mahjong.md, "Art").
-Two deck styles ship, one folder each — every viewer picks their own
+Three deck styles ship, one folder each — every viewer picks their own
 (toolbar "Tile art" pill + the lobby chips, remembered in localStorage;
 the deck never rides the wire):
 
@@ -9,17 +9,20 @@ the deck never rides the wire):
 | --- | --- |
 | `numeral/` | big number + suit glyph (the CSS placeholder look) |
 | `traditional/` | drawn pips, bamboo sticks, character tiles |
+| `blue/` | traditional's art: sky blue faces, sapphire back, orange dots |
 
-`mahjong/mahjong.js` probes every file of BOTH folders ONCE at page load
+`mahjong/mahjong.js` probes every file of every folder ONCE at page load
 and swaps art in over the glyph placeholder the moment a file exists —
 draw over these templates one at a time and only that tile changes.
 Deleting a file falls back to the CSS glyph placeholder for that face.
 
 The 43 PNGs per folder are **generated templates** from
-`scripts/build-mahjong-tiles.py` (re-running it RESETS both folders —
-don't once hand art has landed), meant to be drawn over in LibreSprite.
+`scripts/build-mahjong-tiles.py` (re-running it RESETS the folders it
+renders, all of them unless you name decks — don't once hand art has
+landed), meant to be drawn over in LibreSprite. `blue/` is its own copy:
+hand art drawn into `traditional/` doesn't reach it.
 
-## Naming scheme (exact, all lowercase, same in both folders)
+## Naming scheme (exact, all lowercase, same in every folder)
 
 | file | tile |
 | --- | --- |
