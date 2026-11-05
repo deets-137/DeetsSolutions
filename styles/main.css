@@ -3660,6 +3660,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__band { fill: var(--dm-ser); stroke: var(--card); stroke-width: 0.5; }
 .dm-dash__area .dm-usage__line { stroke-width: 1.5; }
 .dm-dash__col { fill: var(--dm-ser); }
+/* A day or week still filling in (the Stats tab's "as received" columns). */
+.dm-dash__col.is-filling { fill-opacity: 0.45; }
 .dm-dash__dot { fill: var(--card); stroke: var(--text); stroke-width: 2; }
 .dm-dash__cross { stroke: var(--subtext); stroke-width: 1; stroke-dasharray: 3 3; }
 .dm-dash__svg { display: block; inline-size: 100%; block-size: auto; }
@@ -3717,6 +3719,19 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__table { align-self: stretch; color: var(--subtext); font-size: 0.82rem; }
 .dm-dash__table summary { cursor: pointer; }
 .dm-dash__table > .dm-usage__table { margin-block-start: var(--space-2); }
+/* "As received" (the Stats tab): one block per stream, the same shape for each. */
+.dm-raw {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--border);
+  min-width: 0;
+}
+.dm-raw__list { display: flex; flex-direction: column; gap: var(--space-3); }
+.dm-raw__title { margin: 0; font-size: 0.85rem; font-weight: var(--fw-title); color: var(--subtext); }
+.dm-raw .dm-hint, .dm-raw .dm-empty { margin: 0; }
+.dm-raw .dm-dash__table .dm-usage__table { max-block-size: 24rem; overflow-y: auto; }
 
 .dm-dash__releases {
   display: grid;

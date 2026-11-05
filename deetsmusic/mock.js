@@ -952,7 +952,27 @@
         });
       });
     }
-    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health, events: events, listen: listen };
+    /* Library sizes (USAGE-COUNTS.md §19), made up: the health reports' `libraries` for the last
+       four weeks, and `update.library` in `events` for the newest version's first starts. */
+    var SIZES = [100, 400, 1300, 1700, 2300, 2900, 3900, 4700, 6300, 7300, 17300, 29800];
+    var libraries = [];
+    for (var lw = 4; lw >= 1; lw--) {
+      var lwk = isoWeek(new Date(now.getTime() - lw * 7 * 864e5));
+      SIZES.forEach(function (sz, i) { libraries.push({ week: lwk, v: VERS[0][0], songs: String(sz), n: 1 + ((i + lw) % 3) }); });
+    }
+    for (var lu = 2; lu >= 0; lu--) {
+      var lud = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - lu));
+      SIZES.forEach(function (sz, i) { if ((i + lu) % 2) events.push({ period: day(lud), v: VERS[0][0], metric: "update.library", bucket: String(sz), n: 1 + (i % 2) }); });
+    }
+    /* Feature use (§18), made up: the last 10 days, the reports and two names. */
+    var uses = [];
+    for (var ud = 1; ud <= 10; ud++) {
+      var udd = day(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ud)));
+      uses.push({ day: udd, v: VERS[0][0], metric: "use.reports", bucket: "", n: 30 + ud });
+      uses.push({ day: udd, v: VERS[0][0], metric: "use.panel.sleep", bucket: "1-9", n: 4 + (ud % 3) });
+      uses.push({ day: udd, v: VERS[0][0], metric: "use.panel.sleep", bucket: "sum", n: 9 + ud });
+    }
+    return { channel: q.get("channel") || "live", week: week, active: active, weeks: weeks, shares: shares, health: health, events: events, listen: listen, libraries: libraries, uses: uses };
   }
 
   window.DM_MOCK = {
