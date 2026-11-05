@@ -69,12 +69,13 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-11-04 — Mahjong: the break's failsafe, panel and redraw fix (BUILT, on branch
-`mahjong-break-failsafe` in both repos; the site's branch is pushed, not merged; worker not
-deployed; he's holding the deploy).** After 5 s any seated player can roll for an idle dealer,
-enforced in the engine; the prompt sits on a claim-style panel ([mahjong.md](mahjong.md), "The
-opening"). The panel can no longer go undrawn when the animation clock lags. Next, on his word:
-deploy the worker first (`engine.js` re-vendored, `view.breakOpenAt`), then merge and push the site.
+**2026-11-04 — Mahjong: the break's panel and redraw fix LIVE, the failsafe waits on the worker
+(both repos on `master`; worker `6505d24` pushed, NOT deployed; he's holding the deploy).** The
+prompt sits on a claim-style panel and can no longer go undrawn when the animation clock lags.
+After 5 s any seated player can roll for an idle dealer, enforced in the engine
+([mahjong.md](mahjong.md), "The opening"), but that needs the worker: until it's deployed no
+`breakOpenAt` reaches the page, so only the dealer gets the Roll. Next, on his word: deploy the
+worker (`engine.js` re-vendored, `view.breakOpenAt`).
 
 **2026-11-04 — Mahjong: the claim panel's bar (LIVE: site on `master`, no worker change; he
 tested it).** The panel opens when the tile
