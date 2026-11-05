@@ -498,11 +498,18 @@ still swapped for the "needs a wider screen" note (shared shell). Contents:
   below 64rem. The discarded tile writ large, my claim buttons (chow
   variants as tile-pair pickers), Pass; pulses while it awaits me. The
   claimable tile in the pond pulses gold in sympathy. **Who sees it:**
-  an asked seat sees its options at once; everyone else sees nothing
-  until the tier has stood `CLAIM_REVEAL_MS` (5 s), then the panel names
-  who's still deciding (the seat dots and the rack's "Waiting on claims…"
-  wait for the same reveal). So a quick pass names nobody, and a staller
-  is named. **The eye** in the panel's top right corner: held (pointer,
+  an asked seat sees its options at once; everyone else sees the panel
+  as soon as the tile lands, with one bar filling where the names go (his
+  call, 2026-11-04). One bar however many seats are asked, so it gives
+  away no count. When the tier has stood `CLAIM_REVEAL_MS` (10 s) from the
+  landing the bar is full: it fades and the names rise into its place (the
+  seat dots and the rack's "Waiting on claims…" wait for the same reveal).
+  A new tier restarts the bar. So a quick pass names nobody, and a staller
+  is named. **Bots get no panel** (his call, 2026-11-04): a window waiting
+  only on `phantom` seats shows nothing unless it outlasts the reveal, since
+  they answer in a step or two and it would only flicker. In `?mock` a
+  stand-in looks human, so it still opens the panel there. The panel fades
+  in and out (`hideClaim`), taking no input as it leaves. **The eye** in the panel's top right corner: held (pointer,
   or Space/Enter), the panel fades to a tenth so the tiles beneath read,
   and the eye shuts. Its open strokes are his drawing; the shut one swings
   the upper lid down onto the lower. The panel rebuilds only when its
