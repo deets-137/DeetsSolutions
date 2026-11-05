@@ -69,12 +69,18 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-11-04 — Mahjong: the break's failsafe and panel (BUILT, committed on branch
-`mahjong-break-failsafe` in both repos, unmerged and unpushed, worker not deployed; he's holding
-the deploy).** After 5 s any seated player can roll for an idle dealer, enforced in the engine;
-the prompt sits on a claim-style panel ([mahjong.md](mahjong.md), "The opening"). Next, on his
-word: deploy the worker first (`engine.js` re-vendored, `view.breakOpenAt`), then merge and push
-the site.
+**2026-11-04 — Mahjong: the break's failsafe, panel and redraw fix (BUILT, on branch
+`mahjong-break-failsafe` in both repos; the site's branch is pushed, not merged; worker not
+deployed; he's holding the deploy).** After 5 s any seated player can roll for an idle dealer,
+enforced in the engine; the prompt sits on a claim-style panel ([mahjong.md](mahjong.md), "The
+opening"). The panel can no longer go undrawn when the animation clock lags. Next, on his word:
+deploy the worker first (`engine.js` re-vendored, `view.breakOpenAt`), then merge and push the site.
+
+**2026-11-04 — Mahjong: the claim panel's bar (LIVE: site on `master`, no worker change; he
+tested it).** The panel opens when the tile
+lands, a bar fills for 10 s where the names go, then the names rise in. A window waiting only on
+bots shows no panel, and the panel fades in and out ([mahjong.md](mahjong.md), "Claim window").
+Not yet tried: two or more names, a tier restart, a seat passing mid-bar, reduced motion.
 
 **2026-11-04 — Mahjong: All Terminals + the Blue deck (LIVE: site on `master`, worker `c588176`
 deployed as `6fc9029d`).** All Terminals is a limit hand (only 1s and 9s). Blue is a third tile

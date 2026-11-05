@@ -1800,17 +1800,20 @@
      Centered over the felt (top-aligned when narrow). The window asks in
      tiers, win/pung/kong, then the chow seat (engine claimTier), and
      waits on them with no clock. An asked seat sees its options at once;
-     everyone else sees who's still deciding only after CLAIM_REVEAL_MS, so
-     a quick pass names nobody (his calls, 2026-10-27). The eye in the
-     panel's corner fades it while held, to read the tiles beneath. */
-  var CLAIM_REVEAL_MS = 5000;
-  var claimSeen = { key: null, at: 0, timer: 0 };
+     everyone else sees the panel with a bar filling where the names go,
+     and who's still deciding only once it's full, CLAIM_REVEAL_MS after
+     the tile lands, so a quick pass names nobody (his calls, 2026-10-27,
+     2026-11-04). One bar however many seats are asked: it gives away no
+     count. The eye in the panel's corner fades it while held, to read the
+     tiles beneath. */
+  var CLAIM_REVEAL_MS = 10000;
+  var claimSeen = { key: null, at: 0, timer: 0, named: false };
   function claimRevealed() {
     var cl = model.claims;
-    if (!cl) return false;
+    if (!cl || HOLD.discard) return false;   // the count starts when the tile lands
     var key = cl.from + ":" + cl.tile + ":" + cl.tier + ":" + (model.pond ? model.pond.length : 0);
     if (key !== claimSeen.key) {
-      claimSeen.key = key; claimSeen.at = Date.now();
+      claimSeen.key = key; claimSeen.at = Date.now(); claimSeen.named = false;
       clearTimeout(claimSeen.timer);
       claimSeen.timer = setTimeout(render, CLAIM_REVEAL_MS);
     }
@@ -1878,9 +1881,31 @@
     CLAIM.style.setProperty("--mj-claim-y", (f.top + f.height / 2 - c.top) + "px");
     CLAIM.style.setProperty("--mj-claim-top", Math.max(0, f.top - c.top) + "px");
   }
+  // the panel fades out before it hides, and takes no input meanwhile, so a
+  // late press can't answer a window that has closed. Reduced motion runs no
+  // fade, so it hides at once.
+  var claimLeave = 0;
   function hideClaim() {
-    CLAIM.hidden = true;
+    if (CLAIM.hidden || CLAIM.classList.contains("is-leaving")) return;
     if (claimUI) { claimUI.peek(false); claimUI.sig = null; }
+    var leave = ++claimLeave;
+    CLAIM.classList.add("is-leaving");
+    CLAIM.inert = true;
+    function gone() {
+      if (leave !== claimLeave) return;   // it reopened mid-fade
+      CLAIM.hidden = true;
+      CLAIM.classList.remove("is-leaving");
+      CLAIM.inert = false;
+    }
+    var fade = claimUI && claimUI.wrap.getAnimations()[0];
+    if (fade) fade.finished.then(gone, gone); else gone();
+  }
+  // bots answer in a step or two, so a panel for them alone would only
+  // flicker (his call, 2026-11-04). phantom covers a bot and a bot holding a
+  // seat for someone who left. In ?mock a stand-in counts as a person.
+  function claimPerson(i) {
+    var s = model.seats && model.seats[i];
+    return !!s && !s.phantom && !s.bot;
   }
   function renderClaim() {
     if (!CLAIM) return;
@@ -1888,22 +1913,29 @@
     var my = model.you && model.you.claims;
     // the panel opens once the discard has landed in the pond (tile flights)
     if (!cl || model.phase !== "play" || HOLD.discard) return hideClaim();
-    if (!my && !(claimRevealed() && cl.waiting && cl.waiting.length)) return hideClaim();
+    var named = claimRevealed();
+    var waiting = cl.waiting || [];
+    // a seat past the reveal is named whoever holds it, so a stuck bot still shows
+    if (!my && !(waiting.length && (named || waiting.some(claimPerson)))) return hideClaim();
     var ui2 = claimShell();
     if (!ui2.wrap.parentNode) CLAIM.appendChild(ui2.wrap);
+    claimLeave++;
+    CLAIM.classList.remove("is-leaving");
+    CLAIM.inert = false;
     CLAIM.hidden = false;
     // rebuild only when the panel's content changes, so a bot's ack doesn't
-    // restart the pulse or drop a hover
-    var sig = JSON.stringify([cl.from, cl.tile, cl.robbing, my || null, my ? null : cl.waiting]);
+    // restart the pulse or drop a hover. The bar hides who's left, so an
+    // ack can't touch it; a new tier's key restarts it.
+    var sig = JSON.stringify([cl.from, cl.tile, cl.robbing, my || null, my ? null : named ? cl.waiting : claimSeen.key]);
     if (sig !== ui2.sig) {
       ui2.sig = sig;
-      var box = buildClaimBox(cl, my);
+      var box = buildClaimBox(cl, my, named);
       if (ui2.box) ui2.wrap.replaceChild(box, ui2.box); else ui2.wrap.insertBefore(box, ui2.eye);
       ui2.box = box;
     }
     placeClaim();
   }
-  function buildClaimBox(cl, my) {
+  function buildClaimBox(cl, my, named) {
     var box = el("div", "mj-claimbox" + (my ? " is-incoming" : ""));
     var title = el("h3", "mj-claimbox__title",
       cl.robbing ? fmt(S.robTitle, { name: seatName(cl.from) }) : fmt(S.claimTitle, { name: seatName(cl.from) }));
@@ -1945,15 +1977,40 @@
     } else {
       box.appendChild(el("p", "mj-claimbox__lbl", S.claimWaiting));
       var waitRow = el("div", "mj-claimbox__waits");
-      (cl.waiting || []).forEach(function (s) {
-        var chip = el("span", "mj-claimbox__wait");
-        chip.appendChild(seatDot(s));
-        chip.appendChild(el("span", null, seatName(s)));
-        waitRow.appendChild(chip);
-      });
+      if (named) {
+        // the arrival plays once: a name dropping off later just rebuilds
+        var arrive = !claimSeen.named;
+        claimSeen.named = true;
+        if (arrive) { waitRow.classList.add("is-arriving"); waitRow.appendChild(claimBar(CLAIM_REVEAL_MS)); }
+        (cl.waiting || []).forEach(function (s, i) {
+          var chip = el("span", "mj-claimbox__wait");
+          chip.style.setProperty("--mj-claim-i", i);
+          chip.appendChild(seatDot(s));
+          chip.appendChild(el("span", null, seatName(s)));
+          waitRow.appendChild(chip);
+        });
+      } else {
+        // an empty chip holds one name's height, so the first name lands
+        // without moving the panel
+        var strut = el("span", "mj-claimbox__wait is-strut");
+        strut.appendChild(seatDot(cl.from));
+        strut.appendChild(el("span", null, " "));
+        waitRow.appendChild(strut);
+        waitRow.appendChild(claimBar(Date.now() - claimSeen.at));
+      }
       box.appendChild(waitRow);
     }
     return box;
+  }
+  // the bar, already `at` ms along: a panel built partway (a seat that has
+  // just passed) picks it up where the table's count stands
+  function claimBar(at) {
+    var bar = el("div", "mj-claimbox__bar");
+    bar.setAttribute("aria-hidden", "true");
+    bar.style.setProperty("--mj-claim-ms", CLAIM_REVEAL_MS + "ms");
+    bar.style.setProperty("--mj-claim-at", -at + "ms");
+    bar.appendChild(el("span", "mj-claimbox__fill"));
+    return bar;
   }
 
   /* ── ROLE tile: my rack + action pills ────────────────────────── */

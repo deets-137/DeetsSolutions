@@ -582,6 +582,16 @@ html[data-mj-deck="blue"] .mj-tilef {
   transform: translate(-50%, -50%);
   width: 16rem; max-width: calc(100% - 2 * var(--space-3));
   pointer-events: auto;
+  animation: mj-claimin calc(var(--pop-in) * 2) var(--ease-ui);
+}
+/* a gentle fade each way: the in plays whenever the panel unhides, the out
+   holds at nothing until mahjong.js hideClaim hides it. Opacity only: the
+   wrap's transform is what places it */
+.mj-claim.is-leaving > .mj-claimwrap { animation: mj-claimout calc(var(--pop-out) * 2) var(--ease-ui) forwards; }
+@keyframes mj-claimin { from { opacity: 0; } }
+@keyframes mj-claimout { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .mj-claimwrap, .mj-claim.is-leaving > .mj-claimwrap { animation: none; }
 }
 .mj-claimwrap > .mj-claimbox { transition: opacity var(--dur-fast) var(--ease-ui); }
 /* held eye: the panel fades to a tenth so the tiles beneath read; the
@@ -636,8 +646,37 @@ html[data-mj-deck="blue"] .mj-tilef {
   cursor: pointer;
 }
 .mj-claimbox__chow:hover { border-color: var(--title); background: var(--surface-hover); }
-.mj-claimbox__waits { display: flex; flex-direction: column; gap: var(--space-1); }
+.mj-claimbox__waits { position: relative; display: flex; flex-direction: column; gap: var(--space-1); }
 .mj-claimbox__wait { display: flex; align-items: center; gap: var(--space-2); color: var(--text); font-size: 0.85rem; }
+.mj-claimbox__wait.is-strut { visibility: hidden; }
+/* the bar fills where the names will go, centered on the first row; once
+   full it fades as they rise into its place (mahjong.js, claimBar) */
+.mj-claimbox__bar {
+  position: absolute; left: 0; right: 0; top: calc((1lh - var(--space-1)) / 2);
+  height: var(--space-1);
+  font-size: 0.85rem;   /* a name's size, so 1lh is a name's row */
+  background: var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.mj-claimbox__fill {
+  display: block; height: 100%;
+  background: var(--title);
+  transform-origin: left center;
+  animation: mj-claimfill var(--mj-claim-ms) linear var(--mj-claim-at) both;
+}
+@keyframes mj-claimfill { from { transform: scaleX(0); } to { transform: none; } }
+.mj-claimbox__waits.is-arriving > .mj-claimbox__bar { animation: mj-claimbarout var(--pop-in) var(--ease-ui) both; }
+@keyframes mj-claimbarout { to { opacity: 0; } }
+.mj-claimbox__waits.is-arriving > .mj-claimbox__wait {
+  animation: mj-claimname var(--pop-in) var(--pop-ease) calc(var(--mj-claim-i) * var(--pop-stagger)) both;
+}
+@keyframes mj-claimname { from { opacity: 0; transform: translateY(var(--pop-shift)); } }
+@media (prefers-reduced-motion: reduce) {
+  .mj-claimbox__fill { animation: none; transform: scaleX(0); }
+  .mj-claimbox__waits.is-arriving > .mj-claimbox__bar { display: none; }
+  .mj-claimbox__waits.is-arriving > .mj-claimbox__wait { animation: none; }
+}
 
 /* ── fly layer: tile flights (mahjong.js) + settlement score chips ── */
 .mj-flylayer { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
