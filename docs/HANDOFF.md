@@ -69,12 +69,11 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-11-04 — Mahjong: the claim panel's bar (BUILT, committed on branch `mahjong-claim-bar`,
-unmerged and unpushed; site-only, no worker change; he tested it).** The panel opens when the tile
+**2026-11-04 — Mahjong: the claim panel's bar (LIVE: site on `master`, no worker change; he
+tested it).** The panel opens when the tile
 lands, a bar fills for 10 s where the names go, then the names rise in. A window waiting only on
 bots shows no panel, and the panel fades in and out ([mahjong.md](mahjong.md), "Claim window").
-Next, on his word: merge and push. Ships apart from `mahjong-break-failsafe`, which waits on its
-worker.
+Not yet tried: two or more names, a tier restart, a seat passing mid-bar, reduced motion.
 
 **2026-11-04 — Mahjong: All Terminals + the Blue deck (LIVE: site on `master`, worker `c588176`
 deployed as `6fc9029d`).** All Terminals is a limit hand (only 1s and 9s). Blue is a third tile
