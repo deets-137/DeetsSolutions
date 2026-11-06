@@ -573,6 +573,12 @@
         }
         return res(405, { error: "method" });
       }
+      if (p === "/admin/donated" && method === "GET") return res(200, { dollars: db.donated == null ? null : db.donated });
+      if (p === "/admin/donated" && method === "POST") {
+        db.donated = body.dollars;
+        save();
+        return res(200, { dollars: body.dollars });
+      }
       if (p === "/admin/block" && method === "POST") {
         var bu = str(body.uid, 64); if (!bu) return res(400, { error: "uid" });
         if (body.undo === true) {

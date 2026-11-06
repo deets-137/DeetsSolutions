@@ -614,6 +614,13 @@ window.DM_STRINGS = {
   dashTab_growth:    "Growth",
   dashTab_releases:  "Releases",
   dashTab_settings:  "Settings",
+  dashTab_donate:    "Donate",
+  donateTotal:       "Total raised, in dollars",
+  donateSave:        "Save",
+  donateSaved:       "Saved. The app shows ${n} the next time its Donate panel opens.",
+  donateFailed:      "Not saved. Try again.",
+  donateSignIn:      "Not saved. Sign in again, then reload this page.",
+  donateUnread:      "Could not read the total, so Save is off. Reload this page.",
 
   /* History (support.md, "The archive" › History). His call 2026-10-30: "Remove the [ph]s
      everywhere". */

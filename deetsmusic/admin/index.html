@@ -36,11 +36,11 @@
     <script src="../../js/controls.js?v=2026-10-24" defer></script>
     <script src="../../js/account.js" defer></script>
     <script src="../../js/toast.js" defer></script>
-    <script src="../strings.js?v=2026-11-03" defer></script>
+    <script src="../strings.js?v=2026-11-05" defer></script>
     <script src="../mock.js?v=2026-11-03" defer></script>
     <!-- Generated from DeetsMusic: scripts/build-usage-settings.mjs (support.md, "The dashboard"). -->
     <script src="./usage-settings.js?v=2026-10-27c" defer></script>
-    <script src="./admin.js?v=2026-11-03" defer></script>
+    <script src="./admin.js?v=2026-11-05" defer></script>
   </head>
 
   <body>
@@ -122,7 +122,21 @@
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-settings" aria-controls="settings" data-tab="settings" data-s="dashTab_settings"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-history" aria-controls="history" data-tab="history" data-s="dashTab_history"></button>
           <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-stats" aria-controls="stats" data-tab="stats" data-s="dashTab_stats"></button>
+          <button type="button" role="tab" class="dm-dash__tab" id="dm-tab-donate" aria-controls="donate" data-tab="donate" data-s="dashTab_donate"></button>
         </div>
+
+        <!-- Donate: the total the app's Donate panel shows. POST /admin/donated, read back from
+             GET /config (DeetsMusic docs/ideas/donations.md §5). -->
+        <section class="dm-box dm-box--wide dm-dash__panel" id="donate" role="tabpanel" aria-labelledby="dm-tab-donate" data-panel="donate" hidden>
+          <div class="dm-usage__body">
+            <form class="dm-field" data-dm-donate>
+              <label class="dm-field__label" for="dm-donate-total" data-s="donateTotal"></label>
+              <input class="dm-field__input dm-field__input--short" id="dm-donate-total" type="number" min="0" max="10000000" step="1" required>
+              <div><button class="home__cta" type="submit" data-s="donateSave"></button></div>
+              <p class="dm-hint" role="status" data-dm-donate-status></p>
+            </form>
+          </div>
+        </section>
 
         <!-- Growth: active installs by version, the version mix, the download funnel. -->
         <section class="dm-box dm-box--wide dm-dash__panel" id="growth" role="tabpanel" aria-labelledby="dm-tab-growth" data-panel="growth" hidden>

@@ -615,6 +615,33 @@
     wireTabs();
     wireUsageTools();
     loadUsage();
+    wireDonate();
+  }
+  // The Donate tab: the total the app's Donate panel shows (DeetsMusic docs/ideas/donations.md §5).
+  var donateWired = false;
+  function wireDonate() {
+    if (donateWired) return;
+    donateWired = true;
+    var form = $("[data-dm-donate]");
+    var input = $("#dm-donate-total");
+    var status = $("[data-dm-donate-status]");
+    var save = $("button", form);
+    // Nothing can be saved until the total is read: an unknown total must never read as 0 and be
+    // saved over the real one. The owner route, not /config, which hides a database fault.
+    input.disabled = save.disabled = true;
+    ownerApi("GET", "/admin/donated").then(function (res) {
+      if (!res.ok) { status.textContent = s("donateUnread"); return; }
+      input.value = String(res.data.dollars == null ? 0 : res.data.dollars);
+      input.disabled = save.disabled = false;
+    });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      status.textContent = "";
+      ownerApi("POST", "/admin/donated", { dollars: Number(input.value) }).then(function (res) {
+        status.textContent = res.ok ? s("donateSaved", { n: res.data.dollars })
+          : s(res.status === 403 ? "donateSignIn" : "donateFailed");
+      });
+    });
   }
   function wireUsageTools() {
     if (usage.pills) return;
@@ -1458,7 +1485,7 @@
     newErrMin: 1,                                 // installs with a new error kind on the newest version
     silent: 0.2, silentMin: 20,                   // installs at 0 minutes on their last day, newest version, 7 days
   };
-  var TABS = ["growth", "inbox", "health", "releases", "settings", "history", "stats"];
+  var TABS = ["growth", "inbox", "health", "releases", "settings", "history", "stats", "donate"];
   var SERIES = 4;               // versions a chart names; the rest are Older
   var NS = "http://www.w3.org/2000/svg";
   var tabsWired = false;
