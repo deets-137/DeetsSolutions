@@ -1,4 +1,31 @@
-const e=[{version:"1.4.1",date:"2026-11-06",body:`**Double-click to play.** A click on an album, playlist or artist opens it, and a double-click now
+const e=[{version:"1.4.2",date:"2026-11-09",body:`**Choose where Add to Queue puts songs.** A new row in Settings › Playback puts them at the end of
+the queue or after the songs you added before. A notice now tells you exactly where they landed,
+such as "Added 25 songs in positions #25–49." You can turn the notice off.
+
+**Mouse forward button support.** The forward button on your mouse now takes back what the back
+button closed, in the card your pointer is over. Go back two pages, and forward brings back the
+same two, at the place you left them. It also reopens a search you closed, an Album Review, a
+rule in Rulez, and a card that a Go to Album swapped out. Open something new, and the forward
+steps reset.
+
+**Friends' names on their albums.** On Home's Friends on DM shelf, each album now shows the
+friend's name in a small pill on its cover, and the line under it is the artist again. When two
+friends played the same album, the pill reads "Sam +1"; hover over it to see everyone. A friend
+you added by code also shows the name they typed now, not "Friend".
+
+**Your uploaded songs, one album at a time.** Songs you added to Apple Music from your own files
+now stay together as one album, their covers no longer go blank after a day, they play with the
+Equalizer or Match loudness on, and an album plays through to its last track.
+
+**Rewind remembers your place.** The Rewind card's list comes back where you scrolled it after
+the card is swapped out or the app restarts.
+
+**Fixes.** The Discord card's progress bar now shows the right position and length after a song
+change, a seek or a resume. Marking an Album Review Done from an AI agent or the command line now
+copies the review even while the app is behind another window. The Donate panel no longer shows
+an older total when you open it quickly several times. A setting saved with a value the app does
+not know now goes back to its default, and your other settings stay as they are. The cover
+wallpaper no longer stays empty after a fade.`},{version:"1.4.1",date:"2026-11-06",body:`**Double-click to play.** A click on an album, playlist or artist opens it, and a double-click now
 plays it, in the Library, Playlists, Search and artist pages. Change either in Settings > Playback >
 Click a collection, and on Home in Settings > Home. Each pin has its own On Click and On Double
 Click rows. For one type only, make a rule in Rulez: When You click a playlist, Use Play.
