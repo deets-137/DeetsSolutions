@@ -651,6 +651,8 @@ window.DM_STRINGS = {
   dashTable:         "Table",
   dashFlagsTitle:    "Needs a look",
   dashFlagsNone:     "Nothing looks off.",
+  dashFlagsNew:      "{n} new",
+  dashFlagNew:       "New",
   flagRollback:      "{v}: {pct} of restarts onto it rolled back ({n} of {of}).",
   flagHealth:        "{v}: {metric} on {pct} of reports, up from {prev} on {pv}.",
   flagPanics:        "{v}: panics on {n} reports this week.",

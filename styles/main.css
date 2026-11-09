@@ -3568,6 +3568,31 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
 .dm-dash__flags, .dm-dash__tiles { align-self: stretch; }
 .dm-dash__flags { display: flex; flex-direction: column; gap: var(--space-1); }
 .dm-dash__flags .dm-usage__sub { margin: 0; }
+/* The heading is a fold button; its chevron is the settings panel's (.set__chev, chrome.css). */
+.dm-dash__fold {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.dm-dash__fold:hover { color: var(--title); }
+.dm-dash__fold[aria-expanded="false"] .set__chev { transform: rotate(-90deg); }
+/* DeetsMusic's New dot. The site has no --new-badge; --status-warn is the same amber and,
+   like DeetsMusic's badge, does not change with the theme. */
+.dm-dash__new {
+  flex: none;
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: 50%;
+  background: var(--status-warn);
+}
+.dm-dash__flag .dm-dash__new { align-self: center; margin-inline-start: auto; }
 .dm-dash__flaglist { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
 .dm-dash__flag {
   display: flex;

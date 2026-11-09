@@ -46,8 +46,8 @@
      A status reading must say ok / warn / fail at a glance on every theme,
      and the monochrome themes' own traffic lights can't (Moonlight's are
      white → gray). So these are Sepia's three lights, declared once here
-     and never redefined per theme. Used by the DeetsMusic status dot and
-     check strip only; toasts and chips keep the theme's --go/--pause/--stop. */
+     and never redefined per theme. Used by the DeetsMusic status dot,
+     check strip and its admin page's New dot only; toasts and chips keep the theme's --go/--pause/--stop. */
   --status-ok:   var(--paint-olive-leaf);
   --status-warn: var(--paint-amber-glow);
   --status-fail: var(--paint-terracotta);

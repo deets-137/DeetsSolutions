@@ -151,6 +151,16 @@
     if (["waiting", "open", "all"].indexOf(savedInbox.show) >= 0) inbox.show = savedInbox.show;
     if (["", "suggestion", "issue"].indexOf(savedInbox.kind) >= 0) inbox.kind = savedInbox.kind;
   } catch (e) {}
+  // The "Needs a look" fold (support.md, "The dashboard"): shut unless he left it open, and the
+  // flags this browser has already shown him. `fresh` is the ones newly shown since it opened.
+  var LS_FLAGS = "deets-dm-flags";   // { open, seen: [flag keys] }
+  var FLAGS_SEEN_MAX = 500;
+  var flagsView = { open: false, seen: [], fresh: {} };
+  try {
+    var savedFlags = JSON.parse(localStorage.getItem(LS_FLAGS)) || {};
+    flagsView.open = savedFlags.open === true;
+    if (Array.isArray(savedFlags.seen)) flagsView.seen = savedFlags.seen;
+  } catch (e) {}
 
   function toast(kind, text) { if (window.DeetsToast) window.DeetsToast.push({ kind: kind, text: text }); }
   function errText(res) {
@@ -1619,7 +1629,15 @@
       data: usage.data, hw: usage.hw, hweek: usage.hweek,
       posts: inbox.posts, threads: inbox.threads, now: new Date(),
     });
-    return { list: f.list.map(function (x) { return { tone: x.tone, text: flagText(x) }; }), cells: f.cells, releases: f.releases };
+    return { list: f.list.map(function (x) { return { tone: x.tone, text: flagText(x), key: flagKey(x) }; }), cells: f.cells, releases: f.releases };
+  }
+  /* What makes a flag the same flag next time. Its numbers move daily, so they stay out: the
+     same trouble on the same version is one flag. A post waits anew when the poster writes
+     again. The two flags with no version (downloads finishing, active installs) are new each
+     week they hold. */
+  function flagKey(x) {
+    if (x.kind === "waiting") return "waiting|" + x.post.code + "|" + DeetsFlags.waitSince(x.post, inbox.threads[x.post.code]);
+    return [usage.channel, x.kind, x.v || DeetsFlags.isoWeekOf(new Date()), x.metric || ""].join("|");
   }
   function flagText(x) {
     var v = "v" + x.v, span = weekSpan(x.week);
@@ -1636,16 +1654,51 @@
     }
     return x.kind;
   }
+  function saveFlagsView() {
+    var keep = flagsView.seen.slice(-FLAGS_SEEN_MAX);
+    try { localStorage.setItem(LS_FLAGS, JSON.stringify({ open: flagsView.open, seen: keep })); } catch (e) {}
+  }
+  // DeetsMusic's New dot: yellow, no number on it. Its count is the hover text.
+  function newDot(label) {
+    var dot = el("span", "dm-dash__new");
+    dot.setAttribute("role", "img");
+    dot.setAttribute("aria-label", label);
+    dot.title = label;
+    return dot;
+  }
   function paintFlags(f) {
-    var host = $("[data-dm-flags]");
+    var host = $("[data-dm-flags]"), view = flagsView;
+    var refocus = host.contains(document.activeElement);
+    var unseen = f.list.filter(function (x) { return view.seen.indexOf(x.key) < 0; });
+    // Painted open means he has them in front of him. Those rows keep their dot until it shuts,
+    // so the one new row among old ones can be picked out.
+    if (view.open && unseen.length) {
+      unseen.forEach(function (x) { view.seen.push(x.key); view.fresh[x.key] = 1; });
+      saveFlagsView();
+    }
     host.textContent = "";
-    host.appendChild(el("h3", "dm-usage__sub", s("dashFlagsTitle")));
+    var head = host.appendChild(el("h3", "dm-usage__sub"));
+    var fold = head.appendChild(el("button", "dm-dash__fold"));
+    fold.type = "button";
+    fold.setAttribute("aria-expanded", String(view.open));
+    svgEl("path", { d: "M1 1l4 4 4-4" }, svgEl("svg", { "class": "set__chev", viewBox: "0 0 10 6", "aria-hidden": "true" }, fold));
+    fold.appendChild(el("span", null, s("dashFlagsTitle")));
+    if (!view.open && unseen.length) fold.appendChild(newDot(s("dashFlagsNew", { n: unseen.length })));
+    fold.addEventListener("click", function () {
+      view.open = !view.open;
+      if (!view.open) view.fresh = {};
+      saveFlagsView();
+      paintFlags(usage.flags);
+    });
+    if (refocus) fold.focus();
+    if (!view.open) return;
     var list = el("ul", "dm-dash__flaglist");
     (f.list.length ? f.list : [{ tone: "go", text: s("dashFlagsNone") }]).forEach(function (x) {
       var li = el("li", "dm-dash__flag");
       li.setAttribute("data-tone", x.tone);
       li.appendChild(el("span", "dm-dash__glyph", x.tone === "go" ? "✓" : x.tone === "stop" ? "!!" : "!"));
       li.appendChild(el("span", null, x.text));
+      if (view.fresh[x.key]) li.appendChild(newDot(s("dashFlagNew")));
       list.appendChild(li);
     });
     host.appendChild(list);

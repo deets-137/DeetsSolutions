@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, deetsmusic/mock.js, js/home.js]
-updated: 2026-11-03
+updated: 2026-11-09
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -421,6 +421,16 @@ worker change: every chart is drawn from today's `GET /admin/usage` and the Inbo
   week and this month side by side, last week under them, 30 days of sparkline), new installs
   over 7 days against the 7 before, the share on the newest version, health reports with no
   panic, and posts waiting on him.
+- **The *Needs a look* fold** (his ask, 2026-11-09: errors already investigated, no way to hide
+  them): the heading folds the list and stays as he left it, shut by default. A yellow dot (the
+  DeetsMusic New dot, in `--status-warn`) sits on the heading while it is shut and a flag this
+  browser has not shown him is firing; hovering it gives the count. Painting the list open marks
+  its flags seen, and the newly seen rows keep a dot until the fold shuts. A flag's identity
+  (`flagKey` in `admin.js`) leaves its numbers out: channel, kind, version and metric, so more of
+  the same trouble on the same version is not new, and the next version's is. A waiting post is
+  new again when the poster writes again; the two flags with no version are new each ISO week.
+  Page-only: `localStorage` key `deets-dm-flags`, so each browser keeps its own list, and
+  `flags.js` and the MCP are untouched.
 - **Layout rules** (his ask, 2026-10-27: "pixel perfect alignment, organized, no odd white
   spaces"): the tiles sit on 7 columns (Active installs spans 3), and each tile is 4 subgrid
   rows, so numbers, lines and sparklines share lines across a row. At 72rem and below it's 2

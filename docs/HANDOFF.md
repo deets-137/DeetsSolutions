@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-10-28
+updated: 2026-11-09
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -68,6 +68,11 @@ npm run dev
 ## Next up
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
+
+**2026-11-09 — DeetsMusic admin: *Needs a look* folds, with a dot for new flags (built on
+`master`, pushed; page-only).** The list folds and stays as he left it, and a yellow dot
+marks flags this browser has not shown him ([support.md](support.md), "The dashboard"). He
+approved it 2026-11-09.
 
 **2026-11-04 — Mahjong: the break's panel, redraw fix and failsafe (LIVE: site on `master`, worker
 `5ccd3ad` deployed as `55dc5ef5`).** The prompt sits on a claim-style panel and can no longer go
