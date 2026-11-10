@@ -110,7 +110,7 @@
 #   node -e "const c=require('crypto'),f=require('fs');for(const m of f.readFileSync(process.argv[1],'utf8').matchAll(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/g))console.log('sha256-'+c.createHash('sha256').update(m[1]).digest('base64'))" index.html
 #
 # That command also prints a hash for each <script type="application/ld+json">
-# block (the home page and /deetsmusic/ carry one). Leave those out: a data
+# block (the home page, /deetsmusic/ and /cool-stuff/ carry one). Leave those out: a data
 # block is never run, so the policy does not apply to it.
 #
 # Known report before it can be enforced: Cloudflare's own bot-detection

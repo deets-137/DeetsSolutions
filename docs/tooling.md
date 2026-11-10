@@ -1,6 +1,6 @@
 ---
 status: sop
-sources: [scripts/dev.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, games/table-mock.js]
+sources: [scripts/dev.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, scripts/stamp-crawl.js, games/table-mock.js]
 updated: 2026-11-09
 ---
 # Tooling and debugging
@@ -55,7 +55,13 @@ same words over it, so `strings.js` stays the one place a string is written.
 itself. The file's header lists what it leaves empty: hidden or `inert`
 parts, `data-s-live` nodes, `{token}` strings.
 
-Nobody has to run it:
+Its sibling, `scripts/stamp-crawl.js`, generates two more things the same
+way: the JSON-LD project list in Cool Stuff's `<head>` (from the cards; edit
+a card, never the block between the `projects-ld` markers), and the
+`<lastmod>` dates in `sitemap.xml` (the hook dates a page when its own files
+are in the commit; add a new `<url>` line with no date).
+
+Nobody has to run either:
 
 - `.githooks/pre-commit` restamps on every commit and adds the page. It never
   blocks a commit. One-time setup per clone:

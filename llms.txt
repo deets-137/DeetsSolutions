@@ -18,6 +18,7 @@ Several pages fill in their text with JavaScript. The Resume and Cool Stuff page
 - [DeetsMusic](https://deets.solutions/deetsmusic/): An Apple Music player for Windows 11 with full playback, library sync, themes, and an MCP server so Claude can drive it. Free and open source under the MIT license.
 - [DeetsMusic demo](https://deets.solutions/deetsmusic/demo/): The real app's UI running on mock songs, in the browser. No install, no sign-in.
 - [Source code](https://github.com/deets-137/DeetsMusicWindows): The app's GitHub repository.
+- [Reddit thread](https://www.reddit.com/r/AppleMusic/comments/1xdv3o0/deetsmusic_native_apple_music_client_for_windows/): The r/AppleMusic post about the app.
 
 ## Journals
 

@@ -1,19 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The site's public pages. A new tab adds its line here; a page with
-     <meta name="robots" content="noindex"> stays out. -->
+     <meta name="robots" content="noindex"> stays out. Add the line with no
+     <lastmod>: scripts/stamp-crawl.js fills the date in, and the pre-commit
+     hook moves it whenever that page's own files are committed. Keep each
+     <url> on one line. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://deets.solutions/</loc></url>
-  <url><loc>https://deets.solutions/resume/</loc></url>
-  <url><loc>https://deets.solutions/cool-stuff/</loc></url>
-  <url><loc>https://deets.solutions/deetsmusic/</loc></url>
-  <url><loc>https://deets.solutions/deetsmusic/demo/</loc></url>
-  <url><loc>https://deets.solutions/sotd/</loc></url>
-  <url><loc>https://deets.solutions/movies/</loc></url>
-  <url><loc>https://deets.solutions/cities/</loc></url>
-  <url><loc>https://deets.solutions/mahjong/</loc></url>
-  <url><loc>https://deets.solutions/poker/</loc></url>
-  <url><loc>https://deets.solutions/radio/</loc></url>
-  <url><loc>https://deets.solutions/league/</loc></url>
-  <url><loc>https://deets.solutions/privacy/</loc></url>
-  <url><loc>https://deets.solutions/privacy/deetsfilm/</loc></url>
+  <url><loc>https://deets.solutions/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/resume/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/cool-stuff/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/deetsmusic/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/deetsmusic/demo/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/sotd/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/movies/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/cities/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/mahjong/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/poker/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/radio/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/league/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/privacy/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://deets.solutions/privacy/deetsfilm/</loc><lastmod>2026-11-09</lastmod></url>
 </urlset>

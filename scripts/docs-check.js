@@ -11,7 +11,8 @@
 //   3. every `docs/<name>.md` a code comment cites exists (the games cite
 //      their doc sections from engine.js, cities.js, …)
 //   6. every page's stamped [data-s] text equals its strings.js
-//      (scripts/stamp-strings.js; the pre-commit hook normally keeps it so)
+//      (scripts/stamp-strings.js; the pre-commit hook normally keeps it so),
+//      and Cool Stuff's project data equals its cards (scripts/stamp-crawl.js)
 // WARNINGS (printed, never fail):
 //   4. stale: a doc's sources have commits newer than its `updated` —
 //      re-read the doc against them, then bump `updated`
@@ -144,6 +145,11 @@ try {
     if (r.changed) facts.push(`${r.file}  its stamped text is behind its strings.js (run node scripts/stamp-strings.js)`);
   }
 } catch (e) { facts.push(`scripts/stamp-strings.js  failed: ${e.message}`); }
+try {
+  if (require('./stamp-crawl').stampProjects(true)) {
+    facts.push('cool-stuff/index.html  its project data is behind its cards (run node scripts/stamp-crawl.js)');
+  }
+} catch (e) { facts.push(`scripts/stamp-crawl.js  failed: ${e.message}`); }
 
 for (const x of facts) console.log('FACT  ' + x);
 if (!quiet) for (const x of warns) console.log('warn  ' + x);

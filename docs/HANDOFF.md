@@ -380,6 +380,12 @@ lines to put back.
   HTML for crawlers that run no JS (`scripts/stamp-strings.js`, [tooling.md](tooling.md) §2a).
   A pre-commit hook (`.githooks/`, `core.hooksPath` set on his PC) keeps it current, so
   nobody runs it by hand. Release notes, boards and polls stay JS-only: they are live data.
+  The same hook runs `scripts/stamp-crawl.js`: Cool Stuff's JSON-LD project list (from its
+  cards) and `sitemap.xml`'s `<lastmod>` dates. **Off the repo:** Bing Webmaster Tools is
+  verified by a DNS-only CNAME (`71d4…c74d` → `verify.bing.com`; do not delete it); the 16
+  public GitHub repos that had no homepage now point at the site. **Still his:** Crawler
+  Hints (dashboard, Caching > Configuration; the `cf` CLI has no command for it), and Google
+  Search Console.
 - **`_headers`: the cause found** (zone Browser Cache TTL at 4 h; see its comment), the
   songs.json double header fixed, and security headers added: HSTS, X-Frame-Options, nosniff,
   COOP, and a **report-only** CSP (clean on every page locally).
