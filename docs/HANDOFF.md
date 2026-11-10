@@ -363,6 +363,23 @@ lines to put back.
   longer download one after another. All CSS/JS stamps went to 2026-10-23.
 - **SEO:** `robots.txt`, `sitemap.xml`, and a real `404.html` (all `[ph]` copy) — before it,
   every unknown path, `robots.txt` included, served the home page with a 200.
+- **AI and search discoverability (2026-11-09):** nothing a visitor
+  sees. `rel="canonical"` on all 15 indexable pages; a `Person` + `WebSite` + `ProfilePage`
+  JSON-LD block in the home `<head>` (Aditya Sundaram = Deets = deets-137, `sameAs` GitHub and
+  LinkedIn) and a `SoftwareApplication` one on `/deetsmusic/`; `rel="me"` on the home and
+  resume profile links; a root `llms.txt`. A new public page needs its canonical line and an
+  `llms.txt` line, beside its sitemap line. The home description and the Person block's
+  `jobTitle` say "Technical Solutions Engineer", as the resume does (his call). **Live in
+  Cloudflare, not in this repo:** a zone redirect rule (`www_to_apex`, phase
+  `http_request_dynamic_redirect`) sends `www.deets.solutions` to the apex with a 301, path
+  and query kept; read it with `cf rulesets account-rulesets phases get
+  http_request_dynamic_redirect -z deets.solutions`. His LinkedIn and
+  GitHub profiles both link `deets.solutions` (GitHub's set 2026-11-09). He reruns the
+  discoverability check on 2026-11-10; search indexes take days to weeks to catch up.
+  **Stamped strings:** `/deetsmusic/` and its demo now carry their `strings.js` text in the
+  HTML for crawlers that run no JS (`scripts/stamp-strings.js`, [tooling.md](tooling.md) §2a).
+  A pre-commit hook (`.githooks/`, `core.hooksPath` set on his PC) keeps it current, so
+  nobody runs it by hand. Release notes, boards and polls stay JS-only: they are live data.
 - **`_headers`: the cause found** (zone Browser Cache TTL at 4 h; see its comment), the
   songs.json double header fixed, and security headers added: HSTS, X-Frame-Options, nosniff,
   COOP, and a **report-only** CSP (clean on every page locally).

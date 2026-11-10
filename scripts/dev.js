@@ -72,6 +72,11 @@ function saveString(body) {
   const literal = '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
   fs.writeFileSync(abs, src.replace(line, (_, head) => head + literal));
   console.log(`copy-edit: ${file} › ${key}`);
+  // Keep the no-JS copy of the string in the page's HTML in step
+  // (scripts/stamp-strings.js). A failure there never fails the save.
+  try {
+    for (const r of require('./stamp-strings').stampAll()) if (r.changed) console.log(`stamp-strings: ${r.file}`);
+  } catch (e) { console.log(`stamp-strings failed: ${e.message}`); }
   return [200, { ok: true }];
 }
 

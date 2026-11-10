@@ -1,0 +1,40 @@
+# Deets.Solutions
+
+> The personal site of Aditya Sundaram, who also goes by Deets (GitHub: deets-137). Portfolio and resume of Aditya Sundaram, plus a song-of-the-day journal and a film log.
+
+Aditya Sundaram, Deets and deets-137 are the same person. His other profiles are https://github.com/deets-137 and https://www.linkedin.com/in/aditya-sundaram/. The canonical host is https://deets.solutions (no www).
+
+Several pages fill in their text with JavaScript. The Resume and Cool Stuff pages are plain HTML and can be read without it.
+
+## About him
+
+- [Home](https://deets.solutions/): Who he is, with links to everything below.
+- [Resume](https://deets.solutions/resume/): Work history, projects and education (UCLA, B.S. Computational & Systems Biology). Plain HTML.
+- [Resume, PDF](https://deets.solutions/resume/AdityaSundaram_Resume.pdf): The same resume as one page.
+- [Cool Stuff I Did](https://deets.solutions/cool-stuff/): The portfolio of native and web apps, each with its GitHub repository. Plain HTML.
+
+## DeetsMusic
+
+- [DeetsMusic](https://deets.solutions/deetsmusic/): An Apple Music player for Windows 11 with full playback, library sync, themes, and an MCP server so Claude can drive it. Free and open source under the MIT license.
+- [DeetsMusic demo](https://deets.solutions/deetsmusic/demo/): The real app's UI running on mock songs, in the browser. No install, no sign-in.
+- [Source code](https://github.com/deets-137/DeetsMusicWindows): The app's GitHub repository.
+
+## Journals
+
+- [Song of the Day](https://deets.solutions/sotd/): A song-of-the-day journal.
+- [Song of the Day, data](https://deets.solutions/sotd/songs.json): Every entry as JSON.
+- [Movies](https://deets.solutions/movies/): A film log, synced nightly from Letterboxd.
+- [Movies, data](https://deets.solutions/movies/movies.json): Every film as JSON.
+
+## Games (multiplayer, in the browser)
+
+- [DeetsCities](https://deets.solutions/cities/): A hex-board trading game for 3 to 6 players, with bots to fill the table.
+- [DeetsMahjong](https://deets.solutions/mahjong/): Hong Kong mahjong for four, with bots to fill the table.
+- [DeetsPoker](https://deets.solutions/poker/): Texas hold'em with friends and bots.
+- [DeetsRadio](https://deets.solutions/radio/): Type in a room code and listen to the same Apple Music queue together.
+
+## Optional
+
+- [League](https://deets.solutions/league/): League of Legends stats for D33TS#NA1.
+- [Privacy](https://deets.solutions/privacy/): What deets.solutions stores when you sign in.
+- [Sitemap](https://deets.solutions/sitemap.xml): Every public page.

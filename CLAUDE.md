@@ -152,6 +152,15 @@ the page's JS. **Claude may only add `[ph]`-prefixed placeholders.** An
 un-prefixed entry is Aditya's and is off-limits; section comments mark lines
 he dictated in chat.
 
+The text inside a `[data-s]` node in a page's HTML is a **stamped copy** of its
+`strings.js` value, for crawlers that run no JS (`scripts/stamp-strings.js`,
+[tooling.md](docs/tooling.md) §2a). Never edit it there: edit `strings.js`, and the
+pre-commit hook restamps.
+
+**One exception (his call, 2026-11-01): the DeetsMusic admin pages** (`deetsmusic/admin/`, the
+owner-only screens, their strings in `deetsmusic/strings.js`). Claude writes their strings
+plainly, with no `[ph]`. Only the owner reads them. He edits one when he wants to.
+
 | Page | State of his pass |
 | --- | --- |
 | Radio | Done — handwritten throughout |

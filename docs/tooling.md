@@ -1,7 +1,7 @@
 ---
 status: sop
-sources: [scripts/dev.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, games/table-mock.js]
-updated: 2026-10-27
+sources: [scripts/dev.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, games/table-mock.js]
+updated: 2026-11-09
 ---
 # Tooling and debugging
 
@@ -43,6 +43,25 @@ What the proxy changes **locally only** (none of it reaches Pages):
 An "Edit copy" pill (bottom left, or Alt+E) for Aditya to type his own copy
 in place. Full behavior: [architecture.md](architecture.md), "Local dev &
 deploy". It is not a way around the Copy rule for Claude.
+
+### 2a. Stamped strings — `scripts/stamp-strings.js`
+
+Added 2026-11-09. A page that fills empty `[data-s]` nodes from `strings.js`
+reads as empty boxes to an AI crawler, which runs no JS. The stamp script
+copies each string into its node in the HTML. The page's JS still fills the
+same words over it, so `strings.js` stays the one place a string is written.
+**Never edit stamped text in the HTML.** It covers every public page with
+`[data-s]` nodes (today `/deetsmusic/` and its demo), and finds a new one by
+itself. The file's header lists what it leaves empty: hidden or `inert`
+parts, `data-s-live` nodes, `{token}` strings.
+
+Nobody has to run it:
+
+- `.githooks/pre-commit` restamps on every commit and adds the page. It never
+  blocks a commit. One-time setup per clone:
+  `git config core.hooksPath .githooks` (done on his PC; worktrees share it).
+- The copy editor's save restamps (`scripts/dev.js`).
+- `docs-check` reports a page that is behind as a fact.
 
 ## 3. Dev driver — drive a real tab with curl
 
@@ -262,7 +281,8 @@ covers the look).
 
 | Command | Checks |
 | --- | --- |
-| `node scripts/docs-check.js` | the docs: links resolve, front matter is valid, code comments cite real docs (facts, exit 1), plus "stale?" and missing-mention warnings |
+| `node scripts/docs-check.js` | the docs: links resolve, front matter is valid, code comments cite real docs, stamped strings are current (facts, exit 1), plus "stale?" and missing-mention warnings |
+| `node scripts/stamp-strings.js --check` | each page's stamped `[data-s]` text equals its `strings.js` (§2a); without `--check` it restamps |
 | `node <game>/engine.js` | that engine's self-checks (every engine is pure, DOM-free) |
 | `node scripts/poker-bot-duel.js` | poker bot tiers against each other ([bots.md](bots.md), "Measurement") |
 | `powershell -File scripts/prod-status.ps1` | the journal JSONs: prod vs origin/master vs local HEAD |

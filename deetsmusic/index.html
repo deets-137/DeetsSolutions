@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DeetsMusic — Deets</title>
+    <link rel="canonical" href="https://deets.solutions/deetsmusic/" />
     <meta name="description" content="Free. Lightweight. Uniquely Deets. An Apple Music player for Windows 11 with full playback, library sync, themes, and an MCP server so Claude can drive it." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Deets.Solutions" />
@@ -15,6 +16,35 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="The DeetsMusic player on Windows, with the Deets and Happy pixel sprites and a few music notes" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- What the app is, for search engines and AI crawlers. This page's
+         text is filled in by JS from strings.js, which most crawlers never
+         run, so this block is what they read. A data block, never run: the
+         CSP in _headers needs no hash for it. Its facts mirror the meta
+         description above and the trust rows in strings.js. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://deets.solutions/deetsmusic/#app",
+        "name": "DeetsMusic",
+        "url": "https://deets.solutions/deetsmusic/",
+        "description": "Free. Lightweight. Uniquely Deets. An Apple Music player for Windows 11 with full playback, library sync, themes, and an MCP server so Claude can drive it.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Windows 11",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "license": "https://github.com/deets-137/DeetsMusicWindows/blob/main/LICENSE",
+        "sameAs": "https://github.com/deets-137/DeetsMusicWindows",
+        "image": "https://deets.solutions/assets/deetsmusic/og.jpg",
+        "author": {
+          "@type": "Person",
+          "@id": "https://deets.solutions/#person",
+          "name": "Aditya Sundaram",
+          "alternateName": "Deets",
+          "url": "https://deets.solutions/"
+        }
+      }
+    </script>
     <link rel="icon" href="../assets/favicon.png" type="image/png" />
     <script>
       (function () {
@@ -102,16 +132,18 @@
         <div class="page-bar__actions">
           <span class="dm-chip" data-tone="mock" data-dm-mock data-s="mockBadge" hidden></span>
           <a class="home__cta" data-dm-cta-download hidden></a>
-          <a class="home__cta home__cta--soft" href="#suggest" data-s="ctaSuggest"></a>
-          <a class="home__cta home__cta--soft" href="#report" data-s="ctaReport"></a>
+          <a class="home__cta home__cta--soft" href="#suggest" data-s="ctaSuggest">Suggestions</a>
+          <a class="home__cta home__cta--soft" href="#report" data-s="ctaReport">Bug!</a>
           <!-- Owner only: the usage numbers live on their own page (his call, 2026-10-14). -->
           <a class="home__cta home__cta--soft" href="/deetsmusic/admin/" data-dm-admin-link data-s="adminLink" hidden></a>
         </div>
       </header>
       <!-- The tagline: the site's line under a page bar (.page-meta, as on
            Cool Stuff and Resume). Product pass 1, deetsmusic-page-pass.md §3a.
-           Static fallback for no-JS readers: keep it equal to strings.js's
-           tagline, so fillStatic's swap is invisible. -->
+           Static fallback for no-JS readers, as is the text inside every
+           other [data-s] node on this page: scripts/stamp-strings.js copies
+           it in from strings.js on each commit, so fillStatic's swap is
+           invisible. Edit strings.js, never the text here. -->
       <p class="page-meta dm-tagline" data-s="tagline">Free. Lightweight. Uniquely Deets. An Apple Music player for Windows.</p>
 
       <div data-dm-home>
@@ -126,9 +158,9 @@
           <section class="dm-box dm-install" id="install" aria-labelledby="dm-install-name">
             <img class="dm-install__icon" src="../assets/deetsmusic/icon-72.png" srcset="../assets/deetsmusic/icon-72.png 1x, ../assets/deetsmusic/icon-108.png 1.5x, ../assets/deetsmusic/icon-144.png 2x" alt="" width="72" height="72" />
             <div class="dm-install__id">
-              <h2 class="dm-install__name" id="dm-install-name" data-s="installName"></h2>
+              <h2 class="dm-install__name" id="dm-install-name" data-s="installName">DeetsMusic</h2>
               <p class="dm-install__ver" data-dm-install-ver></p>
-              <p class="dm-hint" data-s="installNeeds"></p>
+              <p class="dm-hint" data-s="installNeeds">Apple Music subscription required.</p>
             </div>
             <div class="dm-install__actions">
               <a class="home__cta" data-dm-install-btn hidden></a>
@@ -140,7 +172,7 @@
             <div class="dm-steps" data-dm-steps>
               <!-- The signed line + its ⓘ, which opens the "why the warning" note. -->
               <div class="dm-steps__head">
-                <p data-s="installSigned"></p>
+                <p data-s="installSigned">Installer's signed by Aditya Sundaram but not commonly downloaded, so there will be a browser warning for now rip. </p>
                 <button type="button" class="dm-add dm-info" data-dm-why aria-expanded="false" aria-controls="dm-why" data-s-label="installWhyLabel"><svg class="dm-info__icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="3.75" r="1.4" /><path d="M8 7.25v6" /></svg></button>
               </div>
               <!-- The note slides open under the ⓘ: the boards' .dm-collapse. -->
@@ -152,16 +184,19 @@
               <!-- The text rides an inner span: fillStatic replaces a [data-s] node's
                    whole content, and "Other browsers" is moved to the end of the
                    visitor's own line. -->
-              <p class="dm-steps__browser" data-dm-browser="edge"><span data-s="installSteps_edge"></span></p>
-              <p class="dm-steps__browser" data-dm-browser="firefox"><span data-s="installSteps_firefox"></span></p>
-              <p class="dm-steps__browser" data-dm-browser="chrome"><span data-s="installSteps_chrome"></span></p>
+              <!-- data-s-live: scripts/stamp-strings.js leaves these empty in the
+                   HTML. Only one shows per visitor, so stamping all three would
+                   flash the other two before the JS hides them. -->
+              <p class="dm-steps__browser" data-dm-browser="edge"><span data-s="installSteps_edge" data-s-live></span></p>
+              <p class="dm-steps__browser" data-dm-browser="firefox"><span data-s="installSteps_firefox" data-s-live></span></p>
+              <p class="dm-steps__browser" data-dm-browser="chrome"><span data-s="installSteps_chrome" data-s-live></span></p>
               <button type="button" class="dm-textbtn" data-dm-other-browsers data-s="installOtherBrowsers" hidden></button>
             </div>
           </section>
 
           <!-- Status: measured by the worker's cron, never typed. -->
           <section class="dm-box dm-status" id="status" aria-labelledby="dm-status-title">
-            <h2 class="dm-box__title" id="dm-status-title" data-s="statusTitle"></h2>
+            <h2 class="dm-box__title" id="dm-status-title" data-s="statusTitle">Status</h2>
             <!-- One row per checked service; data-dm-status-row is its app id in the
                  worker's apps table. The Gatekeeper probes music-api /health (the token
                  mint); the installer probes /update/deetsmusic/health; rooms probes
@@ -169,7 +204,7 @@
             <div class="dm-status__row" data-dm-status-row="deetsmusic">
               <div class="dm-status__now">
                 <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
-                <span class="dm-status__subject" data-s="statusSubject"></span>
+                <span class="dm-status__subject" data-s="statusSubject">DeetsMusic Gatekeeper:</span>
                 <span class="dm-status__word" data-dm-status-word></span>
               </div>
               <p class="dm-lead" data-dm-status-line hidden></p>
@@ -181,7 +216,7 @@
             <div class="dm-status__row" data-dm-status-row="deetsmusic-installer">
               <div class="dm-status__now">
                 <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
-                <span class="dm-status__subject" data-s="statusSubject_installer"></span>
+                <span class="dm-status__subject" data-s="statusSubject_installer">DeetsMusic installer:</span>
                 <span class="dm-status__word" data-dm-status-word></span>
               </div>
               <p class="dm-lead" data-dm-status-line hidden></p>
@@ -193,7 +228,7 @@
             <div class="dm-status__row" data-dm-status-row="deetsmusic-rooms">
               <div class="dm-status__now">
                 <span class="dm-dot" data-dm-status-dot data-state="unknown" aria-hidden="true"></span>
-                <span class="dm-status__subject" data-s="statusSubject_rooms"></span>
+                <span class="dm-status__subject" data-s="statusSubject_rooms">DeetsMusic rooms:</span>
                 <span class="dm-status__word" data-dm-status-word></span>
               </div>
               <p class="dm-lead" data-dm-status-line hidden></p>
@@ -208,20 +243,20 @@
                (his call, deetsmusic-page-pass.md §2a). Every item is shipped;
                strings.js names the app doc behind each claim. -->
           <section class="dm-box dm-box--wide dm-pitch" id="features" aria-labelledby="dm-features-title">
-            <h2 class="dm-box__title" id="dm-features-title" data-s="featuresTitle"></h2>
+            <h2 class="dm-box__title" id="dm-features-title" data-s="featuresTitle">Features</h2>
             <div class="dm-pitch__tiles">
             <ul class="dm-pitch__list">
-              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_lastfm_t"></h3><p class="dm-pitch__b" data-s="feat_lastfm_b"></p></li>
-              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_discord_t"></h3><p class="dm-pitch__b" data-s="feat_discord_b"></p></li>
-              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_airplay_t"></h3><p class="dm-pitch__b" data-s="feat_airplay_b"></p></li>
-              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_sizes_t"></h3><p class="dm-pitch__b" data-s="feat_sizes_b"></p></li>
-              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_looks_t"></h3><p class="dm-pitch__b" data-s="feat_looks_b"></p></li>
-              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_eq_t"></h3><p class="dm-pitch__b" data-s="feat_eq_b"></p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_lastfm_t">Last.fm Scrobbling</h3><p class="dm-pitch__b" data-s="feat_lastfm_b">[Had to be the first one listed yk] Live logging your listening history to Last.Fm so you can make your own rewinds and get better recs.</p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_discord_t">Discord Status + Webhooks</h3><p class="dm-pitch__b" data-s="feat_discord_b">Optionally have what you're listening to live update as a Discord status. Can also add a Disc channel to post Song of the Days to.</p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_airplay_t">Airplay</h3><p class="dm-pitch__b" data-s="feat_airplay_b">Link up w any airplay speaker and stream just DeetsMusic audio or your entire PC audio (figured it'd be cool but not by default).</p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_sizes_t">Mini, Midi and Max</h3><p class="dm-pitch__b" data-s="feat_sizes_b">Different UI layouts for different sized app size. Mini and midi don't take a lot of space and hold a panel or two if that's all you need.</p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_looks_t">6 themes × 4 skins</h3><p class="dm-pitch__b" data-s="feat_looks_b">24 looks matching the website (for now lol). Themes are color schemes on top of the skins' skeleton (unique animations, style, etc). </p></li>
+              <li class="dm-pitch__item"><h3 class="dm-pitch__t" data-s="feat_eq_t">Equalizer</h3><p class="dm-pitch__b" data-s="feat_eq_b">Tune the bass, treble, and more with a 10 band EQ. Set your own presets (please and let me know any changes you want there lol).</p></li>
             </ul>
-            <h3 class="dm-pitch__only" data-s="onlyTitle"></h3>
+            <h3 class="dm-pitch__only" data-s="onlyTitle">Only in DeetsMusic</h3>
             <ul class="dm-pitch__list dm-pitch__list--only">
-              <li class="dm-pitch__item dm-pitch__item--only"><h4 class="dm-pitch__t" data-s="feat_rooms_t"></h4><p class="dm-pitch__b" data-s="feat_rooms_b"></p></li>
-              <li class="dm-pitch__item dm-pitch__item--only"><h4 class="dm-pitch__t" data-s="feat_agent_t"></h4><p class="dm-pitch__b" data-s="feat_agent_b"></p></li>
+              <li class="dm-pitch__item dm-pitch__item--only"><h4 class="dm-pitch__t" data-s="feat_rooms_t">Listening rooms</h4><p class="dm-pitch__b" data-s="feat_rooms_b">Add friends in app &amp; start a room where you and your friends can listen to music, queue up songs, and vibe together.</p></li>
+              <li class="dm-pitch__item dm-pitch__item--only"><h4 class="dm-pitch__t" data-s="feat_agent_t">MCP &amp; CLI Interfaces [For Nerds]</h4><p class="dm-pitch__b" data-s="feat_agent_b">An MCP and CLI allow your preferred AI system to make a playlist, queue up songs, and operate the app for you. Disabled by default.</p></li>
             </ul>
             </div>
           </section>
@@ -232,17 +267,17 @@
                and follows a look change. Each opens the demo. -->
           <section class="dm-box dm-box--wide dm-shots" id="screenshots" aria-labelledby="dm-shots-title">
             <div class="dm-box__head">
-              <h2 class="dm-box__title" id="dm-shots-title" data-s="shotsTitle"></h2>
-              <p class="dm-lead"><span data-s="shotsHint"></span> · <span data-s="shotsClick"></span></p>
+              <h2 class="dm-box__title" id="dm-shots-title" data-s="shotsTitle">Demos</h2>
+              <p class="dm-lead"><span data-s="shotsHint">Matches the selected skin and theme of the website</span> · <span data-s="shotsClick">Click a picture to try the full demo.</span></p>
             </div>
             <div class="dm-shots__row">
               <figure class="dm-shot dm-shot--max">
                 <a class="dm-shot__link" href="demo/"><img class="dm-shot__img" data-dm-shot="max-overview" data-s-alt="shot_maxAlt" width="1100" height="950" loading="lazy" decoding="async" /></a>
-                <figcaption class="dm-hint" data-s="shot_max"></figcaption>
+                <figcaption class="dm-hint" data-s="shot_max">Max</figcaption>
               </figure>
               <figure class="dm-shot dm-shot--full">
                 <a class="dm-shot__link" href="demo/"><img class="dm-shot__img" data-dm-shot="max-full-player" data-s-alt="shot_fullAlt" width="1200" height="600" loading="lazy" decoding="async" /></a>
-                <figcaption class="dm-hint" data-s="shot_full"></figcaption>
+                <figcaption class="dm-hint" data-s="shot_full">Full Screen Player</figcaption>
               </figure>
             </div>
           </section>
@@ -251,18 +286,18 @@
                (deetsmusic-page-pass.md §4). No VirusTotal (his call). The repo
                is public, MIT; Issues are off there, so support stays here. -->
           <section class="dm-box dm-box--wide dm-trust" id="requirements" aria-labelledby="dm-trust-title">
-            <h2 class="dm-box__title" id="dm-trust-title" data-s="trustTitle"></h2>
+            <h2 class="dm-box__title" id="dm-trust-title" data-s="trustTitle">Requirements AND More</h2>
             <dl class="dm-trust__list">
-              <div class="dm-trust__row"><dt data-s="trust_systemK"></dt><dd data-s="trust_system"></dd></div>
-              <div class="dm-trust__row"><dt data-s="trust_installK"></dt><dd data-s="trust_install"></dd></div>
-              <div class="dm-trust__row"><dt data-s="trust_updatesK"></dt><dd data-s="trust_updates"></dd></div>
-              <div class="dm-trust__row"><dt data-s="trust_signedK"></dt><dd data-s="trust_signed"></dd></div>
-              <div class="dm-trust__row"><dt data-s="trust_airplayK"></dt><dd data-s="trust_airplay"></dd></div>
-              <div class="dm-trust__row"><dt data-s="trust_sourceK"></dt><dd><span data-s="trust_source"></span>
-                <a class="dm-link" href="https://github.com/deets-137/DeetsMusicWindows" rel="noopener" data-s="trust_repo"></a> ·
-                <a class="dm-link" href="https://github.com/deets-137/DeetsMusicWindows/blob/main/LICENSE" rel="noopener" data-s="trust_license"></a></dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_systemK">System</dt><dd data-s="trust_system">Windows 11 (x64) [untested on W10 but it'd probably mostly work? Let me know, happy to fix it up]</dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_installK">Install</dt><dd data-s="trust_install">Download button above downloads an installer which should set everything up easy peasy for ya.</dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_updatesK">Updates</dt><dd data-s="trust_updates">In app, you should get a notification that an update is available or (Settings &gt; Updates &gt; Check now)</dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_signedK">Signed</dt><dd data-s="trust_signed">Code-signed by Aditya Sundaram.</dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_airplayK">AirPlay</dt><dd data-s="trust_airplay">Should work with any Airplay 2 receiver (tested and confirmed on HomePods)</dd></div>
+              <div class="dm-trust__row"><dt data-s="trust_sourceK">Source</dt><dd><span data-s="trust_source">Free and open source under the MIT license. You can mod and mess w it as you like. </span>
+                <a class="dm-link" href="https://github.com/deets-137/DeetsMusicWindows" rel="noopener" data-s="trust_repo">Read the code on GitHub</a> ·
+                <a class="dm-link" href="https://github.com/deets-137/DeetsMusicWindows/blob/main/LICENSE" rel="noopener" data-s="trust_license">License</a></dd></div>
             </dl>
-            <p class="dm-hint" data-s="trust_support"></p>
+            <p class="dm-hint" data-s="trust_support">Bugs and ideas on this page, not GitHub. GitHub issues feels too formal lol.</p>
           </section>
 
           <!-- Release notes: the whole history, withdrawn rows included — the
@@ -270,15 +305,15 @@
                renderReleases). -->
           <section class="dm-box dm-box--wide" id="releases" aria-labelledby="dm-releases-title">
             <div class="dm-box__head">
-              <h2 class="dm-box__title" id="dm-releases-title" data-s="releasesTitle"></h2>
-              <p class="dm-lead" data-s="releasesHint"></p>
+              <h2 class="dm-box__title" id="dm-releases-title" data-s="releasesTitle">Release notes</h2>
+              <p class="dm-lead" data-s="releasesHint">Click the card for update notes</p>
             </div>
             <div class="dm-rels" data-dm-releases></div>
           </section>
 
           <section class="dm-box dm-board" id="suggestions" data-dm-board="suggestion" aria-labelledby="dm-suggest-title">
             <div class="dm-box__head">
-              <h2 class="dm-box__title" id="dm-suggest-title" data-s="suggestTitle"></h2>
+              <h2 class="dm-box__title" id="dm-suggest-title" data-s="suggestTitle">Suggestions</h2>
               <button type="button" class="dm-add" data-dm-open="suggestion" aria-expanded="false" data-s-label="suggestOpen"><span class="dm-add__glyph" aria-hidden="true">+</span></button>
             </div>
             <div class="dm-board__tools" data-dm-tools="suggestion"></div>
@@ -307,7 +342,7 @@
 
           <section class="dm-box dm-board" id="issues" data-dm-board="issue" aria-labelledby="dm-issues-title">
             <div class="dm-box__head">
-              <h2 class="dm-box__title" id="dm-issues-title" data-s="issuesTitle"></h2>
+              <h2 class="dm-box__title" id="dm-issues-title" data-s="issuesTitle">Known issues</h2>
               <button type="button" class="dm-add" data-dm-open="issue" aria-expanded="false" data-s-label="issuesOpen"><span class="dm-add__glyph" aria-hidden="true">+</span></button>
             </div>
             <div class="dm-board__tools" data-dm-tools="issue"></div>
@@ -354,11 +389,11 @@
           </section>
 
           <footer class="dm-box dm-box--wide dm-fine" aria-labelledby="dm-fine-title">
-            <h2 class="dm-box__title" id="dm-fine-title" data-s="fineTitle"></h2>
-            <p data-s="privacy1"></p>
-            <p data-s="privacy2"></p>
-            <p data-s="privacy3"></p>
-            <p data-s="trademark"></p>
+            <h2 class="dm-box__title" id="dm-fine-title" data-s="fineTitle">Privacy</h2>
+            <p data-s="privacy1">Apple sign in is purely on your PC, DeetsMusic can't see anything about your Apple account.</p>
+            <p data-s="privacy2">There's no cloud backups or anything yet so no one except Apple gets your play history.</p>
+            <p data-s="privacy3">When your app or this page checks a report you sent, the time is noted, so Aditya knows his reply reached you. No ID, no IP address.</p>
+            <p data-s="trademark">Apple Music is a trademark of Apple Inc., registered in the U.S. and other countries. DeetsMusic is an independent project. It is not affiliated with, sponsored by, or endorsed by Apple. (But I am unemployed and looking to get into Product-side roles so if we wanna chat Apple (or other service provider), I am so down)</p>
           </footer>
         </div>
       </div>

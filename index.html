@@ -4,9 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aditya Sundaram — Deets.Solutions</title>
+    <link rel="canonical" href="https://deets.solutions/" />
     <meta
       name="description"
-      content="Aditya Sundaram — Technical Support Engineer for enterprise SaaS and builder of native and web apps. Portfolio, resume, a song-of-the-day journal, and a film log."
+      content="Aditya Sundaram — Technical Solutions Engineer for enterprise SaaS and builder of native and web apps. Portfolio, resume, a song-of-the-day journal, and a film log."
     />
     <meta property="og:title" content="Aditya Sundaram — Deets.Solutions" />
     <meta
@@ -21,6 +22,51 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="The Deets.Solutions home page, with the Deets and Happy pixel sprites" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- Who this site is about, for search engines and AI crawlers: one
+         person under three names (Aditya Sundaram, Deets, deets-137) and the
+         profiles that are his. A data block, never run, so the CSP in
+         _headers needs no hash for it. Every fact here is already on the
+         site; when one changes there, change it here. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Person",
+            "@id": "https://deets.solutions/#person",
+            "name": "Aditya Sundaram",
+            "alternateName": ["Deets", "deets-137"],
+            "jobTitle": "Technical Solutions Engineer",
+            "url": "https://deets.solutions/",
+            "sameAs": [
+              "https://github.com/deets-137",
+              "https://www.linkedin.com/in/aditya-sundaram/"
+            ],
+            "alumniOf": {
+              "@type": "CollegeOrUniversity",
+              "name": "University of California, Los Angeles (UCLA)",
+              "url": "https://www.ucla.edu/"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://deets.solutions/#website",
+            "url": "https://deets.solutions/",
+            "name": "Deets.Solutions",
+            "description": "Portfolio and resume of Aditya Sundaram, plus a song-of-the-day journal and a film log.",
+            "inLanguage": "en",
+            "author": { "@id": "https://deets.solutions/#person" }
+          },
+          {
+            "@type": "ProfilePage",
+            "@id": "https://deets.solutions/#page",
+            "url": "https://deets.solutions/",
+            "isPartOf": { "@id": "https://deets.solutions/#website" },
+            "mainEntity": { "@id": "https://deets.solutions/#person" }
+          }
+        ]
+      }
+    </script>
     <link rel="icon" href="assets/favicon.png" type="image/png" />
     <!-- Resolve theme + skin before CSS paints, to avoid a flash of the
          wrong look. Saved choice wins, with retired ids remapped to their
@@ -116,8 +162,8 @@
         <h1 class="page-bar__title">Aditya Sundaram [AKA Deets]</h1>
         <div class="page-bar__actions">
           <a class="home__cta" href="resume/">Resume</a>
-          <a class="home__cta home__cta--soft" href="https://github.com/deets-137">GitHub ↗</a>
-          <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/">LinkedIn ↗</a>
+          <a class="home__cta home__cta--soft" href="https://github.com/deets-137" rel="me">GitHub ↗</a>
+          <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/" rel="me">LinkedIn ↗</a>
         </div>
       </section>
 

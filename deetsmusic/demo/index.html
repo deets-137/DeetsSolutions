@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DeetsMusic demo — Deets</title>
+    <link rel="canonical" href="https://deets.solutions/deetsmusic/demo/" />
     <meta name="description" content="Try DeetsMusic, an Apple Music player for Windows, right in your browser: the real app's UI running on mock songs. No install, no sign-in." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Deets.Solutions" />
@@ -97,36 +98,36 @@
          size: a surface change in the app resizes it. Every string comes from strings.js. -->
     <main class="site-main" data-dmd>
       <header class="page-bar">
-        <h1 class="page-bar__title" data-s="title"></h1>
+        <h1 class="page-bar__title" data-s="title">DeetsMusic demo</h1>
         <div class="page-bar__actions">
-          <a class="home__cta" href="/deetsmusic/" data-s="appPage"></a>
-          <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsMusicWindows" target="_blank" rel="noopener" data-s="github"></a>
+          <a class="home__cta" href="/deetsmusic/" data-s="appPage">App page</a>
+          <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsMusicWindows" target="_blank" rel="noopener" data-s="github">GitHub</a>
         </div>
       </header>
 
-      <p class="dmd-lede" data-s="lede"></p>
-      <p class="dmd-lede" data-s="ledeSignIn"></p>
+      <p class="dmd-lede" data-s="lede">A one-to-one recreation of DeetsMusic with everything mocked for my portfolio and demo purposes regarding the UI / UX of it all. Let me know if you have any questions!</p>
+      <p class="dmd-lede" data-s="ledeSignIn">Btw, signing into Apple Music is typically step 1, but skipping it for the demo obvi</p>
 
       <!-- The app's own first-run walk and its New badges guide a visitor; Start over
            resets the demo, and with it the walk. Below it, two quick clusters (demo.js):
            the Looks set the app's theme and skin in one go, the Surfaces its window. The
            lit button in each is what the app shows now. -->
       <div class="dmd-bar">
-        <button type="button" class="home__cta home__cta--soft" data-dmd-reset data-s="reset"></button>
+        <button type="button" class="home__cta home__cta--soft" data-dmd-reset data-s="reset">Start over</button>
       </div>
       <div class="dmd-bar dmd-quick">
         <div class="dmd-cluster">
-          <button type="button" class="home__cta home__cta--soft" data-dmd-look="lilac glass" aria-pressed="false" data-s="look1"></button>
-          <button type="button" class="home__cta home__cta--soft" data-dmd-look="moonlight ocean" aria-pressed="false" data-s="look2"></button>
-          <button type="button" class="home__cta home__cta--soft" data-dmd-look="sepia press" aria-pressed="false" data-s="look3"></button>
-          <button type="button" class="home__cta home__cta--soft" data-dmd-look="black-red cyber" aria-pressed="false" data-s="look4"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="lilac glass" aria-pressed="false" data-s="look1">Look 1</button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="moonlight ocean" aria-pressed="false" data-s="look2">Look 2</button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="sepia press" aria-pressed="false" data-s="look3">Look 3</button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-look="black-red cyber" aria-pressed="false" data-s="look4">Look 4</button>
         </div>
-        <span class="dmd-sep" aria-hidden="true" data-s="quickSep"></span>
+        <span class="dmd-sep" aria-hidden="true" data-s="quickSep">X</span>
         <div class="dmd-cluster">
-          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="mini player" aria-pressed="false" data-s="surfacePlayer"></button>
-          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="mini cards" aria-pressed="false" data-s="surfaceMini"></button>
-          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="midi" aria-pressed="false" data-s="surfaceMidi"></button>
-          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="max" aria-pressed="false" data-s="surfaceMax"></button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="mini player" aria-pressed="false" data-s="surfacePlayer">Player</button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="mini cards" aria-pressed="false" data-s="surfaceMini">Mini</button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="midi" aria-pressed="false" data-s="surfaceMidi">Midi</button>
+          <button type="button" class="home__cta home__cta--soft" data-dmd-surface="max" aria-pressed="false" data-s="surfaceMax">Max</button>
         </div>
       </div>
 

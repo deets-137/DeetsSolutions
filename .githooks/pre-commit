@@ -1,0 +1,8 @@
+#!/bin/sh
+# Keeps each page's no-JS text equal to its strings.js (scripts/stamp-strings.js
+# has the why). Runs on every commit and never blocks one.
+# One-time setup per clone:  git config core.hooksPath .githooks
+[ -f scripts/stamp-strings.js ] || exit 0
+command -v node >/dev/null 2>&1 || exit 0
+node scripts/stamp-strings.js --hook || true
+exit 0
