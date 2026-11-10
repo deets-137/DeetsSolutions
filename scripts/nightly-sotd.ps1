@@ -1,9 +1,11 @@
 # Nightly journal refresh: Song-of-the-Day + the movie log.
 #
 # Songs: pulls new posts from the Discord SOTD channel via the sibling
-# DeetsOTD repo, enriches them, and rewrites sotd/songs.json.
-# Movies: ingests the Letterboxd RSS feed into DeetsOTD's storage.db and
-# rewrites movies/movies.json from it (letterboxd_web.py rss --web).
+# DeetsDiscordBot repo (python -m journal.scan), enriches them, and rewrites
+# sotd/songs.json.
+# Movies: ingests the Letterboxd RSS feed into DeetsDiscordBot's storage.db and
+# rewrites movies/movies.json from it (python -m journal.letterboxd_web rss --web).
+# (Until 2026-11-10 both ran from the DeetsOTD repo, which DeetsDiscordBot continues.)
 # Projects: asks GitHub (via the gh CLI) for each portfolio project's last
 # commit date and rewrites cool-stuff/projects.json (build-project-dates.py).
 # The three are independent — a failure in one never blocks the others.
@@ -20,13 +22,17 @@
 # Wire it to Task Scheduler to run each evening (see scripts/register-nightly-sotd.ps1),
 # or run by hand:
 #   powershell -File scripts/nightly-sotd.ps1
+#   powershell -File scripts/nightly-sotd.ps1 -Check   # preflight only: paths, python,
+#                                                      # imports; scans and writes nothing
 #
 # All output is also appended to scripts/nightly-sotd.log for unattended runs.
+
+param([switch]$Check)
 
 $ErrorActionPreference = "Stop"
 
 $repo    = Split-Path $PSScriptRoot -Parent                 # ...\DeetsSolutions
-$otd     = Join-Path (Split-Path $repo -Parent) "DeetsOTD"  # sibling ...\DeetsOTD
+$otd     = Join-Path (Split-Path $repo -Parent) "DeetsDiscordBot"  # sibling ...\DeetsDiscordBot (the journal)
 $songs   = Join-Path $repo "sotd\songs.json"
 $movies  = Join-Path $repo "movies\movies.json"
 $projects = Join-Path $repo "cool-stuff\projects.json"
@@ -41,7 +47,7 @@ function Log($msg) {
 
 Log "=== nightly journal refresh starting ==="
 
-if (-not (Test-Path $otd))    { Log "ERROR: DeetsOTD repo not found at $otd"; exit 1 }
+if (-not (Test-Path $otd))    { Log "ERROR: journal repo (DeetsDiscordBot) not found at $otd"; exit 1 }
 if (-not (Test-Path $songs))  { Log "ERROR: songs.json not found at $songs"; exit 1 }
 if (-not (Test-Path $movies)) { Log "ERROR: movies.json not found at $movies"; exit 1 }
 
@@ -51,6 +57,23 @@ if (-not $python) {
     $python = "C:\Users\Aditya Sundaram\AppData\Local\Programs\Python\Python312\python.exe"
 }
 if (-not (Test-Path $python)) { Log "ERROR: python not found ($python)"; exit 1 }
+
+# -Check: confirm everything the run needs is in place, then stop before any scan or write.
+if ($Check) {
+    $missing = @(".env", "config.py", "storage.db") | Where-Object { -not (Test-Path (Join-Path $otd $_)) }
+    if ($missing) { Log "CHECK: missing in ${otd}: $($missing -join ', ')"; exit 1 }
+    Push-Location $otd
+    try {
+        $out = & { $ErrorActionPreference = 'Continue'; & $python -c "import journal.scan, journal.letterboxd_web, journal.paths as p; print('journal imports ok; db', p.DB_PATH)" 2>&1 }
+        $code = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+    foreach ($l in $out) { Log "CHECK: $l" }
+    if ($code -ne 0) { Log "CHECK: FAILED (exit $code)"; exit 1 }
+    Log "CHECK: ok - python $python, journal repo $otd. Nothing scanned or written."
+    exit 0
+}
 
 # Content fingerprint that IGNORES generated_at (which is re-stamped every
 # run). Without this, the file always differs and we'd commit every night
@@ -65,27 +88,27 @@ $songsBefore    = ContentHash $songs
 $moviesBefore   = ContentHash $movies
 $projectsBefore = ContentHash $projects
 
-# ── Songs: scan the Discord channel (config.py + .env live in DeetsOTD) ──
+# ── Songs: scan the Discord channel (config.py + .env live in DeetsDiscordBot) ──
 Push-Location $otd
 try {
-    $out = & $python "scan.py" $channel "--enrich" "--web" "--web-out" $songs 2>&1
+    $out = & $python "-m" "journal.scan" $channel "--enrich" "--web" "--web-out" $songs 2>&1
     $songsCode = $LASTEXITCODE
 } finally {
     Pop-Location
 }
 foreach ($l in $out) { Log "scan: $l" }
-if ($songsCode -ne 0) { Log "ERROR: scan.py exited $songsCode - songs.json left untouched" }
+if ($songsCode -ne 0) { Log "ERROR: journal.scan exited $songsCode - songs.json left untouched" }
 
 # ── Movies: Letterboxd RSS feed -> storage.db -> movies.json ──
 Push-Location $otd
 try {
-    $out = & $python "letterboxd_web.py" "rss" "--web" "-o" $movies 2>&1
+    $out = & $python "-m" "journal.letterboxd_web" "rss" "--web" "-o" $movies 2>&1
     $moviesCode = $LASTEXITCODE
 } finally {
     Pop-Location
 }
 foreach ($l in $out) { Log "rss: $l" }
-if ($moviesCode -ne 0) { Log "ERROR: letterboxd_web.py exited $moviesCode - movies.json left untouched" }
+if ($moviesCode -ne 0) { Log "ERROR: journal.letterboxd_web exited $moviesCode - movies.json left untouched" }
 
 # ── Projects: GitHub last-commit dates -> cool-stuff/projects.json ──
 $out = & { $ErrorActionPreference = 'Continue'; & $python (Join-Path $PSScriptRoot "build-project-dates.py") 2>&1 }
