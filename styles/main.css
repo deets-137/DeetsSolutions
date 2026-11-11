@@ -14,7 +14,7 @@
    ============================================================ */
 /* ============================================================
    Song of the Day — the card grid rendered by sotd/sotd.js from
-   the DeetsOTD journal. Rules reference ONLY semantic tokens, so
+   the DeetsDiscordBot journal. Rules reference ONLY semantic tokens, so
    the cards ride the same theme (color) + skin (shape/type/motion)
    axes as the rest of the site — including the pre-declared card
    tokens (--card, --shadow-card, --radius-card, --card-backdrop).

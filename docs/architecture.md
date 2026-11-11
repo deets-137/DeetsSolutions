@@ -183,7 +183,7 @@ landing page, so it's the one that must index well.
 ### SOTD (`sotd/`)
 
 A Song-of-the-Day journal scraped from a Discord channel by
-[DeetsOTD](https://github.com/deets-137/DeetsOTD) (separate repo), whose `scan.py --web` exports
+[DeetsDiscordBot](https://github.com/deets-137/DeetsDiscordBot) (separate repo), whose `journal.scan --web` exports
 `songs.json` — display data only, no private Discord ids — which is committed
 here and served flat. `sotd.js` fetches it and builds the card grid.
 
@@ -201,7 +201,7 @@ Controls (all client-side over the loaded array, persisted in
 ### Movies (`movies/`)
 
 A Letterboxd film log in the same shape. `movies.json` is generated from a
-Letterboxd data export by `letterboxd_web.py` (also in the DeetsOTD repo) —
+Letterboxd data export by `journal.letterboxd_web` (also in the DeetsDiscordBot repo) —
 see [data.md](data.md) for the pipeline, poster lookup, and refresh commands.
 
 `movies.js` reuses the `.song__*` card classes and the whole toolbar kit, so

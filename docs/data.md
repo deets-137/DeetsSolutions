@@ -1,23 +1,24 @@
 ---
 status: foundation
 sources: [scripts/nightly-sotd.ps1, scripts/build-project-dates.py]
-updated: 2026-09-02
+updated: 2026-11-10
 ---
 # Data pipelines
 
 Both journal tabs render a static JSON committed to this repo. The
-generators live in the [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo; this site never
+generators live in the [DeetsDiscordBot](https://github.com/deets-137/DeetsDiscordBot) repo's
+`journal/` package (the DeetsOTD repo until 2026-11-10); this site never
 calls an API at runtime. Never hand-edit the JSONs — regenerate them.
 
 ## SOTD → `sotd/songs.json`
 
-DeetsOTD scans a Discord song-of-the-day channel, enriches links via the
+DeetsDiscordBot's journal scans a Discord song-of-the-day channel, enriches links via the
 Apple Music API, and exports a website-ready JSON (display data only — no
 Discord server/channel/message ids):
 
 ```
-cd ../DeetsOTD
-python scan.py --enrich --web --web-out "../DeetsSolutions/sotd/songs.json"
+cd ../DeetsDiscordBot
+python -m journal.scan <channel> --enrich --web --web-out "../DeetsSolutions/sotd/songs.json"
 ```
 
 `--enrich` is required, not optional: `--web` only archives and exports what
@@ -32,26 +33,27 @@ track/artist/album, artwork and 30-sec preview URLs, genre, duration,
 release date, uploader, and the posted date.
 
 A wrong match (a bare YouTube/Spotify title that resolved to a more-famous
-namesake) is fixed at the source, not in the JSON: `python review.py search
-"<track>"` to find it, then `python review.py fix <song_id> --url "<correct
-link>"` (tags it `manual`), then regenerate. See DeetsOTD's `docs/USAGE.md`.
+namesake) is fixed at the source, not in the JSON: `python -m journal.review search
+"<track>"` to find it, then `python -m journal.review fix <song_id> --url "<correct
+link>"` (tags it `manual`), then regenerate. See DeetsDiscordBot's `docs/guide/USAGE.md`.
 
 ## Movies → `movies/movies.json`
 
-The film journal lives in DeetsOTD's `storage.db` (tables `films` /
-`film_watches`, alongside the song tables — see DeetsOTD's
-`letterboxd_store.py`), and `movies.json` is exported from it — the JSON is
+The film journal lives in DeetsDiscordBot's `storage.db` (tables `films` /
+`film_watches`, alongside the song tables — see DeetsDiscordBot's
+`journal/letterboxd_store.py`), and `movies.json` is exported from it — the JSON is
 a rendering, never the state. Two sources feed the DB:
 
 ```
+# from ../DeetsDiscordBot
 # nightly top-up: the public RSS feed (the last ~50 diary entries)
-python ../DeetsOTD/letterboxd_web.py rss --web -o movies/movies.json
+python -m journal.letterboxd_web rss --web -o ../DeetsSolutions/movies/movies.json
 
 # seed / true-up: a full Letterboxd data export (letterboxd.com/settings/data/)
-python ../DeetsOTD/letterboxd_web.py import <export-folder> --web -o movies/movies.json
+python -m journal.letterboxd_web import <export-folder> --web -o ../DeetsSolutions/movies/movies.json
 
 # re-export alone (no fetch)
-python ../DeetsOTD/letterboxd_web.py web -o movies/movies.json
+python -m journal.letterboxd_web web -o ../DeetsSolutions/movies/movies.json
 ```
 
 - **RSS is the steady state** — `scripts/nightly-sotd.ps1` runs it right
@@ -87,7 +89,7 @@ python ../DeetsOTD/letterboxd_web.py web -o movies/movies.json
 ### TMDB posters
 
 Letterboxd carries no artwork the site may hotlink, so if `TMDB_API_KEY` is
-set in DeetsOTD's `.env` (free key: themoviedb.org → Settings → API), each
+set in DeetsDiscordBot's `.env` (free key: themoviedb.org → Settings → API), each
 film's poster URL is resolved from TMDB and baked into the JSON (and
 mirrored onto the film row in the DB; the cache means a steady-state run
 never touches the network).
@@ -100,7 +102,7 @@ never touches the network).
   keeps the right poster. A film with no year takes TMDB's top hit.
 - **Nothing is downloaded** — only the URL string is stored; visitors'
   browsers fetch images straight from `image.tmdb.org`.
-- Lookups cache in `DeetsOTD/exports/tmdb_posters.json` (gitignored there),
+- Lookups cache in `DeetsDiscordBot/exports/tmdb_posters.json` (gitignored there),
   so a refresh only queries films it hasn't seen. Delete a film's cache
   entry to force a re-lookup, or **pin the right poster by hand**: set the
   film's `"<Name> (<Year>)"` key to the correct `/poster_path.jpg` (from the

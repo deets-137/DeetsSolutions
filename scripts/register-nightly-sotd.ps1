@@ -1,6 +1,8 @@
 # Register (or update) the nightly SOTD refresh as a Windows Scheduled Task.
 #
 # Creates a per-user task "DeetsOTD Nightly SOTD" that runs
+# (The name is from before 2026-11-10; the job now runs DeetsDiscordBot's journal.
+# The registered task keeps this name, so re-running updates it in place.)
 # scripts/nightly-sotd.ps1 every evening. Re-running updates the existing
 # task in place. Runs whether or not you're logged in is NOT set — this is
 # a per-user interactive task so it uses your Discord token / git identity.

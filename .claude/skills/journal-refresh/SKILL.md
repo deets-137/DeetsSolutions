@@ -1,6 +1,6 @@
 ---
 name: journal-refresh
-description: Pull the latest Song-of-the-Day and Letterboxd entries from the sibling DeetsOTD repo, then commit and push if (and only if) real new songs or films landed. Use when asked to refresh the journals, pull SOTD/movies, run the DeetsOTD pull, or update songs.json / movies.json.
+description: Pull the latest Song-of-the-Day and Letterboxd entries from the sibling DeetsDiscordBot repo (its journal/ package; DeetsOTD until 2026-11-10), then commit and push if (and only if) real new songs or films landed. Use when asked to refresh the journals, pull SOTD/movies, run the DeetsDiscordBot or DeetsOTD pull, or update songs.json / movies.json.
 ---
 
 # Journal refresh (SOTD + movies)
@@ -31,8 +31,8 @@ explicit file list, never `git add -A`.
 powershell -File scripts/nightly-sotd.ps1
 ```
 
-That single script does everything: `scan.py --enrich --web` for songs,
-`letterboxd_web.py rss --web` for films, a content fingerprint that ignores
+That single script does everything: `python -m journal.scan --enrich --web` for songs,
+`python -m journal.letterboxd_web rss --web` for films (both in ../DeetsDiscordBot), a content fingerprint that ignores
 `generated_at`, the `build-sotd-og.py` link-preview rebuild when songs
 changed, a commit of just the changed journal files, and a `git push`. The
 two halves are independent -- one failing never blocks the other.
@@ -63,7 +63,7 @@ machine". Exit 0 means all three agree.
   auto-rebase** to clear it; that is his call.
 - **Script logged "No new songs or films"** -> nothing was committed and
   nothing to verify. Say so and stop. Do not create an empty commit.
-- **A stage errored** (non-zero exit for `scan.py` or `letterboxd_web.py`) ->
+- **A stage errored** (non-zero exit for `journal.scan` or `journal.letterboxd_web`) ->
   report it verbatim, and say which half still made it out.
 
 ## 4. Always report unresolved songs
@@ -79,5 +79,5 @@ python -c "import json,io;d=json.load(io.open('sotd/songs.json',encoding='utf-8'
 
 Day-of-release lag is the usual cause and re-running the refresh later fixes
 it. A link iTunes structurally can't match (album pages, bare YouTube
-titles) needs a manual correction in DeetsOTD — `review.py fix` — which is
+titles) needs a manual correction in DeetsDiscordBot — `python -m journal.review fix` — which is
 Aditya's call, not something to do unprompted.

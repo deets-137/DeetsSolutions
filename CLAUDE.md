@@ -18,7 +18,7 @@ served flat.
 - **Never edit a string that lacks a `[ph]` prefix.** Those are Aditya's
   words. See "Copy" below.
 - **Never hand-edit `sotd/songs.json` or `movies/movies.json`.** Generated in
-  the sibling [DeetsOTD](https://github.com/deets-137/DeetsOTD) repo — regenerate instead (docs/data.md).
+  the sibling [DeetsDiscordBot](https://github.com/deets-137/DeetsDiscordBot) repo — regenerate instead (docs/data.md).
 - **Never reword `resume/index.html`.** It mirrors his master resume
   word-for-word, plain hyphens (no em dashes). Phone and email stay off the
   site. After any edit: `powershell -File scripts/build-resume-pdf.ps1`,
