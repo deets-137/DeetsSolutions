@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-09T19:03:55Z",
+  "generated_at": "2026-11-11T02:00:22Z",
   "channel": "song-of-the-day",
-  "count": 483,
+  "count": 485,
   "songs": [
     {
       "post_id": 1,
@@ -11111,6 +11111,52 @@
       "apple_music_url": "https://music.apple.com/us/album/m%C3%B8%C3%B8n/1510728398?i=1510728738&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/23/dc/ee/23dceeaa-9abb-195b-7bec-b225269336c5/mzaf_17142548284197095102.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/bc/3b/bc/bc3bbc9a-39b1-4f60-c8c8-af6d758522f5/5056167123781_1.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 37676,
+      "posted_at": "2026-11-10T08:44:59.107000+00:00",
+      "date": "2026-11-09",
+      "day": "Mon",
+      "month": "11_2026",
+      "track_name": "Hit Me Up",
+      "artist_name": "Omar Apollo, Dominic Fike & Kenny Beats",
+      "album": "Hit Me Up - Single",
+      "genre": "Alternative",
+      "duration": "2:40",
+      "duration_sec": 160,
+      "release_date": "2019-11-05",
+      "release_year": 2019,
+      "age_yrs": 7,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/hit-me-up/1484691676?i=1484691677",
+      "apple_music_url": "https://music.apple.com/us/album/hit-me-up/1484691676?i=1484691677&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/86/24/0c/86240c91-b6d8-6df0-8eda-5b850031f271/mzaf_10751122801054988222.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/bf/11/01/bf1101cc-bd70-3021-5984-03fa34a6e8f0/5056167119296_1.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 37677,
+      "posted_at": "2026-11-11T01:21:32.391000+00:00",
+      "date": "2026-11-10",
+      "day": "Tue",
+      "month": "11_2026",
+      "track_name": "Pasadena",
+      "artist_name": "Tinashe & Buddy",
+      "album": "Pasadena - Single",
+      "genre": "R&B/Soul",
+      "duration": "2:56",
+      "duration_sec": 176,
+      "release_date": "2021-06-04",
+      "release_year": 2021,
+      "age_yrs": 5,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/pasadena/1834856356?i=1834856357",
+      "apple_music_url": "https://music.apple.com/us/album/pasadena/1834856356?i=1834856357&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/63/e4/17/63e41762-6ddc-9eee-bba5-393bf5c9fffa/mzaf_3215957111173820107.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/94/46/d8/9446d8b2-240d-75af-de23-dcbbf4f1494a/192641741432.png/600x600bb.jpg"
     }
   ]
 }

@@ -1,8 +1,32 @@
 {
- "generated_at": "2026-10-19T02:00:22Z",
+ "generated_at": "2026-11-11T02:00:27Z",
  "source": "letterboxd",
- "count": 322,
+ "count": 323,
  "movies": [
+  {
+   "name": "Lost in Starlight",
+   "year": 2025,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/lost-in-starlight/",
+   "logged_date": "2026-11-10",
+   "watched_date": "2026-11-09",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 4.0,
+   "liked": true,
+   "review": null,
+   "review_date": null,
+   "watches": [
+    {
+     "date": "2026-11-09",
+     "rating": 4.0,
+     "rewatch": false,
+     "review": null
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/b2VhUlOCpzabt7ZOOkmf9UsoNot.jpg"
+  },
   {
    "name": "Sacrifice",
    "year": 2025,
