@@ -1,8 +1,32 @@
 {
- "generated_at": "2026-11-11T02:00:27Z",
+ "generated_at": "2026-11-12T02:00:22Z",
  "source": "letterboxd",
- "count": 323,
+ "count": 324,
  "movies": [
+  {
+   "name": "Versa",
+   "year": 2025,
+   "decade": "2020s",
+   "uri": "https://letterboxd.com/d33ts/film/versa/",
+   "logged_date": "2026-11-11",
+   "watched_date": "2026-11-11",
+   "watch_count": 1,
+   "rewatch": false,
+   "rating": 3.5,
+   "liked": true,
+   "review": null,
+   "review_date": null,
+   "watches": [
+    {
+     "date": "2026-11-11",
+     "rating": 3.5,
+     "rewatch": false,
+     "review": null
+    }
+   ],
+   "status": "watched",
+   "poster_url": "https://image.tmdb.org/t/p/w342/p2zKN6Ic81C1UbLbnak4dZ2wABl.jpg"
+  },
   {
    "name": "Lost in Starlight",
    "year": 2025,
