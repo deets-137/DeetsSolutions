@@ -618,13 +618,24 @@
     if (!STAGE.motionOk() || !model || !model.board) { LAY = null; return; }
     var plan = layPlan(model.board);
     LAY = { t0: tl(), plan: plan, morph: plan.morph, done: new WeakSet(), end: tl() + plan.end };
-    // the placement targets (and a bot's first move) come up once the last piece lands
+    // the placement targets (and a bot's first move) come up once the last
+    // piece lands. TBL.render() is the bare frame: it skips preRender, so the
+    // setup mode is decided here, or the first placer saw no targets until
+    // some other broadcast (or a reload) ran it. The timer also has the last
+    // word on the lay's end (mahjong's 4918cb2): tl() can lag it, and a
+    // lagging clock would keep the mode off
     var lay = LAY;
-    setTimeout(function () { if (LAY === lay && model) TBL.render(); }, plan.end + 30);
+    setTimeout(function () {
+      if (LAY !== lay) return;
+      lay.over = true;
+      if (!model) return;
+      autoSetupMode();
+      TBL.render();
+    }, plan.end + 30);
   }
   // the lay is ON only while its time runs — never on a flag alone, so a
   // late or lost timer can't leave the board hidden
-  function laying() { return !!LAY && tl() < LAY.end; }
+  function laying() { return !!LAY && !LAY.over && tl() < LAY.end; }
   function stopLay() { LAY = null; }
   // each piece's START, offset 0 said outright: a lone keyframe without it
   // is read as the END, and the board showed whole, then faded piece by piece
