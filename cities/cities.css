@@ -363,6 +363,7 @@
 }
 .cities-pstrip__stat { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: 0.72rem; color: var(--subtext); }
 .cities-pstrip__vp { color: var(--title); font-weight: 700; }
+.cities-pstrip__vphide { color: var(--subtext); font-weight: 400; }   /* your VP cards: only your page has them */
 
 /* ── log tile ─────────────────────────────────────────────────── */
 /* height is locked to fit the bento by cities.js (fitLog); 14rem is the

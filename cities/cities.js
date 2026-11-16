@@ -1882,7 +1882,14 @@
       }));
       strip.appendChild(body);
       var stat = el("div", "cities-pstrip__stat");
-      stat.appendChild(el("span", "cities-pstrip__vp", fmt(S.vpShort, { n: p.vp })));
+      var vpEl = el("span", "cities-pstrip__vp", fmt(S.vpShort, { n: p.vp }));
+      // your own VP cards: they ride only your `you.dev`, so no one else's
+      // page can show them (the public vp counts buildings and awards only)
+      if (i === mySeat()) {
+        var hidden = ((model.you && model.you.dev) || []).filter(function (d) { return d.card === "vp"; }).length;
+        if (hidden) vpEl.appendChild(el("span", "cities-pstrip__vphide", " " + fmt(S.vpHidden, { n: hidden })));
+      }
+      stat.appendChild(vpEl);
       stat.appendChild(el("span", "cities-pstrip__cards", fmt(S.handShort, { n: p.handCount })));
       stat.appendChild(el("span", "cities-pstrip__dev", fmt(S.devShort, { n: p.devCount })));
       strip.appendChild(stat);
@@ -2449,8 +2456,7 @@
       if (mineOffer) TBL.seatAccent(card, o.from);
       var head = mineOffer ? fmt(S.offerFrom, { name: seatName(o.from) }) : fmt(S.offerToYou, { name: seatName(o.from) });
       card.appendChild(el("div", "cities-offer__head", head));
-      card.appendChild(bundleView(S.tradeGive, o.give));
-      card.appendChild(bundleView(S.tradeGet, o.get));
+      offerRows(card, o, seat);
       var btns = el("div", "cities-offer__btns");
       if (seat != null) {
         if (mineOffer) {
@@ -2494,11 +2500,22 @@
       var ghost = el("div", "cities-offer cities-offer--fading" + (o.from === seat ? " is-mine" : ""));
       if (o.from === seat) TBL.seatAccent(ghost, o.from);
       ghost.appendChild(el("div", "cities-offer__head", o.from === seat ? fmt(S.offerFrom, { name: seatName(o.from) }) : fmt(S.offerToYou, { name: seatName(o.from) })));
-      ghost.appendChild(bundleView(S.tradeGive, o.give));
-      ghost.appendChild(bundleView(S.tradeGet, o.get));
+      offerRows(ghost, o, seat);
       box.appendChild(ghost);
     });
     TRADE.appendChild(box);
+  }
+  // an offer card's two rows. One sent to you names who gives what: their
+  // bundle, then yours (o.get is the receiver's side). Your own offer and a
+  // spectator's view keep the builder's Offer / Receive, the sender's side
+  function offerRows(card, o, seat) {
+    if (seat != null && o.from !== seat) {
+      card.appendChild(bundleView(fmt(S.offerTheyGive, { name: seatName(o.from) }), o.give));
+      card.appendChild(bundleView(S.offerYouGive, o.get));
+      return;
+    }
+    card.appendChild(bundleView(S.tradeGive, o.give));
+    card.appendChild(bundleView(S.tradeGet, o.get));
   }
   function bundleView(label, bag) {
     var row = el("div", "cities-offer__row");

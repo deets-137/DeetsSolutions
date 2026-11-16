@@ -186,6 +186,7 @@ window.CITIES_STRINGS = {
 
   /* ── players tile ────────────────────────────────────────────── */
   vpShort:     "{n} VP",
+  vpHidden:    "(+{n})",   // Aditya's wording (chat 2026-11-15), no [ph] — your own VP cards, on your strip only
   handShort:   "{n} cards",
   devShort:    "{n} dev",
   awardRoad:   "Longest Road",
@@ -263,6 +264,9 @@ window.CITIES_STRINGS = {
   offerIncoming: "{name} sent a trade offer.",
   offerAccepted: "{name} accepted your trade.",
   offerShort:   "You don't have those resources to offer!",
+  // Aditya's wording (chat 2026-11-15), no [ph] — the rows of an offer someone sent you
+  offerTheyGive: "{name} gives:",
+  offerYouGive:  "You give",
 
   /* ── forced interrupts (on the board tile) ───────────────────── */
   discardPrompt: "Roll of 7 — discard {n} cards.",
