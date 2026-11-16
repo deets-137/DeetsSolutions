@@ -2478,7 +2478,10 @@
           card.appendChild(status);
           var cancel = el("button", "gt-chip", S.tradeCancel); cancel.type = "button"; cancel.addEventListener("click", function () { send({ type: "cancel", offerId: o.id }); }); btns.appendChild(cancel);
         } else {
-          var acc = el("button", "gt-chip", S.tradeAccept); acc.type = "button"; acc.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "accept" }); }); btns.appendChild(acc);
+          var acc = el("button", "gt-chip", S.tradeAccept); acc.type = "button";
+          // grayed when your hand can't pay what they ask (o.get is the accepter's side)
+          acc.disabled = !canAfford((model.you && model.you.hand) || {}, o.get || {});
+          acc.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "accept" }); }); btns.appendChild(acc);
           var dec = el("button", "gt-chip", S.tradeDecline); dec.type = "button"; dec.addEventListener("click", function () { send({ type: "respond", offerId: o.id, action: "decline" }); }); btns.appendChild(dec);
         }
       }
