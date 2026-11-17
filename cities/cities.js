@@ -130,6 +130,7 @@
     onLeave: onLeave,
     onRematch: resetGameUi,
     lobbySettings: lobbySettings,
+    toolbarLead: function () { return [gameClock()]; },
     settingsRows: function () {
       var st = model.settings;
       var rows = [
@@ -151,6 +152,30 @@
       return sec + Math.round(((model.turn && model.turn.bonusMs) || 0) / 1000);
     }
   });
+  /* The game clock: how long this game has run, counting up from the
+     engine's `startedAt` and stopping at its `endedAt`. It wears the dice
+     tile's countdown box (.cities-timer) at rest, ahead of the toolbar's
+     pills. Rebuilt with the toolbar on every render; each copy ticks
+     itself and stops once it leaves the DOM. Absent in the lobby and for
+     a game dealt before the view carried `startedAt`. */
+  function fmtElapsed(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    var ss = ("0" + (s % 60)).slice(-2);
+    return h ? h + ":" + ("0" + m).slice(-2) + ":" + ss : m + ":" + ss;
+  }
+  function gameClock() {
+    if (!model || model.phase === "lobby" || model.startedAt == null) return null;
+    var node = el("div", "cities-timer cities-gameclock");
+    node.title = S.gameClockLabel;
+    node.setAttribute("role", "timer");
+    node.setAttribute("aria-label", S.gameClockLabel);
+    (function tick() {
+      var end = model.endedAt != null ? model.endedAt : TBL.serverNow();
+      node.textContent = fmtElapsed(end - model.startedAt);
+      if (model.endedAt == null) node.gtTick = setTimeout(function () { if (node.isConnected) tick(); }, 1000);
+    })();
+    return node;
+  }
   // shell utilities under their old names — the rest of the file is unchanged
   var el = TBL.el, load = TBL.load, save = TBL.save, fmt = TBL.fmt, slugify = TBL.slugify;
   var reduceMotion = TBL.reduceMotion, toast = TBL.toast, seatDot = TBL.seatDot;

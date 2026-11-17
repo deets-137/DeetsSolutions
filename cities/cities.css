@@ -285,6 +285,13 @@
 .cities-timer.is-urgent { color: var(--stop); border-color: var(--stop); animation: cities-timerpulse 1s var(--ease-ui) infinite; }
 @keyframes cities-timerpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .cities-timer.is-urgent { animation: none; } }
+/* the game clock: the same box, sized down to stand level with the
+   toolbar's pills (one text line plus the pill's block padding) */
+.cities-gameclock {
+  height: auto; min-width: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--fs-nav); line-height: inherit;
+}
 .cities-die {
   width: 2.6rem; height: 2.6rem; display: grid; place-items: center;
   background: var(--ctoken-bg); color: var(--ctoken-ink);

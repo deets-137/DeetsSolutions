@@ -835,6 +835,8 @@
       TOOLBAR.textContent = "";
       if (!joined || !model) return;
       var mine = mySeat();
+      // a game's own readout ahead of the pills (cities' game clock)
+      (hook("toolbarLead") ? cfg.toolbarLead() : []).forEach(function (n) { if (n) TOOLBAR.appendChild(n); });
       TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "link") : pill)(S.invitePill, function () {
         var url = location.origin + location.pathname + (T.kind === "mock" ? "?mock" : "") + "#" + code;
         try { navigator.clipboard.writeText(url); toast(S.shareToast, "success"); } catch (e) { toast(url, "info"); }
@@ -1843,6 +1845,9 @@
       fmtClock: fmtClock,
       timerRing: timerRing,
       timerText: timerText,
+      // the server's clock as this page reads it (Date.now() less the skew
+      // serverNow measured), for a game's own count-up readouts
+      serverNow: function () { return Date.now() - clockSkew; },
       // chrome
       render: render,
       renderLobby: renderLobby,

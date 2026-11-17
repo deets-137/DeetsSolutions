@@ -495,6 +495,9 @@
     var events = [];
     var res = handler(g, action, ctx, events);
     if (res && res.error) return res;       // rejected — original untouched
+    // the game clock stops where the game did: every route to "over" (a win,
+    // the last seat conceding) passes through here, so it is stamped once
+    if (g.phase === "over" && g.endedAt == null) g.endedAt = ctx ? ctx.now : 0;
     return { game: g, events: events };
   }
 
@@ -2067,6 +2070,8 @@
       act({ type: "concede", seat: 0 });
       eq(g.phase, "over", "one live seat left ends the game");
       eq(g.winner, 2, "the surviving seat takes the standings");
+      eq(g.endedAt, ctx.now, "the game clock stops when the game ends");
+      ok(g.startedAt != null && g.endedAt >= g.startedAt, "the game clock has a start before its end");
     })();
 
     /* concede during the draft — struck picks, live first turn */

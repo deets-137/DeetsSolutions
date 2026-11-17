@@ -62,6 +62,8 @@
       if (!g) return view;
 
       view.frame = g.frame;
+      view.startedAt = g.startedAt;                 // public: the game clock (cities.js, gameClock)
+      if (g.endedAt != null) view.endedAt = g.endedAt;
       view.board = g.board;                         // public: hexes, tokens, harbors, robber
       view.buildings = g.buildings;                 // public: piece positions (vid -> {seat,kind})
       view.roads = g.roads;                         // public: road positions (eid -> seat)

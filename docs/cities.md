@@ -331,6 +331,13 @@ suspends while the current player is inside their disconnect grace
 window (see below); once a seat goes to a bot the timer no longer
 applies to it — bots act on their own.
 
+**The game clock** (2026-11-16, his call). Every game, timed or not,
+shows how long it has run, ahead of the toolbar's pills (the shell's
+`toolbarLead` hook), in the dice tile's countdown box at rest. It counts
+up from the engine's `startedAt` (stamped when Start deals, so the
+seating roll counts) and stops at `endedAt`, which `applyAction` stamps
+the first time the game reaches `over`. Both ride the public view.
+
 **The trade bonus.** With a timer running, every *completed* trade —
 bank/harbour (`bankTrade`) or a closed player-to-player offer
 (`execTrade`, the one site a ptp trade completes) — and every *paid*

@@ -66,6 +66,7 @@ window.CITIES_STRINGS = {
   timerCustom:     "#s",   /* the custom-seconds box — Aditya's, chat 2026-08-02 */
   bonusLabel:      "Trade Bonus Time",   /* Aditya's wording, chat 2026-08-05 */
   bonusOff:        "Off",
+  gameClockLabel:  "[ph] Game time",   // the toolbar's count-up clock (tooltip + screen readers)
   bettingLabel:    "Spectator betting",   // betting is unbuilt (v1.1); prefix cleared with the rest 2026-10-28
   bettingOn:       "On",
   bettingOff:      "Off",

@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, games/stage.js, games/seating.js, styles/table.css]
-updated: 2026-10-28
+updated: 2026-11-16
 ---
 # Deets games — the shared foundation
 
@@ -450,7 +450,10 @@ you clicked Confirm on was two renders younger than the one you armed.
 linger), `els`.
 
 **Hooks:** the order above, plus `onJoin`, `onLeave`, `onRematch`,
-`onResize`, `blockRender`, `extraPills`, `lobbySettings`, `settingsRows`.
+`onResize`, `blockRender`, `extraPills`, `toolbarLead` (nodes ahead of
+the toolbar's first pill; cities' game clock), `lobbySettings`,
+`settingsRows`. `TBL.serverNow()` is the server's clock as the page
+reads it, for a game's own count-up readouts.
 
 `onRematch` fires when a broadcast takes this socket from `over` to
 `lobby` — the host rematched, so the game drops what belonged to the
