@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [cities/engine.js, cities/cities.js, cities/cities.css, cities/strings.js, games/table.js, games/stage.js, games/seating.js]
-updated: 2026-10-28
+updated: 2026-11-16
 ---
 # DeetsCities — design + build log
 
@@ -324,7 +324,9 @@ are the shell's (`TBL.timerText` / `TBL.timerRing`, see
 `timerSec` and where they hang. Expiry auto-resolves the pending
 obligation and ends the turn: unrolled → auto-roll; discard interrupt →
 random discard for stragglers (its own shorter 30 s window); robber
-pending → random legal hex, no steal; otherwise → end turn. Timer
+pending → random legal hex, then a steal from a random victim there if
+anyone has cards; steal pending → steal from a random eligible victim;
+otherwise → end turn. Timer
 suspends while the current player is inside their disconnect grace
 window (see below); once a seat goes to a bot the timer no longer
 applies to it — bots act on their own.

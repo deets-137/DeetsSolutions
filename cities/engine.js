@@ -1186,15 +1186,17 @@
       p = g.turn.pending;
     }
     if (p && p.kind === "robber") {
-      // move to a random legal hex, no steal
+      // move to a random legal hex through the real move, so the forced
+      // move counts and sets up a steal exactly as a manual one does
       var hexes = g.board.hexes.filter(function (h) { return hkey(h.q, h.r) !== g.board.robber; });
       var pick = hexes[randInt(ctx, hexes.length)];
-      g.board.robber = hkey(pick.q, pick.r);
-      g.stats.seats[t.seat].robber.moved++;   // a forced move is still a move
-      events.push({ t: "robber", seat: t.seat, hex: g.board.robber });
-      g.turn.pending = null;
+      moveRobber(g, { hex: hkey(pick.q, pick.r) }, ctx, events);
     }
-    if (g.turn.pending && g.turn.pending.kind === "steal") g.turn.pending = null;
+    if (g.turn.pending && g.turn.pending.kind === "steal") {
+      // steal from a random eligible victim
+      var tg = g.turn.pending.targets;
+      steal(g, { target: tg[randInt(ctx, tg.length)] }, ctx, events);
+    }
     if (g.turn.pending && g.turn.pending.kind === "roads") g.turn.pending = null;
     if (!t.rolled) {
       // auto-roll for an idle player, then end (production applied)
@@ -2142,6 +2144,34 @@
       act({ type: "steal", seat: thief, target: victim });
       eq(g.stats.seats[victim].robber.victimized, vic + 1, "the victim's counter tracks the steal");
       ok(!("robbed" in g.stats.seats[victim].lost), "lost.robbed is gone");
+
+      // 4. a timed-out steal takes a card from an eligible victim
+      thief = g.turn.seat; victim = (thief + 1) % g.seatCount;
+      g.players[victim].hand.brick++;
+      var tHand = handSize(g.players[thief].hand), vHand = handSize(g.players[victim].hand);
+      g.turn.pending = { kind: "steal", hex: g.board.robber, targets: [victim] };
+      g.turn.rolled = true;
+      act({ type: "timerExpire" });
+      eq(handSize(g.players[thief].hand), tHand + 1, "timer steal: the thief gains a card");
+      eq(handSize(g.players[victim].hand), vHand - 1, "timer steal: the victim loses one");
+
+      // 5. a timed-out robber lands on a legal hex and steals when it can
+      var rseat2 = g.turn.seat, other = (rseat2 + 1) % g.seatCount;
+      g.players[other].hand.ore += 3;
+      var from = g.board.robber, before2 = handSize(g.players[rseat2].hand);
+      g.turn.pending = { kind: "robber", viaKnight: false };
+      g.turn.rolled = true;
+      var r5 = applyAction(g, { type: "timerExpire" }, ctx);
+      ok(!r5.error, "timer robber: no error");
+      g = r5.game;
+      ok(g.board.robber !== from && geo.hexSet[g.board.robber], "timer robber: moves to a different legal hex");
+      ok(!g.turn.pending, "timer robber: nothing left pending");
+      var stoleEv = (r5.events || []).some(function (e) { return e.t === "stealHidden"; });
+      var hexHasVictim = (geo.hexVertices[g.board.robber] || []).some(function (v) {
+        var b = g.buildings[v]; return b && b.seat !== rseat2 && handSize(g.players[b.seat].hand) > 0;
+      });
+      eq(stoleEv, hexHasVictim, "timer robber: steals exactly when the new hex has a victim");
+      eq(handSize(g.players[rseat2].hand), before2 + (stoleEv ? 1 : 0), "timer robber: the steal lands on the mover");
     })();
 
     /* standings — competition ranking over totalVP, and the ptp trade
