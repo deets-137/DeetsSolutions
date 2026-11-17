@@ -750,6 +750,7 @@
       if (!freeRoad) {
         if (!canAfford(p.hand, COST.road)) return err("cost");
         pay(g, seat, COST.road);
+        tradeBonus(g);   // a paid build buys clock like a trade (a free road doesn't)
       }
       g.roads[loc] = seat; p.supply.road--;
       g.stats.seats[seat].pieces.roads++;
@@ -772,6 +773,7 @@
       if (p.supply.settlement <= 0) return err("supply");
       if (!canAfford(p.hand, COST.settlement)) return err("cost");
       pay(g, seat, COST.settlement);
+      tradeBonus(g);
       g.buildings[loc] = { seat: seat, kind: "settlement" };
       p.supply.settlement--;
       g.stats.seats[seat].pieces.settlements++;
@@ -787,6 +789,7 @@
       if (p.supply.city <= 0) return err("supply");
       if (!canAfford(p.hand, COST.city)) return err("cost");
       pay(g, seat, COST.city);
+      tradeBonus(g);
       b.kind = "city";
       p.supply.city--; p.supply.settlement++;   // the settlement returns to supply
       g.stats.seats[seat].pieces.cities++;
@@ -997,8 +1000,9 @@
   }
 
   /* ── the trade bonus (docs/cities.md, "Timers") ────────────────
-     A completed trade — bank/harbour or player-to-player — buys the
-     CURRENT TURN more clock. The engine only counts the milliseconds
+     A completed trade — bank/harbour or player-to-player — or a paid
+     build (road, settlement, city; not a Road Building free road) buys
+     the CURRENT TURN more clock, the same `tradeBonusSec` each. The engine only counts the milliseconds
      owed on `turn.bonusMs`; the table (games/table-do.js and its mock)
      is what pushes `turnEndsAt` out by the delta, because the clock has
      never lived in here. Accumulates uncapped and dies with the turn.
@@ -1913,6 +1917,21 @@
       g = applyAction(g, { type: "respond", seat: 1, offerId: bid, action: "accept" }, ctx).game;
       g = applyAction(g, { type: "close", seat: 0, offerId: bid, accepter: 1 }, ctx).game;
       eq(g.turn.bonusMs, 30000, "bonus: a closed player trade adds 10s");
+
+      // 3b. a paid build pays the same; a Road Building free road does not
+      var bgeo = geoOf(g.board), bv = Object.keys(bgeo.vertexHexes)[0];
+      g.buildings[bv] = { seat: 0, kind: "settlement" };
+      var be = bgeo.vertexEdges[bv];
+      g.players[0].hand = { wood: 2, brick: 2, sheep: 0, wheat: 2, ore: 3 };
+      g = applyAction(g, { type: "place", seat: 0, kind: "road", loc: be[0] }, ctx).game;
+      eq(g.turn.bonusMs, 40000, "bonus: a paid road adds 10s");
+      g = applyAction(g, { type: "place", seat: 0, kind: "city", loc: bv }, ctx).game;
+      eq(g.buildings[bv].kind, "city", "bonus: the city was built");
+      eq(g.turn.bonusMs, 50000, "bonus: a city adds 10s");
+      g.turn.pending = { kind: "roads", left: 1 };
+      g = applyAction(g, { type: "place", seat: 0, kind: "road", loc: be[1] }, ctx).game;
+      eq(g.roads[be[1]], 0, "bonus: the free road was placed");
+      eq(g.turn.bonusMs, 50000, "bonus: a free road adds nothing");
 
       // 4. it does not survive the turn
       g = applyAction(g, { type: "endTurn", seat: 0 }, ctx).game;

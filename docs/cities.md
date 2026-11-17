@@ -55,7 +55,7 @@ on the existing zone). Expected load: 1–2 tables at a time.
   independent d6. No card-deck/"balanced" dice mode.
 - **Turn timers are a table setting.** Default **off**; host may pick
   45 / 60 / 90 / 120 s per turn. Expiry auto-resolves (see "Timers").
-- **A completed trade buys the turn more clock.** "Trade Bonus Time" —
+- **A completed trade or a paid build buys the turn more clock.** "Trade Bonus Time" —
   10 (default) / 20 / 30 s or a custom 5–60, or Off. Only offered when
   there is a timer to extend (see "Timers").
 - **Spectators are first-class.** Anyone may watch a running or full
@@ -333,8 +333,11 @@ applies to it — bots act on their own.
 
 **The trade bonus.** With a timer running, every *completed* trade —
 bank/harbour (`bankTrade`) or a closed player-to-player offer
-(`execTrade`, the one site a ptp trade completes) — adds
-`settings.tradeBonusSec` to the **current turn's** clock. It accumulates
+(`execTrade`, the one site a ptp trade completes) — and every *paid*
+build (road, settlement, city in `placeMain`; a Road Building free road
+pays nothing and earns nothing; buying a dev card is not a build) adds
+`settings.tradeBonusSec` to the **current turn's** clock (builds added
+2026-11-16, his call). It accumulates
 **uncapped** within the turn and dies with it. The engine only counts
 the milliseconds owed, on `turn.bonusMs` (public, so the shell's ring
 scales to the stretched budget via cities' `timerBudget`); the table is
