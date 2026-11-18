@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-17T02:00:19Z",
+  "generated_at": "2026-11-18T02:00:25Z",
   "channel": "song-of-the-day",
-  "count": 489,
+  "count": 491,
   "songs": [
     {
       "post_id": 1,
@@ -11249,6 +11249,52 @@
       "apple_music_url": "https://music.apple.com/us/album/when-i-get-to-you/6815389829?i=6815390098&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/74/66/b8/7466b87d-6632-691a-de4c-3b831fa01295/mzaf_287618636361047000.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/dc/12/c5/dc12c5d2-a1df-81ff-d5d4-c461de7eac21/193436488419_MonsuneSureCoverDSPs.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 41088,
+      "posted_at": "2026-11-17T08:37:15.530000+00:00",
+      "date": "2026-11-16",
+      "day": "Mon",
+      "month": "11_2026",
+      "track_name": "When I Get To You",
+      "artist_name": "Monsune",
+      "album": "Sure",
+      "genre": "Alternative",
+      "duration": "4:14",
+      "duration_sec": 254,
+      "release_date": "2026-11-06",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6815390098",
+      "apple_music_url": "https://music.apple.com/us/album/when-i-get-to-you/6815389829?i=6815390098&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/74/66/b8/7466b87d-6632-691a-de4c-3b831fa01295/mzaf_287618636361047000.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/dc/12/c5/dc12c5d2-a1df-81ff-d5d4-c461de7eac21/193436488419_MonsuneSureCoverDSPs.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 41089,
+      "posted_at": "2026-11-17T23:43:00.967000+00:00",
+      "date": "2026-11-17",
+      "day": "Tue",
+      "month": "11_2026",
+      "track_name": "car crash",
+      "artist_name": "jigitz & Charlotte Plank",
+      "album": "50 ballerinas",
+      "genre": "Dance",
+      "duration": "2:40",
+      "duration_sec": 160,
+      "release_date": "2026-04-24",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6791576335",
+      "apple_music_url": "https://music.apple.com/us/album/car-crash/6791575966?i=6791576335&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0a/a7/64/0aa764ec-42ac-0fc6-0327-1aa115715639/mzaf_2558814139311627971.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/93/00/5c/93005c69-26f4-7125-4276-377ad130abe2/823375316725_Cover.jpg/600x600bb.jpg"
     }
   ]
 }
