@@ -69,6 +69,14 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-11-19 — DeetsBets: bets in cities and mahjong (IDEA, nothing built).** Two routes:
+player vs. table ("next roll is a 5, one wood on it") and player vs. player, open or secret
+("John steals from Jane", Deets vs. Shaun, winner takes both stakes). His decisions are in
+[bets.md](bets.md): the module runs inside each game's DO, staked cities cards stay in the
+hand, mahjong pays in betting points only. Found and fixed on the way (LIVE, cities worker
+`13ff14cb`): with betting on, cities' `over` view sent every spectator's device token to
+everyone. Next: he writes the cities payout table (left blank on purpose), then `games/bets.js`.
+
 **2026-11-19 — Games: a table no longer sits frozen until a reload, and a connection log
 (LIVE 2026-11-19: site on `master` d3eb1fb; workers deployed, cities `c44bcfc6`, mahjong
 `12eb7824`, poker `f5d2b5ed`; a live join's log line seen in `wrangler tail`).** Two players in a 5-seat cities game (timer off) saw it stop at the end of a turn,

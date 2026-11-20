@@ -118,6 +118,8 @@ by TMDB).
 - [docs/bots.md](docs/bots.md) — how the games play themselves: where a
   bot's brain lives, the `botAct` contract, each game's decision order
   and scoring, the difficulty tiers, and how they were measured.
+- [docs/bets.md](docs/bets.md) — DeetsBets: bets against the engine and
+  private side bets between players, for cities and mahjong.
 - [docs/cities.md](docs/cities.md) — the DeetsCities board game: rules
   engine, board data, wire protocol, the bento layout, the identity /
   disconnect-grace / rejoin rules, and what's still unbuilt.
