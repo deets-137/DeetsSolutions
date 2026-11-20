@@ -51,6 +51,8 @@ window.MAHJONG_STRINGS = {
    leavePill: "Leave",
    closePill: "Close Table",
    closeConfirm: "Confirm?",
+   fullscreenPill: "Fullscreen",
+   minimizePill: "Minimize",
    tableClosed: "The host closed the table.",
 
    /* ── lobby (big tile: settings) ──────────────────────────────── */

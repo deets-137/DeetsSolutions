@@ -842,6 +842,8 @@
         try { navigator.clipboard.writeText(url); toast(S.shareToast, "success"); } catch (e) { toast(url, "info"); }
       }));
       if (model.settings) TOOLBAR.appendChild(viewSettingsPill());
+      var fs = fullscreenPill();
+      if (fs) TOOLBAR.appendChild(fs);
       (hook("extraPills") ? cfg.extraPills() : []).forEach(function (n) { if (n) TOOLBAR.appendChild(n); });
       if (model.phase === "lobby") {
         if (mine == null) TOOLBAR.appendChild((cfg.iconToolbar ? iconPill.bind(null, "sit") : pill)(S.sitPill, function () { send({ type: "sit" }); }));
@@ -951,6 +953,17 @@
         svg.appendChild(up);
         svg.appendChild(svgEl("path", { "data-floor": "", d: FLOOR }));
         svg._check = false;
+      } else if (name === "full") {
+        // two arrows on the diagonal, pointing out to the corners; in
+        // fullscreen the same two point back in at the middle (setFull)
+        ["tr", "bl"].forEach(function (k) {
+          var g = svgEl("g", { "data-corner": k });
+          g.appendChild(svgEl("path", { "data-shaft": "" }));
+          g.appendChild(svgEl("path", { "data-head": "" }));
+          svg.appendChild(g);
+        });
+        svg._full = null;
+        setFull(svg, false, true);
       } else if (name === "sit") {
         // the line on top, a down arrow under it
         svg.appendChild(svgEl("path", { d: "M5 4.5h14" }));
@@ -1062,6 +1075,91 @@
       ], { duration: m.ms * 0.6, easing: "ease-in", fill: "forwards" });
       a.onfinish = function () { leaving = false; a.cancel(); then(); };
     }
+    /* Fullscreen: the browser's own F11, as a pill. The whole page goes
+       fullscreen (not just the table — toasts and popovers live outside
+       it), and the layout is left alone. A browser with no fullscreen
+       (iPhone Safari) gets no pill. Esc and F11 leave fullscreen without
+       touching the pill, so the glyph and label follow the browser's
+       fullscreenchange, never the click. */
+    var FULL_GEO = {
+      out: { tr: ["M14 10L19.5 4.5", "M14.5 4.5H19.5V9.5"], bl: ["M10 14L4.5 19.5", "M4.5 14.5V19.5H9.5"] },
+      "in": { tr: ["M19.5 4.5L14 10", "M14 5V10H19"], bl: ["M4.5 19.5L10 14", "M5 14H10V19"] }
+    };
+    function fullCorner(g, full) {
+      var geo = FULL_GEO[full ? "in" : "out"][g.getAttribute("data-corner")];
+      g.querySelector("[data-shaft]").setAttribute("d", geo[0]);
+      g.querySelector("[data-head]").setAttribute("d", geo[1]);
+    }
+    // Each glyph leaves the way it points and its successor arrives along
+    // the same line: going full, the arrows fly out past the corners and
+    // come back pointing in; coming back, they dive into the middle and
+    // the outward pair grows back out of it.
+    function setFull(svg, full, instant) {
+      if (svg._full === full) return;
+      svg._full = full;
+      (svg._anims || []).forEach(function (a) { a.cancel(); });
+      svg._anims = [];
+      var corners = svg.querySelectorAll("[data-corner]");
+      if (instant || reducedMotion() || !svg.animate) {
+        Array.prototype.forEach.call(corners, function (g) { fullCorner(g, full); });
+        return;
+      }
+      var m = motionToken("--icon-spring");
+      var far = pxToken("--icon-fly") * 0.71, near = pxToken("--icon-part") * 3;
+      Array.prototype.forEach.call(corners, function (g) {
+        var sx = g.getAttribute("data-corner") === "tr" ? 1 : -1, d = full ? far : -near;
+        var off = "translate(" + sx * d + "px, " + -sx * d + "px)";
+        fullCorner(g, !full);   // a cut-short swap restarts from the old pair
+        var a = g.animate([{ transform: "none", opacity: 1 }, { transform: off, opacity: 0 }],
+          { duration: m.ms * 0.5, easing: "ease-in", fill: "forwards" });
+        svg._anims.push(a);
+        a.onfinish = function () {
+          fullCorner(g, full);
+          svg._anims.push(g.animate([{ transform: off, opacity: 0 }, { transform: "none", opacity: 1 }],
+            { duration: m.ms, easing: m.easing }));
+          a.cancel();
+        };
+      });
+    }
+    function fsElement() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+    function toggleFullscreen() {
+      var root = document.documentElement, p;
+      try {
+        if (fsElement()) p = (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        else p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root, { navigationUI: "hide" });
+      } catch (e) {}
+      if (p && p.catch) p.catch(function () {});
+    }
+    var FS_PILL = null;
+    function labelFullPill(b, full) {
+      var word = full ? S.minimizePill : S.fullscreenPill;
+      b.title = word; b.setAttribute("aria-label", word);
+      var lab = b.querySelector(".tb-pill__label");
+      if (lab) lab.textContent = word;
+    }
+    function fullscreenPill() {
+      FS_PILL = null;
+      if (!(document.fullscreenEnabled || document.webkitFullscreenEnabled)) return null;
+      if (!S.fullscreenPill || !S.minimizePill) return null;   // a stale strings.js
+      var full = !!fsElement();
+      var b = el("button", "tb-pill"); b.type = "button";
+      if (cfg.iconToolbar) {
+        b.classList.add("tb-pill--icon");
+        var svg = toolbarIcon("full");
+        setFull(svg, full, true);
+        b.appendChild(svg);
+      } else b.appendChild(el("span", "tb-pill__label", ""));
+      labelFullPill(b, full);
+      b.addEventListener("click", toggleFullscreen);
+      return (FS_PILL = b);
+    }
+    function onFullscreenChange() {
+      var full = !!fsElement();
+      if (ICONS.full) setFull(ICONS.full, full);
+      if (FS_PILL) labelFullPill(FS_PILL, full);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
     // Sit down: the arrow dips toward the seat and springs back
     function dipDown(svg) {
       if (reducedMotion() || !svg.animate) return;

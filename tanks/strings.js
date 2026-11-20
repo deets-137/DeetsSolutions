@@ -52,6 +52,8 @@ window.TANKS_STRINGS = {
   leavePill: "Leave",
   closePill: "Close Table",
   closeConfirm: "Confirm?",
+  fullscreenPill: "Fullscreen",
+  minimizePill: "Minimize",
   tableClosed: "The host closed the table.",
   standButton: "Stand up",
   standConfirm: "Confirm?",

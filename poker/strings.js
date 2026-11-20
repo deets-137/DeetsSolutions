@@ -61,6 +61,8 @@ window.POKER_STRINGS = {
    leavePill: "Leave",
    closePill: "Close Table",
    closeConfirm: "Confirm?",
+   fullscreenPill: "Fullscreen",
+   minimizePill: "Minimize",
    tableClosed: "The host closed the table.",
    /* mid-game toolbar — poker's own pills. Stand up cashes you out at a
       "none" table only; the hover title is Aditya's, chat 2026-08-03.
