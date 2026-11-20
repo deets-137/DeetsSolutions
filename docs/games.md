@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, games/stage.js, games/seating.js, styles/table.css]
-updated: 2026-11-16
+updated: 2026-11-19
 ---
 # Deets games — the shared foundation
 
@@ -128,16 +128,24 @@ there's a choice. A peek without `mine` (a worker not yet re-vendored)
 falls back to the hedged "Rejoin or spectate".
 
 **Seat name and player name are two names.** A *player* name (the one typed
-at the gate) is unique among live connections; a *seat* name is unique among
-seats. Neither blocks the other: when Aditya stands up mid-game, the bot keeps
-his seat as "Aditya" and he can still rejoin as "Aditya". A seat keeps the
+at the gate) may repeat; a *seat* name is unique among seats. Player names
+used to be unique among live connections. That locked out anyone who came
+back on a new token (a phone, a private window, an in-app browser that forgets
+storage) while their old connection lingered, and they got in as "Name 2" (his
+call, 2026-11-19). Neither name blocks the other: when Aditya stands up
+mid-game, the bot keeps his seat as "Aditya" and he can still rejoin as
+"Aditya". A seat keeps the
 name it was dealt under (names lock at Start), so whoever sits in it under a
 different name — an adopter at an "anyone" table, a player back under a new
 name — rides beside it as the view's `player` field, read live off their
 connection, and every display goes through the shell's `seatLabel` /
 `seatName`: "Ozan (Aditya)". A dark seat or a bot shows no player. A lobby
-`sit` names a new seat after its player, so it refuses `name-taken` when a
-seat already has that name. The ledger's span records the player's name.
+`sit` names a new seat after its player. When a seat already has that name
+(often the same person's dark seat from the old device), the new seat becomes
+"Name 2", then 3 and on, and the player shows beside it ("Name 2 (Name)"). It
+refuses `name-taken` only past 9. A `rename` checks seats alone. A join no
+longer answers `name-taken`; the client's "Name 2" retry on it stays for
+workers not yet re-vendored. The ledger's span records the player's name.
 
 **Signed in, a seat also carries the account `uid`** — and the identity
 becomes portable across devices. The `ds_sess` cookie is scoped to

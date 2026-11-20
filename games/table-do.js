@@ -897,11 +897,17 @@ export class GameTable {
         if (msg.seat != null && !t.seats[msg.seat]) idx = msg.seat;
         else idx = this.openSeatIndex();
         if (idx < 0) return this.errTo(ws, "full");
-        // the new seat takes the player's name, so it must be free among seats
-        const slower = String(att.name || "").toLowerCase();
-        if (t.seats.some((s) => s && s.name.toLowerCase() === slower)) return this.errTo(ws, "name-taken");
+        // the new seat takes the player's name, but seat names are unique: a
+        // seat already holding it (often this same person's dark seat from
+        // another device) makes this one "Name 2", then 3, … — the player
+        // keeps their own name beside it ("Name 2 (Name)")
+        const sbase = String(att.name || "?");
+        const staken = (n) => t.seats.some((s) => s && s.name.toLowerCase() === n.toLowerCase());
+        let sname = sbase;
+        for (let n = 2; staken(sname) && n < 10; n++) sname = sbase.slice(0, NAME_CAP - 2) + " " + n;
+        if (staken(sname)) return this.errTo(ws, "name-taken");
         const occupied = t.seats.map((s, si) => (s && si !== idx) ? s.color : null);
-        t.seats[idx] = { token, name: att.name, color: this.Colors.freeColor(occupied) };
+        t.seats[idx] = { token, name: sname, color: this.Colors.freeColor(occupied) };
         if (att.uid) t.seats[idx].uid = att.uid;   // account seat: uid-reclaim from any device
         this.resizeSeats();
         await this.broadcast([]);
@@ -914,20 +920,18 @@ export class GameTable {
         return;
       }
       // rename your own seat (lobby-only — names lock at Start like colors).
-      // Display only, same clash rule as join and addBot.
+      // Display only. The seat name must be free among seats; player names
+      // may repeat, so live connections don't block it.
       if (type === "rename") {
         const ri = this.seatOfToken(token);
         if (ri == null) return this.errTo(ws, "perm");
         const rname = String(msg.name || "").trim().slice(0, NAME_CAP);
         if (!rname) return this.errTo(ws, "perm");
         const rlower = rname.toLowerCase();
-        const rtaken = t.seats.some((s, si) => s && si !== ri && s.name.toLowerCase() === rlower) ||
-                       this.joinedSockets().some((s) => s.att.token !== token && s.att.name.toLowerCase() === rlower);
-        if (rtaken) return this.errTo(ws, "name-taken");
+        if (t.seats.some((s, si) => s && si !== ri && s.name.toLowerCase() === rlower)) return this.errTo(ws, "name-taken");
         t.seats[ri].name = rname;
-        // join's clash check reads live att.name too — every socket of this
-        // token follows, or the old name stays "taken" and the new one
-        // goes unguarded
+        // the player takes the new name too — every socket of this token,
+        // or the "Seat (Player)" label would show the old one beside it
         for (const c of this.socketsForToken(token)) { c.att.name = rname; c.ws.serializeAttachment(c.att); }
         att.name = rname;
         await this.broadcast([]);
@@ -1201,15 +1205,11 @@ export class GameTable {
       const mine = this.joinedSockets().filter((s) => s.ws !== ws && token && s.att.token === token);
       const others = this.joinedSockets().filter((s) => s.ws !== ws && !mine.includes(s));
       let reclaim = this.reclaimSeat(token, uid);
-      // A PLAYER name is unique among live connections only. Seat names are
-      // their own namespace (unique among seats, checked where a seat is
-      // named): a seat keeps the name it was dealt under, so a bot holding
-      // "Aditya" after he stood up must not lock Aditya out of the table.
-      if (others.some((s) => s.att.name.toLowerCase() === name.toLowerCase())) {
-        this.errTo(ws, "name-taken");
-        try { ws.close(4409, "name-taken"); } catch (e) {}
-        return;
-      }
+      // A PLAYER name may repeat: whoever comes back on another device (a
+      // phone, a private window, an in-app browser that forgets storage)
+      // while their old connection lingers keeps their own name. Only seat
+      // names are unique (checked where a seat is named), so a table's
+      // roster and log never show two seats alike.
       if (others.length + 1 > MAX_SOCKETS) {
         this.errTo(ws, "full");
         try { ws.close(4429, "full"); } catch (e) {}

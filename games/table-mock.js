@@ -497,11 +497,15 @@
           if (msg.seat != null && !t.seats[msg.seat]) idx = msg.seat;
           else idx = openSeatIndex(t);
           if (idx < 0) return errTo(conn, "full");
-          // the new seat takes the player's name, so it must be free among seats
-          var slower = String(conn.name || "").toLowerCase();
-          if (t.seats.some(function (s) { return s && s.name.toLowerCase() === slower; })) return errTo(conn, "name-taken");
+          // the new seat takes the player's name, but seat names are unique:
+          // a seat already holding it makes this one "Name 2", then 3, …
+          var sbase = String(conn.name || "?");
+          var staken = function (n) { return t.seats.some(function (s) { return s && s.name.toLowerCase() === n.toLowerCase(); }); };
+          var sname = sbase;
+          for (var sn = 2; staken(sname) && sn < 10; sn++) sname = sbase.slice(0, 22) + " " + sn;
+          if (staken(sname)) return errTo(conn, "name-taken");
           var occupied = t.seats.map(function (s, si) { return s && si !== idx ? s.color : null; });
-          t.seats[idx] = { token: token, name: conn.name, color: Colors.freeColor(occupied), connected: true, phantom: false };
+          t.seats[idx] = { token: token, name: sname, color: Colors.freeColor(occupied), connected: true, phantom: false };
           resizeSeats(t);
           return broadcast(t, []);
         }
@@ -519,9 +523,8 @@
           var rname = String(msg.name || "").trim().slice(0, 24);
           if (!rname) return errTo(conn, "perm");
           var rlower = rname.toLowerCase();
-          var rtaken = t.seats.some(function (s, si) { return s && si !== ri && s.name.toLowerCase() === rlower; }) ||
-                       t.conns.some(function (c) { return !c.closed && c.token !== token && c.name.toLowerCase() === rlower; });
-          if (rtaken) return errTo(conn, "name-taken");
+          // unique among seats only — player names may repeat
+          if (t.seats.some(function (s, si) { return s && si !== ri && s.name.toLowerCase() === rlower; })) return errTo(conn, "name-taken");
           t.seats[ri].name = rname;
           t.conns.forEach(function (c) { if (c.token === token) c.name = rname; });
           return broadcast(t, []);
@@ -704,10 +707,9 @@
             t.conns.slice().forEach(function (c) {
               if (token && c.token === token) { c.closed = true; t.conns.splice(t.conns.indexOf(c), 1); }
             });
-            // a PLAYER name is unique among live connections only — seat
-            // names are their own namespace, checked where a seat is named
-            var clash = t.conns.some(function (c) { return !c.closed && c.name.toLowerCase() === name.toLowerCase() && c.token !== token; });
-            if (clash) return reject({ code: "name-taken" });
+            // a PLAYER name may repeat (whoever returns on another device
+            // keeps it); only seat names are unique, checked where a seat
+            // is named
             if (t.conns.filter(function (c) { return !c.closed; }).length >= MAX_CONNS) return reject({ code: "full" });
 
             var conn = {
