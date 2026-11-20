@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-19T02:00:16Z",
+  "generated_at": "2026-11-20T02:00:24Z",
   "channel": "song-of-the-day",
-  "count": 491,
+  "count": 492,
   "songs": [
     {
       "post_id": 1,
@@ -11294,6 +11294,29 @@
       "url": "https://music.apple.com/song/6791576335",
       "apple_music_url": "https://music.apple.com/us/album/car-crash/6791575966?i=6791576335&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0a/a7/64/0aa764ec-42ac-0fc6-0327-1aa115715639/mzaf_2558814139311627971.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/93/00/5c/93005c69-26f4-7125-4276-377ad130abe2/823375316725_Cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 42072,
+      "posted_at": "2026-11-19T07:46:24.946000+00:00",
+      "date": "2026-11-18",
+      "day": "Wed",
+      "month": "11_2026",
+      "track_name": "seeing stars",
+      "artist_name": "jigitz & venbee",
+      "album": "50 ballerinas",
+      "genre": "Dance",
+      "duration": "2:38",
+      "duration_sec": 158,
+      "release_date": "2026-08-21",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6791576339",
+      "apple_music_url": "https://music.apple.com/us/album/seeing-stars/6791575966?i=6791576339&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9b/f9/73/9bf9735e-9d4d-f287-9365-142467810dd7/mzaf_3041247237925262766.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/93/00/5c/93005c69-26f4-7125-4276-377ad130abe2/823375316725_Cover.jpg/600x600bb.jpg"
     }
   ]
