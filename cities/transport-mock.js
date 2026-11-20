@@ -118,9 +118,10 @@
             return { seat: i, total: Engine.totalVP(g, i), vpCards: p.vpCards,
                      rank: rank[i].rank, tied: rank[i].tied };
           }),
-          stats: g.stats,
-          book: t.book,
-          chips: t.chips
+          stats: g.stats
+          // no book, no chips: both are keyed by device token, the seat-reclaim
+          // identity, and must never reach other viewers. Each viewer's own
+          // balance rides you.chips (docs/bets.md, "What already exists")
         };
       }
       if (t.turnEndsAt) view.turnEndsAt = t.turnEndsAt;
