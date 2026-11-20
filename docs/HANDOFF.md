@@ -70,8 +70,8 @@ npm run dev
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
 **2026-11-19 — Games: a table no longer sits frozen until a reload, and a connection log
-(built on branch `fullscreen-pill`, unpushed, NOT deployed: he held deploys while live games
-ran).** Two players in a 5-seat cities game (timer off) saw it stop at the end of a turn,
+(LIVE 2026-11-19: site on `master` d3eb1fb; workers deployed, cities `c44bcfc6`, mahjong
+`12eb7824`, poker `f5d2b5ed`; a live join's log line seen in `wrangler tail`).** Two players in a 5-seat cities game (timer off) saw it stop at the end of a turn,
 almost every time, until they reloaded; a reload once made him "Deets 2". Cause not proven.
 `games/transport.js` never checked its pings' answers, so a socket that died without closing
 looked open forever. Now no answer in 10 s, or a rejoin with no snapshot in 15 s, counts as a
@@ -80,13 +80,11 @@ console prints `[deets-table]` lines. `games/table-do.js` gained `trace()`
 ([games.md](games.md), "Connection log"), and the three workers' `wrangler.jsonc` turn on
 Workers Logs (edited locally, uncommitted). Tested: a virtual-clock test of the transport
 (17 checks; the old file fails the silent-socket one), and the cities worker run locally
-with the new `table-do.js`, every log line seen. **To ship, when no game is live:** commit
-the site (the seat-name change is already its own commit, 876f235, on this branch), push,
-then in each of DeetsCities, DeetsMahjong, DeetsPoker run
-`node scripts/vendor.mjs`, commit, `npx wrangler deploy`. Then play and read the logs.
+with the new `table-do.js`, every log line seen. Next: after the next freeze, read the
+cities worker's Logs (or the players' `[deets-table]` console lines) to find the cause.
 
-**2026-11-19 — Games: a Fullscreen pill (built on branch `fullscreen-pill`, unpushed; his
-visual pass owed).** One pill in the shared toolbar (`games/table.js`, `fullscreenPill`), so
+**2026-11-19 — Games: a Fullscreen pill (LIVE on `master` 2026-11-19; his visual pass
+owed).** One pill in the shared toolbar (`games/table.js`, `fullscreenPill`), so
 all four games have it. It is the browser's F11 as a button: the whole page goes fullscreen,
 and the layout is unchanged. Icon toolbars (cities, mahjong) show two arrows to the corners
 that fly out and come back pointing in; poker and tanks show the words. The labels are his,
