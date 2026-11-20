@@ -681,7 +681,27 @@ export class GameTable {
     if (deadlines.length) this.ctx.storage.setAlarm(Math.min(...deadlines));
     else this.ctx.storage.deleteAlarm();
   }
+  /* ---- connection log (Workers Logs; docs/games.md, "Connection log") ----
+     One JSON line per connection event, so a table that froze can be read
+     back afterwards: who joined or rejoined and why, who was replaced or
+     refused, which socket closed with what code, any alarm that threw.
+     Seats and codes only — never a token, an account id or a name. */
+  trace(ev, f) {
+    try { console.log(JSON.stringify(Object.assign({ ev, table: (this.t && this.t.code) || null }, f || {}))); } catch (e) {}
+  }
+  traceGame() {
+    const g = this.t && this.t.game;
+    return { v: this.t ? this.t.v : null, phase: g ? g.phase : "lobby", turns: g && g.stats ? g.stats.turns : null };
+  }
+
   async alarm() {
+    try { await this.alarmBody(); }
+    catch (e) {
+      this.trace("alarm-error", Object.assign({ err: String((e && e.stack) || e).slice(0, 600) }, this.traceGame()));
+      throw e;   // the runtime retries a failed alarm; the line says it happened
+    }
+  }
+  async alarmBody() {
     await this.load();
     if (!this.exists()) return;
     const t = this.t, g = t.game, now = Date.now();
@@ -718,6 +738,7 @@ export class GameTable {
           s.bot = true; delete s.graceUntil; changed = true;
           this.openSpan(i, "takeover");
           events.push({ t: "takeover", seat: i });
+          this.trace("takeover", Object.assign({ seat: i }, this.traceGame()));
         }
       }
     }
@@ -1091,7 +1112,10 @@ export class GameTable {
       if (this.HOST_VERBS[type] ? !this.isHost(token) : seat == null) return this.errTo(ws, "perm");
       const action = clone(msg); action.seat = seat;      // server injects the actor
       const res = this.applyEngine(action);
-      if (res.error) return this.errTo(ws, res.error.code);
+      if (res.error) {
+        this.trace("refused", Object.assign({ type, code: res.error.code, seat }, this.traceGame()));
+        return this.errTo(ws, res.error.code);
+      }
       await this.broadcast(res.events);
       this.armAlarm();
       return;
@@ -1210,13 +1234,18 @@ export class GameTable {
       // while their old connection lingers keeps their own name. Only seat
       // names are unique (checked where a seat is named), so a table's
       // roster and log never show two seats alike.
+      // why the client says it is (re)joining: "pong", "v-gap", "close:1006"…
+      // (games/transport.js). Absent on a first join.
+      const why = typeof msg.why === "string" ? msg.why.slice(0, 40) : null;
       if (others.length + 1 > MAX_SOCKETS) {
+        this.trace("join-refused", { code: "full", why });
         this.errTo(ws, "full");
         try { ws.close(4429, "full"); } catch (e) {}
         return;
       }
       if (!this.exists()) {
         if (!msg.create) {
+          this.trace("join-refused", { code: "no-table", why });
           this.errTo(ws, "no-table");
           try { ws.close(4404, "no-table"); } catch (e) {}
           return;
@@ -1256,6 +1285,10 @@ export class GameTable {
       }
       t.emptyAt = null;
       this.onJoined(token);
+      this.trace(why ? "rejoin" : "join", Object.assign({
+        why, seat, returned: revents.length > 0, replaced: mine.length,
+        create: !!msg.create, account: !!uid, sockets: others.length + 1
+      }, this.traceGame()));
       this.sendSnapshot(ws, token);       // the joiner's personalized snapshot (v = N)
       await this.broadcast(revents);      // everyone else sees the join (v = N+1)
       this.armAlarm();
@@ -1266,13 +1299,18 @@ export class GameTable {
     await this.handle(ws, att, msg);
   }
 
-  async onGone(ws) {
+  async onGone(ws, info) {
     const att = ws.deserializeAttachment() || {};
     if (!att.joined) return;
     await this.load();
     if (!this.exists()) return;   // closeTable wiped mid-close — nothing to grace or broadcast (and persist() must not resurrect storage)
     const t = this.t, g = t.game, token = att.token;
+    t.code = t.code || att.code;
     const seat = this.seatOfToken(token);
+    this.trace("gone", Object.assign({
+      seat, secs: att.at ? Math.round((Date.now() - att.at) / 1000) : null,
+      stillHere: this.tokenConnected(token, ws)
+    }, info || {}, this.traceGame()));
     const events = [];
     // a seated human's LAST socket dropped mid-game → open the grace window
     // (an away seat has already stepped out: nothing is waiting on it, so a
@@ -1290,8 +1328,12 @@ export class GameTable {
     await this.broadcast(events, ws);
     this.armAlarm();
   }
-  async webSocketClose(ws) { await this.onGone(ws); }
-  async webSocketError(ws) { await this.onGone(ws); }
+  async webSocketClose(ws, code, reason, wasClean) {
+    await this.onGone(ws, { close: code, reason: String(reason || "").slice(0, 40), clean: !!wasClean });
+  }
+  async webSocketError(ws, err) {
+    await this.onGone(ws, { close: "error", reason: String((err && err.message) || err || "").slice(0, 80) });
+  }
 }
 
 // ------------------------------------------------------------------ http --

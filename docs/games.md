@@ -28,7 +28,10 @@ game itself.
 
 ```
 games/colors.js        seat-color contract (presets, hex validation, clash)
-games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync)
+games/transport.js     the WebSocket client (reconnect, backoff, v-gap resync,
+                       dead-socket check: no pong in 10 s or no rejoin
+                       snapshot in 15 s is a drop; tab-visible / online
+                       re-check at once)
 games/table.js         the browser table shell (gate, lobby, toolbar, frame,
                        seat accent, turn-timer readouts)
 games/flights.js       the steering chip-flight layer (every game's fly-ins)
@@ -72,7 +75,7 @@ One envelope for every game. Only the action verbs differ.
 
 | Verb | Payload | Who |
 |---|---|---|
-| `join` | `{name, create, token}` | first message on every socket |
+| `join` | `{name, create, token, why?}` | first message on every socket; `why` rides only a rejoin and says what dropped the last socket (`pong`, `v-gap 4>6`, `close:1006`, `join-timeout`, `closed-on-wake`); the table only logs it |
 | `sit` / `stand` | `{seat?}` | lobby; mid-game too under the re-join policy — `stand` releases your seat (two-stepped in the UI), `sit {seat}` adopts a bot-held one at an "anyone" table |
 | `rename` | `{name}` | own seat, lobby only (names lock at Start, like colors) |
 | `addBot` | `{seat, name, tier?}` | host, lobby only (re-adding at a bot's seat renames **and** re-tiers — see "Bots") |
@@ -764,6 +767,28 @@ A single storage alarm multiplexes four deadlines, nearest wins:
 
 With nobody connected, drives freeze and only the fuse runs; a reconnect
 re-arms everything.
+
+### Connection log
+
+Built 2026-11-19, after two players had to reload a cities game that looked
+paused. `trace()` writes one JSON line per connection event to Workers Logs
+(`observability` in each worker's `wrangler.jsonc`, every line kept). Each
+line carries `ev`, `table`, and the table's `v`, `phase` and `turns`:
+
+| `ev` | When | Extra fields |
+|---|---|---|
+| `join` / `rejoin` | a socket finished its join (`rejoin` = it sent a `why`) | `why`, `seat` (reclaimed), `returned`, `replaced` (this device's older sockets closed 4408), `create`, `account`, `sockets` |
+| `join-refused` | `full` or `no-table` | `code`, `why` |
+| `gone` | a joined socket closed or errored | `seat`, `secs` it lived, `stillHere` (the token has another socket), `close` code, `reason`, `clean` |
+| `refused` | the engine refused a game verb | `type`, `code`, `seat` |
+| `takeover` | a grace window ran out and a bot took the seat | `seat` |
+| `alarm-error` | `alarm()` threw (rethrown, so the runtime still retries it) | `err` (stack, 600 chars) |
+
+Never a token, an account id or a name. Read them in the dashboard (Workers →
+the worker → Logs, filter `$metadata.message` or the `ev` field) or live
+with `npx wrangler tail` in the worker repo. The browser half prints
+`[deets-table]` lines to the console on every drop and return
+(`games/transport.js`), so a freeze can be read in DevTools on the spot.
 
 ### Free-tier discipline
 

@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-11-09
+updated: 2026-11-19
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -68,6 +68,36 @@ npm run dev
 ## Next up
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
+
+**2026-11-19 — Games: a table no longer sits frozen until a reload, and a connection log
+(built on branch `fullscreen-pill`, unpushed, NOT deployed: he held deploys while live games
+ran).** Two players in a 5-seat cities game (timer off) saw it stop at the end of a turn,
+almost every time, until they reloaded; a reload once made him "Deets 2". Cause not proven.
+`games/transport.js` never checked its pings' answers, so a socket that died without closing
+looked open forever. Now no answer in 10 s, or a rejoin with no snapshot in 15 s, counts as a
+drop; coming back to the tab or back online checks at once; each rejoin sends `why`, and the
+console prints `[deets-table]` lines. `games/table-do.js` gained `trace()`
+([games.md](games.md), "Connection log"), and the three workers' `wrangler.jsonc` turn on
+Workers Logs (edited locally, uncommitted). Tested: a virtual-clock test of the transport
+(17 checks; the old file fails the silent-socket one), and the cities worker run locally
+with the new `table-do.js`, every log line seen. **To ship, when no game is live:** commit
+the site (the seat-name change is already its own commit, 876f235, on this branch), push,
+then in each of DeetsCities, DeetsMahjong, DeetsPoker run
+`node scripts/vendor.mjs`, commit, `npx wrangler deploy`. Then play and read the logs.
+
+**2026-11-19 — Games: a Fullscreen pill (built on branch `fullscreen-pill`, unpushed; his
+visual pass owed).** One pill in the shared toolbar (`games/table.js`, `fullscreenPill`), so
+all four games have it. It is the browser's F11 as a button: the whole page goes fullscreen,
+and the layout is unchanged. Icon toolbars (cities, mahjong) show two arrows to the corners
+that fly out and come back pointing in; poker and tanks show the words. The labels are his,
+"Fullscreen" / "Minimize". No pill where the browser has no fullscreen (iPhone Safari).
+**Parked for his design: a fit-to-screen layout in fullscreen.** Today every game sits in
+the 68rem column, sized by width, so on a big monitor fullscreen leaves wide empty sides.
+Rough scope: a shared part (an `html:fullscreen` hook in `table.css` that hides the site
+header and lifts the width cap, about half a session), then one pass per game in its own CSS:
+tanks small (its canvas already follows `onResize`), cities and poker medium (board or felt
+sized to the height, panels beside it), mahjong the largest (four hands, the wall and the
+claim panel all scale together). About 3 to 5 sessions, plus his visual pass on each.
 
 **2026-11-09 — DeetsMusic admin: *Needs a look* folds, with a dot for new flags (built on
 `master`, pushed; page-only).** The list folds and stays as he left it, and a yellow dot
