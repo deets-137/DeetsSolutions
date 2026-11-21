@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-20T02:00:24Z",
+  "generated_at": "2026-11-21T03:27:55Z",
   "channel": "song-of-the-day",
-  "count": 492,
+  "count": 493,
   "songs": [
     {
       "post_id": 1,
@@ -11318,6 +11318,29 @@
       "apple_music_url": "https://music.apple.com/us/album/seeing-stars/6791575966?i=6791576339&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9b/f9/73/9bf9735e-9d4d-f287-9365-142467810dd7/mzaf_3041247237925262766.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/93/00/5c/93005c69-26f4-7125-4276-377ad130abe2/823375316725_Cover.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 42565,
+      "posted_at": "2026-11-20T09:09:29.635000+00:00",
+      "date": "2026-11-19",
+      "day": "Thu",
+      "month": "11_2026",
+      "track_name": "Dalmatian",
+      "artist_name": "Dhruv",
+      "album": "Dalmatian - Single",
+      "genre": "Alternative",
+      "duration": "4:13",
+      "duration_sec": 253,
+      "release_date": "2026-10-09",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/dalmatian/6815344674?i=6815344675",
+      "apple_music_url": "https://music.apple.com/us/album/dalmatian/6815344674?i=6815344675&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a9/cd/20/a9cd2013-e47b-908b-3ee1-c7a2d41f36f7/mzaf_9781690390454123373.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/6a/a8/09/6aa8097f-e101-dd3e-6803-cd05bd2d45cc/885288665178.jpg/600x600bb.jpg"
     }
   ]
 }
