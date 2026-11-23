@@ -111,7 +111,7 @@
     settings: "Settings",
     look: "Look and feel",
     motion: "Animate look changes",
-    motionHint: "[ph] Theme and skin changes fade the page out and back in. Off: they change at once",
+    motionHint: "Theme and skin changes fade the page out and back in. Off: they change at once",
     bgMotion: "Animate backgrounds",
     bgMotionHint: "The moving Ocean, Glass, and Cyber backgrounds. Reduced: fewer updates, less CPU. Off: they hold still",
     on: "On",
@@ -126,7 +126,7 @@
     oceanCards: "Card opacity",      // DeetsMusic's row label and hint
     oceanCardsHint: "Ocean only. How solid the sunken cards are. Lower: the sea shows through",
     oceanLight: "Album light",       // DeetsMusic's row label
-    oceanLightHint: "[ph] Ocean only. How strongly today's Song of the Day cover lights the sea. High: the waves glow like neon, and cost more on a PC without a graphics card",
+    oceanLightHint: "Ocean only. How strongly today's Song of the Day cover lights the sea. High: the waves glow like neon, and cost more on a PC without a graphics card",
     glassCanvas: "Canvas glow",
     glassCanvasHint: "Glass only. How brightly the colors glow on the background. The cards do not change",
     glassDim: "Dim canvas",
@@ -141,11 +141,11 @@
     failures: "Failures",
     reset: "Reset to default",   // his words in chat, 2026-09-15
     sure: "Sure?",               // DeetsMusic's confirm-by-rearming label
-    lightLook: "[ph] Light default look",
-    darkLook: "[ph] Dark default look",
+    lightLook: "Light default look",
+    darkLook: "Dark default look",
     tips: "Tips",                    // DeetsMusic's section name
     tour: "Show the tour again",     // DeetsMusic's row label
-    tourHint: "[ph] Deets and Happy walk you round the home page, the way they did on your first visit",
+    tourHint: "Deets and Happy walk you round the home page, the way they did on your first visit",
   };
 
   /* The two first-visit looks: Lilac × Press (light) and Black & Red × Ocean

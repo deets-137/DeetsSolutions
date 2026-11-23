@@ -728,30 +728,7 @@
   .is-opening :is(.gate__arrow, .gate__leaf) { animation: none; }
 }
 
-/* The pitch, inside the page bar (his call, 2026-11-23): a full-width second
-   row on the bar's own panel, under a hairline, so no background motion
-   runs behind it. The role first in full-strength text, then the proof in
-   the quieter color. Both lines stop at a reading width. */
-.cool__lede {
-  flex: 1 0 100%;            /* the bar wraps: this takes a row of its own */
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2) 0 var(--space-1);
-  border-top: 1px solid var(--border);
-}
-.cool__headline {
-  max-width: var(--measure);
-  color: var(--text);
-  font-size: 1.05rem;
-  line-height: 1.45;
-}
-.cool__support {
-  max-width: var(--measure);
-  color: var(--subtext);
-  font-size: var(--fs-nav);
-  line-height: 1.5;
-}
+/* The pitch sits in the page bar's second tier (.page-bar__lede, chrome.css). */
 
 /* His intro line, now under the flagships, leading into the full list. */
 .cool__aside {
@@ -4411,11 +4388,11 @@ html:has(.section-nav) { scroll-behavior: smooth; }
 /* Your posts: Aditya replied since this browser last opened the thread (deetsmusic.js checkMine). */
 .dm-chip[data-tone="reply"] { color: var(--title); border-color: var(--go); }
 
-/* ── Product pass 1 (docs/deetsmusic-page-pass.md §3): tagline, features,
+/* ── Product pass 1 (docs/deetsmusic-page-pass.md §3): features,
    screenshots, requirements + trust. `.dm-pitch` because `.dm-feats` is
    the release notes' two-pane. Items are the earlier-release cards'
-   species (surface fill, control radius, keyline). ── */
-.dm-tagline { margin-block-start: calc(var(--space-4) * -0.5); }
+   species (surface fill, control radius, keyline). The tagline lives in
+   the page bar's second tier since 2026-11-23 (chrome.css). ── */
 
 /* Even tiles (his call, 2026-10-06): all eight are one width and one
    height. One grid holds them all (the two lists are display: contents):

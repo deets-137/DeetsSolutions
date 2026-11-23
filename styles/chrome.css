@@ -963,13 +963,45 @@ body::before {
   align-items: center;
   gap: var(--space-2);
 }
-/* The dim line under the bar — counts on the journals, the contact
-   line on the resume, the tagline on home. */
+/* The dim line under the bar (the Privacy pages' intro). Since
+   2026-11-23 a page's tagline or status line goes in the bar itself
+   instead (.page-bar__lede, below). */
 .page-meta {
   max-width: var(--measure);
   margin: 0 0 var(--space-5);
   color: var(--subtext);
   font-size: var(--fs-nav);
+}
+/* The bar's second tier (2026-11-23; Portfolio first, then Home, Resume,
+   DeetsMusic and the 404, his call): a full-width row INSIDE the bar, under
+   a hairline, on the bar's own panel, so no background motion runs behind
+   the words. An optional headline in full-strength text, then an optional
+   quieter support line. Both stop at a reading width, and the browser
+   balances their lines, so a wrap reads as two even lines, not one long
+   and one stub. Markup: .page-bar > .page-bar__lede > p.page-bar__headline
+   + p.page-bar__support, after the title and actions. */
+.page-bar__lede {
+  flex: 1 0 100%;            /* the bar wraps: this takes a row of its own */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) 0 var(--space-1);
+  border-top: 1px solid var(--border);
+}
+.page-bar__headline,
+.page-bar__support {
+  max-width: var(--measure);
+  text-wrap: balance;
+}
+.page-bar__headline {
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+.page-bar__support {
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+  line-height: 1.5;
 }
 
 

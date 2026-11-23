@@ -39,14 +39,14 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23m" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23n" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/skin.css?v=2026-11-23d" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23f" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23g" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
@@ -86,7 +86,7 @@
          dark canvas (#121212), which framed every PDF before 10/2026. */
       html { font-size: 9pt; scrollbar-gutter: auto; color-scheme: light !important; background: white; }
       body { background: white; }
-      body::before, .ocean, .storm, .site-header, .page-bar__actions, .page-meta { display: none !important; }
+      body::before, .ocean, .storm, .site-header, .page-bar__actions, .page-bar__lede, .page-meta { display: none !important; }
       .site-main { max-width: none; padding: 0; }
       .resume { max-width: none; }
       /* the bar and the sheet are screen furniture — flatten to paper,
@@ -153,8 +153,10 @@
           <a class="home__cta" href="AdityaSundaram_Resume.pdf" download>Download PDF</a>
           <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/" rel="me">LinkedIn ↗</a>
         </div>
+        <div class="page-bar__lede">
+          <p class="page-bar__support">Resume - updated 11/23/2026</p>
+        </div>
       </header>
-      <p class="page-meta">Resume - updated 11/22/2026</p>
       <p class="resume__print-contact">linkedin.com/in/aditya-sundaram · deets.solutions · San Jose, CA</p>
 
       <div class="section-layout">

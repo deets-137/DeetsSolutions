@@ -94,7 +94,7 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="styles/chrome.css?v=2026-11-23m" />
+    <link rel="stylesheet" href="styles/chrome.css?v=2026-11-23n" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="styles/fonts.css?v=2026-11-23" as="style" />
@@ -103,7 +103,7 @@
     <link rel="preload" href="styles/skin.css?v=2026-11-23d" as="style" />
     <!-- ?v= for the same reason as deetsmusic/index.html: _headers is not
          applying, and the DeetsMusic card needs this main.css + home.js. -->
-    <link rel="stylesheet" href="styles/main.css?v=2026-11-23f" />
+    <link rel="stylesheet" href="styles/main.css?v=2026-11-23g" />
     <script src="js/controls.js?v=2026-10-24" defer></script>
     <script src="js/account.js" defer></script>
     <script src="js/toast.js" defer></script>
@@ -165,6 +165,12 @@
           <a class="home__cta" href="resume/">Resume</a>
           <a class="home__cta home__cta--soft" href="https://github.com/deets-137" rel="me">GitHub ↗</a>
           <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/" rel="me">LinkedIn ↗</a>
+        </div>
+        <!-- The bar's second tier (chrome.css, .page-bar__lede): the same pitch
+             as Portfolio's, his wording (2026-11-23). Change both together. -->
+        <div class="page-bar__lede">
+          <p class="page-bar__headline">Solutions engineer building healthtech, AI agents and real-time web apps.</p>
+          <p class="page-bar__support">Two years at Epic: primary technical contact for its Beaker lab application at 3 health systems, and senior technical resource at 17+ go-lives.</p>
         </div>
       </section>
 

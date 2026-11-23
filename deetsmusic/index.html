@@ -67,14 +67,14 @@
     <!-- ?v= stamps: bump when this page's JS or CSS changes (docs/architecture.md, "Local dev & deploy"). -->
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23m" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23n" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/skin.css?v=2026-11-23d" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23f" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23g" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
@@ -137,14 +137,17 @@
           <!-- Owner only: the usage numbers live on their own page (his call, 2026-10-14). -->
           <a class="home__cta home__cta--soft" href="/deetsmusic/admin/" data-dm-admin-link data-s="adminLink" hidden></a>
         </div>
+        <!-- The tagline, in the bar's second tier (chrome.css, .page-bar__lede;
+             2026-11-23, as on Portfolio, Home, Resume). Product pass 1,
+             deetsmusic-page-pass.md §3a. Static fallback for no-JS readers, as
+             is the text inside every other [data-s] node on this page:
+             scripts/stamp-strings.js copies it in from strings.js on each
+             commit, so fillStatic's swap is invisible. Edit strings.js, never
+             the text here. -->
+        <div class="page-bar__lede">
+          <p class="page-bar__headline" data-s="tagline">Free. Lightweight. Uniquely Deets. An Apple Music player for Windows.</p>
+        </div>
       </header>
-      <!-- The tagline: the site's line under a page bar (.page-meta, as on
-           Cool Stuff and Resume). Product pass 1, deetsmusic-page-pass.md §3a.
-           Static fallback for no-JS readers, as is the text inside every
-           other [data-s] node on this page: scripts/stamp-strings.js copies
-           it in from strings.js on each commit, so fillStatic's swap is
-           invisible. Edit strings.js, never the text here. -->
-      <p class="page-meta dm-tagline" data-s="tagline">Free. Lightweight. Uniquely Deets. An Apple Music player for Windows.</p>
 
       <div data-dm-home>
         <div class="dm-notice" data-dm-notice role="status" hidden>

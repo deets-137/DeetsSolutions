@@ -1040,7 +1040,7 @@
       if (!cond) { console.error("FAIL " + n + ": " + what); process.exit(1); }
     }
     var SRC0 = [
-      "name  [ph] Test Arena", "tier  0", "", "grid",
+      "name  Test Arena", "tier  0", "", "grid",
       "##########",
       "#P.......#",
       "#........#",

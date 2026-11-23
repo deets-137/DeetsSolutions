@@ -148,9 +148,15 @@ entry in walkers.js plus a `.walker__sprite--<name>` block in chrome.css.
 
 ## Page bar
 
-Every page opens with the same header panel: `.page-bar` — title left,
-optional action pills (`.home__cta`) right — with the `.page-meta` dim
-line under it (journal counts, the resume's updated-on date). Home, Resume, Cool Stuff, Privacy, DeetsMusic and the auth landing use
+Every page opens with the same header panel: `.page-bar`, title left and
+optional action pills (`.home__cta`) right. Since 2026-11-23 a page's
+tagline or status line sits inside the bar, in its second tier: a full-width
+row under a hairline (`.page-bar__lede`), with an optional full-strength
+`.page-bar__headline` and a quieter `.page-bar__support`, both at a reading
+width with balanced line breaks. Home and Portfolio carry his pitch (keep the
+two identical), Resume its updated-on date, DeetsMusic its tagline, and the
+404 its message. The `.page-meta` dim line under the bar remains for longer
+intros (the Privacy pages). Home, Resume, Cool Stuff, Privacy, DeetsMusic and the auth landing use
 `.page-bar` directly; the other seven pages — SOTD, Movies, League,
 Radio, Profile, Cities and Mahjong — open with `.sotd__bar` instead,
 because it pins (sticky) and carries the toolbar. Despite the name,
@@ -337,8 +343,9 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   punctuation (plain hyphens, no em dashes), month names, capitalization
   after semicolons. Don't reword it. The one deliberate difference: the
   master's phone + email stay off the site; public contact is the
-  LinkedIn pill in the page bar, plus the updated-on `.page-meta` line
-  (restamped by the rebuild script).
+  LinkedIn pill in the page bar, plus the updated-on line in the bar's
+  second tier (`.page-bar__support`; restamped by the rebuild script and
+  hidden in print, like the pills).
 - One scrolling page in DeetsHealth's shell (his call, 2026-11-22): each
   section is its own `.resume__sheet` card — the skin's card material — so
   busy canvases (Cyber's grid, Glass's aurora) stay behind a plate.

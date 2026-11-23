@@ -492,14 +492,14 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23m" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23n" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/skin.css?v=2026-11-23d" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23f" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23g" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
@@ -574,9 +574,9 @@
         </div>
         <!-- The pitch, two tiers on the bar's own panel (his call, 2026-11-23):
              the role first, then the proof. -->
-        <div class="cool__lede">
-          <p class="cool__headline">[ph] Solutions engineer building healthtech, AI agents and real-time web apps.</p>
-          <p class="cool__support">[ph] Two years at Epic: primary technical contact for its Beaker lab application at 3 health systems, and senior technical resource at 17+ go-lives.</p>
+        <div class="page-bar__lede">
+          <p class="page-bar__headline">Solutions engineer building healthtech, AI agents and real-time web apps.</p>
+          <p class="page-bar__support">Two years at Epic: primary technical contact for its Beaker lab application at 3 health systems, and senior technical resource at 17+ go-lives.</p>
         </div>
       </header>
 
@@ -590,12 +590,12 @@
       <div class="feature-grid">
         <article class="feature">
           <h3 class="feature__name">DeetsMusic for Windows</h3>
-          <p class="feature__shows">[ph] Product and API skills</p>
+          <p class="feature__shows">Product, support, and API skills</p>
           <p class="feature__pitch">A full Apple Music player for Windows 11.</p>
           <ul class="feature__points">
-            <li>[ph] Plays Apple Music's DRM-protected tracks through a native Rust core, with a gapless queue that stays in sync.</li>
-            <li>[ph] Mirrors your whole library into a local SQLite database through Apple's APIs.</li>
-            <li>[ph] Shipped as a product: installers, release notes, a feedback board and polls on this site.</li>
+            <li>Plays Apple Music's DRM-protected tracks through a native Rust core, with a gapless queue that stays in sync.</li>
+            <li>Mirrors your whole library into a local SQLite database through Apple's APIs.</li>
+            <li>Shipped as a product: installers, release notes, a feedback board, and polls on this site.</li>
           </ul>
           <div class="project__tags">
             <span class="project__chip">Tauri v2</span>
@@ -604,20 +604,20 @@
             <span class="project__chip">WebView2</span>
           </div>
           <div class="feature__links">
-            <a class="home__cta" href="/deetsmusic/demo/">[ph] Try the live demo</a>
-            <a class="home__cta home__cta--soft" href="/deetsmusic/">[ph] Product page</a>
+            <a class="home__cta" href="/deetsmusic/demo/">Demo</a>
+            <a class="home__cta home__cta--soft" href="/deetsmusic/">Product page</a>
             <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsMusicWindows">GitHub ↗</a>
           </div>
         </article>
 
         <article class="feature">
           <h3 class="feature__name">DeetsHealth</h3>
-          <p class="feature__shows">[ph] Healthtech, AI agent and API skills</p>
+          <p class="feature__shows">Healthtech, AI agent, and API skills</p>
           <p class="feature__pitch">AI phone agent for hospital scheduling.</p>
           <ul class="feature__points">
-            <li>[ph] A voice agent that books appointments and answers chart questions, built on Pipecat and the Claude API.</li>
-            <li>[ph] Reads and schedules through Epic's FHIR APIs, behind an adapter designed for any EHR.</li>
-            <li>[ph] Privacy by design: one-time SMS identity checks, every action bound to the verified patient, no patient data in logs.</li>
+            <li>A voice agent that books appointments and answers chart questions, built on Pipecat, and the Claude API.</li>
+            <li>Reads and schedules through Epic's FHIR APIs, behind an adapter designed for any EHR.</li>
+            <li>Privacy by design: one-time SMS identity checks, every action bound to the verified patient, no patient data in logs.</li>
           </ul>
           <div class="project__tags">
             <span class="project__chip">Python/Pipecat</span>
@@ -632,12 +632,12 @@
 
         <article class="feature">
           <h3 class="feature__name">Deets.Solutions</h3>
-          <p class="feature__shows">[ph] WebSockets, Cloudflare and full-stack skills</p>
+          <p class="feature__shows">WebSockets, Cloudflare, and full-stack skills</p>
           <p class="feature__pitch">This site.</p>
           <ul class="feature__points">
-            <li>[ph] Real-time multiplayer games and shared listening rooms: each table or room is a Cloudflare Durable Object speaking WebSockets.</li>
-            <li>[ph] Google sign-in and per-game stats on Workers and D1, with secret hands kept on each player's own connection.</li>
-            <li>[ph] No framework and no dependencies: plain HTML, CSS and JavaScript on a design-token system, correct in every theme and skin.</li>
+            <li>Real-time multiplayer games and shared listening rooms: each table or room is a Cloudflare Durable Object speaking WebSockets.</li>
+            <li>Google sign-in and per-game stats on Workers and D1, with secret hands kept on each player's own connection.</li>
+            <li>No framework and no dependencies: plain HTML, CSS and JavaScript on a design-token system, correct in every theme and skin.</li>
           </ul>
           <div class="project__tags">
             <span class="project__chip">Cloudflare Workers</span>
@@ -646,7 +646,7 @@
             <span class="project__chip">D1</span>
           </div>
           <div class="feature__links">
-            <a class="home__cta" href="/cities/">[ph] Play a game</a>
+            <a class="home__cta" href="/cities/">Game: Cities</a>
             <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
           </div>
         </article>
