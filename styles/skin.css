@@ -151,6 +151,11 @@
   --ease-ui:  cubic-bezier(0.2, 0, 0.2, 1);
   --dur-pill:  0.28s;                 /* a nav pill sliding to its item (DeetsHealth's, 2026-11-22) */
   --ease-pill: cubic-bezier(0.3, 0.7, 0.2, 1);
+  /* the nav glass gliding between pages (chrome.css, "The wide layout"):
+     "Heavy", a long wind-up and a firm landing (his pick from the dev
+     Glide picker, 2026-11-23). The picker tries others (docs/tooling.md §3d). */
+  --dur-glide:  0.44s;
+  --ease-glide: cubic-bezier(0.83, 0, 0.17, 1);
   --hover-lift: none;                 /* nav links / chips rise on hover; a skin opts in */
   --seam-shift: 0.5s;                 /* a phase change's dividers dissolving open or filling in (games/stage.js) */
   --seam-ease:  cubic-bezier(0.37, 0, 0.63, 1); /* sine in-out: no edge to the start or the stop */

@@ -1,6 +1,6 @@
 ---
 status: sop
-sources: [scripts/dev.js, scripts/dev-trace.js, scripts/page-inventory.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, scripts/stamp-crawl.js, games/table-mock.js]
+sources: [scripts/dev.js, scripts/dev-trace.js, scripts/dev-glide.js, scripts/page-inventory.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, scripts/stamp-crawl.js, games/table-mock.js]
 updated: 2026-11-23
 ---
 # Tooling and debugging
@@ -287,6 +287,21 @@ numbers include it.
 Also from 2026-11-23: the driver closes its EventSource on `pagehide` and
 reconnects on a `pageshow` from the back/forward cache. An open stream kept
 pages out of that cache, so Back and Forward behaved unlike the live site.
+
+### 3d. Glide picker — try motion curves for the nav glass
+
+`scripts/dev-glide.js` (2026-11-23), served at `/__dev/glide.js`. `scripts/dev.js`
+puts it in every page's `<head>` after the trace, not deferred. The glass's slide
+between pages is timed by `--dur-glide` and `--ease-glide` (skin.css). The incoming
+page's transition reads them at its first frame, so the picker sets them on
+`<html>` before that frame, from `localStorage` (`deets-dev-glide`).
+
+A **Glide** pill sits next to "Edit copy", bottom left. It offers presets (weighted,
+heavy, soft, accelerate, settle, the old ease-out, linear), a duration slider, and
+a custom curve field that takes any `cubic-bezier(…)` or `linear(…)`, with the
+curve drawn under it. Pick one, then click around the nav. "Site default" drops
+the override. When one feels right, copy its two values into skin.css. The picker
+never ships: it lives only in the dev proxy.
 
 ## 4. Game mocks — `?mock`
 

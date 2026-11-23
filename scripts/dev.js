@@ -38,6 +38,9 @@ const INJECT = '<script src="/__copy/edit.js" defer></script><script src="/__dev
 // The dev trace (docs/tooling.md §3c): on unless DEETS_TRACE=0.
 const TRACE = process.env.DEETS_TRACE !== '0';
 const TRACE_TAG = '<script src="/__dev/trace.js"></script>';
+// The glide picker (docs/tooling.md §3d): sets the nav glass's motion curve
+// before the first frame, so it goes in <head> too, after the trace.
+const GLIDE_TAG = '<script src="/__dev/glide.js"></script>';
 const driver = require('./dev-driver-server');
 
 function isFree(port) {
@@ -235,7 +238,7 @@ function proxy(inner, devRoute) {
           if (SUPPORT) html = html.replace(/<head[^>]*>/i, (m) => m + SUPPORT_TAG);
           // The dev trace (scripts/dev-trace.js) goes first of all: a page transition is
           // decided before the first frame, so its listeners must already be there.
-          if (TRACE) html = html.replace(/<head[^>]*>/i, (m) => m + TRACE_TAG);
+          html = html.replace(/<head[^>]*>/i, (m) => m + (TRACE ? TRACE_TAG : '') + GLIDE_TAG);
           const out = { ...ur.headers };
           delete out['content-length'];
           delete out['etag'];

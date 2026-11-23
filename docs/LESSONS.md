@@ -103,6 +103,15 @@ the biggest one showed only when the trace was read from his browser.
   their one difference at once; (3) testing at his window size, not a default.
   The dev driver's tab list showed his main window at 3432 × 1274, DPR 1 (2026-11-23).
 
+## Running the dev server from a Claude session
+
+- **Stopping Claude's background `npm run dev` task leaves the server running**
+  (2026-11-23). Only the shell wrapper dies. `node scripts/dev.js` keeps 8787, and the
+  restart quietly lands on the next free port, still serving the old code on 8787. Stop
+  it by its tree: find the `cmd.exe /d /s /c node scripts/dev.js` parent of whatever
+  listens on 8787, then `taskkill /PID <it> /T /F`. Check the port is free before
+  starting again.
+
 ## Working in worktrees
 
 - **A worktree has no `node_modules`.** Link the main checkout's with a

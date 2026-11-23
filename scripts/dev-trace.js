@@ -96,7 +96,9 @@
       if (seen[n]) dup.push(n);
       seen[n] = describe(els[i]);
     }
-    return { count: Object.keys(seen).length, tile: seen["nav-tile"] || null, duplicates: dup };
+    // the glass slides to the current page's item (chrome.css, "The wide layout")
+    var cur = document.querySelector('.site-nav a[aria-current="page"]');
+    return { count: Object.keys(seen).length, tile: cur ? describe(cur) : null, duplicates: dup };
   }
 
   /** Which layout the page is in right now: does the wide layout's media

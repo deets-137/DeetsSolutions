@@ -20,7 +20,7 @@
 @import "./fonts.css?v=2026-11-23";
 @import "./palette.css?v=2026-10-23";
 @import "./themes.css?v=2026-10-23";
-@import "./skin.css?v=2026-11-23";
+@import "./skin.css?v=2026-11-23c";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -1774,6 +1774,8 @@ select:focus-visible,
 .wordmark__more { display: none; }
 /* Home leads the nav panel; the top header has the wordmark for that. */
 .site-nav__home { display: none; }
+/* The nav panel's sliding glass (below); the top header has none. */
+.site-nav__glass { display: none; }
 
 @media (min-width: 82rem) {
   :root { --content-max: var(--content-max-wide); }
@@ -1890,11 +1892,14 @@ select:focus-visible,
     transition: none;
   }
 
-  /* DeetsHealth's nav items: quiet text, a hover wash, and the current
-     page on the accent tile. */
+  /* DeetsHealth's nav items: quiet text and a hover wash. They sit above
+     the glass and never move with it: the text is a fixed wall, and the
+     current page's item only turns the accent color. */
   .site-nav .site-nav__home { display: block; }
   .site-nav .site-nav__home,
   .site-nav .nav-group__menu a {
+    position: relative;
+    z-index: 1;
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-control);
     color: var(--subtext);
@@ -1909,21 +1914,58 @@ select:focus-visible,
   .site-nav .site-nav__home[aria-current="page"]:hover,
   .site-nav .nav-group__menu a[aria-current="page"],
   .site-nav .nav-group__menu a[aria-current="page"]:hover {
+    background: transparent;
+    color: var(--canvas);   /* on the glass, as DeetsHealth's on-accent */
+    anchor-name: --nav-current;
+  }
+
+  /* The glass: one empty, see-through highlight under the current page's
+     item, pinned to it by anchor positioning, so it is in place on the
+     page's first frame with no script. A page change slides it to the
+     next item (nav-glass, below) while the text stays where it is. A page
+     not in the nav has no current item, so no glass. */
+  .site-nav__glass {
+    display: block;
+    position: absolute;
+    position-anchor: --nav-current;
+    top: anchor(top);
+    left: anchor(left);
+    width: anchor-size(width);
+    height: anchor-size(height);
+    z-index: 0;
+    pointer-events: none;
+    border-radius: var(--radius-control);
+    /* DeetsHealth's .nav-highlight: the accent, solid (his call,
+       2026-11-23, after a see-through first try). The current item's text
+       turns --canvas over it, and that color crossfades in place during
+       the slide, as DeetsHealth's text color eases while its pill moves. */
     background: var(--title);
-    color: var(--canvas);
+  }
+  .site-nav:not(:has(a[aria-current="page"])) .site-nav__glass { display: none; }
+  /* A browser without anchor positioning: no glass, the item itself
+     wears the accent (it does not slide there). */
+  @supports not (anchor-name: --a) {
+    .site-nav__glass { display: none; }
+    .site-nav .site-nav__home[aria-current="page"],
+    .site-nav .nav-group__menu a[aria-current="page"] {
+      background: var(--title);
+    }
   }
 }
 
-/* The tile's slide from page to page. The page itself swaps at once,
+/* The glass's slide from page to page. The page itself swaps at once,
    with no fade: the browser's default crossfade of the whole page
    flickered the glass panel (the background moves between the two
    snapshots, and the panel blurs it) and buried the slide.
-   Every nav item has its own name too, so an item whose place changes
-   between the two pages glides there instead of jumping: Resume moves
-   when Portfolio's section list comes or goes. The current page's item
-   wears nav-tile instead (the rule after these, more specific, wins), so
-   its plain self fades out where the tile arrives and fades in where the
-   tile leaves. A name may appear once per page, so each is keyed by its
+   Only the empty glass (.site-nav__glass, nav-glass) slides. Every nav
+   item has its own name, the current one too, so its text never travels
+   with the glass (it did when the tile WAS the current link, text and
+   all; his note, 2026-11-23): an item only crossfades in place, which
+   fades its color from quiet to accent and back. An item whose place
+   changes between the two pages glides there instead of jumping: Resume
+   moves when Portfolio's section list comes or goes. The glass is first
+   in the nav and under the items (z-index), so its group paints under
+   theirs. A name may appear once per page, so each is keyed by its
    link's own path.
    THE OPT-IN IS NOT IN THIS FILE. `@view-transition { navigation: auto }`
    is an inline <style> in every page's <head>, before this sheet
@@ -1951,11 +1993,14 @@ select:focus-visible,
   .site-nav .nav-group__menu a[href$="movies/"]      { view-transition-name: nav-movies; }
   .site-nav .nav-group__menu a[href$="portfolio/"]   { view-transition-name: nav-portfolio; }
   .site-nav .nav-group__menu a[href$="resume/"]      { view-transition-name: nav-resume; }
-  .site-nav .site-nav__home[aria-current="page"],
-  .site-nav .nav-group__menu a[aria-current="page"]  { view-transition-name: nav-tile; }
-  ::view-transition-group(*) {
-    animation-duration: var(--dur-pill);
-    animation-timing-function: var(--ease-pill);
+  .site-nav .site-nav__glass                        { view-transition-name: nav-glass; }
+  /* The glass's slide, and each item's in-place color fade on the same
+     clock, so the text turns as the glass arrives and leaves. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: var(--dur-glide);
+    animation-timing-function: var(--ease-glide);
   }
 }
 

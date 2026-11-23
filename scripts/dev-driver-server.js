@@ -93,7 +93,7 @@ function traceSummary(events) {
     if (miss) parts.push(`bfcache miss: ${miss.data.reasons.join(', ') || '?'}`);
     if (reveal) parts.push(`transition ${skipped ? 'SKIPPED (' + skipped.data.reason + ')' : reveal.data.vt ? 'ran' : 'none'}` +
       (reveal.data.names.duplicates.length ? ` DUPLICATE names ${reveal.data.names.duplicates.join(',')}` : '') +
-      (reveal.data.vt && !reveal.data.names.tile ? ' (no tile on this page)' : '') +
+      (reveal.data.vt && !reveal.data.names.tile ? ' (no current page in the nav: no glass)' : '') +
       (reveal.data.fonts.loading.length ? ` fonts loading at first frame: ${reveal.data.fonts.loading.join(', ')}` : ''));
     for (const f of fr) parts.push(`${f.data.label} frames ${f.data.frames}@${f.data.hz || '?'}hz dropped ${f.data.dropped} worst ${f.data.worstMs}ms`);
     if (fcp) parts.push(`FCP ${fcp.data.ms}ms`);
@@ -306,6 +306,10 @@ function mount(mainPort, sidePort) {
     if (cmd === 'driver.js') {
       res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
       return res.end(pageScript(sidePort));
+    }
+    if (cmd === 'glide.js') {   // the glide picker (scripts/dev-glide.js), read fresh each time
+      res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(fs.readFileSync(path.join(__dirname, 'dev-glide.js'), 'utf8'));
     }
     if (cmd === 'trace.js') {
       res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });

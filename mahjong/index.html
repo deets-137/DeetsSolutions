@@ -35,13 +35,13 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23h" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23l" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="../styles/skin.css?v=2026-11-23" as="style" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-23c" as="style" />
     <link rel="stylesheet" href="../styles/table.css?v=2026-10-28" />
     <link rel="stylesheet" href="./mahjong.css?v=2026-11-04c" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
@@ -67,6 +67,7 @@
         <a class="wordmark" href="/">Deets<span class="wordmark__more"> Solutions</span></a>
       </div>
       <nav class="site-nav" aria-label="Primary">
+        <span class="site-nav__glass" aria-hidden="true"></span>
         <a class="site-nav__home" href="/">Home</a>
         <div class="nav-group">
           <a class="nav-group__label" href="/deetsmusic/" aria-haspopup="true">DeetsMusic<span class="nav-group__caret" aria-hidden="true">&#9662;</span></a>
