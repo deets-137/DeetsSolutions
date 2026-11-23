@@ -1,4 +1,9 @@
-const e=[{version:"1.5.0",date:"2026-11-16",body:`**Play/Pause on Space.** A new row in Settings › Playback makes Space always play or pause, even
+const e=[{version:"1.5.1",date:"2026-11-22",body:`**Explicit songs play again.** In some countries, DeetsMusic blocked explicit songs even when
+your Apple ID allows them, and said your Apple ID did not allow them. DeetsMusic now uses the
+setting from your Apple account. If explicit songs are still blocked for you, sign in to Apple
+Music again once: the update page and the notice have a Sign in button.`,intro:`1.5.1 - Fixing the Explicit song issue for users in: Brazil, Guatemala, Hungary, India,
+Indonesia, Italy, Laos, Lithuania, Malaysia, Russia, Singapore, South Korea, Switzerland and
+Türkiye!`,open:["Explicit songs play again"],shown:!0,audience:"explicit-sign-in"},{version:"1.5.0",date:"2026-11-16",body:`**Play/Pause on Space.** A new row in Settings › Playback makes Space always play or pause, even
 after you click a button. Before, Space pressed the last button you clicked again. A text field
 still takes Space. The row is off until you turn it on.
 
