@@ -156,10 +156,11 @@ wordmark's `position: relative` anchor). Two decisions keep it honest:
   small heading (`.nav-menu__group`) over clones of that group's links.
   It used to clone only `data-nav-core` links (SOTD + Cool Stuff); that
   attribute is still in the markup but no longer read. Links marked
-  **`data-nav-desktop`** stay off it — DeetsRadio and League, which he is
-  retiring and not keeping up for phones — and a group left with no links
-  (Utilities, which now holds only League; DeetsRadio moved under
-  DeetsMusic on 2026-11-22) drops its heading. The menu caps at
+  **`data-nav-desktop`** stay off it — DeetsRadio, which he is retiring
+  and not keeping up for phones — and a group left with no links drops its
+  heading. (2026-11-22: DeetsRadio moved under DeetsMusic, and the
+  Utilities group is gone; League has no nav link, reached from its URL or
+  Cool Stuff's card.) The menu caps at
   the viewport height and scrolls, for landscape phones.
 - **The wordmark serves both roles from one element.** Its click handler
   checks `matchMedia("(max-width: 56rem)")`: when narrow it opens the menu
