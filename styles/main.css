@@ -493,6 +493,17 @@
 .cool .section-layout__body { gap: var(--space-6); }
 .cool .section-layout__body > section > .cool__section { margin-top: 0; }
 
+/* A group inside a section (Live & Demo-able: each flagship and the
+   projects that hang off it), under a smaller head of its own. */
+.cool__group + .cool__group { margin-top: var(--space-5); }
+.cool__group-title {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1.05rem;
+  color: var(--subtext);
+  margin-bottom: var(--space-3);
+}
+
 .cool__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));

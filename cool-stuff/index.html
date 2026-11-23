@@ -24,7 +24,7 @@
         "@id": "https://deets.solutions/cool-stuff/#projects",
         "name": "Cool Stuff I Did",
         "url": "https://deets.solutions/cool-stuff/",
-        "numberOfItems": 25,
+        "numberOfItems": 26,
         "itemListElement": [
           {
             "@type": "ListItem",
@@ -37,7 +37,7 @@
               "keywords": "Tauri v2, Rust, TypeScript, WebView2",
               "creativeWorkStatus": "active",
               "codeRepository": "https://github.com/deets-137/DeetsMusicWindows",
-              "url": "https://github.com/deets-137/DeetsMusicWindows",
+              "url": "https://deets.solutions/deetsmusic/demo/",
               "author": {
                 "@id": "https://deets.solutions/#person"
               }
@@ -46,318 +46,6 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsFilm",
-              "abstract": "A browser extension that catches the credits.",
-              "description": "The extension shows a card when the film that you watch is near its end. The card contains a link to the film page on Letterboxd. To find the end, the extension reads the video player from four sources. You can also send the correct end time for a film, because a scene after the credits moves it. The extension operates on Netflix, Hulu, Disney+, Prime Video, and HBO Max. It has no account, it keeps no data about you, and its one request contains only a film title.",
-              "keywords": "MV3 extension, no dependencies, TMDB",
-              "creativeWorkStatus": "building",
-              "url": "https://deets.solutions/privacy/deetsfilm/",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsBeats",
-              "abstract": "A Bluetooth watchdog that keeps my headphones in stereo.",
-              "description": "Windows moves a Bluetooth headset from stereo to the Hands-Free profile when an application opens the microphone. DeetsBeats prevents this. The program runs in the system tray and monitors the connection. It disables the Hands-Free profile until you need the microphone, and it selects the correct audio device. If the connection stops, the program connects again at longer intervals. It uses Tauri and Rust, the same as DeetsMusic for Windows.",
-              "keywords": "Tauri v2, Rust, Win32 Bluetooth",
-              "creativeWorkStatus": "built",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 4,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsMusic",
-              "abstract": "An Apple Music client with a memory.",
-              "description": "The application imports your library with MusicKit and plays it from a queue that the application controls. This design permits tracks from more than one service at a later time. The application also records one song for each day and exports these songs to a playlist. You can tag each song with your feelings and put the tags in order of preference. CloudKit keeps the data in sync.",
-              "keywords": "SwiftUI, MusicKit, SwiftData",
-              "creativeWorkStatus": "building",
-              "codeRepository": "https://github.com/deets-137/DeetsMusic",
-              "url": "https://github.com/deets-137/DeetsMusic",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 5,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsLife",
-              "abstract": "An isometric pixel-art world of my life.",
-              "description": "DeetsLife is an isometric world in pixel art. It started as a museum of the music in my life. The subject changed, but the world stayed. The map has more than one room and uses collision physics. It contains a drawing of me, a dog that follows a path, and a mahjong area that is not complete.",
-              "keywords": "Godot 4, GDScript, pixel art",
-              "creativeWorkStatus": "building",
-              "codeRepository": "https://github.com/deets-137/DeetsLife",
-              "url": "https://github.com/deets-137/DeetsLife",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 6,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsJack",
-              "abstract": "A blackjack trainer disguised as a blackjack game.",
-              "description": "You play full blackjack hands. A trainer card then shows the mathematics for the hand. It gives the bust probability for the dealer and for you, and the expected value of each move. The trainer measures the quality of your decision, not your luck. A move with a positive expected value is correct, even if you lose the hand. Unit tests compare the Swift engine with published basic-strategy values.",
-              "keywords": "Swift 6, iOS, probability engine",
-              "creativeWorkStatus": "building",
-              "codeRepository": "https://github.com/deets-137/DeetsJack",
-              "url": "https://github.com/deets-137/DeetsJack",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 7,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsBoard",
-              "abstract": "A spatial workspace for designing board games.",
-              "description": "You and your friends design the cards, units, pieces, tiles, and rules of a board game. The workspace is a canvas of 3 by 3 areas. The application is native macOS and uses Core Data and CloudKit. It replaces Henhouse, my earlier web application for the same purpose.",
-              "keywords": "Swift, macOS, CloudKit",
-              "creativeWorkStatus": "building",
-              "codeRepository": "https://github.com/deets-137/DeetsBoard",
-              "url": "https://github.com/deets-137/DeetsBoard",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 8,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsTrips",
-              "abstract": "Trip planning where friends follow along.",
-              "description": "One person plans the trip. The other persons install the application and follow the plan. The application uses SwiftUI, SwiftData, and CloudKit sharing. The first build is available on TestFlight.",
-              "keywords": "SwiftUI, SwiftData, CloudKit",
-              "creativeWorkStatus": "testflight",
-              "codeRepository": "https://github.com/deets-137/DeetsTrips",
-              "url": "https://github.com/deets-137/DeetsTrips",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 9,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "Rogers",
-              "abstract": "A student-forward Learning Management System.",
-              "description": "Rogers is a learning management system for schools. Its modules are in one system. Thus a teacher sees all the data for a student, and a counselor sees the full history of a student. A school installs the full system one time. The colors are brighter than usual education software. The project has a front end, a back end, and a Docker deployment.",
-              "keywords": "TypeScript, full-stack, Docker",
-              "creativeWorkStatus": "prototype",
-              "codeRepository": "https://github.com/deets-137/Rogers",
-              "url": "https://github.com/deets-137/Rogers",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 10,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsHealth",
-              "abstract": "A fresh take on personal health-data visualization.",
-              "description": "The application reads data from HealthKit and from the Oura API. It calculates all the analytics on the device. Sleep data and cardiovascular data are first. It uses the same design system as the other Deets applications.",
-              "keywords": "SwiftUI, HealthKit, Oura",
-              "creativeWorkStatus": "building",
-              "codeRepository": "https://github.com/deets-137/DeetsHealth",
-              "url": "https://github.com/deets-137/DeetsHealth",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 11,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsPixels",
-              "abstract": "A pixel-art sprite, animation, and slideshow editor.",
-              "description": "The application shows three views of one document. You draw sprites frame by frame, put the frames into scenes, put the scenes into a sequence, and then examine all the work. A Rust crate contains the logic and has no user interface. Each change to the document is a command. Thus an AI can operate the editor in the same manner as a person. The specification is complete, and the build is next.",
-              "keywords": "Rust, Tauri v2, spec stage",
-              "creativeWorkStatus": "designing",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 12,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsCities",
-              "abstract": "A hex-board trading game, playable in a browser tab.",
-              "description": "You send a table code to your friends. An installation and an account are not necessary. Each table is a Durable Object that holds all the game data, and its worker is in a private repository. Each player sees a different view, because the cards in a hand are secret. If a player disconnects, a bot takes the seat after 30 seconds and gives it back when the player returns. The host can also add bots, and each bot has a difficulty level.",
-              "keywords": "Cloudflare Workers, Durable Objects, no framework",
-              "creativeWorkStatus": "live",
-              "url": "https://deets.solutions/cities/",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 13,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsMahjong",
-              "abstract": "Four-seat Hong Kong mahjong, same table, same rules.",
-              "description": "The game is Hong Kong mahjong for four players, and it uses the same table system as DeetsCities. Your hand, the tile that you draw, and your claim options stay on your connection only. The rules engine is a separate module that tests itself, and it contains the bots. Each bot has one of three difficulty levels. You select one of two tile designs for your own screen. The worker is in a private repository.",
-              "keywords": "Cloudflare Workers, Durable Objects, rules engine",
-              "creativeWorkStatus": "live",
-              "url": "https://deets.solutions/mahjong/",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 14,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsPoker",
-              "abstract": "No-limit hold&rsquo;em cash tables with friends.",
-              "description": "This is the third game on the shared table system. It is no- limit Texas hold&rsquo;em for cash. The application counts money in whole cents, and each bet must divide into the available chips. Your hole cards stay on your connection only, and a bot sees only the data that a player in the same seat sees. When you leave a table, you select the result: the table keeps your stack, the system banks it, or you lose it. The worker is in a private repository.",
-              "keywords": "Cloudflare Workers, Durable Objects, integer cents",
-              "creativeWorkStatus": "live",
-              "url": "https://deets.solutions/poker/",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 15,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsTanks",
-              "abstract": "A top-down tank arena with slow, ricocheting shells.",
-              "description": "The game has 11 levels for one player, and it gives you three lives. The enemy tanks and the terrain become more difficult at each level. The body of the tank turns to 8 directions with the W, A, S, and D keys. The turret turns to any angle and follows the mouse. A shell turns at the first wall and stops at the second wall. The game uses the shared table system, but the simulation runs in your browser at 60 Hz against a mock server.",
-              "keywords": "real-time sim, canvas, level designer",
-              "creativeWorkStatus": "live",
-              "url": "https://deets.solutions/tanks/",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 16,
-            "item": {
-              "@type": "CreativeWork",
-              "name": "DeetsShips",
-              "abstract": "Team-vs-team naval warfare, captains and all.",
-              "description": "This is the first game with teams on the shared table system. There are two teams of 1 to 4 players. One captain on each team sends the plan of the team in each round. The positions of the ships, the plans, and the sonar results stay in one team. The other team sees only the marks on its map, but a spectator sees all the data. The worker operates, and the page is in its last review before it goes into the navigation menu.",
-              "keywords": "Cloudflare Workers, Durable Objects, teams",
-              "creativeWorkStatus": "building",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 17,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsKit",
-              "abstract": "The design system behind every Deets app.",
-              "description": "DeetsKit is a Swift package that contains the design system for the Deets applications. It has 8 color themes and 4 skins: glass, comic, retro, and sunshine. It also has typography roles and components with a glass appearance. Thus each application has the same appearance, and no application holds a copy of the theme code. The package includes a WCAG contrast test tool and a palette generator that operates on the device.",
-              "keywords": "Swift package, iOS / macOS, design system",
-              "creativeWorkStatus": "active",
-              "codeRepository": "https://github.com/deets-137/DeetsKit",
-              "url": "https://github.com/deets-137/DeetsKit",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 18,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "Harness",
-              "abstract": "A local agent harness for Ollama-served models.",
-              "description": "Harness operates the models that Ollama supplies on your own computer. The server uses Python and FastAPI, and it sends the data to the browser through a WebSocket. The interface is a set of panels, and the model can also move them. Tool packs are available for chess, Dungeons & Dragons, blog edits, and code. A bridge connects the system to Discord.",
-              "keywords": "Python, FastAPI, local LLMs",
-              "creativeWorkStatus": "active",
-              "codeRepository": "https://github.com/deets-137/DeetsCode",
-              "url": "https://github.com/deets-137/DeetsCode",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 19,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsEdu",
-              "abstract": "Modeling how US education is actually doing.",
-              "description": "This is a data pipeline for the Stanford Education Data Archive and for NCES data. It makes the test scores of each school district available as a time series. DuckDB processes the data, and the result is a portable SQLite file. Public charts are the next step.",
-              "keywords": "Python, DuckDB, ~1.4 GB of data",
-              "creativeWorkStatus": "building",
-              "codeRepository": "https://github.com/deets-137/DeetsEdu",
-              "url": "https://github.com/deets-137/DeetsEdu",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 20,
-            "item": {
-              "@type": "SoftwareSourceCode",
-              "name": "DeetsDiscordBot",
-              "abstract": "Lil Deets: DeetsMusic in a Discord call, and the journals behind this site.",
-              "description": "The bot plays one Windows app, usually DeetsMusic, into a Discord voice channel. The people in the call control the music with slash commands and cards. The bot also reads the hyperlinks in a channel and writes them to Markdown and CSV files. Its journal adds data from Apple Music to each Song of the Day post. It supplies the Song of the Day journal and the movie log on this site.",
-              "keywords": "Python, Rust, Discord bot",
-              "creativeWorkStatus": "built",
-              "codeRepository": "https://github.com/deets-137/DeetsDiscordBot",
-              "url": "https://github.com/deets-137/DeetsDiscordBot",
-              "author": {
-                "@id": "https://deets.solutions/#person"
-              }
-            }
-          },
-          {
-            "@type": "ListItem",
-            "position": 21,
             "item": {
               "@type": "SoftwareSourceCode",
               "name": "DeetsRadio",
@@ -374,7 +62,137 @@
           },
           {
             "@type": "ListItem",
-            "position": 22,
+            "position": 3,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsDiscordBot",
+              "abstract": "Lil Deets: DeetsMusic in a Discord call, and the journals behind this site.",
+              "description": "The bot plays one Windows app, usually DeetsMusic, into a Discord voice channel. The people in the call control the music with slash commands and cards. The bot also reads the hyperlinks in a channel and writes them to Markdown and CSV files. Its journal adds data from Apple Music to each Song of the Day post. It supplies the Song of the Day journal and the movie log on this site.",
+              "keywords": "Python, Rust, Discord bot",
+              "creativeWorkStatus": "built",
+              "codeRepository": "https://github.com/deets-137/DeetsDiscordBot",
+              "url": "https://github.com/deets-137/DeetsDiscordBot",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsHealth",
+              "abstract": "AI phone agent for hospital scheduling.",
+              "description": "Building a voice agent that books appointments and answers chart questions. Integrated Epic&rsquo;s FHIR APIs for patient search, chart reads and scheduling, behind an adapter designed for any EHR. Designed the patient-privacy model so the AI can never pull up the wrong patient&rsquo;s chart: identity verification with a one-time SMS code, every action bound to the verified patient in code, and no patient data in logs.",
+              "keywords": "Python/Pipecat, Claude API, Rust, FHIR",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsHealth",
+              "url": "https://github.com/deets-137/DeetsHealth",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 5,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "Deets.Solutions",
+              "abstract": "This site.",
+              "description": "Zero third-party code executes on the page. This site is HTML, CSS, and JavaScript, with no framework and no dependencies. No tool compiles the files, and the browser receives the same file that I edit. Some assets are generated and then committed: the tank levels, the song data, the film data, and the resume PDF. The site contains two journals, a League statistics page, shared listening rooms, Google sign-in with per-game statistics, and four games on one table system. You select a color theme and a skin in the header, and all 30 combinations are correct.",
+              "keywords": "HTML/CSS, no framework, design tokens",
+              "creativeWorkStatus": "live",
+              "codeRepository": "https://github.com/deets-137/DeetsSolutions",
+              "url": "https://github.com/deets-137/DeetsSolutions",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 6,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsCities",
+              "abstract": "A hex-board trading game, playable in a browser tab.",
+              "description": "You send a table code to your friends. An installation and an account are not necessary. Each table is a Durable Object that holds all the game data, and its worker is in a private repository. Each player sees a different view, because the cards in a hand are secret. If a player disconnects, a bot takes the seat after 30 seconds and gives it back when the player returns. The host can also add bots, and each bot has a difficulty level.",
+              "keywords": "Cloudflare Workers, Durable Objects, no framework",
+              "creativeWorkStatus": "live",
+              "url": "https://deets.solutions/cities/",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 7,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsMahjong",
+              "abstract": "Four-seat Hong Kong mahjong, same table, same rules.",
+              "description": "The game is Hong Kong mahjong for four players, and it uses the same table system as DeetsCities. Your hand, the tile that you draw, and your claim options stay on your connection only. The rules engine is a separate module that tests itself, and it contains the bots. Each bot has one of three difficulty levels. You select one of two tile designs for your own screen. The worker is in a private repository.",
+              "keywords": "Cloudflare Workers, Durable Objects, rules engine",
+              "creativeWorkStatus": "live",
+              "url": "https://deets.solutions/mahjong/",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 8,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsPoker",
+              "abstract": "No-limit hold&rsquo;em cash tables with friends.",
+              "description": "This is the third game on the shared table system. It is no- limit Texas hold&rsquo;em for cash. The application counts money in whole cents, and each bet must divide into the available chips. Your hole cards stay on your connection only, and a bot sees only the data that a player in the same seat sees. When you leave a table, you select the result: the table keeps your stack, the system banks it, or you lose it. The worker is in a private repository.",
+              "keywords": "Cloudflare Workers, Durable Objects, integer cents",
+              "creativeWorkStatus": "live",
+              "url": "https://deets.solutions/poker/",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 9,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsTanks",
+              "abstract": "A top-down tank arena with slow, ricocheting shells.",
+              "description": "The game has 11 levels for one player, and it gives you three lives. The enemy tanks and the terrain become more difficult at each level. The body of the tank turns to 8 directions with the W, A, S, and D keys. The turret turns to any angle and follows the mouse. A shell turns at the first wall and stops at the second wall. The game uses the shared table system, but the simulation runs in your browser at 60 Hz against a mock server.",
+              "keywords": "real-time sim, canvas, level designer",
+              "creativeWorkStatus": "live",
+              "url": "https://deets.solutions/tanks/",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 10,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsAccounts",
+              "abstract": "One sign-in across the whole site.",
+              "description": "This worker supplies one sign-in for the full site. You sign in with Google, and you set the color of your profile page as a hex value. Each game worker sends its completed games to an outbox. This worker reads the outbox, and it owns the D1 database that holds your record for cities, mahjong, and poker. The repository is private, because it holds the keys.",
+              "keywords": "Cloudflare Workers, D1, OAuth",
+              "creativeWorkStatus": "live",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 11,
             "item": {
               "@type": "SoftwareSourceCode",
               "name": "DeetsLeague",
@@ -391,14 +209,196 @@
           },
           {
             "@type": "ListItem",
-            "position": 23,
+            "position": 12,
             "item": {
               "@type": "CreativeWork",
-              "name": "DeetsAccounts",
-              "abstract": "One sign-in across the whole site.",
-              "description": "This worker supplies one sign-in for the full site. You sign in with Google, and you set the color of your profile page as a hex value. Each game worker sends its completed games to an outbox. This worker reads the outbox, and it owns the D1 database that holds your record for cities, mahjong, and poker. The repository is private, because it holds the keys.",
-              "keywords": "Cloudflare Workers, D1, OAuth",
-              "creativeWorkStatus": "live",
+              "name": "DeetsFilm",
+              "abstract": "A browser extension that catches the credits.",
+              "description": "The extension shows a card when the film that you watch is near its end. The card contains a link to the film page on Letterboxd. To find the end, the extension reads the video player from four sources. You can also send the correct end time for a film, because a scene after the credits moves it. The extension operates on Netflix, Hulu, Disney+, Prime Video, and HBO Max. It has no account, it keeps no data about you, and its one request contains only a film title.",
+              "keywords": "MV3 extension, no dependencies, TMDB",
+              "creativeWorkStatus": "building",
+              "url": "https://deets.solutions/privacy/deetsfilm/",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 13,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsBeats",
+              "abstract": "A Bluetooth watchdog that keeps my headphones in stereo.",
+              "description": "Windows moves a Bluetooth headset from stereo to the Hands-Free profile when an application opens the microphone. DeetsBeats prevents this. The program runs in the system tray and monitors the connection. It disables the Hands-Free profile until you need the microphone, and it selects the correct audio device. If the connection stops, the program connects again at longer intervals. It uses Tauri and Rust, the same as DeetsMusic for Windows.",
+              "keywords": "Tauri v2, Rust, Win32 Bluetooth",
+              "creativeWorkStatus": "built",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 14,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsMusic",
+              "abstract": "An Apple Music client with a memory.",
+              "description": "The application imports your library with MusicKit and plays it from a queue that the application controls. This design permits tracks from more than one service at a later time. The application also records one song for each day and exports these songs to a playlist. You can tag each song with your feelings and put the tags in order of preference. CloudKit keeps the data in sync.",
+              "keywords": "SwiftUI, MusicKit, SwiftData",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsMusic",
+              "url": "https://github.com/deets-137/DeetsMusic",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 15,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsLife",
+              "abstract": "An isometric pixel-art world of my life.",
+              "description": "DeetsLife is an isometric world in pixel art. It started as a museum of the music in my life. The subject changed, but the world stayed. The map has more than one room and uses collision physics. It contains a drawing of me, a dog that follows a path, and a mahjong area that is not complete.",
+              "keywords": "Godot 4, GDScript, pixel art",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsLife",
+              "url": "https://github.com/deets-137/DeetsLife",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 16,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsJack",
+              "abstract": "A blackjack trainer disguised as a blackjack game.",
+              "description": "You play full blackjack hands. A trainer card then shows the mathematics for the hand. It gives the bust probability for the dealer and for you, and the expected value of each move. The trainer measures the quality of your decision, not your luck. A move with a positive expected value is correct, even if you lose the hand. Unit tests compare the Swift engine with published basic-strategy values.",
+              "keywords": "Swift 6, iOS, probability engine",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsJack",
+              "url": "https://github.com/deets-137/DeetsJack",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 17,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsBoard",
+              "abstract": "A spatial workspace for designing board games.",
+              "description": "You and your friends design the cards, units, pieces, tiles, and rules of a board game. The workspace is a canvas of 3 by 3 areas. The application is native macOS and uses Core Data and CloudKit. It replaces Henhouse, my earlier web application for the same purpose.",
+              "keywords": "Swift, macOS, CloudKit",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsBoard",
+              "url": "https://github.com/deets-137/DeetsBoard",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 18,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsTrips",
+              "abstract": "Trip planning where friends follow along.",
+              "description": "One person plans the trip. The other persons install the application and follow the plan. The application uses SwiftUI, SwiftData, and CloudKit sharing. The first build is available on TestFlight.",
+              "keywords": "SwiftUI, SwiftData, CloudKit",
+              "creativeWorkStatus": "testflight",
+              "codeRepository": "https://github.com/deets-137/DeetsTrips",
+              "url": "https://github.com/deets-137/DeetsTrips",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 19,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "Rogers",
+              "abstract": "A student-forward Learning Management System.",
+              "description": "Rogers is a learning management system for schools. Its modules are in one system. Thus a teacher sees all the data for a student, and a counselor sees the full history of a student. A school installs the full system one time. The colors are brighter than usual education software. The project has a front end, a back end, and a Docker deployment.",
+              "keywords": "TypeScript, full-stack, Docker",
+              "creativeWorkStatus": "prototype",
+              "codeRepository": "https://github.com/deets-137/Rogers",
+              "url": "https://github.com/deets-137/Rogers",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 20,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsHealthiOS",
+              "abstract": "A fresh take on personal health-data visualization.",
+              "description": "The application reads data from HealthKit and from the Oura API. It calculates all the analytics on the device. Sleep data and cardiovascular data are first. It uses the same design system as the other Deets applications.",
+              "keywords": "SwiftUI, HealthKit, Oura",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsHealthiOS",
+              "url": "https://github.com/deets-137/DeetsHealthiOS",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 21,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsPixels",
+              "abstract": "A pixel-art sprite, animation, and slideshow editor.",
+              "description": "The application shows three views of one document. You draw sprites frame by frame, put the frames into scenes, put the scenes into a sequence, and then examine all the work. A Rust crate contains the logic and has no user interface. Each change to the document is a command. Thus an AI can operate the editor in the same manner as a person. The specification is complete, and the build is next.",
+              "keywords": "Rust, Tauri v2, spec stage",
+              "creativeWorkStatus": "designing",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 22,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsShips",
+              "abstract": "Team-vs-team naval warfare, captains and all.",
+              "description": "This is the first game with teams on the shared table system. There are two teams of 1 to 4 players. One captain on each team sends the plan of the team in each round. The positions of the ships, the plans, and the sonar results stay in one team. The other team sees only the marks on its map, but a spectator sees all the data. The worker operates, and the page is in its last review before it goes into the navigation menu.",
+              "keywords": "Cloudflare Workers, Durable Objects, teams",
+              "creativeWorkStatus": "building",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 23,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "DeetsKit",
+              "abstract": "The design system behind every Deets app.",
+              "description": "DeetsKit is a Swift package that contains the design system for the Deets applications. It has 8 color themes and 4 skins: glass, comic, retro, and sunshine. It also has typography roles and components with a glass appearance. Thus each application has the same appearance, and no application holds a copy of the theme code. The package includes a WCAG contrast test tool and a palette generator that operates on the device.",
+              "keywords": "Swift package, iOS / macOS, design system",
+              "creativeWorkStatus": "active",
+              "codeRepository": "https://github.com/deets-137/DeetsKit",
+              "url": "https://github.com/deets-137/DeetsKit",
               "author": {
                 "@id": "https://deets.solutions/#person"
               }
@@ -409,13 +409,13 @@
             "position": 24,
             "item": {
               "@type": "SoftwareSourceCode",
-              "name": "Oura sleep-lag viz",
-              "abstract": "Interactive sleep & stress cycles from my Oura Ring.",
-              "description": "This chart shows the time between a change in stress and a change in sleep quality. The data comes from my own Oura ring.",
-              "keywords": "data viz, Oura",
-              "creativeWorkStatus": "built",
-              "codeRepository": "https://github.com/deets-137/oura-sleep-lag-viz",
-              "url": "https://github.com/deets-137/oura-sleep-lag-viz",
+              "name": "Harness",
+              "abstract": "A local agent harness for Ollama-served models.",
+              "description": "Harness operates the models that Ollama supplies on your own computer. The server uses Python and FastAPI, and it sends the data to the browser through a WebSocket. The interface is a set of panels, and the model can also move them. Tool packs are available for chess, Dungeons & Dragons, blog edits, and code. A bridge connects the system to Discord.",
+              "keywords": "Python, FastAPI, local LLMs",
+              "creativeWorkStatus": "active",
+              "codeRepository": "https://github.com/deets-137/DeetsCode",
+              "url": "https://github.com/deets-137/DeetsCode",
               "author": {
                 "@id": "https://deets.solutions/#person"
               }
@@ -426,13 +426,30 @@
             "position": 25,
             "item": {
               "@type": "SoftwareSourceCode",
-              "name": "Deets.Solutions",
-              "abstract": "This site.",
-              "description": "Zero third-party code executes on the page. This site is HTML, CSS, and JavaScript, with no framework and no dependencies. No tool compiles the files, and the browser receives the same file that I edit. Some assets are generated and then committed: the tank levels, the song data, the film data, and the resume PDF. The site contains two journals, a League statistics page, shared listening rooms, Google sign-in with per-game statistics, and four games on one table system. You select a color theme and a skin in the header, and all 30 combinations are correct.",
-              "keywords": "HTML/CSS, no framework, design tokens",
-              "creativeWorkStatus": "live",
-              "codeRepository": "https://github.com/deets-137/DeetsSolutions",
-              "url": "https://github.com/deets-137/DeetsSolutions",
+              "name": "DeetsEdu",
+              "abstract": "Modeling how US education is actually doing.",
+              "description": "This is a data pipeline for the Stanford Education Data Archive and for NCES data. It makes the test scores of each school district available as a time series. DuckDB processes the data, and the result is a portable SQLite file. Public charts are the next step.",
+              "keywords": "Python, DuckDB, ~1.4 GB of data",
+              "creativeWorkStatus": "building",
+              "codeRepository": "https://github.com/deets-137/DeetsEdu",
+              "url": "https://github.com/deets-137/DeetsEdu",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 26,
+            "item": {
+              "@type": "SoftwareSourceCode",
+              "name": "Oura sleep-lag viz",
+              "abstract": "Interactive sleep & stress cycles from my Oura Ring.",
+              "description": "This chart shows the time between a change in stress and a change in sleep quality. The data comes from my own Oura ring.",
+              "keywords": "data viz, Oura",
+              "creativeWorkStatus": "built",
+              "codeRepository": "https://github.com/deets-137/oura-sleep-lag-viz",
+              "url": "https://github.com/deets-137/oura-sleep-lag-viz",
               "author": {
                 "@id": "https://deets.solutions/#person"
               }
@@ -534,15 +551,17 @@
       <nav class="section-nav" aria-labelledby="cool-title">
         <span class="section-nav__pill" aria-hidden="true"></span>
         <ul class="section-nav__list">
+          <li><a class="section-nav__item" href="#live">Live &amp; Demo-able</a></li>
           <li><a class="section-nav__item" href="#apps">Apps &amp; experiences</a></li>
-          <li><a class="section-nav__item" href="#games">Games</a></li>
           <li><a class="section-nav__item" href="#tools">Tools &amp; systems</a></li>
         </ul>
       </nav>
 
       <div class="section-layout__body">
-      <section id="apps">
-      <h2 class="cool__section">Apps &amp; experiences</h2>
+      <section id="live">
+      <h2 class="cool__section">Live &amp; Demo-able</h2>
+      <div class="cool__group">
+      <h3 class="cool__group-title">DeetsMusic</h3>
       <div class="cool__grid">
         <article class="project">
           <div class="project__top">
@@ -566,9 +585,276 @@
           </div>
           <div class="project__links">
             <a class="project__link" href="https://github.com/deets-137/DeetsMusicWindows">GitHub ↗</a>
+            <a class="project__link" href="/deetsmusic/demo/">Demo ↗</a>
           </div>
         </article>
 
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsRadio</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">Shared listening rooms, one Durable Object each.</p>
+          <p class="project__desc">
+            This worker operates the radio page on this site. Each room is a
+            Durable Object with WebSockets that can hibernate. The room
+            holds a shared queue and keeps the playback of all listeners in
+            sync. An alarm keeps an empty room in operation, and a D1
+            database matches the songs between music services. The room
+            controls the time only, and it does not send audio. The worker
+            has no dependencies and stays in the free service level.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">WebSockets</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="https://github.com/deets-137/DeetsRadio">GitHub ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsDiscordBot</h3>
+            <span class="project__status">built</span>
+          </div>
+          <p class="project__pitch">Lil Deets: DeetsMusic in a Discord call, and the journals behind this site.</p>
+          <p class="project__desc">
+            The bot plays one Windows app, usually DeetsMusic, into a
+            Discord voice channel. The people in the call control the music
+            with slash commands and cards. The bot also reads the hyperlinks
+            in a channel and writes them to Markdown and CSV files. Its
+            journal adds data from Apple Music to each Song of the Day post.
+            It supplies the Song of the Day journal and the movie log on
+            this site.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Python</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">Discord bot</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="https://github.com/deets-137/DeetsDiscordBot">GitHub ↗</a>
+          </div>
+        </article>
+      </div>
+      </div>
+
+      <div class="cool__group">
+      <h3 class="cool__group-title">DeetsHealth</h3>
+      <div class="cool__grid">
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsHealth</h3>
+            <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">AI phone agent for hospital scheduling.</p>
+          <p class="project__desc">
+            Building a voice agent that books appointments and answers chart
+            questions. Integrated Epic&rsquo;s FHIR APIs for patient search, chart
+            reads and scheduling, behind an adapter designed for any EHR.
+            Designed the patient-privacy model so the AI can never pull up the
+            wrong patient&rsquo;s chart: identity verification with a one-time SMS
+            code, every action bound to the verified patient in code, and no
+            patient data in logs.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Python/Pipecat</span>
+            <span class="project__chip">Claude API</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">FHIR</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="https://github.com/deets-137/DeetsHealth">GitHub ↗</a>
+            <a class="project__link" href="https://deetshealth.deets.solutions/demo/">Demo ↗</a>
+          </div>
+        </article>
+      </div>
+      </div>
+
+      <div class="cool__group">
+      <h3 class="cool__group-title">Deets.Solutions</h3>
+      <div class="cool__grid">
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">Deets.Solutions</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">This site.</p>
+          <p class="project__desc">
+            Zero third-party code executes on the page. This site is HTML,
+            CSS, and JavaScript, with no framework and no dependencies. No
+            tool compiles the files, and the browser receives the same file
+            that I edit. Some assets are generated and then committed: the
+            tank levels, the song data, the film data, and the resume PDF.
+            The site contains two journals, a League statistics page, shared
+            listening rooms, Google sign-in with per-game statistics, and
+            four games on one table system. You select a color theme and a
+            skin in the header, and all 30 combinations are correct.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">HTML/CSS</span>
+            <span class="project__chip">no framework</span>
+            <span class="project__chip">design tokens</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsCities</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">A hex-board trading game, playable in a browser tab.</p>
+          <p class="project__desc">
+            You send a table code to your friends. An installation and an
+            account are not necessary. Each table is a Durable Object that
+            holds all the game data, and its worker is in a private
+            repository. Each player sees a different view, because the cards
+            in a hand are secret. If a player disconnects, a bot takes the
+            seat after 30 seconds and gives it back when the player returns.
+            The host can also add bots, and each bot has a difficulty level.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">no framework</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/cities/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsMahjong</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">Four-seat Hong Kong mahjong, same table, same rules.</p>
+          <p class="project__desc">
+            The game is Hong Kong mahjong for four players, and it uses the
+            same table system as DeetsCities. Your hand, the tile that you
+            draw, and your claim options stay on your connection only. The
+            rules engine is a separate module that tests itself, and it
+            contains the bots. Each bot has one of three difficulty levels.
+            You select one of two tile designs for your own screen. The
+            worker is in a private repository.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">rules engine</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/mahjong/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsPoker</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">No-limit hold&rsquo;em cash tables with friends.</p>
+          <p class="project__desc">
+            This is the third game on the shared table system. It is no-
+            limit Texas hold&rsquo;em for cash. The application counts money
+            in whole cents, and each bet must divide into the available
+            chips. Your hole cards stay on your connection only, and a bot
+            sees only the data that a player in the same seat sees. When you
+            leave a table, you select the result: the table keeps your
+            stack, the system banks it, or you lose it. The worker is in a
+            private repository.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">integer cents</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/poker/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsTanks</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">A top-down tank arena with slow, ricocheting shells.</p>
+          <p class="project__desc">
+            The game has 11 levels for one player, and it gives you three
+            lives. The enemy tanks and the terrain become more difficult at
+            each level. The body of the tank turns to 8 directions with the
+            W, A, S, and D keys. The turret turns to any angle and follows
+            the mouse. A shell turns at the first wall and stops at the
+            second wall. The game uses the shared table system, but the
+            simulation runs in your browser at 60 Hz against a mock server.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">real-time sim</span>
+            <span class="project__chip">canvas</span>
+            <span class="project__chip">level designer</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="/tanks/">Play ↗</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsAccounts</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">One sign-in across the whole site.</p>
+          <p class="project__desc">
+            This worker supplies one sign-in for the full site. You sign in
+            with Google, and you set the color of your profile page as a hex
+            value. Each game worker sends its completed games to an outbox.
+            This worker reads the outbox, and it owns the D1 database that
+            holds your record for cities, mahjong, and poker. The repository
+            is private, because it holds the keys.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">D1</span>
+            <span class="project__chip">OAuth</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsLeague</h3>
+            <span class="project__status">live</span>
+          </div>
+          <p class="project__pitch">The live stats engine behind the League tab.</p>
+          <p class="project__desc">
+            This worker supplies the data for the League page. It sends the
+            requests to the Riot API, so the key stays out of the browser.
+            It puts the match data into a D1 database in one format. A
+            scheduled task collects approximately 1,000 earlier games for
+            each player. The task controls its own rate, so it stays below
+            the limit of the API. The worker has no dependencies.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">D1</span>
+            <span class="project__chip">Riot API</span>
+          </div>
+          <div class="project__links">
+            <a class="project__link" href="https://github.com/deets-137/DeetsLeague">GitHub ↗</a>
+          </div>
+        </article>
+      </div>
+      </div>
+      </section>
+
+      <section id="apps">
+      <h2 class="cool__section">Apps &amp; experiences</h2>
+      <div class="cool__grid">
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsFilm</h3>
@@ -763,7 +1049,7 @@
 
         <article class="project">
           <div class="project__top">
-            <h3 class="project__name">DeetsHealth</h3>
+            <h3 class="project__name">DeetsHealthiOS</h3>
             <span class="project__status">building</span>
           </div>
           <p class="project__pitch">A fresh take on personal health-data visualization.</p>
@@ -779,7 +1065,7 @@
             <span class="project__chip">Oura</span>
           </div>
           <div class="project__links">
-            <a class="project__link" href="https://github.com/deets-137/DeetsHealth">GitHub ↗</a>
+            <a class="project__link" href="https://github.com/deets-137/DeetsHealthiOS">GitHub ↗</a>
           </div>
         </article>
 
@@ -802,112 +1088,6 @@
             <span class="project__chip">Rust</span>
             <span class="project__chip">Tauri v2</span>
             <span class="project__chip">spec stage</span>
-          </div>
-        </article>
-      </div>
-      </section>
-
-      <section id="games">
-      <h2 class="cool__section">Games</h2>
-      <div class="cool__grid">
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsCities</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">A hex-board trading game, playable in a browser tab.</p>
-          <p class="project__desc">
-            You send a table code to your friends. An installation and an
-            account are not necessary. Each table is a Durable Object that
-            holds all the game data, and its worker is in a private
-            repository. Each player sees a different view, because the cards
-            in a hand are secret. If a player disconnects, a bot takes the
-            seat after 30 seconds and gives it back when the player returns.
-            The host can also add bots, and each bot has a difficulty level.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Cloudflare Workers</span>
-            <span class="project__chip">Durable Objects</span>
-            <span class="project__chip">no framework</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="/cities/">Play ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsMahjong</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">Four-seat Hong Kong mahjong, same table, same rules.</p>
-          <p class="project__desc">
-            The game is Hong Kong mahjong for four players, and it uses the
-            same table system as DeetsCities. Your hand, the tile that you
-            draw, and your claim options stay on your connection only. The
-            rules engine is a separate module that tests itself, and it
-            contains the bots. Each bot has one of three difficulty levels.
-            You select one of two tile designs for your own screen. The
-            worker is in a private repository.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Cloudflare Workers</span>
-            <span class="project__chip">Durable Objects</span>
-            <span class="project__chip">rules engine</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="/mahjong/">Play ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsPoker</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">No-limit hold&rsquo;em cash tables with friends.</p>
-          <p class="project__desc">
-            This is the third game on the shared table system. It is no-
-            limit Texas hold&rsquo;em for cash. The application counts money
-            in whole cents, and each bet must divide into the available
-            chips. Your hole cards stay on your connection only, and a bot
-            sees only the data that a player in the same seat sees. When you
-            leave a table, you select the result: the table keeps your
-            stack, the system banks it, or you lose it. The worker is in a
-            private repository.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Cloudflare Workers</span>
-            <span class="project__chip">Durable Objects</span>
-            <span class="project__chip">integer cents</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="/poker/">Play ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsTanks</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">A top-down tank arena with slow, ricocheting shells.</p>
-          <p class="project__desc">
-            The game has 11 levels for one player, and it gives you three
-            lives. The enemy tanks and the terrain become more difficult at
-            each level. The body of the tank turns to 8 directions with the
-            W, A, S, and D keys. The turret turns to any angle and follows
-            the mouse. A shell turns at the first wall and stops at the
-            second wall. The game uses the shared table system, but the
-            simulation runs in your browser at 60 Hz against a mock server.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">real-time sim</span>
-            <span class="project__chip">canvas</span>
-            <span class="project__chip">level designer</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="/tanks/">Play ↗</a>
           </div>
         </article>
 
@@ -1012,101 +1192,6 @@
 
         <article class="project">
           <div class="project__top">
-            <h3 class="project__name">DeetsDiscordBot</h3>
-            <span class="project__status">built</span>
-          </div>
-          <p class="project__pitch">Lil Deets: DeetsMusic in a Discord call, and the journals behind this site.</p>
-          <p class="project__desc">
-            The bot plays one Windows app, usually DeetsMusic, into a
-            Discord voice channel. The people in the call control the music
-            with slash commands and cards. The bot also reads the hyperlinks
-            in a channel and writes them to Markdown and CSV files. Its
-            journal adds data from Apple Music to each Song of the Day post.
-            It supplies the Song of the Day journal and the movie log on
-            this site.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Python</span>
-            <span class="project__chip">Rust</span>
-            <span class="project__chip">Discord bot</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="https://github.com/deets-137/DeetsDiscordBot">GitHub ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsRadio</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">Shared listening rooms, one Durable Object each.</p>
-          <p class="project__desc">
-            This worker operates the radio page on this site. Each room is a
-            Durable Object with WebSockets that can hibernate. The room
-            holds a shared queue and keeps the playback of all listeners in
-            sync. An alarm keeps an empty room in operation, and a D1
-            database matches the songs between music services. The room
-            controls the time only, and it does not send audio. The worker
-            has no dependencies and stays in the free service level.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Cloudflare Workers</span>
-            <span class="project__chip">Durable Objects</span>
-            <span class="project__chip">WebSockets</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="https://github.com/deets-137/DeetsRadio">GitHub ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsLeague</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">The live stats engine behind the League tab.</p>
-          <p class="project__desc">
-            This worker supplies the data for the League page. It sends the
-            requests to the Riot API, so the key stays out of the browser.
-            It puts the match data into a D1 database in one format. A
-            scheduled task collects approximately 1,000 earlier games for
-            each player. The task controls its own rate, so it stays below
-            the limit of the API. The worker has no dependencies.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Cloudflare Workers</span>
-            <span class="project__chip">D1</span>
-            <span class="project__chip">Riot API</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="https://github.com/deets-137/DeetsLeague">GitHub ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">DeetsAccounts</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">One sign-in across the whole site.</p>
-          <p class="project__desc">
-            This worker supplies one sign-in for the full site. You sign in
-            with Google, and you set the color of your profile page as a hex
-            value. Each game worker sends its completed games to an outbox.
-            This worker reads the outbox, and it owns the D1 database that
-            holds your record for cities, mahjong, and poker. The repository
-            is private, because it holds the keys.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">Cloudflare Workers</span>
-            <span class="project__chip">D1</span>
-            <span class="project__chip">OAuth</span>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
             <h3 class="project__name">Oura sleep-lag viz</h3>
             <span class="project__status">built</span>
           </div>
@@ -1121,33 +1206,6 @@
           </div>
           <div class="project__links">
             <a class="project__link" href="https://github.com/deets-137/oura-sleep-lag-viz">GitHub ↗</a>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project__top">
-            <h3 class="project__name">Deets.Solutions</h3>
-            <span class="project__status">live</span>
-          </div>
-          <p class="project__pitch">This site.</p>
-          <p class="project__desc">
-            Zero third-party code executes on the page. This site is HTML,
-            CSS, and JavaScript, with no framework and no dependencies. No
-            tool compiles the files, and the browser receives the same file
-            that I edit. Some assets are generated and then committed: the
-            tank levels, the song data, the film data, and the resume PDF.
-            The site contains two journals, a League statistics page, shared
-            listening rooms, Google sign-in with per-game statistics, and
-            four games on one table system. You select a color theme and a
-            skin in the header, and all 30 combinations are correct.
-          </p>
-          <div class="project__tags">
-            <span class="project__chip">HTML/CSS</span>
-            <span class="project__chip">no framework</span>
-            <span class="project__chip">design tokens</span>
-          </div>
-          <div class="project__links">
-            <a class="project__link" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
           </div>
         </article>
       </div>

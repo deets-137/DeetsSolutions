@@ -300,6 +300,13 @@ group needs its own `<section id>` and a link in the nav. The cards must
 stay `<article class="project">` exactly: `stamp-crawl.js`,
 `build-project-dates.py` and `home.js` find them by that tag.
 
+The sections (his call, 2026-11-22): **Live & Demo-able** first, in three
+`.cool__group`s, one per flagship (DeetsMusic, DeetsHealth,
+Deets.Solutions), each followed by the projects that hang off it; then
+Apps & experiences (Games folded in), then Tools & systems. A project's
+card links to its repo under the repo's current name (DeetsHealthiOS is
+the old DeetsHealth, renamed; DeetsHealth is now the phone agent).
+
 ### Resume (`resume/`)
 
 The resume in the site's type system, and the source of truth for the
