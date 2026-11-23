@@ -33,7 +33,11 @@
   --space-6: 2rem;
 
   --header-h:    4rem;
-  --content-max: 68rem;
+  /* The site's frame below the wide layout, which every page was first
+     laid out in. The wide layout raises --content-max; a page not yet
+     redesigned for it can keep its old width with --content-max-base. */
+  --content-max-base: 68rem;
+  --content-max: var(--content-max-base);
   /* The wide layout (re-dezine, 2026-11-23; "The wide layout" at the end
      of this file): from 82rem the nav is a panel this wide down the left,
      and the content may grow to --content-max-wide beside it. The 82rem

@@ -99,7 +99,10 @@ was unpushed on master when the branch was cut, including the nightly `songs.jso
   DeetsMusic card fills in above the SOTD hub. (2) The game tables inside the
   grid are unchecked. (3) `display: contents` on the header may cost the banner landmark
   in older screen readers. (4) Docs: architecture.md's header section, and HANDOFF once he
-  approves. (5) His visual pass across theme × skin.
+  approves. (5) His visual pass across theme × skin. (6) The DeetsMusic page is held at
+  its old width in the wide layout until he revisits its design (main.css,
+  `.site-main[data-dm]`, `--content-max-base`); Resume keeps its own reading width there
+  too, with open space to its right for later.
 - *Dev tooling built here*: the dev trace (`scripts/dev-trace.js`, tooling.md §3c). It
   logs every page change, transition outcome, frames, shifts, fonts, loading and CPU, read
   with `curl /__dev/trace?summary=1`. The driver now closes its stream on `pagehide`, so

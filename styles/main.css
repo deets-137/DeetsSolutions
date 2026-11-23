@@ -3600,6 +3600,13 @@ html:has(.section-nav) { scroll-behavior: smooth; }
    ============================================================ */
 /* `hidden` must beat the display rules below (a class alone would win). */
 [data-dm] [hidden] { display: none; }
+/* The wide layout (chrome.css, 82rem and up): keep the width this page was
+   laid out in (the base frame less its side padding), starting at the nav
+   like every page, until the page is redesigned for the wide layout (his
+   call, 2026-11-23, as on Resume). */
+@media (min-width: 82rem) {
+  .site-main[data-dm] { max-width: calc(var(--content-max-base) - 2 * var(--space-6)); }
+}
 
 .dm-grid {
   display: grid;

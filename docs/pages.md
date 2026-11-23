@@ -44,26 +44,26 @@ after a deploy ([architecture.md](architecture.md), "Token stamps").
 
 | Page | Stylesheets (`name@stamp`; `—` = no stamp) | Pre-paint script |
 | --- | --- | --- |
-| / | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /404.html | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /auth/done.html | chrome.css@2026-11-23o | shared |
-| /cities/ | chrome.css@2026-11-23o, table.css@2026-10-28, cities.css@2026-11-16 | shared |
-| /deetsmusic/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /deetsmusic/admin/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /deetsmusic/demo/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /league/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /mahjong/ | chrome.css@2026-11-23o, table.css@2026-10-28, mahjong.css@2026-11-04c | shared |
-| /movies/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /poker/ | chrome.css@2026-11-23o, table.css@—, poker.css@— | shared |
-| /portfolio/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /privacy/ | chrome.css@2026-11-23o | shared |
-| /privacy/deetsfilm/ | chrome.css@2026-11-23o | shared |
-| /profile/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /radio/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /resume/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /sotd/ | chrome.css@2026-11-23o, main.css@2026-11-23g | shared |
-| /tanks/ | chrome.css@2026-11-23o, table.css@—, tanks.css@— | shared |
-| /tanks/designer.html | chrome.css@2026-11-23o, tanks.css@— | none |
+| / | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /404.html | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /auth/done.html | chrome.css@2026-11-23p | shared |
+| /cities/ | chrome.css@2026-11-23p, table.css@2026-10-28, cities.css@2026-11-16 | shared |
+| /deetsmusic/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /deetsmusic/admin/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /deetsmusic/demo/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /league/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /mahjong/ | chrome.css@2026-11-23p, table.css@2026-10-28, mahjong.css@2026-11-04c | shared |
+| /movies/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /poker/ | chrome.css@2026-11-23p, table.css@—, poker.css@— | shared |
+| /portfolio/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /privacy/ | chrome.css@2026-11-23p | shared |
+| /privacy/deetsfilm/ | chrome.css@2026-11-23p | shared |
+| /profile/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /radio/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /resume/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /sotd/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /tanks/ | chrome.css@2026-11-23p, table.css@—, tanks.css@— | shared |
+| /tanks/designer.html | chrome.css@2026-11-23p, tanks.css@— | none |
 
 "Pre-paint script" is the inline theme script that must be byte-identical on every page,
 with its hash in `_headers`' CSP (CLAUDE.md, "Never").
