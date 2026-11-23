@@ -302,7 +302,9 @@ stay `<article class="project">` exactly: `stamp-crawl.js`,
 
 The sections (his call, 2026-11-22): **Live & Demo-able** first, in three
 `.cool__group`s, one per flagship (DeetsMusic, DeetsHealth,
-Deets.Solutions), each followed by the projects that hang off it; then
+Deets.Solutions), each followed by the projects that hang off it, plus
+DeetsPics in its own one-card group beside DeetsHealth's (a
+`.cool__group-row`: one-card groups side by side, each titled); then
 Apps & experiences (Games folded in), then Tools & systems. A project's
 card links to its repo under the repo's current name (DeetsHealthiOS is
 the old DeetsHealth, renamed; DeetsHealth is now the phone agent).

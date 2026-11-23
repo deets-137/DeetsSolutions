@@ -495,7 +495,20 @@
 
 /* A group inside a section (Live & Demo-able: each flagship and the
    projects that hang off it), under a smaller head of its own. */
-.cool__group + .cool__group { margin-top: var(--space-5); }
+.cool__group + .cool__group,
+.cool__group + .cool__group-row,
+.cool__group-row + .cool__group { margin-top: var(--space-5); }
+/* One-card groups side by side (DeetsHealth | DeetsPics): the row takes
+   the card grid's columns, so each title sits over its own card, and the
+   two cards stretch to one height. One column on a narrow screen. */
+.cool__group-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-5);
+}
+.cool__group-row > .cool__group { display: flex; flex-direction: column; margin-top: 0; }
+.cool__group-row .cool__grid { flex: 1; }
+.cool__grid--one { grid-template-columns: minmax(0, 1fr); }
 .cool__group-title {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
