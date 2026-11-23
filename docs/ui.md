@@ -1,7 +1,7 @@
 ---
 status: foundation
-sources: [js/controls.js, js/toast.js, js/ocean.js, styles/chrome.css]
-updated: 2026-11-22
+sources: [js/controls.js, js/account.js, js/toast.js, js/ocean.js, styles/chrome.css]
+updated: 2026-11-23
 ---
 # UI
 
@@ -26,11 +26,17 @@ of [chrome.css](../styles/chrome.css) (around the `.settings__trigger` rule).
 ### Mount and injection
 
 Each page carries one empty mount at the right end of the header, after the
-nav links:
+nav links, inside the dock wrapper (2026-11-23):
 
 ```html
-<span class="settings" data-settings></span>
+<div class="site-dock"><span class="settings" data-settings></span></div>
 ```
+
+`account.js` puts the Sign in slot (`.header-account`) beside it, in the same
+wrapper. Below 82rem the wrapper is `display: contents`, so both sit in the top
+header as before. In the wide layout it's the dock at the bottom left, where
+the menu opens upward and its flyouts open to the right
+([architecture.md](architecture.md), "The wide layout").
 
 On load, `controls.js` (`buildMenu()`) finds `[data-settings]`, injects the
 `.settings__trigger` button — labelled **Vibe** — and appends a hidden

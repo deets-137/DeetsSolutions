@@ -69,24 +69,24 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-11-23 — re-dezine: the wide layout and the recruiter Portfolio (PROTOTYPE, branch
-`re-dezine`, nothing committed; his visual review in progress).** Carries every change that
-was unpushed on master when the branch was cut, including the nightly `songs.json` /
-`movies.json` refresh, which belongs in its own commit.
-- *Portfolio* (built): his name in the bar, a split Resume | download pill (gate animation,
-  `js/download-gate.js`), a `[ph]` pitch line, and a "Start here" row of three flagship
-  cards (`.feature`, never `.project`). architecture.md, "Portfolio".
-- *Wide layout* (prototype): from 82rem wide, DeetsHealth's console shell. The big title
-  "Deets Solutions", the nav as a sticky glass panel on the left with Home first and Blog
-  below Games, the current page on an accent tile that slides between pages (a
-  cross-document view transition), and Portfolio's and Resume's section lists nested in the
-  panel. chrome.css, "The wide layout"; `--rail-w`, `--content-max-wide`, `--measure`. Not
-  in architecture.md yet: the header section there still describes the top header only.
-- *Fixed on the way*: fonts now `font-display: fallback`, and `/assets/fonts/*` is cached
-  a year, immutable (a changed face needs a new file name). See LESSONS.md, "Page
-  transitions".
-- *Page transitions*: FIXED and confirmed in his Edge, 13 of 13 glided. The opt-in is an
-  inline `<style>` in every `<head>` (LESSONS.md, "Page transitions").
+**2026-11-23 — re-dezine: the wide layout and the recruiter Portfolio (BUILT, branch
+`re-dezine` pushed, 8 commits on master, NOT merged; his visual review done as he went, he
+called it a day 2026-11-23).** First step next time: his merge into master (and a deploy),
+or more touches. Design: architecture.md, "The wide layout" and "Portfolio"; why things
+are the way they are: LESSONS.md, "Page transitions".
+- *Portfolio*: his name in the bar with a split Resume | download pill, GitHub and LinkedIn;
+  his pitch as the bar's second tier; the three flagship cards (`.feature`, never
+  `.project`) leading the page with no heading; zero `[ph]` left on the site.
+- *Wide layout* (82rem and up): DeetsHealth's console shell. The sticky "Deets Solutions"
+  title, the nav as a glass panel (Home, DeetsMusic, Games, Blog, About Me) with
+  Portfolio's and Resume's section lists nested in it, the solid accent glass sliding
+  between pages under still text ("Heavy" glide), and Sign in + Vibe in a dock at the
+  bottom left. Resume and the DeetsMusic page keep their old widths for now.
+- *Shared page bar*: the bar's second tier (`.page-bar__lede`) on Home, Portfolio, Resume,
+  DeetsMusic and the 404.
+- *Fixed on the way*: page transitions (opt-in inline in every `<head>`, 13 of 13 glided
+  in his Edge), fonts `font-display: fallback` + `/assets/fonts/*` immutable for a year,
+  `main.css` and `account.js` stamped on every page.
 - *Open*: (1) whole-page layout shifts on arrival (Portfolio 0.99, DeetsMusic 0.68, Resume
   0.68, Home 0.52, Radio 0.2). The trace's before/after boxes show the cause: the shift's
   "before" frame has NO stylesheet applied (body at the browser's default 8 px margin,
@@ -98,15 +98,17 @@ was unpushed on master when the branch was cut, including the nightly `songs.jso
   site. Home also has a real 128 px push-down as the
   DeetsMusic card fills in above the SOTD hub. (2) The game tables inside the
   grid are unchecked. (3) `display: contents` on the header may cost the banner landmark
-  in older screen readers. (4) Docs: architecture.md's header section, and HANDOFF once he
-  approves. (5) His visual pass across theme × skin. (6) The DeetsMusic page is held at
+  in older screen readers. (4) His visual pass across theme × skin beyond his own
+  Ocean × Black-Red. (5) The DeetsMusic page is held at
   its old width in the wide layout until he revisits its design (main.css,
   `.site-main[data-dm]`, `--content-max-base`); Resume keeps its own reading width there
   too, with open space to its right for later.
 - *Dev tooling built here*: the dev trace (`scripts/dev-trace.js`, tooling.md §3c). It
   logs every page change, transition outcome, frames, shifts, fonts, loading and CPU, read
-  with `curl /__dev/trace?summary=1`. The driver now closes its stream on `pagehide`, so
-  dev pages can enter the back/forward cache.
+  with `curl /__dev/trace?summary=1`. The Glide picker (`scripts/dev-glide.js`, §3d) tries
+  motion curves live. The page inventory (`scripts/page-inventory.js` → pages.md) is
+  generated, checked by docs-check and regenerated on commit. The driver now closes its
+  stream on `pagehide`, so dev pages can enter the back/forward cache.
 
 **2026-11-23 — Bugs the dev trace caught on the way (OPEN, not re-dezine's).**
 - *Mahjong*: `Uncaught TypeError: Cannot read properties of undefined (reading 'some')` at

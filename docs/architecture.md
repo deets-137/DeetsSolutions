@@ -1,6 +1,6 @@
 ---
 status: foundation
-sources: [js/controls.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
+sources: [js/controls.js, js/section-nav.js, js/account.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
 updated: 2026-11-23
 ---
 # Architecture
@@ -166,11 +166,67 @@ material and geometry (menu surface + backdrop, panel radius/border/
 shadow, same padding), so the title sits in the same place in the same
 dress on every tab — a geometry change to one should visit the other.
 
+## The wide layout (82rem and up)
+
+Built 2026-11-23 (branch `re-dezine`). Below 82rem (about 1312px) the site is
+the top header described above. From 82rem, every page becomes DeetsHealth's
+console shell. It needs no page-specific code and is the same markup on every
+page: `styles/chrome.css`, "The wide layout", is nearly all of it.
+
+**Grid.** `body` becomes a two-column grid: the nav column (`--rail-w`,
+17rem, fixed so nothing jitters) and the content, up to `--content-max-wide`
+(88rem). The header's own box dissolves (`display: contents`), so its parts take
+grid cells. The base frame below 82rem is `--content-max-base` (68rem). A page
+not yet redesigned keeps its old width with it: the DeetsMusic page does
+(`.site-main[data-dm]`), and Resume keeps its own 66rem reading width. Both
+start at the nav, with open space to their right.
+
+**Parts.**
+- *Title*: "Deets Solutions" (`.wordmark` + `.wordmark__more`, hidden below
+  82rem), sticky at the top over the nav column.
+- *Nav panel*: `.site-nav` as a sticky glass card under the title, its groups
+  open as small bold headings over their pages. Home comes first
+  (`.site-nav__home`, wide only), then DeetsMusic, Games, Blog, About Me. A page
+  with a section nav (Portfolio, Resume) has it moved into the panel under its
+  own item by `js/section-nav.js`, loaded `blocking="render"` so the move lands
+  before the first frame.
+- *The glass*: `.site-nav__glass`, one empty element per nav, pinned under the
+  current page's item by CSS anchor positioning (`anchor-name: --nav-current`).
+  It's DeetsHealth's solid accent pill, and the current label turns `--canvas`
+  on it. A browser without anchor positioning puts the accent behind the
+  current item instead.
+- *Dock*: `.site-dock` wraps Vibe on every page, and `account.js` puts Sign in
+  beside it. Below 82rem it is `display: contents`, so the top header is
+  unchanged. From 82rem it's a glass panel the nav's width, stuck to the bottom
+  of the screen. The nav's max height leaves room for it (`--dock-h`).
+
+**Page transitions.** Moving between pages is a cross-document view
+transition. Three things make it reliable, and LESSONS.md, "Page transitions",
+has the why:
+1. The opt-in, `@view-transition { navigation: auto }`, is an **inline
+   `<style>` in every page's `<head>`**, not in `chrome.css`.
+2. Every page has `<link rel="expect" href="#main" blocking="render">` and
+   `<main id="main">`.
+3. The page itself swaps at once (`root` has no animation). Only the glass
+   slides (`nav-glass`). Every nav item has its own name, keyed by its path, so
+   its text stays put and only crossfades its color.
+
+The motion is `--dur-glide` / `--ease-glide` in `skin.css` ("Heavy",
+`cubic-bezier(0.83, 0, 0.17, 1)` over 0.44s). The dev server's Glide picker
+tries others ([tooling.md](tooling.md) §3d). Pages outside the nav (League,
+Profile, Privacy, Tanks, the 404, DeetsMusic admin) have no glass, so arriving
+there just swaps. [pages.md](pages.md) shows each page's nav tile and what its
+first frame waits for.
+
+**Text width.** `--measure` (75ch) caps running text that spans a wide box:
+`.page-meta`, the bar's second tier, and the DeetsMusic page's fine print.
+
 ## The pages
 
 ### Home (`index.html`)
 
-The hub. A `.page-bar` (name + Resume / GitHub / LinkedIn pills), then
+The hub. A `.page-bar` (name + Resume / GitHub / LinkedIn pills, and his
+pitch in the bar's second tier, the same as Portfolio's), then
 the SOTD hub (hero, stat chips, cover calendar, liner notes) on the left
 and a side stack of two `.home-card` sections — Cool Stuff and Movies —
 on the right (single column under 60rem). Each side card holds a
