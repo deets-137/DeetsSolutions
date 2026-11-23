@@ -10,7 +10,7 @@ Several pages fill in their text with JavaScript. The Resume and Cool Stuff page
 
 - [Home](https://deets.solutions/): Who he is, with links to everything below.
 - [Resume](https://deets.solutions/resume/): Work history, projects and education (UCLA, B.S. Computational & Systems Biology). Plain HTML.
-- [Resume, PDF](https://deets.solutions/resume/AdityaSundaram_Resume.pdf): The same resume as one page.
+- [Resume, PDF](https://deets.solutions/resume/AdityaSundaram_Resume.pdf): The same resume as a two-page PDF.
 - [Cool Stuff I Did](https://deets.solutions/cool-stuff/): The portfolio of native and web apps, each with its GitHub repository. Plain HTML.
 
 ## DeetsMusic

@@ -1,7 +1,7 @@
 # Rebuild the downloadable resume PDF from the resume page.
 #
 # resume/index.html is the source of truth: its print stylesheet IS the
-# PDF layout (all-serif, one page, contact line swapped in). This script
+# PDF layout (all-serif, two pages, contact line swapped in). This script
 # stamps today's date into the page's "Resume - updated" line, then
 # prints the page to resume/AdityaSundaram_Resume.pdf with headless
 # Edge, so screen and PDF can never drift apart.

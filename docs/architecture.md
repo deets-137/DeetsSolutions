@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [js/controls.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
-updated: 2026-10-25
+updated: 2026-11-22
 ---
 # Architecture
 
@@ -319,7 +319,8 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   centers the uppercase name, swaps the screen meta line for a
   print-only contact line, and shrinks the print root `font-size` — the
   page is sized in rem throughout, so that one knob scales type and
-  spacing together until the document lands on one page.
+  spacing together. The PDF runs to two pages (his call, 2026-11-22:
+  the site keeps every entry), and no entry splits across the break.
 
 ## Card anatomy and the three views
 

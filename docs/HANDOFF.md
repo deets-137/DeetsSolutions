@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-11-19
+updated: 2026-11-22
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -405,7 +405,8 @@ lines to put back.
   LinkedIn) and a `SoftwareApplication` one on `/deetsmusic/`; `rel="me"` on the home and
   resume profile links; a root `llms.txt`. A new public page needs its canonical line and an
   `llms.txt` line, beside its sitemap line. The home description and the Person block's
-  `jobTitle` say "Technical Solutions Engineer", as the resume does (his call). **Live in
+  `jobTitle` say "Senior Technical Solutions Engineer", as the resume does (his call; "Senior"
+  added 2026-11-22 with the resume update). **Live in
   Cloudflare, not in this repo:** a zone redirect rule (`www_to_apex`, phase
   `http_request_dynamic_redirect`) sends `www.deets.solutions` to the apex with a 301, path
   and query kept; read it with `cf rulesets account-rulesets phases get
