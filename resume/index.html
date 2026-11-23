@@ -37,16 +37,17 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-20" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-22" />
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-09-17" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="../styles/skin.css?v=2026-10-28" as="style" />
-    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-22" as="style" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-22" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
+    <script src="resume.js" defer></script>
     <!-- Print sheet — the PDF export layout, matched to the source resume:
          all-serif, uppercase centered name, tight two pages (his call,
          2026-11-22: the site's copy is the comprehensive one). Deliberately
@@ -91,6 +92,9 @@
       .page-bar__title { font-size: 14pt; text-transform: uppercase; }
       .resume__print-contact { display: block; text-align: center; font-size: 8.5pt; margin-bottom: 0.5rem; }
       .resume__sheet { background: none; border: none; box-shadow: none; padding: 0; }
+      .resume-nav { display: none; }
+      .resume__layout, .resume__sections { display: block; }
+      .resume__sections > .resume__block { margin-bottom: var(--space-6); }
       .resume__section { border-bottom-color: black; text-transform: uppercase; font-size: 10pt; }
       .resume__role-group, .resume__entry { break-inside: avoid; }
       .resume__list { gap: 1px; }
@@ -154,8 +158,23 @@
       <p class="page-meta">Resume - updated 11/22/2026</p>
       <p class="resume__print-contact">linkedin.com/in/aditya-sundaram · deets.solutions · San Jose, CA</p>
 
-      <div class="resume__sheet">
-      <section class="resume__block">
+      <div class="resume__layout">
+      <!-- The section nav (DeetsHealth's left nav, 2026-11-22): links that
+           jump down the page, and an accent pill that slides to the section
+           in view (resume.js). Its labels are the section headings. -->
+      <nav class="resume-nav" aria-label="Resume sections">
+        <span class="resume-nav__pill" aria-hidden="true"></span>
+        <ul class="resume-nav__list">
+          <li><a class="resume-nav__item" href="#summary">Summary</a></li>
+          <li><a class="resume-nav__item" href="#experience">Professional Experience</a></li>
+          <li><a class="resume-nav__item" href="#projects">Technical Projects</a></li>
+          <li><a class="resume-nav__item" href="#education">Education</a></li>
+          <li><a class="resume-nav__item" href="#skills">Skills</a></li>
+        </ul>
+      </nav>
+
+      <div class="resume__sections">
+      <section class="resume__block resume__sheet" id="summary">
         <h2 class="resume__section">Summary</h2>
         <p class="resume__summary">
           Solutions engineer who spent two years as the primary technical
@@ -169,7 +188,7 @@
         </p>
       </section>
 
-      <section class="resume__block">
+      <section class="resume__block resume__sheet" id="experience">
         <h2 class="resume__section">Professional Experience</h2>
 
         <article class="resume__entry">
@@ -312,7 +331,7 @@
         </article>
       </section>
 
-      <section class="resume__block">
+      <section class="resume__block resume__sheet" id="projects">
         <h2 class="resume__section">Technical Projects</h2>
         <article class="resume__entry">
           <div class="resume__row">
@@ -427,7 +446,7 @@
         </article>
       </section>
 
-      <section class="resume__block">
+      <section class="resume__block resume__sheet" id="education">
         <h2 class="resume__section">Education</h2>
         <article class="resume__entry">
           <div class="resume__row">
@@ -441,13 +460,23 @@
         </article>
       </section>
 
-      <section class="resume__block">
+      <section class="resume__block resume__sheet" id="skills">
         <h2 class="resume__section">Skills</h2>
         <ul class="resume__list">
-          <li>Skills: Python, R, SQL, M (MUMPS, NoSQL database), Claude Code | HL7v2, FHIR, HIPAA</li>
-          <li>Epic Certifications: Beaker Clinical Pathology (CP), Beaker Anatomic Pathology (AP), Cogito Reporting, Order Transmittal</li>
+          <li>Python, R, SQL, M (MUMPS, NoSQL database), Claude Code</li>
+          <li>HL7v2, FHIR, HIPAA</li>
         </ul>
+        <article class="resume__entry resume__entry--sub">
+          <h3 class="resume__org">Epic Certifications</h3>
+          <ul class="resume__list">
+            <li>Beaker Clinical Pathology (CP)</li>
+            <li>Beaker Anatomic Pathology (AP)</li>
+            <li>Cogito Reporting</li>
+            <li>Order Transmittal</li>
+          </ul>
+        </article>
       </section>
+      </div>
       </div>
     </main>
   </body>

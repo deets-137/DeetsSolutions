@@ -304,9 +304,20 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   master's phone + email stay off the site; public contact is the
   LinkedIn pill in the page bar, plus the updated-on `.page-meta` line
   (restamped by the rebuild script).
-- The body sits on `.resume__sheet` — the skin's card material — so busy
-  canvases (Cyber's grid, Glass's aurora) stay behind a plate.
+- One scrolling page in DeetsHealth's shell (his call, 2026-11-22): each
+  section is its own `.resume__sheet` card — the skin's card material — so
+  busy canvases (Cyber's grid, Glass's aurora) stay behind a plate.
   Vanilla's card is flush with the canvas by design.
+- `.resume-nav` at the left stays in view and lists the sections as
+  `#anchor` links (their labels are the section headings, so no new
+  copy). `resume/resume.js` marks the section in view and slides the
+  `--title` pill onto it (`--dur-pill` / `--ease-pill` in skin.css). Below
+  56rem it becomes DeetsHealth's compact dropdown (its chat page on a
+  phone): one sticky pill naming the section, a menu of all five. Without
+  JS the links still jump, as a sideways row on a phone. Print hides it.
+- The skills split into bullets (his call, 2026-11-22): the master's
+  "Skills" line one bullet per side of its `|`, and each Epic
+  certification its own bullet under an "Epic Certifications" head.
 - Entry heads mirror the source PDF: a bold company + location
   `.resume__row`, then an italic role + dates row. Rows don't wrap — the
   left text flexes and wraps internally while the right column holds the

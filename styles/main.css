@@ -1199,7 +1199,185 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
    behind a plate. A print sheet in the page itself doubles as
    the PDF export layout.
    ============================================================ */
-.resume { max-width: 52rem; margin: 0 auto; }
+.resume { max-width: 66rem; margin: 0 auto; }
+
+/* Layout (his call, 2026-11-22): DeetsHealth's shell — a nav panel at the
+   left that stays in view, each section its own card at the right, one
+   page that scrolls. The nav's links jump down the page; resume.js slides
+   the pill to the section in view. */
+.resume__layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.resume__sections { display: grid; gap: var(--space-5); min-width: 0; }
+.resume__sections > .resume__block { margin-bottom: 0; scroll-margin-top: var(--space-5); }
+html:has(.resume-nav) { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html:has(.resume-nav) { scroll-behavior: auto; }
+}
+
+.resume-nav {
+  position: sticky;
+  top: var(--space-5);
+  z-index: 1;
+  padding: var(--space-2);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+}
+/* The list is NOT positioned: the items' offsets are then measured from
+   the nav itself, the same box the pill is placed in. */
+.resume-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+/* The selection: one pill that slides to the section in view. resume.js
+   sets its whole-pixel place and size; the labels sit above it. Without
+   JS it never shows, and the links still jump. */
+.resume-nav__pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 0;
+  border-radius: var(--radius-control);
+  background: var(--title);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform var(--dur-pill) var(--ease-pill),
+    width var(--dur-pill) var(--ease-pill), height var(--dur-pill) var(--ease-pill),
+    opacity var(--dur-med) var(--ease-ui);
+}
+.resume-nav__pill.is-placed { opacity: 1; }
+.resume-nav__pill.no-anim { transition: none; }
+.resume-nav__item {
+  position: relative;
+  z-index: 1; /* above the sliding pill */
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-weight: var(--fw-nav);
+  font-size: 0.92rem;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
+}
+@media (hover: hover) {
+  .resume-nav__item:hover { background: var(--surface-hover); color: var(--text); }
+}
+.resume-nav__item[aria-current],
+.resume-nav__item[aria-current]:hover {
+  background: transparent;
+  color: var(--canvas);
+}
+@media (prefers-reduced-motion: reduce) {
+  .resume-nav__pill { transition: none; }
+}
+
+/* The compact dropdown (DeetsHealth's picker, its chat page on a phone):
+   one pill naming the section in view, with a chevron; its menu lists
+   every section, the one in view filled. resume.js builds it, so it only
+   exists with JS. Hidden on a wide screen. */
+.resume-pick { display: none; position: relative; }
+.resume-pick__button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--title);
+  color: var(--canvas);
+  font: inherit;
+  font-weight: var(--fw-nav);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.resume-pick__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resume-pick__chev {
+  line-height: 1;
+  transition: transform var(--dur-med) var(--ease-ui);
+}
+.resume-pick__button[aria-expanded="true"] .resume-pick__chev { transform: rotate(180deg); }
+.resume-pick__menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.resume-pick__menu[hidden] { display: none; }
+.resume-pick__row {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-weight: var(--fw-nav);
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
+}
+@media (hover: hover) {
+  .resume-pick__row:hover { background: var(--surface-hover); color: var(--text); }
+}
+.resume-pick__row[aria-current],
+.resume-pick__row[aria-current]:hover { background: var(--title); color: var(--canvas); }
+@media (prefers-reduced-motion: reduce) {
+  .resume-pick__chev { transition: none; }
+}
+
+/* Narrower than nav + sheet: the nav sticks to the top as you scroll, and
+   becomes the dropdown. Without JS it is the same links as a row that
+   swipes sideways. */
+@media (max-width: 56rem) {
+  .resume__layout { grid-template-columns: minmax(0, 1fr); }
+  /* Sticky over the text, so it takes the menus' material, not the card's:
+     a see-through card (Ocean's) would let the lines show under the pill. */
+  .resume-nav {
+    top: 0;
+    z-index: 5;
+    background: var(--menu-surface);
+    -webkit-backdrop-filter: var(--menu-backdrop);
+    backdrop-filter: var(--menu-backdrop);
+  }
+  .resume-nav:not(.has-pick) { overflow-x: auto; scrollbar-width: none; }
+  .resume-nav:not(.has-pick)::-webkit-scrollbar { display: none; }
+  .resume-nav:not(.has-pick) .resume-nav__list { flex-direction: row; width: max-content; }
+  .resume-nav__item { white-space: nowrap; }
+  .resume-nav.has-pick .resume-nav__list,
+  .resume-nav.has-pick .resume-nav__pill { display: none; }
+  .resume-nav.has-pick .resume-pick { display: block; }
+  .resume__sections > .resume__block { scroll-margin-top: calc(var(--space-6) * 2.5); }
+}
+/* A finger needs a taller target than a pointer. */
+@media (pointer: coarse) {
+  .resume-pick__button, .resume-pick__row { min-height: calc(var(--space-6) + var(--space-3)); }
+}
 /* Contact line for the PDF only — the page's print sheet reveals it
    (on screen the LinkedIn button lives in the page bar instead). */
 .resume__print-contact { display: none; }
@@ -1273,6 +1451,8 @@ button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border);
   gap: var(--space-1);
 }
 .resume__list li::marker { color: var(--subtext); }
+/* A labelled group after a section's own list (Skills → Epic Certifications). */
+.resume__entry--sub { margin-top: var(--space-4); }
 
 /* ============================================================
    League — player stats rendered by league/league.js from the
