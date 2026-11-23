@@ -46,7 +46,8 @@ HANDOFF. **Lessons already paid for: [docs/LESSONS.md](docs/LESSONS.md).**
 
 | Topic | Doc |
 | --- | --- |
-| Dev server, dev driver (curl a real tab), mock controls, checks, debugging | **[tooling.md](docs/tooling.md)** |
+| Dev server, dev driver (curl a real tab), dev trace, mock controls, checks, debugging | **[tooling.md](docs/tooling.md)** |
+| Every page side by side: nav tile, what holds its first frame, scripts, fetches, stamps (generated) | [pages.md](docs/pages.md) |
 | Site structure, tokens, chrome, deploy + caching | [architecture.md](docs/architecture.md), [ui.md](docs/ui.md), [css-split.md](docs/css-split.md) |
 | Porting DeetsMusic's UI (settings panel, pop motion, look schedule) | [ui-direction.md](docs/ui-direction.md) |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |

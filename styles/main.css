@@ -591,6 +591,149 @@
 }
 .project__link:hover { border-bottom-color: var(--title); }
 
+/* ── Start here: the three flagship cards (2026-11-23) ─────────
+   The recruiter's first stop: a .project card's material, a little
+   larger, with the skills it proves and its proof points as a list.
+   Three across at width, one column on a phone. */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+.feature {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--card);
+  border: var(--card-border-width) solid var(--card-border);
+  border-top: var(--feature-stripe) solid var(--title);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  transition: transform var(--dur-fast) var(--ease-ui),
+              box-shadow var(--dur-med) var(--ease-ui);
+}
+.feature:hover { transform: var(--hover-lift); }
+.feature__name {
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: var(--title);
+}
+.feature__shows {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--subtext);
+}
+.feature__pitch { color: var(--text); font-size: 1rem; }
+.feature__points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 0;
+  padding-left: 1.1em;
+  color: var(--subtext);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.feature__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+/* ── Split pill: Resume | download (2026-11-23) ────────────────
+   One .home__cta-sized pill holding two links: the page, sized to its
+   word, and its PDF. Each half wears its own border (they share the
+   middle one) and lights and lifts on its own hover, like a .home__cta. */
+.split-cta { display: inline-flex; }
+.split-cta > a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-ui),
+              border-color var(--dur-fast) var(--ease-ui),
+              color var(--dur-fast) var(--ease-ui),
+              transform var(--dur-fast) var(--ease-ui);
+}
+.split-cta > a:hover {
+  z-index: 1;                 /* its border over the shared middle one */
+  color: var(--title);
+  background: var(--surface-hover);
+  border-color: var(--title);
+  transform: var(--hover-lift);
+}
+.split-cta__main {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
+}
+.split-cta__dl {
+  margin-left: -1px;          /* one shared hairline between the halves */
+  padding: var(--space-1) var(--space-2);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+}
+
+/* ── Download gate: the icon in .split-cta__dl ──────────────────
+   An arrow whose point rests over a line split at its middle. On click
+   (js/download-gate.js adds .is-opening) the halves swing down from
+   their outer ends, the arrow drops through and out of the box, comes
+   back in from the top, and the gate shuts behind it. */
+.gate {
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gate__arrow,
+.gate__leaf { transform-box: view-box; }
+.gate__leaf--l { transform-origin: 4px 19px; }
+.gate__leaf--r { transform-origin: 20px 19px; }
+.is-opening .gate__arrow  { animation: gate-arrow  var(--gate-dur) var(--ease-ui); }
+.is-opening .gate__leaf--l { animation: gate-leaf-l var(--gate-dur) var(--ease-ui); }
+.is-opening .gate__leaf--r { animation: gate-leaf-r var(--gate-dur) var(--ease-ui); }
+@keyframes gate-leaf-l {
+  0%       { transform: none; }
+  22%, 55% { transform: rotate(90deg); }
+  85%, 100% { transform: none; }
+}
+@keyframes gate-leaf-r {
+  0%       { transform: none; }
+  22%, 55% { transform: rotate(-90deg); }
+  85%, 100% { transform: none; }
+}
+@keyframes gate-arrow {
+  0%, 12%   { transform: none; opacity: 1; }
+  50%       { transform: translateY(14px); opacity: 0; }
+  51%       { transform: translateY(-12px); opacity: 0; }
+  80%, 100% { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-opening :is(.gate__arrow, .gate__leaf) { animation: none; }
+}
+
+/* His intro line, now under the flagships, leading into the full list. */
+.cool__aside {
+  margin-top: var(--space-5);
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+}
+
 /* ============================================================
    Home — the hub canvas on /. A page bar (name + Resume/GitHub/
    LinkedIn pills) over section cards that
@@ -1309,6 +1452,40 @@ html:has(.section-nav) { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   .section-nav__pill { transition: none; }
 }
+
+/* In the nav panel (re-dezine, 2026-11-23; chrome.css "The wide
+   layout"): the list sits under its page's tile, indented, without its
+   card, and the page's content takes the whole width. Its own sliding
+   tile is the quiet one (a wash, not the accent), so the page's accent
+   tile stays the one selection that reads first. The selectors restate
+   what the panel's `.site-nav` link rules would otherwise put on these. */
+.section-layout.is-railed { grid-template-columns: minmax(0, 1fr); }
+.section-nav.in-rail {
+  position: relative;
+  top: auto;
+  margin: 2px 0 var(--space-1) var(--space-3);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.section-nav.in-rail .section-nav__list { gap: 2px; padding-left: var(--space-2); }
+.section-nav.in-rail .section-nav__item {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.85rem;
+  color: var(--subtext);
+  white-space: normal;
+  transform: none;
+}
+.section-nav.in-rail .section-nav__item:hover { background: var(--surface-hover); color: var(--text); }
+.section-nav.in-rail .section-nav__item[aria-current],
+.section-nav.in-rail .section-nav__item[aria-current]:hover { background: transparent; color: var(--title); }
+.section-nav.in-rail .section-nav__pill { background: var(--surface-hover); }
+.section-nav.in-rail .section-pick { display: none; }
 
 /* The compact dropdown (DeetsHealth's picker, its chat page on a phone):
    one pill naming the section in view, with a chevron; its menu lists
@@ -3533,11 +3710,11 @@ html:has(.section-nav) { scroll-behavior: smooth; }
    ::after — light sand specks (--sand-ink) in the rim band only.
    The grain tiles and reach are skin tokens. z-index −1 puts the layers
    under the card's content; nothing here animates. */
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice) {
+:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .feature, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice) {
   position: relative;
 }
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before,
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
+:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .feature, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before,
+:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .feature, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -3546,7 +3723,7 @@ html:has(.section-nav) { scroll-behavior: smooth; }
   pointer-events: none;
   --sand-core: calc(100% - 2 * var(--sand-reach)) calc(100% - 2 * var(--sand-reach));
 }
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before {
+:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .feature, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::before {
   background: var(--sand-fill);
   mask-image:
     linear-gradient(#000 0 0),
@@ -3558,7 +3735,7 @@ html:has(.section-nav) { scroll-behavior: smooth; }
   mask-repeat: no-repeat, repeat, no-repeat, no-repeat;
   mask-composite: add, intersect, intersect, add;
 }
-:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
+:root[data-skin="ocean"][data-ocean-edges="sand"] :is(.song, .project, .feature, .home-card, .sotd-hub, .resume__sheet, .lol-mchip, .lol-scroll, .lol-match, .radio-np, .radio-col, .radio-desk, .radio-crew, .profile-box, .dm-box, .dm-notice)::after {
   background: var(--sand-ink);
   mask-image: var(--sand-speck), linear-gradient(#000 0 0), linear-gradient(#000 0 0);
   mask-size: var(--sand-tile), 100% 100%, var(--sand-core);
@@ -4309,7 +4486,7 @@ html:has(.section-nav) { scroll-behavior: smooth; }
 }
 .dm-trust__row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
 .dm-trust__row dt { color: var(--title); font-weight: var(--fw-title); font-family: var(--font-title); }
-.dm-trust__row dd { margin: 0; color: var(--text); line-height: 1.5; }
+.dm-trust__row dd { margin: 0; max-width: var(--measure); color: var(--text); line-height: 1.5; }
 @media (max-width: 30rem) {
   .dm-trust__list { grid-template-columns: 1fr; }
 }
@@ -4891,6 +5068,7 @@ html:has(.section-nav) { scroll-behavior: smooth; }
 
 /* ── Fine print ───────────────────────────────────────────────────── */
 .dm-fine { gap: var(--space-2); }
+.dm-fine p { max-width: var(--measure); }
 .dm-fine p { margin: 0; color: var(--text); font-size: 0.9rem; line-height: 1.55; }   /* body text, not fine print (his call, 2026-09-14) */
 
 /* ── A ticket (#t=<code>) — one narrow column, the thread under it ── */

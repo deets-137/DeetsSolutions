@@ -165,6 +165,33 @@
   // The nav's size changes with the window and between its two forms.
   new ResizeObserver(function () { place(current, false); }).observe(nav);
 
+  // ---- the rail (re-dezine, 2026-11-23). From 82rem the site nav is a
+  // column down the left edge (chrome.css, "The left rail"), and this list
+  // moves into it, under the current page's link, so the page has one left
+  // column, not two. Below 82rem it goes back to its place in the page.
+  // The pages load this file with blocking="render", so the move happens
+  // before the first frame: no jump, and the page transition (chrome.css)
+  // captures the panel already finished.
+  var RAIL = window.matchMedia("(min-width: 82rem)"); // chrome.css's rail breakpoint
+  var layout = nav.parentNode;                         // .section-layout
+  var home = document.createComment(" section-nav ");
+  layout.insertBefore(home, nav);
+  function seat() {
+    var here = document.querySelector('.site-nav a[aria-current="page"]');
+    if (RAIL.matches && here) {
+      here.insertAdjacentElement("afterend", nav);
+      nav.classList.add("in-rail");
+      layout.classList.add("is-railed");
+    } else if (nav.classList.contains("in-rail")) {
+      layout.insertBefore(nav, home);
+      nav.classList.remove("in-rail");
+      layout.classList.remove("is-railed");
+    }
+    place(current, false);
+  }
+  RAIL.addEventListener("change", seat);
+
   var start = hrefs.indexOf(location.hash);
   choose(start !== -1 ? start : inView());
+  seat();
 })();

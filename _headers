@@ -91,6 +91,14 @@
   ! Cache-Control
   Cache-Control: public, max-age=14400
 
+# The bundled fonts, kept a year without asking (2026-11-23). Each page
+# change waits up to 100 ms for its faces (fonts.css, font-display:
+# fallback); asking the server about every face first took longer, and
+# the page sat with no text. These files never change in place: a changed
+# face ships under a new file name, or every visitor keeps the old one.
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # ── security headers, every response ──────────────────────────────────────
 #
 # HSTS: HTTPS only, here and on every subdomain (every worker host is HTTPS

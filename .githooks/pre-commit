@@ -3,8 +3,11 @@
 # blocks one. Each script's header has the why.
 #   stamp-strings.js  each page's no-JS text, from its strings.js
 #   stamp-crawl.js    Cool Stuff's project data, and sitemap.xml's dates
+#   page-inventory.js docs/pages.md, the table of every page (runs last: it
+#                     reads the pages the two above may have just stamped)
 # One-time setup per clone:  git config core.hooksPath .githooks
 command -v node >/dev/null 2>&1 || exit 0
 [ -f scripts/stamp-strings.js ] && { node scripts/stamp-strings.js --hook || true; }
 [ -f scripts/stamp-crawl.js ] && { node scripts/stamp-crawl.js --hook || true; }
+[ -f scripts/page-inventory.js ] && { node scripts/page-inventory.js --hook || true; }
 exit 0

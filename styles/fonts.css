@@ -6,13 +6,23 @@
    hinted font on every machine instead of a substitute.
    Liberation fonts © Red Hat, licensed under SIL OFL 1.1.
    See assets/fonts/NOTICE.txt.
+
+   font-display: fallback (2026-11-23, was swap). On a page change
+   the faces come from cache but may land a frame after the first
+   paint; swap painted that frame in a stand-in font, a visible
+   blip. fallback waits up to 100 ms for the face instead, then
+   falls back like swap on a slow first visit, so text is never
+   held back for long (PageSpeed still passes it). It needs the
+   faces in the browser's cache without a round trip: _headers keeps
+   /assets/fonts/* a year, immutable. So a changed face must ship
+   under a new file name.
    ============================================================ */
 
 @font-face {
   font-family: "Liberation Serif";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/LiberationSerif-Regular.ttf") format("truetype");
 }
 
@@ -20,7 +30,7 @@
   font-family: "Liberation Serif";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/LiberationSerif-Bold.ttf") format("truetype");
 }
 
@@ -38,7 +48,7 @@
   font-family: "Anton";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/Anton-Regular.woff2") format("woff2");
 }
 
@@ -48,14 +58,14 @@
   font-family: "IBM Plex Mono";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/IBMPlexMono-Regular.woff2") format("woff2");
 }
 @font-face {
   font-family: "IBM Plex Mono";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2");
 }
 
@@ -64,7 +74,7 @@
   font-family: "Cinzel";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/Cinzel-SemiBold.woff2") format("woff2");
 }
 
@@ -73,7 +83,7 @@
   font-family: "Spectral";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/Spectral-Regular.woff2") format("woff2");
 }
 
@@ -82,7 +92,7 @@
   font-family: "Orbitron";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/Orbitron-Bold.woff2") format("woff2");
 }
 
@@ -91,13 +101,13 @@
   font-family: "Rajdhani";
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/Rajdhani-Medium.woff2") format("woff2");
 }
 @font-face {
   font-family: "Rajdhani";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: fallback;
   src: url("../assets/fonts/Rajdhani-Bold.woff2") format("woff2");
 }

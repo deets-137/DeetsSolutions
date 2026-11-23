@@ -9,8 +9,9 @@ function post(path, body) {
 }
 function beat() { if (id) post("/beat", { id: id, info: info() }); }
 
+var es = null;
 function connect() {
-  var es = new EventSource(SIDE + "/stream?id=" + encodeURIComponent(id || ""));
+  es = new EventSource(SIDE + "/stream?id=" + encodeURIComponent(id || ""));
   es.addEventListener("hello", function (e) {
     id = JSON.parse(e.data).id;
     try { sessionStorage.setItem(ID_KEY, id); } catch (er) {}
@@ -29,9 +30,14 @@ function connect() {
 function touch() { activeAt = Date.now(); beat(); }
 window.addEventListener("focus", touch);
 document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") touch(); });
+// Closed as the page leaves, so the open stream never keeps a page out of
+// the back/forward cache (the live site has no stream, and dev should match
+// it); a page restored from that cache connects again.
 window.addEventListener("pagehide", function () {
   if (id) navigator.sendBeacon(SIDE + "/bye", new Blob([id], { type: "text/plain" }));
+  if (es) { es.close(); es = null; }
 });
+window.addEventListener("pageshow", function (e) { if (e.persisted && !es) connect(); });
 window.addEventListener("hashchange", beat);
 setInterval(beat, 3000);
 connect();

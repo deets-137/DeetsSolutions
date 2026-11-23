@@ -490,26 +490,31 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-22" />
+        <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
+    <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23h" />
+    <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
-    <link rel="preload" href="../styles/fonts.css?v=2026-09-17" as="style" />
+    <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="../styles/skin.css?v=2026-11-22" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-22" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-23" as="style" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23c" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
     <script src="../js/walkers.js" defer></script>
-    <script src="../js/section-nav.js?v=2026-11-22" defer></script>
+    <script src="../js/section-nav.js?v=2026-11-23b" defer blocking="render"></script>
+    <script src="../js/download-gate.js?v=2026-11-23" defer></script>
   </head>
 
   <body>
     <header class="site-header">
       <div class="site-brand">
-        <a class="wordmark" href="/">Deets</a>
+        <a class="wordmark" href="/">Deets<span class="wordmark__more"> Solutions</span></a>
       </div>
       <nav class="site-nav" aria-label="Primary">
+        <a class="site-nav__home" href="/">Home</a>
         <div class="nav-group">
           <a class="nav-group__label" href="/deetsmusic/" aria-haspopup="true">DeetsMusic<span class="nav-group__caret" aria-hidden="true">&#9662;</span></a>
           <div class="nav-group__menu" role="menu">
@@ -519,18 +524,18 @@
           </div>
         </div>
         <div class="nav-group">
-          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
-          <div class="nav-group__menu" role="menu">
-            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
-            <a href="/movies/" role="menuitem">Movies</a>
-          </div>
-        </div>
-        <div class="nav-group">
           <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
           <div class="nav-group__menu" role="menu">
             <a href="/cities/" role="menuitem">DeetsCities</a>
             <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
             <a href="/poker/" role="menuitem">DeetsPoker</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
           </div>
         </div>
         <div class="nav-group">
@@ -544,12 +549,31 @@
       <span class="settings" data-settings></span>
     </header>
 
-    <main class="site-main cool">
+    <main id="main" class="site-main cool">
+      <!-- The recruiter head (2026-11-23): his name and the four ways to
+           reach the rest of him, the same pills as Home's and the Resume's
+           bars, then one line on the job he wants. -->
       <header class="page-bar">
-        <h1 class="page-bar__title" id="cool-title">Portfolio</h1>
+        <h1 class="page-bar__title" id="cool-title">Aditya Sundaram</h1>
+        <div class="page-bar__actions">
+          <!-- One pill, two links: the resume page and its PDF (the gate
+               icon; js/download-gate.js plays it on click). -->
+          <span class="split-cta">
+            <a class="split-cta__main" href="/resume/">Resume</a>
+            <a class="split-cta__dl" href="/resume/AdityaSundaram_Resume.pdf" download aria-label="Download PDF" title="Download PDF" data-gate>
+              <svg class="gate" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path class="gate__arrow" d="M12 3v12.5M7 10.5l5 5 5-5" />
+                <line class="gate__leaf gate__leaf--l" x1="4" y1="19" x2="12" y2="19" />
+                <line class="gate__leaf gate__leaf--r" x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+            </a>
+          </span>
+          <a class="home__cta home__cta--soft" href="https://github.com/deets-137" rel="me">GitHub ↗</a>
+          <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/" rel="me">LinkedIn ↗</a>
+        </div>
       </header>
-      <p class="page-meta">
-        Apps, tools, experiments, and more. Everything I've built so far! I was quite bored as you can tell
+      <p class="page-meta cool__lede">
+        [ph] Solutions engineer. Two years at Epic as the primary technical contact for its Beaker lab application at 3 health systems, and the senior technical resource embedded at 17+ go-lives. Now building AI agents, FHIR integrations and real-time web apps.
       </p>
 
       <div class="section-layout">
@@ -558,6 +582,7 @@
       <nav class="section-nav" aria-labelledby="cool-title">
         <span class="section-nav__pill" aria-hidden="true"></span>
         <ul class="section-nav__list">
+          <li><a class="section-nav__item" href="#featured">[ph] Start here</a></li>
           <li><a class="section-nav__item" href="#live">Live &amp; Demo-able</a></li>
           <li><a class="section-nav__item" href="#apps">Apps &amp; experiences</a></li>
           <li><a class="section-nav__item" href="#tools">Tools &amp; systems</a></li>
@@ -565,6 +590,83 @@
       </nav>
 
       <div class="section-layout__body">
+      <!-- Start here (2026-11-23): the three flagships a recruiter should see
+           first, each with the skills it proves. These are <article
+           class="feature">, never class="project": stamp-crawl.js,
+           build-project-dates.py and home.js count every .project card, and
+           each of these projects already has its card below. -->
+      <section id="featured">
+      <h2 class="cool__section">[ph] Start here</h2>
+      <div class="feature-grid">
+        <article class="feature">
+          <h3 class="feature__name">DeetsMusic for Windows</h3>
+          <p class="feature__shows">[ph] Product and API skills</p>
+          <p class="feature__pitch">A full Apple Music player for Windows 11.</p>
+          <ul class="feature__points">
+            <li>[ph] Plays Apple Music's DRM-protected tracks through a native Rust core, with a gapless queue that stays in sync.</li>
+            <li>[ph] Mirrors your whole library into a local SQLite database through Apple's APIs.</li>
+            <li>[ph] Shipped as a product: installers, release notes, a feedback board and polls on this site.</li>
+          </ul>
+          <div class="project__tags">
+            <span class="project__chip">Tauri v2</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">TypeScript</span>
+            <span class="project__chip">WebView2</span>
+          </div>
+          <div class="feature__links">
+            <a class="home__cta" href="/deetsmusic/demo/">[ph] Try the live demo</a>
+            <a class="home__cta home__cta--soft" href="/deetsmusic/">[ph] Product page</a>
+            <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsMusicWindows">GitHub ↗</a>
+          </div>
+        </article>
+
+        <article class="feature">
+          <h3 class="feature__name">DeetsHealth</h3>
+          <p class="feature__shows">[ph] Healthtech, AI agent and API skills</p>
+          <p class="feature__pitch">AI phone agent for hospital scheduling.</p>
+          <ul class="feature__points">
+            <li>[ph] A voice agent that books appointments and answers chart questions, built on Pipecat and the Claude API.</li>
+            <li>[ph] Reads and schedules through Epic's FHIR APIs, behind an adapter designed for any EHR.</li>
+            <li>[ph] Privacy by design: one-time SMS identity checks, every action bound to the verified patient, no patient data in logs.</li>
+          </ul>
+          <div class="project__tags">
+            <span class="project__chip">Python/Pipecat</span>
+            <span class="project__chip">Claude API</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">FHIR</span>
+          </div>
+          <div class="feature__links">
+            <a class="home__cta" href="https://github.com/deets-137/DeetsHealth">GitHub ↗</a>
+          </div>
+        </article>
+
+        <article class="feature">
+          <h3 class="feature__name">Deets.Solutions</h3>
+          <p class="feature__shows">[ph] WebSockets, Cloudflare and full-stack skills</p>
+          <p class="feature__pitch">This site.</p>
+          <ul class="feature__points">
+            <li>[ph] Real-time multiplayer games and shared listening rooms: each table or room is a Cloudflare Durable Object speaking WebSockets.</li>
+            <li>[ph] Google sign-in and per-game stats on Workers and D1, with secret hands kept on each player's own connection.</li>
+            <li>[ph] No framework and no dependencies: plain HTML, CSS and JavaScript on a design-token system, correct in every theme and skin.</li>
+          </ul>
+          <div class="project__tags">
+            <span class="project__chip">Cloudflare Workers</span>
+            <span class="project__chip">Durable Objects</span>
+            <span class="project__chip">WebSockets</span>
+            <span class="project__chip">D1</span>
+          </div>
+          <div class="feature__links">
+            <a class="home__cta" href="/cities/">[ph] Play a game</a>
+            <a class="home__cta home__cta--soft" href="/radio/">[ph] Join a listening room</a>
+            <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
+          </div>
+        </article>
+      </div>
+      <p class="cool__aside">
+        Apps, tools, experiments, and more. Everything I've built so far! I was quite bored as you can tell
+      </p>
+      </section>
+
       <section id="live">
       <h2 class="cool__section">Live &amp; Demo-able</h2>
       <div class="cool__group">

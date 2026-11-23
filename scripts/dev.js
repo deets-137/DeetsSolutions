@@ -35,6 +35,9 @@ const START = Number(process.argv[2]) || 8787;
 const STATE = path.join(os.tmpdir(), 'deets-site-dev');
 const EDITOR = path.join(__dirname, 'copy-edit.js');
 const INJECT = '<script src="/__copy/edit.js" defer></script><script src="/__dev/driver.js" defer></script>';
+// The dev trace (docs/tooling.md §3c): on unless DEETS_TRACE=0.
+const TRACE = process.env.DEETS_TRACE !== '0';
+const TRACE_TAG = '<script src="/__dev/trace.js"></script>';
 const driver = require('./dev-driver-server');
 
 function isFree(port) {
@@ -230,6 +233,9 @@ function proxy(inner, devRoute) {
           html = html.includes('</body>') ? html.replace('</body>', INJECT + '</body>') : html + INJECT;
           // First in <head>, not deferred: it must run before account.js and the page scripts.
           if (SUPPORT) html = html.replace(/<head[^>]*>/i, (m) => m + SUPPORT_TAG);
+          // The dev trace (scripts/dev-trace.js) goes first of all: a page transition is
+          // decided before the first frame, so its listeners must already be there.
+          if (TRACE) html = html.replace(/<head[^>]*>/i, (m) => m + TRACE_TAG);
           const out = { ...ur.headers };
           delete out['content-length'];
           delete out['etag'];

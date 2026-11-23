@@ -17,10 +17,10 @@
    stamp here and change it in every head too (docs/architecture.md,
    "Token stamps"); a preload that misses its import downloads twice.
    ============================================================ */
-@import "./fonts.css?v=2026-09-17";
+@import "./fonts.css?v=2026-11-23";
 @import "./palette.css?v=2026-10-23";
 @import "./themes.css?v=2026-10-23";
-@import "./skin.css?v=2026-11-22";
+@import "./skin.css?v=2026-11-23";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -34,6 +34,18 @@
 
   --header-h:    4rem;
   --content-max: 68rem;
+  /* The wide layout (re-dezine, 2026-11-23; "The wide layout" at the end
+     of this file): from 82rem the nav is a panel this wide down the left,
+     and the content may grow to --content-max-wide beside it. The 82rem
+     is in two media queries there and in js/section-nav.js (RAIL): change
+     all three together. */
+  --rail-w:           17rem;   /* fixed, never the text's width: room for the
+                                  widest label (Resume's sections in the
+                                  monospace skins) so nothing jitters */
+  --content-max-wide: 88rem;
+  /* The longest comfortable line of running text: blocks that span a
+     wide box (intro lines, the DeetsMusic page's fine print) stop here. */
+  --measure:          75ch;
 
   /* Seat-swatch hairline — part of the games/colors.js seat-color
      contract, not a theme role. Deliberately a fixed literal: it
@@ -954,6 +966,7 @@ body::before {
 /* The dim line under the bar — counts on the journals, the contact
    line on the resume, the tagline on home. */
 .page-meta {
+  max-width: var(--measure);
   margin: 0 0 var(--space-5);
   color: var(--subtext);
   font-size: var(--fs-nav);
@@ -1743,4 +1756,206 @@ select:focus-visible,
    it becomes the profile page, and as a readable message on the error
    path. */
 .auth-done { text-align: center; }
+
+/* ============================================================
+   The wide layout (re-dezine prototype, 2026-11-23): DeetsHealth's
+   console shell. From 82rem wide (about 1312px: every MacBook, a 1920
+   monitor) the page becomes a grid: a top bar with the big title
+   ("Deets Solutions") and Sign in + Vibe at its right, then the nav as a
+   glass panel down the left and the content beside it. The current page
+   wears DeetsHealth's accent tile, and moving to another page slides the
+   tile there (a cross-document view transition: Chromium and Safari
+   animate it, other browsers just land on the new page). Same markup on
+   every page: the header's box dissolves (display: contents) so its
+   parts take grid cells. Narrower windows keep the top header as before.
+   A page with a section nav (Portfolio, Resume) gets it nested under its
+   own link in the panel (js/section-nav.js moves it; main.css styles it).
+   ============================================================ */
+.wordmark__more { display: none; }
+/* Home leads the nav panel; the top header has the wordmark for that. */
+.site-nav__home { display: none; }
+
+@media (min-width: 82rem) {
+  :root { --content-max: var(--content-max-wide); }
+
+  body {
+    display: grid;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr) auto auto;
+    grid-template-rows: var(--header-h) auto;
+    align-items: start;
+    gap: 0 var(--space-5);
+    max-width: calc(var(--rail-w) + var(--space-5) + var(--content-max) + 2 * var(--space-6));
+    margin: 0 auto;
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  .site-header { display: contents; }
+
+  /* The top bar: the title over the nav column (it may run on over the
+     content), Sign in and Vibe at the right end. */
+  .site-brand { grid-column: 1 / 3; grid-row: 1; align-self: center; }
+  .wordmark { font-size: calc(var(--fs-title) * 1.35); }
+  .wordmark__more { display: inline; }
+  .header-account {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+    width: auto;
+    margin-top: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .site-header > .settings {
+    grid-column: 4;
+    grid-row: 1;
+    align-self: center;
+    margin-top: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .site-main {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* The nav panel: the section nav's glass, sticky beside the page, its
+     own scroll on a short window. It sticks at the top bar's height, the
+     same place it sits on an unscrolled page, so it is in one spot on
+     every page whatever the scroll: a page change never moves it (a new
+     page opens at the top). */
+  .site-nav {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;   /* the top header's `end` would pull it off the title's edge */
+    position: sticky;
+    top: var(--header-h);
+    z-index: 5;
+    max-height: calc(100dvh - var(--header-h) - var(--space-5));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+    margin: 0;
+    padding: var(--space-3) var(--space-2);
+    background: var(--card);
+    border: var(--card-border-width) solid var(--card-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    -webkit-backdrop-filter: var(--card-backdrop);
+    backdrop-filter: var(--card-backdrop);
+  }
+
+  /* The groups, open: a small bold heading over its pages. Scoped to
+     .site-nav so DeetsMusic's heading (a link) takes these too, not the
+     `.site-nav a` item rules: all four headings read the same. */
+  .site-nav .nav-group__label,
+  .site-nav .nav-group:hover .nav-group__label,
+  .site-nav .nav-group:focus-within .nav-group__label {
+    display: block;
+    padding: 0 var(--space-3) var(--space-1);
+    font-size: 0.7rem;
+    font-weight: var(--fw-title);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--subtext);
+    background: none;
+    transform: none;
+    cursor: default;
+  }
+  .site-nav a.nav-group__label { cursor: pointer; }
+  .site-nav a.nav-group__label:hover { color: var(--title); }
+  .nav-group__caret { display: none; }
+  .nav-group__menu,
+  .nav-group:hover .nav-group__menu,
+  .nav-group:focus-within .nav-group__menu {
+    position: static;
+    min-width: 0;
+    padding: 0;
+    gap: var(--space-1);
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 0;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    transition: none;
+  }
+
+  /* DeetsHealth's nav items: quiet text, a hover wash, and the current
+     page on the accent tile. */
+  .site-nav .site-nav__home { display: block; }
+  .site-nav .site-nav__home,
+  .site-nav .nav-group__menu a {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-control);
+    color: var(--subtext);
+    white-space: normal;
+    transform: none;
+  }
+  @media (hover: hover) {
+    .site-nav .site-nav__home:hover,
+    .site-nav .nav-group__menu a:hover { background: var(--surface-hover); color: var(--text); }
+  }
+  .site-nav .site-nav__home[aria-current="page"],
+  .site-nav .site-nav__home[aria-current="page"]:hover,
+  .site-nav .nav-group__menu a[aria-current="page"],
+  .site-nav .nav-group__menu a[aria-current="page"]:hover {
+    background: var(--title);
+    color: var(--canvas);
+  }
+}
+
+/* The tile's slide from page to page. The page itself swaps at once,
+   with no fade: the browser's default crossfade of the whole page
+   flickered the glass panel (the background moves between the two
+   snapshots, and the panel blurs it) and buried the slide.
+   Every nav item has its own name too, so an item whose place changes
+   between the two pages glides there instead of jumping: Resume moves
+   when Portfolio's section list comes or goes. The current page's item
+   wears nav-tile instead (the rule after these, more specific, wins), so
+   its plain self fades out where the tile arrives and fades in where the
+   tile leaves. A name may appear once per page, so each is keyed by its
+   link's own path.
+   THE OPT-IN IS NOT IN THIS FILE. `@view-transition { navigation: auto }`
+   is an inline <style> in every page's <head>, before this sheet
+   (2026-11-23; docs/LESSONS.md, "Page transitions"). The browser looks
+   for the opt-in when the new page fires `pagereveal`, as "the last
+   @view-transition rule in document". This sheet @imports four more and
+   could still be landing then, and his Edge refused about half its
+   arrivals with "ViewTransition opt-in disabled". A rule in the HTML
+   arrives with the page. Every page opts in at every width: a narrow
+   window has no names, so it just swaps at once.
+   Also in every <head>: <link rel="expect" href="#main" blocking="render">
+   and <main id="main">, so the first frame waits for <main> to parse
+   (Chrome's advice for cross-document transitions). */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }
+@media (min-width: 82rem) and (prefers-reduced-motion: no-preference) {
+  .site-nav .site-nav__home                         { view-transition-name: nav-home; }
+  .site-nav .nav-group__menu a[href$="deetsmusic/"]  { view-transition-name: nav-app; }
+  .site-nav .nav-group__menu a[href$="demo/"]        { view-transition-name: nav-demo; }
+  .site-nav .nav-group__menu a[href$="radio/"]       { view-transition-name: nav-radio; }
+  .site-nav .nav-group__menu a[href$="cities/"]      { view-transition-name: nav-cities; }
+  .site-nav .nav-group__menu a[href$="mahjong/"]     { view-transition-name: nav-mahjong; }
+  .site-nav .nav-group__menu a[href$="poker/"]       { view-transition-name: nav-poker; }
+  .site-nav .nav-group__menu a[href$="sotd/"]        { view-transition-name: nav-sotd; }
+  .site-nav .nav-group__menu a[href$="movies/"]      { view-transition-name: nav-movies; }
+  .site-nav .nav-group__menu a[href$="portfolio/"]   { view-transition-name: nav-portfolio; }
+  .site-nav .nav-group__menu a[href$="resume/"]      { view-transition-name: nav-resume; }
+  .site-nav .site-nav__home[aria-current="page"],
+  .site-nav .nav-group__menu a[aria-current="page"]  { view-transition-name: nav-tile; }
+  ::view-transition-group(*) {
+    animation-duration: var(--dur-pill);
+    animation-timing-function: var(--ease-pill);
+  }
+}
 

@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-11-22
+updated: 2026-11-23
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -68,6 +68,59 @@ npm run dev
 ## Next up
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
+
+**2026-11-23 — re-dezine: the wide layout and the recruiter Portfolio (PROTOTYPE, branch
+`re-dezine`, nothing committed; his visual review in progress).** Carries every change that
+was unpushed on master when the branch was cut, including the nightly `songs.json` /
+`movies.json` refresh, which belongs in its own commit.
+- *Portfolio* (built): his name in the bar, a split Resume | download pill (gate animation,
+  `js/download-gate.js`), a `[ph]` pitch line, and a "Start here" row of three flagship
+  cards (`.feature`, never `.project`). architecture.md, "Portfolio".
+- *Wide layout* (prototype): from 82rem wide, DeetsHealth's console shell. The big title
+  "Deets Solutions", the nav as a sticky glass panel on the left with Home first and Blog
+  below Games, the current page on an accent tile that slides between pages (a
+  cross-document view transition), and Portfolio's and Resume's section lists nested in the
+  panel. chrome.css, "The wide layout"; `--rail-w`, `--content-max-wide`, `--measure`. Not
+  in architecture.md yet: the header section there still describes the top header only.
+- *Fixed on the way*: fonts now `font-display: fallback`, and `/assets/fonts/*` is cached
+  a year, immutable (a changed face needs a new file name). See LESSONS.md, "Page
+  transitions".
+- *Page transitions*: FIXED and confirmed in his Edge, 13 of 13 glided. The opt-in is an
+  inline `<style>` in every `<head>` (LESSONS.md, "Page transitions").
+- *Open*: (1) whole-page layout shifts on arrival (Portfolio 0.99, DeetsMusic 0.68, Resume
+  0.68, Home 0.52, Radio 0.2). The trace's before/after boxes show the cause: the shift's
+  "before" frame has NO stylesheet applied (body at the browser's default 8 px margin,
+  though `chrome.css` sets `* { margin: 0 }`), and on Resume `main.css` lands a step later
+  still. So in his Edge a page can lay out before its render-blocking stylesheets arrive,
+  the same root cause as the opt-in miss. He sees no flash on any of those pages (asked
+  2026-11-23), so that layout likely never reaches the screen. Low priority. If it
+  matters later, check whether it reproduces on :8788 (no dev scripts) and on the live
+  site. Home also has a real 128 px push-down as the
+  DeetsMusic card fills in above the SOTD hub. (2) The game tables inside the
+  grid are unchecked. (3) `display: contents` on the header may cost the banner landmark
+  in older screen readers. (4) Docs: architecture.md's header section, and HANDOFF once he
+  approves. (5) His visual pass across theme × skin.
+- *Dev tooling built here*: the dev trace (`scripts/dev-trace.js`, tooling.md §3c). It
+  logs every page change, transition outcome, frames, shifts, fonts, loading and CPU, read
+  with `curl /__dev/trace?summary=1`. The driver now closes its stream on `pagehide`, so
+  dev pages can enter the back/forward cache.
+
+**2026-11-23 — Bugs the dev trace caught on the way (OPEN, not re-dezine's).**
+- *Mahjong*: `Uncaught TypeError: Cannot read properties of undefined (reading 'some')` at
+  `mahjong/engine.js:1179` (`botPending`: `g.claims.ask.some`). It fired on loading
+  `/mahjong/` (no `?mock`) in his browser. Likely a table whose `claims` has no `ask`, maybe
+  a saved mock table from an older shape. Unconfirmed. First step: reproduce, then guard,
+  or find what writes `claims` without `ask`. mahjong.md.
+- *Poker*: click to page took 866 ms (others about 100 ms), and `poker/poker.css` (197 KB,
+  no `?v=` stamp) took 374 ms as a render-blocking sheet. Measured on the dev server, which
+  sends CSS `no-store`, so it may be dev-only. First step: the same trace on the live site,
+  then decide whether to split or trim the sheet. Its `table.css` has no stamp either
+  ([pages.md](pages.md), "Stylesheet stamps"). poker.md.
+- *Unstamped `main.css`* (FIXED on `re-dezine`): League, Movies, Profile, Radio and SOTD
+  loaded `main.css` with no `?v=`, so a deploy could pair new HTML with a 4-hour-old sheet.
+  The new page inventory ([pages.md](pages.md)) showed it on its first run.
+- *DeetsMusic demo*: 150 to 180 dropped frames in its first 1.5 s. Expected: it loads the
+  whole app build. No action unless he sees it.
 
 **2026-11-22 — Resume + Portfolio revamp (LIVE, master b894182).** The resume mirrors his
 new General resume (three Epic roles, DeetsHealth/DeetsMusic/Deets.Solutions projects, Enigma

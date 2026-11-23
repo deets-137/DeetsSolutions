@@ -24,12 +24,15 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-22" />
+        <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
+    <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23h" />
+    <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
-    <link rel="preload" href="../styles/fonts.css?v=2026-09-17" as="style" />
+    <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="../styles/skin.css?v=2026-11-22" as="style" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-23" as="style" />
   </head>
 
   <body>
@@ -37,7 +40,7 @@
          tab that STARTED the sign-in, then carry on to the profile page.
          It only ever shows for a blink on success; the error path lands
          here too and stays readable. -->
-    <main class="site-main auth-done">
+    <main id="main" class="site-main auth-done">
       <section class="page-bar">
         <h1 class="page-bar__title" data-done-title>Signed in</h1>
       </section>

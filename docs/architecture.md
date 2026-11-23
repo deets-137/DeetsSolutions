@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [js/controls.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
-updated: 2026-11-22
+updated: 2026-11-23
 ---
 # Architecture
 
@@ -301,6 +301,19 @@ Since 2026-11-22 the page uses the Resume's section nav (`main.css`,
 group needs its own `<section id>` and a link in the nav. The cards must
 stay `<article class="project">` exactly: `stamp-crawl.js`,
 `build-project-dates.py` and `home.js` find them by that tag.
+
+Since 2026-11-23 the page is the link he gives recruiters. Its bar holds his
+name, a split Resume | download pill (`.split-cta`: two links, each with its own
+hover; the icon's gate animation is `js/download-gate.js` plus main.css's
+"Download gate"), and the GitHub and LinkedIn pills, then a one-line
+pitch (`.cool__lede`). The first section, **Start here** (`#featured`), shows
+the three flagships he chose: DeetsMusic for Windows (product and API skills),
+DeetsHealth (healthtech, AI agent and API skills) and Deets.Solutions
+(WebSockets and Cloudflare). They are `<article class="feature">` cards
+(`.feature-grid`, `.feature__*` in `main.css`; the top rule is skin.css's
+`--feature-stripe`). They are never `class="project"`: each of these projects already has its
+card further down, and the scripts above would count it twice. His intro line
+now sits under these cards (`.cool__aside`).
 
 The sections (his call, 2026-11-22): **Live & Demo-able** first, in three
 `.cool__group`s, one per flagship (DeetsMusic, DeetsHealth,

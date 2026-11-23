@@ -1,7 +1,7 @@
 ---
 status: sop
-sources: [scripts/dev.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, scripts/stamp-crawl.js, games/table-mock.js]
-updated: 2026-11-09
+sources: [scripts/dev.js, scripts/dev-trace.js, scripts/page-inventory.js, scripts/dev-driver/core.js, scripts/dev-driver/mock.js, scripts/dev-driver/clock.js, scripts/dev-driver/games/mahjong.js, scripts/dev-driver-server.js, scripts/dev-headless.js, scripts/lib/cdp.js, scripts/lib/dev-client.js, scripts/dev-run.js, scripts/copy-edit.js, scripts/stamp-strings.js, scripts/stamp-crawl.js, games/table-mock.js]
+updated: 2026-11-23
 ---
 # Tooling and debugging
 
@@ -256,6 +256,38 @@ with their args. Common args: `port=` (default: the first dev server from
 | `soak` | real-time play at the live 700 ms bot pace for `secs=`, discarding the drawn tile and a hand tile in turn, passing claims; the board is checked against the table whenever the page is idle. A mismatch counts only if it holds across back-to-back idle samples for `grace=` ms (400): the page is a broadcast (~110 ms) behind the mock, so a one-off miss is the probe racing the wire | `secs` |
 | `smooth` | traces the main thread through one turn (`perf`) | 8 s |
 
+### 3c. Trace — what happened on a page change, `curl /__dev/trace`
+
+`scripts/dev-trace.js` (built 2026-11-23 for the re-dezine page transitions).
+`scripts/dev.js` puts it **first in every page's `<head>`, not deferred**, so
+its listeners exist before the first frame. A page transition is decided
+then: `pagereveal` fires before the first render. The driver itself loads at
+the end of `<body>`, too late to see it. Every page posts its events to the
+side port's `/trace`. The server keeps the last 5000 in memory and appends
+them to `<tmp>/deets-site-dev/trace.jsonl`. Each arrival also prints one
+`[trace]` line on the dev server's console. Off with `DEETS_TRACE=0`.
+
+The owner browses normally (clicks, Back, Forward), and Claude reads the log.
+No driving is needed, so it fits "visual verification is his".
+
+| Read | Gives |
+| --- | --- |
+| `/__dev/trace?summary=1&since=10m` | one block per page visit: how it arrived (type, from where, click→page ms), the transition (ran / none / SKIPPED with the browser's reason, duplicate names, no tile), fonts still loading at the first frame, frame pacing (frames, Hz, dropped, worst), FCP, fonts after FCP, layout shifts and what moved, long animation frames, main-thread lag, CPU pressure, resources (cache / 304 / network, slowest render-blocking), errors |
+| `/__dev/trace?since=5m` | one line per event; `kind=reveal,vt-skipped` to filter, `page=/sotd/`, `tab=t-…`, `limit=` |
+| `/__dev/trace?json=1` | the raw events |
+| `/__dev/trace?clear=1` | empties the in-memory log (the file keeps it) |
+
+Event kinds and what each holds are listed in the file's header comment.
+Some come only from Chromium: long animation frames, CPU pressure,
+`notRestoredReasons` (why Back did not come from the back/forward cache), and
+`renderBlockingStatus`. Its cost is one small blocking script per page, a
+500 ms timer, and a rAF loop for 1.5 s after each arrival. The page's own
+numbers include it.
+
+Also from 2026-11-23: the driver closes its EventSource on `pagehide` and
+reconnects on a `pageshow` from the back/forward cache. An open stream kept
+pages out of that cache, so Back and Forward behaved unlike the live site.
+
 ## 4. Game mocks — `?mock`
 
 `games/table-mock.js` + each game's `transport-mock.js`, selected by `?mock`.
@@ -287,7 +319,8 @@ covers the look).
 
 | Command | Checks |
 | --- | --- |
-| `node scripts/docs-check.js` | the docs: links resolve, front matter is valid, code comments cite real docs, stamped strings are current (facts, exit 1), plus "stale?" and missing-mention warnings |
+| `node scripts/docs-check.js` | the docs: links resolve, front matter is valid, code comments cite real docs, stamped strings are current, the page inventory is current (facts, exit 1), plus "stale?" and missing-mention warnings |
+| `node scripts/page-inventory.js` | writes [pages.md](pages.md): every page's nav tile, what its first frame waits for, its own scripts, what they fetch, its `<main>`, and each stylesheet's `?v=` stamp. Generated from the HTML; the pre-commit hook runs it (`--hook`), `--check` exits 1 when it is behind. Read it first for a bug that shows on some pages and not others |
 | `node scripts/stamp-strings.js --check` | each page's stamped `[data-s]` text equals its `strings.js` (§2a); without `--check` it restamps |
 | `node <game>/engine.js` | that engine's self-checks (every engine is pure, DOM-free) |
 | `node scripts/poker-bot-duel.js` | poker bot tiers against each other ([bots.md](bots.md), "Measurement") |
