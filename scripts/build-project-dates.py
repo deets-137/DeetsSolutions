@@ -43,6 +43,7 @@ OVERRIDES = {
     "DeetsFilm":     ["DeetsFilm", "DeetsFilmWorker"],
     "DeetsBeats":    ["DeetsBeats"],
     "DeetsPixels":   ["DeetsPixels"],
+    "DeetsPics":     ["DeetsPics"],
     "DeetsCities":   ["DeetsCities", SITE + ":cities/"],
     "DeetsMahjong":  ["DeetsMahjong", SITE + ":mahjong/"],
     "DeetsPoker":    ["DeetsPoker", SITE + ":poker/"],

@@ -24,7 +24,7 @@
         "@id": "https://deets.solutions/cool-stuff/#projects",
         "name": "Cool Stuff I Did",
         "url": "https://deets.solutions/cool-stuff/",
-        "numberOfItems": 26,
+        "numberOfItems": 27,
         "itemListElement": [
           {
             "@type": "ListItem",
@@ -216,7 +216,7 @@
               "abstract": "A browser extension that catches the credits.",
               "description": "The extension shows a card when the film that you watch is near its end. The card contains a link to the film page on Letterboxd. To find the end, the extension reads the video player from four sources. You can also send the correct end time for a film, because a scene after the credits moves it. The extension operates on Netflix, Hulu, Disney+, Prime Video, and HBO Max. It has no account, it keeps no data about you, and its one request contains only a film title.",
               "keywords": "MV3 extension, no dependencies, TMDB",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "url": "https://deets.solutions/privacy/deetsfilm/",
               "author": {
                 "@id": "https://deets.solutions/#person"
@@ -247,7 +247,7 @@
               "abstract": "An Apple Music client with a memory.",
               "description": "The application imports your library with MusicKit and plays it from a queue that the application controls. This design permits tracks from more than one service at a later time. The application also records one song for each day and exports these songs to a playlist. You can tag each song with your feelings and put the tags in order of preference. CloudKit keeps the data in sync.",
               "keywords": "SwiftUI, MusicKit, SwiftData",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "codeRepository": "https://github.com/deets-137/DeetsMusic",
               "url": "https://github.com/deets-137/DeetsMusic",
               "author": {
@@ -264,7 +264,7 @@
               "abstract": "An isometric pixel-art world of my life.",
               "description": "DeetsLife is an isometric world in pixel art. It started as a museum of the music in my life. The subject changed, but the world stayed. The map has more than one room and uses collision physics. It contains a drawing of me, a dog that follows a path, and a mahjong area that is not complete.",
               "keywords": "Godot 4, GDScript, pixel art",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "codeRepository": "https://github.com/deets-137/DeetsLife",
               "url": "https://github.com/deets-137/DeetsLife",
               "author": {
@@ -281,7 +281,7 @@
               "abstract": "A blackjack trainer disguised as a blackjack game.",
               "description": "You play full blackjack hands. A trainer card then shows the mathematics for the hand. It gives the bust probability for the dealer and for you, and the expected value of each move. The trainer measures the quality of your decision, not your luck. A move with a positive expected value is correct, even if you lose the hand. Unit tests compare the Swift engine with published basic-strategy values.",
               "keywords": "Swift 6, iOS, probability engine",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "codeRepository": "https://github.com/deets-137/DeetsJack",
               "url": "https://github.com/deets-137/DeetsJack",
               "author": {
@@ -298,7 +298,7 @@
               "abstract": "A spatial workspace for designing board games.",
               "description": "You and your friends design the cards, units, pieces, tiles, and rules of a board game. The workspace is a canvas of 3 by 3 areas. The application is native macOS and uses Core Data and CloudKit. It replaces Henhouse, my earlier web application for the same purpose.",
               "keywords": "Swift, macOS, CloudKit",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "codeRepository": "https://github.com/deets-137/DeetsBoard",
               "url": "https://github.com/deets-137/DeetsBoard",
               "author": {
@@ -349,7 +349,7 @@
               "abstract": "A fresh take on personal health-data visualization.",
               "description": "The application reads data from HealthKit and from the Oura API. It calculates all the analytics on the device. Sleep data and cardiovascular data are first. It uses the same design system as the other Deets applications.",
               "keywords": "SwiftUI, HealthKit, Oura",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "codeRepository": "https://github.com/deets-137/DeetsHealthiOS",
               "url": "https://github.com/deets-137/DeetsHealthiOS",
               "author": {
@@ -377,10 +377,10 @@
             "position": 22,
             "item": {
               "@type": "CreativeWork",
-              "name": "DeetsShips",
-              "abstract": "Team-vs-team naval warfare, captains and all.",
-              "description": "This is the first game with teams on the shared table system. There are two teams of 1 to 4 players. One captain on each team sends the plan of the team in each round. The positions of the ships, the plans, and the sonar results stay in one team. The other team sees only the marks on its map, but a spectator sees all the data. The worker operates, and the page is in its last review before it goes into the navigation menu.",
-              "keywords": "Cloudflare Workers, Durable Objects, teams",
+              "name": "DeetsPics",
+              "abstract": "Photo manager for a local collection on Windows 11.",
+              "description": "A Deets family app.",
+              "keywords": "Tauri v2, Rust, vanilla TS",
               "creativeWorkStatus": "building",
               "author": {
                 "@id": "https://deets.solutions/#person"
@@ -390,6 +390,21 @@
           {
             "@type": "ListItem",
             "position": 23,
+            "item": {
+              "@type": "CreativeWork",
+              "name": "DeetsShips",
+              "abstract": "Team-vs-team naval warfare, captains and all.",
+              "description": "This is the first game with teams on the shared table system. There are two teams of 1 to 4 players. One captain on each team sends the plan of the team in each round. The positions of the ships, the plans, and the sonar results stay in one team. The other team sees only the marks on its map, but a spectator sees all the data. The worker operates, and the page is in its last review before it goes into the navigation menu.",
+              "keywords": "Cloudflare Workers, Durable Objects, teams",
+              "creativeWorkStatus": "prototype",
+              "author": {
+                "@id": "https://deets.solutions/#person"
+              }
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 24,
             "item": {
               "@type": "SoftwareSourceCode",
               "name": "DeetsKit",
@@ -406,7 +421,7 @@
           },
           {
             "@type": "ListItem",
-            "position": 24,
+            "position": 25,
             "item": {
               "@type": "SoftwareSourceCode",
               "name": "Harness",
@@ -423,14 +438,14 @@
           },
           {
             "@type": "ListItem",
-            "position": 25,
+            "position": 26,
             "item": {
               "@type": "SoftwareSourceCode",
               "name": "DeetsEdu",
               "abstract": "Modeling how US education is actually doing.",
               "description": "This is a data pipeline for the Stanford Education Data Archive and for NCES data. It makes the test scores of each school district available as a time series. DuckDB processes the data, and the result is a portable SQLite file. Public charts are the next step.",
               "keywords": "Python, DuckDB, ~1.4 GB of data",
-              "creativeWorkStatus": "building",
+              "creativeWorkStatus": "prototype",
               "codeRepository": "https://github.com/deets-137/DeetsEdu",
               "url": "https://github.com/deets-137/DeetsEdu",
               "author": {
@@ -440,7 +455,7 @@
           },
           {
             "@type": "ListItem",
-            "position": 26,
+            "position": 27,
             "item": {
               "@type": "SoftwareSourceCode",
               "name": "Oura sleep-lag viz",
@@ -858,7 +873,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsFilm</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">A browser extension that catches the credits.</p>
           <p class="project__desc">
@@ -907,7 +922,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsMusic</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">An Apple Music client with a memory.</p>
           <p class="project__desc">
@@ -932,7 +947,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsLife</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">An isometric pixel-art world of my life.</p>
           <p class="project__desc">
@@ -955,7 +970,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsJack</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">A blackjack trainer disguised as a blackjack game.</p>
           <p class="project__desc">
@@ -980,7 +995,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsBoard</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">A spatial workspace for designing board games.</p>
           <p class="project__desc">
@@ -1050,7 +1065,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsHealthiOS</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">A fresh take on personal health-data visualization.</p>
           <p class="project__desc">
@@ -1093,8 +1108,24 @@
 
         <article class="project">
           <div class="project__top">
-            <h3 class="project__name">DeetsShips</h3>
+            <h3 class="project__name">DeetsPics</h3>
             <span class="project__status">building</span>
+          </div>
+          <p class="project__pitch">Photo manager for a local collection on Windows 11.</p>
+          <p class="project__desc">
+            A Deets family app.
+          </p>
+          <div class="project__tags">
+            <span class="project__chip">Tauri v2</span>
+            <span class="project__chip">Rust</span>
+            <span class="project__chip">vanilla TS</span>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="project__top">
+            <h3 class="project__name">DeetsShips</h3>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">Team-vs-team naval warfare, captains and all.</p>
           <p class="project__desc">
@@ -1170,7 +1201,7 @@
         <article class="project">
           <div class="project__top">
             <h3 class="project__name">DeetsEdu</h3>
-            <span class="project__status">building</span>
+            <span class="project__status">prototype</span>
           </div>
           <p class="project__pitch">Modeling how US education is actually doing.</p>
           <p class="project__desc">
