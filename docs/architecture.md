@@ -317,7 +317,11 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   JS the links still jump, as a sideways row on a phone. Print hides it.
 - The skills split into bullets (his call, 2026-11-22): the master's
   "Skills" line one bullet per side of its `|`, and each Epic
-  certification its own bullet under an "Epic Certifications" head.
+  certification its own bullet under an "Epic Certifications" head. Then
+  his three grouped lines (Customer & Product, Healthcare Technology,
+  Technical; added 2026-11-22) as `.resume__inline`: one wrapping line,
+  items apart by his "•", each item kept whole. Education carries his
+  Enigma at UCLA role, its name a link to the club.
 - Entry heads mirror the source PDF: a bold company + location
   `.resume__row`, then an italic role + dates row. Rows don't wrap — the
   left text flexes and wraps internally while the right column holds the
