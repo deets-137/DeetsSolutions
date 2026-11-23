@@ -44,24 +44,24 @@ after a deploy ([architecture.md](architecture.md), "Token stamps").
 
 | Page | Stylesheets (`name@stamp`; `—` = no stamp) | Pre-paint script |
 | --- | --- | --- |
-| / | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /404.html | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
+| / | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /404.html | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
 | /auth/done.html | chrome.css@2026-11-23l | shared |
 | /cities/ | chrome.css@2026-11-23l, table.css@2026-10-28, cities.css@2026-11-16 | shared |
-| /deetsmusic/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /deetsmusic/admin/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /deetsmusic/demo/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /league/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
+| /deetsmusic/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /deetsmusic/admin/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /deetsmusic/demo/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /league/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
 | /mahjong/ | chrome.css@2026-11-23l, table.css@2026-10-28, mahjong.css@2026-11-04c | shared |
-| /movies/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
+| /movies/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
 | /poker/ | chrome.css@2026-11-23l, table.css@—, poker.css@— | shared |
-| /portfolio/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
+| /portfolio/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
 | /privacy/ | chrome.css@2026-11-23l | shared |
 | /privacy/deetsfilm/ | chrome.css@2026-11-23l | shared |
-| /profile/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /radio/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /resume/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
-| /sotd/ | chrome.css@2026-11-23l, main.css@2026-11-23c | shared |
+| /profile/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /radio/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /resume/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
+| /sotd/ | chrome.css@2026-11-23l, main.css@2026-11-23d | shared |
 | /tanks/ | chrome.css@2026-11-23l, table.css@—, tanks.css@— | shared |
 | /tanks/designer.html | chrome.css@2026-11-23l, tanks.css@— | none |
 

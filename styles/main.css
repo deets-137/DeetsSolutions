@@ -1589,6 +1589,13 @@ html:has(.section-nav) { scroll-behavior: smooth; }
    print sheet in the page itself doubles as the PDF export layout.
    ============================================================ */
 .resume { max-width: 66rem; margin: 0 auto; }
+/* The wide layout (chrome.css, 82rem and up): start at the nav like every
+   other page instead of centering in the column, and keep the reading
+   width. The space to the right is free for later (his call, 2026-11-23).
+   Print never reaches 82rem, so the PDF is untouched. */
+@media (min-width: 82rem) {
+  .resume { margin: 0; }
+}
 /* Contact line for the PDF only — the page's print sheet reveals it
    (on screen the LinkedIn button lives in the page bar instead). */
 .resume__print-contact { display: none; }
