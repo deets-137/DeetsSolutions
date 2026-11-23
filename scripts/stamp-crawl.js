@@ -3,7 +3,7 @@
 // neither. Its sibling is scripts/stamp-strings.js; both run from
 // .githooks/pre-commit, so nobody has to remember either.
 //
-// 1. PROJECT DATA on Cool Stuff. cool-stuff/index.html holds one hand-written
+// 1. PROJECT DATA on Cool Stuff. portfolio/index.html holds one hand-written
 //    <article class="project"> card per project. This copies each card's
 //    name, pitch, description, tags and links into a JSON-LD ItemList in the
 //    page's <head>, between the `projects-ld` markers, so each project is a
@@ -31,7 +31,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const COOL = path.join(ROOT, 'cool-stuff', 'index.html');
+const COOL = path.join(ROOT, 'portfolio', 'index.html');
 const SITEMAP = path.join(ROOT, 'sitemap.xml');
 const ORIGIN = 'https://deets.solutions';
 const PERSON = ORIGIN + '/#person';
@@ -65,7 +65,7 @@ function projects(src) {
     const name = one(card, 'project__name');
     if (!name) continue;
     const links = [...card.matchAll(/<a[^>]*class="project__link"[^>]*href="([^"]+)"/g)]
-      .map((l) => (l[1].startsWith('http') ? l[1] : new URL(l[1], ORIGIN + '/cool-stuff/').href));
+      .map((l) => (l[1].startsWith('http') ? l[1] : new URL(l[1], ORIGIN + '/portfolio/').href));
     const repo = links.find((l) => /^https:\/\/github\.com\//.test(l));
     const page = links.find((l) => l.startsWith(ORIGIN));
     const item = { '@type': repo ? 'SoftwareSourceCode' : 'CreativeWork', name };
@@ -90,9 +90,9 @@ function projectBlock(src) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    '@id': ORIGIN + '/cool-stuff/#projects',
-    name: 'Cool Stuff I Did',
-    url: ORIGIN + '/cool-stuff/',
+    '@id': ORIGIN + '/portfolio/#projects',
+    name: 'Portfolio',
+    url: ORIGIN + '/portfolio/',
     numberOfItems: items.length,
     itemListElement: items.map((item, i) => ({ '@type': 'ListItem', position: i + 1, item })),
   };
@@ -106,7 +106,7 @@ function stampProjects(check) {
   const src = fs.readFileSync(COOL, 'utf8');
   const eol = src.includes('\r\n') ? '\r\n' : '\n';
   const a = src.indexOf(BEGIN), b = src.indexOf(END);
-  if (a < 0 || b < a) throw new Error('projects-ld markers not found in cool-stuff/index.html');
+  if (a < 0 || b < a) throw new Error('projects-ld markers not found in portfolio/index.html');
   const out = src.slice(0, a) + projectBlock(src).replace(/\n/g, eol) + src.slice(b + END.length);
   const changed = out !== src;
   if (changed && !check) fs.writeFileSync(COOL, out);
@@ -163,11 +163,11 @@ if (require.main === module) {
   }
 
   if (arg === '--hook') {
-    const files = ['cool-stuff/index.html', 'sitemap.xml'];
+    const files = ['portfolio/index.html', 'sitemap.xml'];
     const dirty = new Set(files.filter((f) => git('diff', '--quiet', '--', f).status !== 0));
     const done = [];
     try {
-      if (stampProjects(false)) done.push('cool-stuff/index.html');
+      if (stampProjects(false)) done.push('portfolio/index.html');
       // Staged AFTER the project stamp may have added to it: read the index now.
       for (const f of done) if (!dirty.has(f)) git('add', '--', f);
       const staged = git('diff', '--cached', '--name-only').stdout.split('\n').filter(Boolean);

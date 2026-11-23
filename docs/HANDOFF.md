@@ -516,7 +516,8 @@ lead with "what this is, what I built, why it's impressive." **Goal:** someone a
 resume link understands the headline projects (DeetsMusic, the agent harness, MCP server, games)
 and where to click within about 30 seconds. **Open questions:** a "Start here" / recruiter path
 on the home page vs. a dedicated landing URL to put on applications; a short framing header on
-`/deetsmusic/demo/`; whether `cool-stuff/` should become the portfolio front door. **First step:**
+`/deetsmusic/demo/`; whether the portfolio page should become the front door (2026-11-22: Cool
+Stuff is now Portfolio at `/portfolio/`, led by a Live & Demo-able section). **First step:**
 walk the site cold from each URL he's used on applications and list where a visitor gets lost.
 All copy is his words, so draft structure with `[ph]` strings only.
 

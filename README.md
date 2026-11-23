@@ -77,7 +77,7 @@ poker/                DeetsPoker (worker in the sibling ../DeetsPoker repo)
 profile/              your account's home — name + color (docs/accounts.md)
 auth/                 sign-in landing pad (talks to the DeetsAccounts worker)
 privacy/              privacy policy (the OAuth consent screen links here)
-cool-stuff/           project portfolio
+portfolio/           project portfolio
 resume/               resume page + downloadable PDF (generated, see below)
 styles/               token tiers (palette → themes → skin), then
                       chrome.css (shared, every page) + main.css (per-tab)

@@ -7,7 +7,7 @@
 # rewrites movies/movies.json from it (python -m journal.letterboxd_web rss --web).
 # (Until 2026-11-10 both ran from the DeetsOTD repo, which DeetsDiscordBot continues.)
 # Projects: asks GitHub (via the gh CLI) for each portfolio project's last
-# commit date and rewrites cool-stuff/projects.json (build-project-dates.py).
+# commit date and rewrites portfolio/projects.json (build-project-dates.py).
 # The three are independent — a failure in one never blocks the others.
 #
 # If (and only if) a JSON changed, it stages JUST the changed files,
@@ -35,7 +35,7 @@ $repo    = Split-Path $PSScriptRoot -Parent                 # ...\DeetsSolutions
 $otd     = Join-Path (Split-Path $repo -Parent) "DeetsDiscordBot"  # sibling ...\DeetsDiscordBot (the journal)
 $songs   = Join-Path $repo "sotd\songs.json"
 $movies  = Join-Path $repo "movies\movies.json"
-$projects = Join-Path $repo "cool-stuff\projects.json"
+$projects = Join-Path $repo "portfolio\projects.json"
 $log     = Join-Path $PSScriptRoot "nightly-sotd.log"
 $channel = "1463626949430612267"
 
@@ -110,7 +110,7 @@ try {
 foreach ($l in $out) { Log "rss: $l" }
 if ($moviesCode -ne 0) { Log "ERROR: journal.letterboxd_web exited $moviesCode - movies.json left untouched" }
 
-# ── Projects: GitHub last-commit dates -> cool-stuff/projects.json ──
+# ── Projects: GitHub last-commit dates -> portfolio/projects.json ──
 $out = & { $ErrorActionPreference = 'Continue'; & $python (Join-Path $PSScriptRoot "build-project-dates.py") 2>&1 }
 $projectsCode = $LASTEXITCODE
 foreach ($l in $out) { Log "projects: $l" }
@@ -153,7 +153,7 @@ if ($moviesChanged) {
     $parts += "$count films"
 }
 if ($projectsChanged) {
-    $files += "cool-stuff/projects.json"
+    $files += "portfolio/projects.json"
     $parts += "project dates"
 }
 

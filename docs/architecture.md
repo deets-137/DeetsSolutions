@@ -171,7 +171,7 @@ on the right (single column under 60rem). Each side card holds a
 `.home-strip`: a sideways-scrolling shelf of that tab's real cards, newest
 on the left. The film strip rebuilds `movies.js`'s `.song.movie` DOM from
 `movies.json` (most recently watched first); the project strip fetches
-`cool-stuff/index.html` and lifts its `.project` articles in page order,
+`portfolio/index.html` and lifts its `.project` articles in page order,
 so the portfolio stays the single source. `js/home.js` also fills each
 card's `[data-live]` line with a count and the latest entry (latest by
 `date` for songs; latest watched, `status: "watched"` only, for films);
@@ -283,10 +283,12 @@ two host-picked decks — `numeral/`, `traditional/`);
 the bento keeps cities' no-reflow spirit. Tab is **not** `data-nav-core`
 and is **desktop-only** below 56rem.
 
-### Cool Stuff I Did (`cool-stuff/`)
+### Portfolio (`portfolio/`)
 
-The project portfolio. The cards are hand-written `<article
-class="project">` blocks directly in `cool-stuff/index.html`, grouped
+The project portfolio. Named "Cool Stuff I Did" at `/cool-stuff/` until
+2026-11-22 (his call): the old URL 301s here (`_redirects`), and the home
+card keeps the old title and its intro line for now (his call). The cards are hand-written `<article
+class="project">` blocks directly in `portfolio/index.html`, grouped
 under `cool__section` headings. To add a project, copy an existing card
 block and edit it — and if it has no GitHub link, add it to the
 `OVERRIDES` table in `scripts/build-project-dates.py` so the home strip

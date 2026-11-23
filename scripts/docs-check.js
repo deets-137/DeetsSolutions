@@ -147,7 +147,7 @@ try {
 } catch (e) { facts.push(`scripts/stamp-strings.js  failed: ${e.message}`); }
 try {
   if (require('./stamp-crawl').stampProjects(true)) {
-    facts.push('cool-stuff/index.html  its project data is behind its cards (run node scripts/stamp-crawl.js)');
+    facts.push('portfolio/index.html  its project data is behind its cards (run node scripts/stamp-crawl.js)');
   }
 } catch (e) { facts.push(`scripts/stamp-crawl.js  failed: ${e.message}`); }
 

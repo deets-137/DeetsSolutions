@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects. One rule a line: from, to, status.
+#
+# Cool Stuff became Portfolio and moved to /portfolio/ (his call, 2026-11-22).
+# Old links, search results and shared previews keep landing on the page.
+/cool-stuff                /portfolio/                301
+/cool-stuff/               /portfolio/                301
+/cool-stuff/index.html     /portfolio/                301
+/cool-stuff/projects.json  /portfolio/projects.json   301

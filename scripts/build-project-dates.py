@@ -1,4 +1,4 @@
-"""Build cool-stuff/projects.json - the last-commit date of every project.
+"""Build portfolio/projects.json - the last-commit date of every project.
 
 The portfolio cards are hand-written HTML with no dates, so the home
 page's project strip has nothing to sort "most recent" by. This script
@@ -12,7 +12,7 @@ for the newest commit behind each project and writes one small JSON:
 Keyed by the card's `.project__name` text, which is what home.js reads.
 
 Where a project's repos come from, in order:
-  1. its card's GitHub links in cool-stuff/index.html (deets-137 repos only),
+  1. its card's GitHub links in portfolio/index.html (deets-137 repos only),
   2. the OVERRIDES table below - projects with no public link (private
      repos), or whose code lives in a folder of this site repo. A
      "Repo:path/" source dates the newest commit that touched that path.
@@ -32,8 +32,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-PAGE = REPO / "cool-stuff" / "index.html"
-OUT = REPO / "cool-stuff" / "projects.json"
+PAGE = REPO / "portfolio" / "index.html"
+OUT = REPO / "portfolio" / "projects.json"
 OWNER = "deets-137"
 SITE = "DeetsSolutions"
 
@@ -97,7 +97,7 @@ def path_date(repo, path):
 
 def main():
     if not PAGE.exists():
-        print("cool-stuff/index.html not found", file=sys.stderr)
+        print("portfolio/index.html not found", file=sys.stderr)
         return 1
     branch_dates = default_branch_dates()
     result = {}

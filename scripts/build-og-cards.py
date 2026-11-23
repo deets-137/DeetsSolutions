@@ -94,7 +94,7 @@ CARDS = {
         "flourish": "notes",
     },
     "home":       {"flourish": "sparkles"},
-    "cool-stuff": {"flourish": "sparkles"},
+    "portfolio": {"flourish": "sparkles"},
     "resume":     {"flourish": None},
     "movies":     {"flourish": "sparkles"},
     "league":     {"flourish": "sparkles"},

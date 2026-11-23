@@ -162,7 +162,7 @@ Pages serves them `DYNAMIC`. Compare on the JSON's own `generated_at` /
 `count` — Pages' `ETag` is opaque, not the file's md5, so it cannot stand
 in for a content check.
 
-## Projects → `cool-stuff/projects.json`
+## Projects → `portfolio/projects.json`
 
 The portfolio cards are hand-written and carry no dates, so the home
 page's project strip sorts on this small JSON instead: each project's

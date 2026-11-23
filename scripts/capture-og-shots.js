@@ -81,7 +81,7 @@ const TUNE_RADIO = `(async () => {
 
 const PAGES = {
   home:         { path: '/' },
-  'cool-stuff': { path: '/cool-stuff/' },
+  'portfolio': { path: '/portfolio/' },
   resume:       { path: '/resume/' },
   sotd:         { path: '/sotd/' },
   movies:       { path: '/movies/', settle: 7000 },

@@ -1,6 +1,6 @@
 /* Home — the SOTD hub, live card teasers, and the side strips.
    Reads the same generated JSONs the journal pages render
-   (sotd/songs.json, movies/movies.json) plus cool-stuff/index.html
+   (sotd/songs.json, movies/movies.json) plus portfolio/index.html
    for the project strip. Purely additive: if a fetch fails, the
    static fallback copy simply stays (and the SOTD hub never shows,
    leaving the plain fallback card in the side stack).
@@ -588,15 +588,15 @@
     .catch(function () { dropStrip("movies"); });
 
   /* Project strip — the portfolio is static HTML, so the cards are lifted
-     straight out of cool-stuff/index.html (one source of truth: edit a
+     straight out of portfolio/index.html (one source of truth: edit a
      project there and the strip follows). Order comes from
-     cool-stuff/projects.json — each project's last-commit date, pulled
+     portfolio/projects.json — each project's last-commit date, pulled
      from GitHub by scripts/build-project-dates.py on the nightly job —
      newest first; a project with no date keeps page order at the end,
      and if that JSON is missing the strip is simply in page order. */
   Promise.all([
-    fetch("cool-stuff/index.html").then(function (r) { return r.text(); }),
-    fetch("cool-stuff/projects.json")
+    fetch("portfolio/index.html").then(function (r) { return r.text(); }),
+    fetch("portfolio/projects.json")
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; })
   ])

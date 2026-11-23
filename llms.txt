@@ -4,14 +4,14 @@
 
 Aditya Sundaram, Deets and deets-137 are the same person. His other profiles are https://github.com/deets-137 and https://www.linkedin.com/in/aditya-sundaram/. The canonical host is https://deets.solutions (no www).
 
-Several pages fill in their text with JavaScript. The Resume and Cool Stuff pages are plain HTML and can be read without it.
+Several pages fill in their text with JavaScript. The Resume and Portfolio pages are plain HTML and can be read without it.
 
 ## About him
 
 - [Home](https://deets.solutions/): Who he is, with links to everything below.
 - [Resume](https://deets.solutions/resume/): Work history, projects and education (UCLA, B.S. Computational & Systems Biology). Plain HTML.
 - [Resume, PDF](https://deets.solutions/resume/AdityaSundaram_Resume.pdf): The same resume as a two-page PDF.
-- [Cool Stuff I Did](https://deets.solutions/cool-stuff/): The portfolio of native and web apps, each with its GitHub repository. Plain HTML.
+- [Portfolio](https://deets.solutions/portfolio/): The portfolio of native and web apps, each with its GitHub repository. Plain HTML.
 
 ## DeetsMusic
 
