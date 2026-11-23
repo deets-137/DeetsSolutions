@@ -305,15 +305,19 @@ stay `<article class="project">` exactly: `stamp-crawl.js`,
 Since 2026-11-23 the page is the link he gives recruiters. Its bar holds his
 name, a split Resume | download pill (`.split-cta`: two links, each with its own
 hover; the icon's gate animation is `js/download-gate.js` plus main.css's
-"Download gate"), and the GitHub and LinkedIn pills, then a one-line
-pitch (`.cool__lede`). The first section, **Start here** (`#featured`), shows
-the three flagships he chose: DeetsMusic for Windows (product and API skills),
-DeetsHealth (healthtech, AI agent and API skills) and Deets.Solutions
-(WebSockets and Cloudflare). They are `<article class="feature">` cards
-(`.feature-grid`, `.feature__*` in `main.css`; the top rule is skin.css's
-`--feature-stripe`). They are never `class="project"`: each of these projects already has its
-card further down, and the scripts above would count it twice. His intro line
-now sits under these cards (`.cool__aside`).
+"Download gate"), and the GitHub and LinkedIn pills. Under them, on the bar's
+own panel, is the pitch in two tiers (`.cool__lede`): a headline with the role
+(`.cool__headline`), then a quieter line with the proof (`.cool__support`).
+Then, above the sectioned list and outside the section
+nav, with no heading (his call: they are the page's gems, not a section), the
+three flagships he chose (`.cool__featured`): DeetsMusic for Windows (product
+and API skills), DeetsHealth (healthtech, AI agent and API skills) and
+Deets.Solutions (WebSockets and Cloudflare). They are `<article
+class="feature">` cards in exactly a `.project` card's material
+(`.feature-grid`, `.feature__*` in `main.css`). They are never
+`class="project"`: each of these projects already has its card further down,
+and the scripts above would count it twice. His intro line sits under these
+cards (`.cool__aside`), leading into the list.
 
 The sections (his call, 2026-11-22): **Live & Demo-able** first, in three
 `.cool__group`s, one per flagship (DeetsMusic, DeetsHealth,

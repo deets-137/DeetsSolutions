@@ -591,10 +591,12 @@
 }
 .project__link:hover { border-bottom-color: var(--title); }
 
-/* ── Start here: the three flagship cards (2026-11-23) ─────────
-   The recruiter's first stop: a .project card's material, a little
-   larger, with the skills it proves and its proof points as a list.
-   Three across at width, one column on a phone. */
+/* ── The flagship cards (2026-11-23) ───────────────────────────
+   The recruiter's first stop, at the top of the page and outside the
+   section nav (.cool__featured): exactly a .project card's material (no
+   accent stripe, his call), with the skills it proves and its proof
+   points as a list. Three across at width, one column on a phone. */
+.cool__featured { margin-bottom: var(--space-6); }
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
@@ -604,10 +606,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-5);
+  padding: var(--space-4);
   background: var(--card);
   border: var(--card-border-width) solid var(--card-border);
-  border-top: var(--feature-stripe) solid var(--title);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: var(--card-backdrop);
@@ -725,6 +726,31 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .is-opening :is(.gate__arrow, .gate__leaf) { animation: none; }
+}
+
+/* The pitch, inside the page bar (his call, 2026-11-23): a full-width second
+   row on the bar's own panel, under a hairline, so no background motion
+   runs behind it. The role first in full-strength text, then the proof in
+   the quieter color. Both lines stop at a reading width. */
+.cool__lede {
+  flex: 1 0 100%;            /* the bar wraps: this takes a row of its own */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) 0 var(--space-1);
+  border-top: 1px solid var(--border);
+}
+.cool__headline {
+  max-width: var(--measure);
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+.cool__support {
+  max-width: var(--measure);
+  color: var(--subtext);
+  font-size: var(--fs-nav);
+  line-height: 1.5;
 }
 
 /* His intro line, now under the flagships, leading into the full list. */

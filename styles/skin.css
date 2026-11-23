@@ -279,8 +279,7 @@
   --walk-fs-small: 0.8rem;            /* the step count and the buttons */
   --walk-stripe:   3px;               /* the card's left stripe, like a toast's */
 
-  /* -- Portfolio's Start here cards ---------------------------- */
-  --feature-stripe: 3px;              /* the accent rule across each card's top */
+  /* -- Portfolio --------------------------------------------- */
   --gate-dur:       0.9s;             /* the download gate: open, drop through, close */
 
   /* -- focus ring (one place to restyle every focus state) --- */

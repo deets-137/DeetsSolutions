@@ -492,14 +492,14 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23l" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23m" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="../styles/skin.css?v=2026-11-23c" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23d" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-23d" as="style" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23f" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
@@ -572,32 +572,21 @@
           <a class="home__cta home__cta--soft" href="https://github.com/deets-137" rel="me">GitHub ↗</a>
           <a class="home__cta home__cta--soft" href="https://www.linkedin.com/in/aditya-sundaram/" rel="me">LinkedIn ↗</a>
         </div>
+        <!-- The pitch, two tiers on the bar's own panel (his call, 2026-11-23):
+             the role first, then the proof. -->
+        <div class="cool__lede">
+          <p class="cool__headline">[ph] Solutions engineer building healthtech, AI agents and real-time web apps.</p>
+          <p class="cool__support">[ph] Two years at Epic: primary technical contact for its Beaker lab application at 3 health systems, and senior technical resource at 17+ go-lives.</p>
+        </div>
       </header>
-      <p class="page-meta cool__lede">
-        [ph] Solutions engineer. Two years at Epic as the primary technical contact for its Beaker lab application at 3 health systems, and the senior technical resource embedded at 17+ go-lives. Now building AI agents, FHIR integrations and real-time web apps.
-      </p>
 
-      <div class="section-layout">
-      <!-- The section nav (the Resume's, 2026-11-22; js/section-nav.js): its
-           labels are the section headings, so it adds no copy. -->
-      <nav class="section-nav" aria-labelledby="cool-title">
-        <span class="section-nav__pill" aria-hidden="true"></span>
-        <ul class="section-nav__list">
-          <li><a class="section-nav__item" href="#featured">[ph] Start here</a></li>
-          <li><a class="section-nav__item" href="#live">Live &amp; Demo-able</a></li>
-          <li><a class="section-nav__item" href="#apps">Apps &amp; experiences</a></li>
-          <li><a class="section-nav__item" href="#tools">Tools &amp; systems</a></li>
-        </ul>
-      </nav>
-
-      <div class="section-layout__body">
-      <!-- Start here (2026-11-23): the three flagships a recruiter should see
-           first, each with the skills it proves. These are <article
-           class="feature">, never class="project": stamp-crawl.js,
-           build-project-dates.py and home.js count every .project card, and
-           each of these projects already has its card below. -->
-      <section id="featured">
-      <h2 class="cool__section">[ph] Start here</h2>
+      <!-- The flagships (2026-11-23): the three cards a recruiter should see
+           first, at the top of the page on every layout, with no heading and
+           outside the section nav (his call: they are the gems, not a section).
+           These are <article class="feature">, never class="project":
+           stamp-crawl.js, build-project-dates.py and home.js count every
+           .project card, and each project already has its card below. -->
+      <div class="cool__featured">
       <div class="feature-grid">
         <article class="feature">
           <h3 class="feature__name">DeetsMusic for Windows</h3>
@@ -658,7 +647,6 @@
           </div>
           <div class="feature__links">
             <a class="home__cta" href="/cities/">[ph] Play a game</a>
-            <a class="home__cta home__cta--soft" href="/radio/">[ph] Join a listening room</a>
             <a class="home__cta home__cta--soft" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
           </div>
         </article>
@@ -666,8 +654,21 @@
       <p class="cool__aside">
         Apps, tools, experiments, and more. Everything I've built so far! I was quite bored as you can tell
       </p>
-      </section>
+      </div>
 
+      <div class="section-layout">
+      <!-- The section nav (the Resume's, 2026-11-22; js/section-nav.js): its
+           labels are the section headings, so it adds no copy. -->
+      <nav class="section-nav" aria-labelledby="cool-title">
+        <span class="section-nav__pill" aria-hidden="true"></span>
+        <ul class="section-nav__list">
+          <li><a class="section-nav__item" href="#live">Live &amp; Demo-able</a></li>
+          <li><a class="section-nav__item" href="#apps">Apps &amp; experiences</a></li>
+          <li><a class="section-nav__item" href="#tools">Tools &amp; systems</a></li>
+        </ul>
+      </nav>
+
+      <div class="section-layout__body">
       <section id="live">
       <h2 class="cool__section">Live &amp; Demo-able</h2>
       <div class="cool__group">
