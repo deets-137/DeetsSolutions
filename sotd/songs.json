@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-21T03:27:55Z",
+  "generated_at": "2026-11-23T00:36:18Z",
   "channel": "song-of-the-day",
-  "count": 493,
+  "count": 495,
   "songs": [
     {
       "post_id": 1,
@@ -11341,6 +11341,52 @@
       "apple_music_url": "https://music.apple.com/us/album/dalmatian/6815344674?i=6815344675&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a9/cd/20/a9cd2013-e47b-908b-3ee1-c7a2d41f36f7/mzaf_9781690390454123373.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/6a/a8/09/6aa8097f-e101-dd3e-6803-cd05bd2d45cc/885288665178.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 43059,
+      "posted_at": "2026-11-21T09:45:27.773000+00:00",
+      "date": "2026-11-20",
+      "day": "Fri",
+      "month": "11_2026",
+      "track_name": "Somebody To You",
+      "artist_name": "Joy Crookes",
+      "album": "Juniper (Deluxe)",
+      "genre": "Alternative",
+      "duration": "2:57",
+      "duration_sec": 177,
+      "release_date": "2025-08-08",
+      "release_year": 2025,
+      "age_yrs": 1,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/1844892902",
+      "apple_music_url": "https://music.apple.com/us/album/somebody-to-you/1844892365?i=1844892902&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ac/d6/df/acd6df60-7196-1cb7-0c81-dec5e748177b/mzaf_10327422777368455524.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/c1/cc/c6c1ccaa-c16f-a8f4-a8b2-0cb975512ac8/196873692388.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 43060,
+      "posted_at": "2026-11-22T10:00:40.193000+00:00",
+      "date": "2026-11-21",
+      "day": "Sat",
+      "month": "11_2026",
+      "track_name": "Mr. Cool",
+      "artist_name": "Kenya Grace",
+      "album": "Mr. Cool - Single",
+      "genre": "Dance",
+      "duration": "3:49",
+      "duration_sec": 229,
+      "release_date": "2025-06-20",
+      "release_year": 2025,
+      "age_yrs": 1,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/mr-cool/1818226363?i=1818226365",
+      "apple_music_url": "https://music.apple.com/us/album/mr-cool/1818226363?i=1818226365&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0c/3f/83/0c3f8319-7bec-ebaa-9b2b-e6ed1e166d70/mzaf_4165988419754013085.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5a/67/30/5a6730d4-b94f-6334-c086-c2bef1bc5639/054391232298.jpg/600x600bb.jpg"
     }
   ]
 }
