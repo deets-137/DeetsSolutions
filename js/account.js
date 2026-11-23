@@ -229,10 +229,14 @@
        places the slot and hides it below 56rem, where the mobile menu's
        copy below takes over. */
     var header = document.querySelector(".site-header");
-    if (header) {
+    var vibe = header && header.querySelector(".settings");
+    if (vibe) {
       var slot = el("div", "header-account");
       slot.appendChild(makeButton("account-btn"));
-      header.insertBefore(slot, header.querySelector(".settings"));
+      // Into Vibe's own parent: the .site-dock (2026-11-23), which the wide
+      // layout turns into a panel at the bottom left, and which is
+      // display: contents everywhere else, so the top header is unchanged.
+      vibe.parentNode.insertBefore(slot, vibe);
     }
 
     /* The mobile menu needs its own append: buildNavMenu() clones

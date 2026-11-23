@@ -39,6 +39,7 @@
      and the content may grow to --content-max-wide beside it. The 82rem
      is in two media queries there and in js/section-nav.js (RAIL): change
      all three together. */
+  --dock-h:           3.25rem;  /* the wide layout's bottom dock (Sign in + Vibe) */
   --rail-w:           17rem;   /* fixed, never the text's width: room for the
                                   widest label (Resume's sections in the
                                   monospace skins) so nothing jitters */
@@ -691,13 +692,13 @@ body::before {
   }
   .site-brand { grid-column: 1; grid-row: 1; }
   .site-nav { grid-column: 2 / 4; grid-row: 1; justify-self: end; margin-left: 0; }
-  .site-header > .settings,
+  .site-dock > .settings,
   .header-account {
     grid-row: 2;
     align-self: start;
     margin-top: calc(-1 * var(--space-2));
   }
-  .site-header > .settings { grid-column: 3; }
+  .site-dock > .settings { grid-column: 3; }
   .header-account { grid-column: 2; justify-self: end; }
   /* Toasts drop below row 2 instead of landing on Vibe. */
   .toast-host { top: calc(var(--header-h) + var(--space-6)); }
@@ -707,9 +708,9 @@ body::before {
 @media (max-width: 56rem) {
   .site-nav { display: none; }
   .settings { margin-left: auto; }
-  /* The wordmark menu's copy takes over. Scoped to .site-header so it
+  /* The wordmark menu's copy takes over. Scoped to .site-dock so it
      outranks the base `.header-account { display: flex }` further down. */
-  .site-header > .header-account { display: none; }
+  .site-dock > .header-account { display: none; }
   .wordmark[aria-haspopup]::after {
     content: "▾";
     margin-left: var(--space-1);
@@ -1808,14 +1809,21 @@ select:focus-visible,
 .site-nav__home { display: none; }
 /* The nav panel's sliding glass (below); the top header has none. */
 .site-nav__glass { display: none; }
+/* Sign in + Vibe's wrapper: no box of its own in the top header (its two
+   children take the header's grid cells as before); the wide layout makes
+   it the bottom-left dock. */
+.site-dock { display: contents; }
 
 @media (min-width: 82rem) {
   :root { --content-max: var(--content-max-wide); }
 
+  /* Two columns: the nav column and the content. Row 2 takes the rest of
+     the window's height at least, so the dock (below) can sit at the
+     bottom of the screen even on a short page. */
   body {
     display: grid;
-    grid-template-columns: var(--rail-w) minmax(0, 1fr) auto auto;
-    grid-template-rows: var(--header-h) auto;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    grid-template-rows: var(--header-h) 1fr;
     align-items: start;
     gap: 0 var(--space-5);
     max-width: calc(var(--rail-w) + var(--space-5) + var(--content-max) + 2 * var(--space-6));
@@ -1824,32 +1832,78 @@ select:focus-visible,
   }
   .site-header { display: contents; }
 
-  /* The top bar: the title over the nav column (it may run on over the
-     content), Sign in and Vibe at the right end. */
-  .site-brand { grid-column: 1 / 3; grid-row: 1; align-self: center; }
+  /* The title, over the nav column, stays on screen while the page
+     scrolls (his ask, 2026-11-23): sticky at the top, in the space above
+     the nav panel. Its box keeps to the nav column, so it never sits over
+     the content's links; the words may run on past it. */
+  .site-brand {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    height: var(--header-h);
+    white-space: nowrap;
+  }
   .wordmark { font-size: calc(var(--fs-title) * 1.35); }
   .wordmark__more { display: inline; }
-  .header-account {
-    grid-column: 3;
-    grid-row: 1;
-    align-self: center;
-    justify-self: end;
-    width: auto;
-    margin-top: 0;
-    position: relative;
-    z-index: 10;
+
+  /* The dock (his ask, 2026-11-23): Sign in and Vibe on their own panel,
+     the nav's width and material, stuck to the bottom of the screen under
+     the nav. It shares the nav's grid cell: the nav sticks to its top,
+     the dock to its bottom. Vibe's menu opens upward and to the right,
+     the only side with room. */
+  .site-dock {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+    justify-self: stretch;
+    position: sticky;
+    bottom: var(--space-5);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    height: var(--dock-h);
+    margin-top: var(--space-4);
+    padding: 0 var(--space-2);
+    background: var(--card);
+    border: var(--card-border-width) solid var(--card-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    -webkit-backdrop-filter: var(--card-backdrop);
+    backdrop-filter: var(--card-backdrop);
   }
-  .site-header > .settings {
-    grid-column: 4;
-    grid-row: 1;
+  /* (the top header's row-2 rules give these align-self: start and a
+     negative margin; in the dock's row they sit centered) */
+  .site-dock > .header-account {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    justify-content: flex-start;
     align-self: center;
-    margin-top: 0;
-    position: relative;
-    z-index: 10;
+    margin: 0;
+  }
+  .site-dock > .settings { align-self: center; margin: 0; }
+  .site-dock .menu {
+    --pop-origin: bottom left;
+    top: auto;
+    bottom: calc(100% + var(--space-2));
+    right: auto;
+    left: 0;
+  }
+  .site-dock .flyout {
+    right: auto;
+    left: 100%;
+    margin-right: 0;
+    margin-left: var(--space-2);
+    transform-origin: top left;
   }
 
   .site-main {
-    grid-column: 2 / -1;
+    grid-column: 2;
     grid-row: 2;
     max-width: none;
     width: 100%;
@@ -1869,7 +1923,8 @@ select:focus-visible,
     position: sticky;
     top: var(--header-h);
     z-index: 5;
-    max-height: calc(100dvh - var(--header-h) - var(--space-5));
+    /* leaves room for the dock under it, so the two never overlap */
+    max-height: calc(100dvh - var(--header-h) - var(--dock-h) - 2 * var(--space-5));
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
