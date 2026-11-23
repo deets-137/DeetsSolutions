@@ -293,6 +293,13 @@ block and edit it — and if it has no GitHub link, add it to the
 can date it ([data.md](data.md), "Projects"). Styles are the `.cool__*` /
 `.project__*` sections at the bottom of `main.css`.
 
+Since 2026-11-22 the page uses the Resume's section nav (`main.css`,
+"Section nav"; `js/section-nav.js`): each group is a `<section id>` in
+`.section-layout__body`, and the nav lists them by their headings. A new
+group needs its own `<section id>` and a link in the nav. The cards must
+stay `<article class="project">` exactly: `stamp-crawl.js`,
+`build-project-dates.py` and `home.js` find them by that tag.
+
 ### Resume (`resume/`)
 
 The resume in the site's type system, and the source of truth for the
@@ -308,9 +315,9 @@ downloadable PDF (see [data.md](data.md) for the rebuild pipeline).
   section is its own `.resume__sheet` card — the skin's card material — so
   busy canvases (Cyber's grid, Glass's aurora) stay behind a plate.
   Vanilla's card is flush with the canvas by design.
-- `.resume-nav` at the left stays in view and lists the sections as
+- `.section-nav` at the left stays in view and lists the sections as
   `#anchor` links (their labels are the section headings, so no new
-  copy). `resume/resume.js` marks the section in view and slides the
+  copy). `js/section-nav.js` (shared with Cool Stuff) marks the section in view and slides the
   `--title` pill onto it (`--dur-pill` / `--ease-pill` in skin.css). Below
   56rem it becomes DeetsHealth's compact dropdown (its chat page on a
   phone): one sticky pill naming the section, a menu of all five. Without

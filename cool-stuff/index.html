@@ -466,11 +466,12 @@
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/skin.css?v=2026-11-22" as="style" />
-    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-22" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
     <script src="../js/walkers.js" defer></script>
+    <script src="../js/section-nav.js?v=2026-11-22" defer></script>
   </head>
 
   <body>
@@ -519,14 +520,28 @@
       <span class="settings" data-settings></span>
     </header>
 
-    <main class="site-main">
+    <main class="site-main cool">
       <header class="page-bar">
-        <h1 class="page-bar__title">Cool Stuff I Did</h1>
+        <h1 class="page-bar__title" id="cool-title">Cool Stuff I Did</h1>
       </header>
       <p class="page-meta">
         Apps, tools, experiments, and more. Everything I've built so far! I was quite bored as you can tell
       </p>
 
+      <div class="section-layout">
+      <!-- The section nav (the Resume's, 2026-11-22; js/section-nav.js): its
+           labels are the section headings, so it adds no copy. -->
+      <nav class="section-nav" aria-labelledby="cool-title">
+        <span class="section-nav__pill" aria-hidden="true"></span>
+        <ul class="section-nav__list">
+          <li><a class="section-nav__item" href="#apps">Apps &amp; experiences</a></li>
+          <li><a class="section-nav__item" href="#games">Games</a></li>
+          <li><a class="section-nav__item" href="#tools">Tools &amp; systems</a></li>
+        </ul>
+      </nav>
+
+      <div class="section-layout__body">
+      <section id="apps">
       <h2 class="cool__section">Apps &amp; experiences</h2>
       <div class="cool__grid">
         <article class="project">
@@ -790,7 +805,9 @@
           </div>
         </article>
       </div>
+      </section>
 
+      <section id="games">
       <h2 class="cool__section">Games</h2>
       <div class="cool__grid">
         <article class="project">
@@ -916,7 +933,9 @@
           </div>
         </article>
       </div>
+      </section>
 
+      <section id="tools">
       <h2 class="cool__section">Tools &amp; systems</h2>
       <div class="cool__grid">
         <article class="project">
@@ -1131,6 +1150,9 @@
             <a class="project__link" href="https://github.com/deets-137/DeetsSolutions">GitHub ↗</a>
           </div>
         </article>
+      </div>
+      </section>
+      </div>
       </div>
     </main>
   </body>

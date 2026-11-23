@@ -1,5 +1,6 @@
-/* The resume's section nav (DeetsHealth's nav.ts and picker.ts, 2026-11-22,
-   as a scroll nav). The links are plain #anchors and jump without this
+/* The section nav for a long page (Resume, Cool Stuff): DeetsHealth's
+   nav.ts and picker.ts, 2026-11-22, as a scroll nav. Shared: one copy, each
+   page that has a .section-nav loads it. The links are plain #anchors and jump without this
    file; this file marks the section in view and slides the pill onto its
    link. On a narrow screen the list becomes DeetsHealth's compact dropdown:
    one pill naming the section in view, its menu every section. Both are
@@ -7,10 +8,10 @@
 (function () {
   "use strict";
 
-  var nav = document.querySelector(".resume-nav");
+  var nav = document.querySelector(".section-nav");
   if (!nav) return;
-  var pill = nav.querySelector(".resume-nav__pill");
-  var links = Array.prototype.slice.call(nav.querySelectorAll(".resume-nav__item"));
+  var pill = nav.querySelector(".section-nav__pill");
+  var links = Array.prototype.slice.call(nav.querySelectorAll(".section-nav__item"));
   var hrefs = links.map(function (a) { return a.getAttribute("href"); });
   var sections = hrefs.map(function (h) { return document.getElementById(h.slice(1)); });
   var current = -1;
@@ -27,18 +28,18 @@
   // ---- the compact dropdown (DeetsHealth's picker.ts). Built here so a
   // page without JS keeps the plain row of links.
   var pick = document.createElement("div");
-  pick.className = "resume-pick";
+  pick.className = "section-pick";
   pick.innerHTML =
-    '<button class="resume-pick__button" type="button" aria-expanded="false" aria-controls="resume-pick-menu">' +
-    '<span class="resume-pick__name"></span><span class="resume-pick__chev" aria-hidden="true">▾</span></button>' +
-    '<ul class="resume-pick__menu" id="resume-pick-menu" hidden></ul>';
-  var button = pick.querySelector(".resume-pick__button");
-  var nameEl = pick.querySelector(".resume-pick__name");
-  var menu = pick.querySelector(".resume-pick__menu");
+    '<button class="section-pick__button" type="button" aria-expanded="false" aria-controls="section-pick-menu">' +
+    '<span class="section-pick__name"></span><span class="section-pick__chev" aria-hidden="true">▾</span></button>' +
+    '<ul class="section-pick__menu" id="section-pick-menu" hidden></ul>';
+  var button = pick.querySelector(".section-pick__button");
+  var nameEl = pick.querySelector(".section-pick__name");
+  var menu = pick.querySelector(".section-pick__menu");
   var rows = links.map(function (a) {
     var li = document.createElement("li");
     var row = document.createElement("a");
-    row.className = "resume-pick__row";
+    row.className = "section-pick__row";
     row.href = a.getAttribute("href");
     row.textContent = a.textContent;
     li.appendChild(row);
@@ -135,9 +136,9 @@
   // A link in the list or a row in the dropdown: the browser jumps (the
   // link is an #anchor); this only marks it.
   nav.addEventListener("click", function (e) {
-    var a = e.target.closest(".resume-nav__item, .resume-pick__row");
+    var a = e.target.closest(".section-nav__item, .section-pick__row");
     if (!a) return;
-    if (a.classList.contains("resume-pick__row")) closeMenu(e.detail === 0);
+    if (a.classList.contains("section-pick__row")) closeMenu(e.detail === 0);
     // The pill goes straight to the clicked link, not through every section
     // the smooth scroll passes; the scroll takes over again once it settles.
     held = hrefs.indexOf(a.getAttribute("href"));

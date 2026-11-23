@@ -47,7 +47,7 @@
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js" defer></script>
     <script src="../js/toast.js" defer></script>
-    <script src="resume.js" defer></script>
+    <script src="../js/section-nav.js?v=2026-11-22" defer></script>
     <!-- Print sheet — the PDF export layout, matched to the source resume:
          all-serif, uppercase centered name, tight two pages (his call,
          2026-11-22: the site's copy is the comprehensive one). Deliberately
@@ -92,9 +92,9 @@
       .page-bar__title { font-size: 14pt; text-transform: uppercase; }
       .resume__print-contact { display: block; text-align: center; font-size: 8.5pt; margin-bottom: 0.5rem; }
       .resume__sheet { background: none; border: none; box-shadow: none; padding: 0; }
-      .resume-nav { display: none; }
-      .resume__layout, .resume__sections { display: block; }
-      .resume__sections > .resume__block { margin-bottom: var(--space-6); }
+      .section-nav { display: none; }
+      .section-layout, .section-layout__body { display: block; }
+      .section-layout__body > .resume__block { margin-bottom: var(--space-6); }
       .resume__section { border-bottom-color: black; text-transform: uppercase; font-size: 10pt; }
       .resume__role-group, .resume__entry { break-inside: avoid; }
       .resume__list { gap: 1px; }
@@ -158,22 +158,22 @@
       <p class="page-meta">Resume - updated 11/22/2026</p>
       <p class="resume__print-contact">linkedin.com/in/aditya-sundaram · deets.solutions · San Jose, CA</p>
 
-      <div class="resume__layout">
+      <div class="section-layout">
       <!-- The section nav (DeetsHealth's left nav, 2026-11-22): links that
            jump down the page, and an accent pill that slides to the section
-           in view (resume.js). Its labels are the section headings. -->
-      <nav class="resume-nav" aria-label="Resume sections">
-        <span class="resume-nav__pill" aria-hidden="true"></span>
-        <ul class="resume-nav__list">
-          <li><a class="resume-nav__item" href="#summary">Summary</a></li>
-          <li><a class="resume-nav__item" href="#experience">Professional Experience</a></li>
-          <li><a class="resume-nav__item" href="#projects">Technical Projects</a></li>
-          <li><a class="resume-nav__item" href="#education">Education</a></li>
-          <li><a class="resume-nav__item" href="#skills">Skills</a></li>
+           in view (js/section-nav.js). Its labels are the section headings. -->
+      <nav class="section-nav" aria-label="Resume sections">
+        <span class="section-nav__pill" aria-hidden="true"></span>
+        <ul class="section-nav__list">
+          <li><a class="section-nav__item" href="#summary">Summary</a></li>
+          <li><a class="section-nav__item" href="#experience">Professional Experience</a></li>
+          <li><a class="section-nav__item" href="#projects">Technical Projects</a></li>
+          <li><a class="section-nav__item" href="#education">Education</a></li>
+          <li><a class="section-nav__item" href="#skills">Skills</a></li>
         </ul>
       </nav>
 
-      <div class="resume__sections">
+      <div class="section-layout__body">
       <section class="resume__block resume__sheet" id="summary">
         <h2 class="resume__section">Summary</h2>
         <p class="resume__summary">

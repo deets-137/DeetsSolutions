@@ -488,6 +488,11 @@
   margin: var(--space-6) 0 var(--space-4);
 }
 
+/* In the section nav's shell: the sections sit a section-heading's gap
+   apart, and each heading starts at its section's top (where a jump lands). */
+.cool .section-layout__body { gap: var(--space-6); }
+.cool .section-layout__body > section > .cool__section { margin-top: 0; }
+
 .cool__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
@@ -1193,32 +1198,28 @@ span.sotd-cal__day.is-today { border-color: var(--border); border-style: dashed;
 button.sotd-cal__day.is-today .sotd-cal__num { border: 1px dashed var(--border); border-top: 0; border-left: 0; }
 
 /* ============================================================
-   Resume — /resume/, a document rather than a grid: the resume
-   content in the site's own type system, laid on a card "sheet"
-   so busy canvases (CyberStorm's grid, Glass's aurora) stay
-   behind a plate. A print sheet in the page itself doubles as
-   the PDF export layout.
+   Section nav — DeetsHealth's shell for a long page (his call,
+   2026-11-22; Resume and Cool Stuff): a nav panel at the left
+   that stays in view, the page's sections at the right, one page
+   that scrolls. The nav's links jump down the page; the shared
+   js/section-nav.js slides the pill to the section in view.
+   Markup: .section-layout > nav.section-nav + .section-layout__body
+   > section[id]; each link's label is its section's heading.
    ============================================================ */
-.resume { max-width: 66rem; margin: 0 auto; }
-
-/* Layout (his call, 2026-11-22): DeetsHealth's shell — a nav panel at the
-   left that stays in view, each section its own card at the right, one
-   page that scrolls. The nav's links jump down the page; resume.js slides
-   the pill to the section in view. */
-.resume__layout {
+.section-layout {
   display: grid;
   grid-template-columns: 13rem minmax(0, 1fr);
   gap: var(--space-5);
   align-items: start;
 }
-.resume__sections { display: grid; gap: var(--space-5); min-width: 0; }
-.resume__sections > .resume__block { margin-bottom: 0; scroll-margin-top: var(--space-5); }
-html:has(.resume-nav) { scroll-behavior: smooth; }
+.section-layout__body { display: grid; gap: var(--space-5); min-width: 0; }
+.section-layout__body > section { margin-bottom: 0; scroll-margin-top: var(--space-5); }
+html:has(.section-nav) { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
-  html:has(.resume-nav) { scroll-behavior: auto; }
+  html:has(.section-nav) { scroll-behavior: auto; }
 }
 
-.resume-nav {
+.section-nav {
   position: sticky;
   top: var(--space-5);
   z-index: 1;
@@ -1232,7 +1233,7 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
 }
 /* The list is NOT positioned: the items' offsets are then measured from
    the nav itself, the same box the pill is placed in. */
-.resume-nav__list {
+.section-nav__list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1240,10 +1241,10 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
   flex-direction: column;
   gap: var(--space-1);
 }
-/* The selection: one pill that slides to the section in view. resume.js
+/* The selection: one pill that slides to the section in view. The script
    sets its whole-pixel place and size; the labels sit above it. Without
    JS it never shows, and the links still jump. */
-.resume-nav__pill {
+.section-nav__pill {
   position: absolute;
   top: 0;
   left: 0;
@@ -1258,9 +1259,9 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
     width var(--dur-pill) var(--ease-pill), height var(--dur-pill) var(--ease-pill),
     opacity var(--dur-med) var(--ease-ui);
 }
-.resume-nav__pill.is-placed { opacity: 1; }
-.resume-nav__pill.no-anim { transition: none; }
-.resume-nav__item {
+.section-nav__pill.is-placed { opacity: 1; }
+.section-nav__pill.no-anim { transition: none; }
+.section-nav__item {
   position: relative;
   z-index: 1; /* above the sliding pill */
   display: block;
@@ -1274,23 +1275,23 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
   transition: background-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
 }
 @media (hover: hover) {
-  .resume-nav__item:hover { background: var(--surface-hover); color: var(--text); }
+  .section-nav__item:hover { background: var(--surface-hover); color: var(--text); }
 }
-.resume-nav__item[aria-current],
-.resume-nav__item[aria-current]:hover {
+.section-nav__item[aria-current],
+.section-nav__item[aria-current]:hover {
   background: transparent;
   color: var(--canvas);
 }
 @media (prefers-reduced-motion: reduce) {
-  .resume-nav__pill { transition: none; }
+  .section-nav__pill { transition: none; }
 }
 
 /* The compact dropdown (DeetsHealth's picker, its chat page on a phone):
    one pill naming the section in view, with a chevron; its menu lists
-   every section, the one in view filled. resume.js builds it, so it only
+   every section, the one in view filled. The script builds it, so it only
    exists with JS. Hidden on a wide screen. */
-.resume-pick { display: none; position: relative; }
-.resume-pick__button {
+.section-pick { display: none; position: relative; }
+.section-pick__button {
   width: 100%;
   display: flex;
   align-items: center;
@@ -1306,13 +1307,13 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
   font-size: 0.92rem;
   cursor: pointer;
 }
-.resume-pick__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.resume-pick__chev {
+.section-pick__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-pick__chev {
   line-height: 1;
   transition: transform var(--dur-med) var(--ease-ui);
 }
-.resume-pick__button[aria-expanded="true"] .resume-pick__chev { transform: rotate(180deg); }
-.resume-pick__menu {
+.section-pick__button[aria-expanded="true"] .section-pick__chev { transform: rotate(180deg); }
+.section-pick__menu {
   position: absolute;
   top: calc(100% + var(--space-2));
   left: 0;
@@ -1331,8 +1332,8 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
   border-radius: var(--radius-panel);
   box-shadow: var(--shadow-panel);
 }
-.resume-pick__menu[hidden] { display: none; }
-.resume-pick__row {
+.section-pick__menu[hidden] { display: none; }
+.section-pick__row {
   display: block;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-control);
@@ -1343,41 +1344,50 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
   transition: background-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
 }
 @media (hover: hover) {
-  .resume-pick__row:hover { background: var(--surface-hover); color: var(--text); }
+  .section-pick__row:hover { background: var(--surface-hover); color: var(--text); }
 }
-.resume-pick__row[aria-current],
-.resume-pick__row[aria-current]:hover { background: var(--title); color: var(--canvas); }
+.section-pick__row[aria-current],
+.section-pick__row[aria-current]:hover { background: var(--title); color: var(--canvas); }
 @media (prefers-reduced-motion: reduce) {
-  .resume-pick__chev { transition: none; }
+  .section-pick__chev { transition: none; }
 }
 
-/* Narrower than nav + sheet: the nav sticks to the top as you scroll, and
+/* Narrower than nav + content: the nav sticks to the top as you scroll, and
    becomes the dropdown. Without JS it is the same links as a row that
    swipes sideways. */
 @media (max-width: 56rem) {
-  .resume__layout { grid-template-columns: minmax(0, 1fr); }
+  .section-layout { grid-template-columns: minmax(0, 1fr); }
   /* Sticky over the text, so it takes the menus' material, not the card's:
      a see-through card (Ocean's) would let the lines show under the pill. */
-  .resume-nav {
+  .section-nav {
     top: 0;
     z-index: 5;
     background: var(--menu-surface);
     -webkit-backdrop-filter: var(--menu-backdrop);
     backdrop-filter: var(--menu-backdrop);
   }
-  .resume-nav:not(.has-pick) { overflow-x: auto; scrollbar-width: none; }
-  .resume-nav:not(.has-pick)::-webkit-scrollbar { display: none; }
-  .resume-nav:not(.has-pick) .resume-nav__list { flex-direction: row; width: max-content; }
-  .resume-nav__item { white-space: nowrap; }
-  .resume-nav.has-pick .resume-nav__list,
-  .resume-nav.has-pick .resume-nav__pill { display: none; }
-  .resume-nav.has-pick .resume-pick { display: block; }
-  .resume__sections > .resume__block { scroll-margin-top: calc(var(--space-6) * 2.5); }
+  .section-nav:not(.has-pick) { overflow-x: auto; scrollbar-width: none; }
+  .section-nav:not(.has-pick)::-webkit-scrollbar { display: none; }
+  .section-nav:not(.has-pick) .section-nav__list { flex-direction: row; width: max-content; }
+  .section-nav__item { white-space: nowrap; }
+  .section-nav.has-pick .section-nav__list,
+  .section-nav.has-pick .section-nav__pill { display: none; }
+  .section-nav.has-pick .section-pick { display: block; }
+  .section-layout__body > section { scroll-margin-top: calc(var(--space-6) * 2.5); }
 }
 /* A finger needs a taller target than a pointer. */
 @media (pointer: coarse) {
-  .resume-pick__button, .resume-pick__row { min-height: calc(var(--space-6) + var(--space-3)); }
+  .section-pick__button, .section-pick__row { min-height: calc(var(--space-6) + var(--space-3)); }
 }
+
+/* ============================================================
+   Resume — /resume/, a document rather than a grid: the resume
+   content in the site's own type system, in the section nav's
+   shell, each section on a card "sheet" so busy canvases
+   (CyberStorm's grid, Glass's aurora) stay behind a plate. A
+   print sheet in the page itself doubles as the PDF export layout.
+   ============================================================ */
+.resume { max-width: 66rem; margin: 0 auto; }
 /* Contact line for the PDF only — the page's print sheet reveals it
    (on screen the LinkedIn button lives in the page bar instead). */
 .resume__print-contact { display: none; }
