@@ -1453,6 +1453,7 @@ html:has(.resume-nav) { scroll-behavior: smooth; }
 .resume__list li::marker { color: var(--subtext); }
 /* A labelled group after a section's own list (Skills → Epic Certifications). */
 .resume__entry--sub { margin-top: var(--space-4); }
+.resume__section + .resume__entry--sub { margin-top: 0; } /* the heading's own gap is enough */
 /* A skill group as one wrapping line, the items set apart by the master's
    bullets ("Python • SQL • …"); each item stays whole when the line wraps. */
 .resume__inline {
