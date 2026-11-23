@@ -69,6 +69,17 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-11-22 — Resume + Portfolio revamp (LIVE, master b894182).** The resume mirrors his
+new General resume (three Epic roles, DeetsHealth/DeetsMusic/Deets.Solutions projects, Enigma
+at UCLA, Skills as four groups; two-page PDF). Both pages use DeetsHealth's sticky section nav
+(`.section-nav`, `js/section-nav.js`; architecture.md, "Resume" and "Portfolio"). Cool Stuff is
+now **Portfolio** at `/portfolio/` (`/cool-stuff/` 301s via `_redirects`), led by Live &
+Demo-able; statuses per his pass (only DeetsHealth and DeetsPics say building). Nav: DeetsRadio
+under DeetsMusic, Utilities gone (League has no nav link). **Left:** his look across the other
+theme × skin combos (only Ocean × Black-Red was captured); the home card still says "Cool Stuff
+I Did" with its intro line (his call, for now); DeetsHealth's GitHub description is stale (his
+edit on GitHub); LinkedIn Post Inspector on `/portfolio/` to refresh its preview.
+
 **2026-11-19 — DeetsBets: bets in cities and mahjong (IDEA, nothing built).** Two routes:
 player vs. table ("next roll is a 5, one wood on it") and player vs. player, open or secret
 ("John steals from Jane", Deets vs. Shaun, winner takes both stakes). His decisions are in
