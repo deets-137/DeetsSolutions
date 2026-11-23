@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [js/controls.js, js/toast.js, js/ocean.js, styles/chrome.css]
-updated: 2026-10-24
+updated: 2026-11-22
 ---
 # UI
 
@@ -158,7 +158,8 @@ wordmark's `position: relative` anchor). Two decisions keep it honest:
   attribute is still in the markup but no longer read. Links marked
   **`data-nav-desktop`** stay off it — DeetsRadio and League, which he is
   retiring and not keeping up for phones — and a group left with no links
-  (Utilities) drops its heading. The menu caps at
+  (Utilities, which now holds only League; DeetsRadio moved under
+  DeetsMusic on 2026-11-22) drops its heading. The menu caps at
   the viewport height and scrolls, for landscape phones.
 - **The wordmark serves both roles from one element.** Its click handler
   checks `matchMedia("(max-width: 56rem)")`: when narrow it opens the menu
