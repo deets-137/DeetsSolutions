@@ -32,7 +32,7 @@ Rules of the house: [CLAUDE.md](../CLAUDE.md) (the Never list, copy, CSS, games)
 [data.md](data.md) · [league.md](league.md) · [radio.md](radio.md) · [youtube.md](youtube.md).
 Games — **read [games.md](games.md) first**: [design-language.md](design-language.md) ·
 [bots.md](bots.md) · [realtime.md](realtime.md) · [cities.md](cities.md) ·
-[mahjong.md](mahjong.md) · [poker.md](poker.md) · [tanks.md](tanks.md).
+[mahjong.md](mahjong.md) · [poker.md](poker.md). Retired work: [archive/](archive/).
 
 ---
 
@@ -69,6 +69,22 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
+**2026-11-23 (evening) — Speed fixes, one at a time, and DeetsTanks retired (DONE on
+`re-dezine`, uncommitted at time of writing; goes out with its merge).** He asked to work
+through the optimizations piece by piece, with the context before each fix.
+- *Fix 1, Home's 128 px jump*: the DeetsMusic card shows from the first frame with its
+  version line held open; Home's CLS 0.52 → 0.004 headless ([support.md](support.md)).
+- *Fix 2, Poker's stamps*: `table.css` and `poker.css` now carry `?v=`.
+- *Cache setting FLIPPED*: the zone's Browser Cache TTL is now "Respect Existing Headers"
+  (`cf`, 2026-11-23; see Known gotchas). The live CSS answers `max-age=0, must-revalidate`.
+- *DeetsTanks RETIRED* (his call: nobody was playing it): the game, its designer, art,
+  build scripts, OG image and the designer-only "classic sea" are deleted; the Portfolio
+  card is gone; `/tanks/*` 301s to `/`. Its doc moved to
+  [archive/tanks.md](archive/tanks.md), which names the restore commit (`7da1351`).
+  [realtime.md](realtime.md) stays, parked, as DeetsDoom's design.
+- *Next*: the remaining open items below (the 41 px right-column nudge on Home, Poker's
+  slow load on the live site, the Mahjong `claims.ask` crash), then his merge.
+
 **2026-11-23 — re-dezine: the wide layout and the recruiter Portfolio (BUILT, branch
 `re-dezine` pushed, 8 commits on master, NOT merged; his visual review done as he went, he
 called it a day 2026-11-23).** First step next time: his merge into master (and a deploy),
@@ -95,8 +111,11 @@ are the way they are: LESSONS.md, "Page transitions".
   the same root cause as the opt-in miss. He sees no flash on any of those pages (asked
   2026-11-23), so that layout likely never reaches the screen. Low priority. If it
   matters later, check whether it reproduces on :8788 (no dev scripts) and on the live
-  site. Home also has a real 128 px push-down as the
-  DeetsMusic card fills in above the SOTD hub. (2) The game tables inside the
+  site. Home's real 128 px push-down (the DeetsMusic card filling in above the SOTD hub)
+  is FIXED: the card shows from the first frame, Home's CLS 0.52 → 0.004 headless. What
+  is left there is a 41 px nudge in the right column: the Portfolio card's "projects and
+  counting" link and the Movies card both move down, so something above them grows late
+  (cause not checked yet). (2) The game tables inside the
   grid are unchecked. (3) `display: contents` on the header may cost the banner landmark
   in older screen readers. (4) His visual pass across theme × skin beyond his own
   Ocean × Black-Red. (5) The DeetsMusic page is held at
@@ -119,8 +138,9 @@ are the way they are: LESSONS.md, "Page transitions".
 - *Poker*: click to page took 866 ms (others about 100 ms), and `poker/poker.css` (197 KB,
   no `?v=` stamp) took 374 ms as a render-blocking sheet. Measured on the dev server, which
   sends CSS `no-store`, so it may be dev-only. First step: the same trace on the live site,
-  then decide whether to split or trim the sheet. Its `table.css` has no stamp either
-  ([pages.md](pages.md), "Stylesheet stamps"). poker.md.
+  then decide whether to split or trim the sheet. Note `poker.css` is 54 KB on disk, so
+  the trace's 197 KB is suspect. Both sheets are now STAMPED (`table.css?v=2026-10-28`,
+  `poker.css?v=2026-08-05`, on `re-dezine`). poker.md.
 - *Unstamped `main.css`* (FIXED on `re-dezine`): League, Movies, Profile, Radio and SOTD
   loaded `main.css` with no `?v=`, so a deploy could pair new HTML with a 4-hour-old sheet.
   The new page inventory ([pages.md](pages.md)) showed it on its first run.
@@ -170,7 +190,7 @@ that fly out and come back pointing in; poker and tanks show the words. The labe
 the 68rem column, sized by width, so on a big monitor fullscreen leaves wide empty sides.
 Rough scope: a shared part (an `html:fullscreen` hook in `table.css` that hides the site
 header and lifts the width cap, about half a session), then one pass per game in its own CSS:
-tanks small (its canvas already follows `onResize`), cities and poker medium (board or felt
+cities and poker medium (board or felt
 sized to the height, panels beside it), mahjong the largest (four hands, the wall and the
 claim panel all scale together). About 3 to 5 sessions, plus his visual pass on each.
 
@@ -760,7 +780,7 @@ Last recorded state, from session memory — **verify against git before acting.
 | **Cities** | Disconnect-rejoin not verified live; robber-UI chat queued. | [cities.md](cities.md) |
 | **Poker** | Top-up rebuy not built. | [poker.md](poker.md) |
 | **Accounts stats** | Outbox sweep and Elo not built; bot tier isn't on results rows yet (goes with Elo). | [stats.md](stats.md) |
-| **Tanks** | Campaign live on master; worker, PvP and stats unbuilt. Doom is design-only. | [tanks.md](tanks.md), [realtime.md](realtime.md) |
+| **Tanks** | RETIRED 2026-11-23 (removed from the site; restore from `7da1351`). Doom is design-only. | [archive/tanks.md](archive/tanks.md), [realtime.md](realtime.md) |
 | **Mahjong** | Bots draw ~51% of hands (needs real shanten counting). | [bots.md](bots.md) |
 
 ---
@@ -778,11 +798,12 @@ Last recorded state, from session memory — **verify against git before acting.
 - **Mocks don't model disconnects** — rejoin behavior is only testable live.
 - **A same-document hash navigation doesn't reload.** Use `location.reload()` when testing
   a page in the browser pane.
-- **CSS/JS reach returning visitors up to four hours late** until the zone's Browser Cache
-  TTL is "Respect Existing Headers" (found 2026-10-23: that setting, at 4 h, raises
-  `_headers`' `max-age=0`). Until then, **bump the `?v=` stamps** on whatever you change:
-  the page's own CSS/JS link, and for a token sheet, `chrome.css`'s `@import` AND the
-  matching preload in every head (architecture.md, "Token stamps").
+- **The zone's Browser Cache TTL is "Respect Existing Headers" (FIXED 2026-11-23, via
+  `cf`).** From 2026-10-23 to then it sat at 4 h and overrode `_headers`' `max-age=0`, so
+  CSS/JS could reach returning visitors 4 h late. Now the live CSS answers
+  `max-age=0, must-revalidate`. Check: `cf zones settings get browser_cache_ttl -z
+  deets.solutions` must say `"value": 0`. The `?v=` stamps (architecture.md, "Token stamps")
+  are now a second guard, not the only one: keep bumping them on what you change.
 - **A URL matching two `_headers` rules gets both rules' headers, joined.** To replace
   one, detach it first with `! Header-Name` (the feeds do).
 - **A re-vendor can strip live features.** Check what the deployed workers carry before

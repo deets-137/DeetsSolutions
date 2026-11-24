@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, deetsmusic/mock.js, js/home.js]
-updated: 2026-11-09
+updated: 2026-11-23
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -1679,6 +1679,10 @@ every string (`deetsmusic/strings.js`, all `[ph]`) are placeholders.
   yet. Home carries a DeetsMusic card at the top of its left column
   (`js/home.js`, `.dm-homecard`): the latest release from the same
   releases route, as version + date; the whole card links to the page.
+  The card is in the HTML from the first frame with its version line's
+  height held open, so the fetch only fills text and the SOTD hub below
+  never moves; a failed fetch leaves the card without a version
+  (2026-11-23, was hidden until the fetch and pushed the hub 128 px).
 - **Order.** The page bar carries a Download pill and a Report pill. Below
   it: the notice, then Install beside Status, then Release notes (full
   width: every open release is two panes, its changes' bold lead-ins down

@@ -22,7 +22,7 @@ them.
   `table-do.js`, `colors.js` or an `engine.js` without re-vendoring means
   the mock tests different code from prod.
 - **A theme or skin rename without a `RETIRED` entry silently resets every
-  visitor who picked it.** The pre-paint scripts (19 pages) and their CSP
+  visitor who picked it.** The pre-paint scripts (18 pages) and their CSP
   hashes have to move together ([architecture.md](architecture.md)).
 - **Mocks don't model disconnects.** Rejoin behavior that passes in `?mock`
   has proved nothing. It can only be tested live.

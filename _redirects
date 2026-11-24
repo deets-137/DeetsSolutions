@@ -6,3 +6,8 @@
 /cool-stuff/               /portfolio/                301
 /cool-stuff/index.html     /portfolio/                301
 /cool-stuff/projects.json  /portfolio/projects.json   301
+
+# DeetsTanks was retired (his call, 2026-11-23: nobody was playing it).
+# Old links and search results land on Home. docs/archive/tanks.md.
+/tanks       /    301
+/tanks/*     /    301

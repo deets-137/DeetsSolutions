@@ -1,7 +1,7 @@
 ---
-status: project
-sources: [tanks/net.js, tanks/transport-mock.js, games/table-do.js]
-updated: 2026-08-05
+status: parked
+sources: [games/table-do.js]
+updated: 2026-11-23
 ---
 # Real-time games — the framework
 
@@ -11,6 +11,11 @@ is the **precedent** distilled from the three games built on it. This file
 is neither yet — it is the **design record** for a foundation that does
 not exist, written from an exploratory chat with Aditya on 2026-08-05
 about two candidate games (DeetsDoom, DeetsTanks).
+
+> **2026-11-23: DeetsTanks is RETIRED** (his call: nobody was playing it). Its code is
+> gone from the site; [archive/tanks.md](archive/tanks.md) holds its doc and the commit to
+> restore it from (`7da1351`). Where this file says Tanks proved something out, that code
+> now lives only in git history. The framework itself stays parked, as DeetsDoom's design.
 
 **Nothing here is built.** No code, no worker, no branch. Read "State of
 the framework" at the bottom before assuming otherwise.
@@ -199,7 +204,7 @@ discovered twice.
 (2026-08-05).** An earlier draft listed a `pixels.js` — a low-resolution
 integer-upscaled pixel buffer — as shared foundation. Tanks then settled
 on hand-drawn high-resolution raster on a native-resolution layered
-canvas ([tanks.md](tanks.md)), which wants none of it. Doom's raycaster
+canvas ([tanks.md](archive/tanks.md)), which wants none of it. Doom's raycaster
 still does: a low internal resolution is how it stays fast, and the
 chunky grid is the look.
 
@@ -363,7 +368,7 @@ Nothing below is decided.
 - **Doom:** does a table survive one player leaving — solo continues, or
   the run ends? Two rooms means no level tooling in v1; what is the win
   condition at all?
-- **Tanks** has its own doc now — [tanks.md](tanks.md). PvP is a separate
+- **Tanks** has its own doc now — [tanks.md](archive/tanks.md). PvP is a separate
   mode, PvE is a 3-lives campaign of hand-designed levels, and the
   remaining Tanks questions moved there.
 - **The lobby phase in a viewport game.** Every sibling's lobby fills a
@@ -374,7 +379,7 @@ Nothing below is decided.
   assumes a bot takes a *seat*. In a real-time PvE game the enemies are
   not seated players — they are world state. Tanks answers this for
   itself (difficulty rides the level, not `BOT_TIER_LIST` —
-  [tanks.md](tanks.md)); whether that generalizes is open.
+  [tanks.md](archive/tanks.md)); whether that generalizes is open.
 - **Stats.** Do real-time games report to the accounts D1
   ([stats.md](stats.md))? Kills, deaths, best time?
 - **Disconnect presentation.** Turn-based hides a three-second blip;
@@ -385,7 +390,7 @@ Nothing below is decided.
 ## State of the framework
 
 **Tanks' phase 1 is BUILT (2026-08-05, branch `DeetsTanks`)** — see
-[tanks.md](tanks.md), "State of the tab". What that proved out for the
+[tanks.md](archive/tanks.md), "State of the tab". What that proved out for the
 framework:
 
 - The engine contract above holds as written: `step(inputs)`, seeded

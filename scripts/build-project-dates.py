@@ -47,7 +47,6 @@ OVERRIDES = {
     "DeetsCities":   ["DeetsCities", SITE + ":cities/"],
     "DeetsMahjong":  ["DeetsMahjong", SITE + ":mahjong/"],
     "DeetsPoker":    ["DeetsPoker", SITE + ":poker/"],
-    "DeetsTanks":    [SITE + ":tanks/"],
     "DeetsShips":    ["DeetsShips"],
     "DeetsRadio":    [SITE + ":radio/"],
     "DeetsLeague":   [SITE + ":league/"],

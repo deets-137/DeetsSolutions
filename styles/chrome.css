@@ -219,49 +219,6 @@ body::before {
    only be painted and rolled out of sight. */
 :root[data-radio-shell] .ocean { display: none; }
 
-/* The classic sea — the Tanks level designer only (tanks/designer.html sets
-   data-ocean-sea="classic"; his call, 2026-10-06). Masked wave trains built
-   by controls.js buildClassicOcean(), over the plain canvas. */
-.ocean[data-sea="classic"] { background: none; }
-.ocean[data-sea="classic"] .ocean__bob { animation: ocean-bob 9s linear infinite alternate; }
-/* Oversized and left-shifted so a full roll cycle (≤144px) never drags the
-   box's own edge into view; the tiles just repeat across the slack. */
-.ocean__roll {
-  position: absolute;
-  left: -160px;
-  top: -8px;
-  width: calc(100% + 320px);
-  height: calc(100% + 16px);
-  animation: ocean-roll 16s linear infinite;
-  will-change: transform;
-}
-/* Fill and crest are two masked pseudo-boxes (a mask on the roll itself
-   would also clip the crest to the fill shape). The tile masks come from
-   controls.js; the mask origin offsets the roll's own shift, so the tile
-   grid starts at the viewport corner. */
-.ocean__roll::before,
-.ocean__roll::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  mask-size: var(--swell-tile);
-  mask-repeat: repeat;
-  mask-position: 160px 8px;
-}
-.ocean__roll::before { background: var(--canvas);    mask-image: var(--swell-fill); }
-.ocean__roll::after  { background: var(--swell-ink); mask-image: var(--swell-crest); }
-/* Roll: each train drifts an INTEGER number of its own tile width per
-   16s loop (144=3×48, 128=2×64, 80=1×80) so the wrap is invisible, the
-   nearest moving fastest. Bob: amplitudes shrink with distance; the
-   middle train is counter-phase (negative) so the sea breathes rather
-   than pumps. 9s·2 vs 16s never sync (LCM 144s). */
-.ocean__roll--1 { --roll-dist: 144px; --swell-ink: var(--ocean-ink-1); }
-.ocean__roll--2 { --roll-dist: 128px; --swell-ink: var(--ocean-ink-2); }
-.ocean__roll--3 { --roll-dist:  80px; --swell-ink: var(--ocean-ink-3); }
-.ocean__bob--1  { --bob-amp:  3px; }
-.ocean__bob--2  { --bob-amp: -2px; }
-.ocean__bob--3  { --bob-amp:  1px; }
-
 /* Aurora — each blob is oversized by --aurora-slack on every side so the
    drift never drags a gradient's cut edge into view. */
 .aurora { display: var(--aurora-display, none); }
@@ -329,23 +286,20 @@ body::before {
 @supports (animation-timing-function: steps(round(1s * 30 / 1s))) {
   .ocean__bob    { animation-timing-function: steps(round(var(--bob-s) * var(--ambient-fps) / 5)); }
   .ocean__train  { animation-timing-function: steps(round(var(--roll-s) * var(--ambient-fps))); }
-  .ocean[data-sea="classic"] .ocean__bob { animation-timing-function: steps(round(9 * var(--ambient-fps) / 5)); }
-  .ocean__roll   { animation-timing-function: steps(round(16 * var(--ambient-fps))); }
   .aurora__blob  { animation-timing-function: steps(round(var(--aurora-dur) * var(--ambient-fps) / 10 / 1s)); }
   .storm__strike,
   .storm__hold   { animation-timing-function: steps(round(var(--strike-cycle) * 0.6 * var(--ambient-fps) / 1s)); }
 }
 
 /* Hidden tab (controls.js): hold still, keep position. */
-:root[data-ambient="paused"] :is(.ocean__bob, .ocean__train, .ocean__roll, .aurora__blob, .storm__strike, .storm__hold) {
+:root[data-ambient="paused"] :is(.ocean__bob, .ocean__train, .aurora__blob, .storm__strike, .storm__hold) {
   animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aurora__blob { animation: none; }           /* freeze the Glass aurora */
   /* Ocean stays VISIBLE, just still: a motionless sea is still a sea. */
-  .ocean__train, .ocean__roll, .ocean__bob,
-  .ocean[data-sea="classic"] .ocean__bob { animation: none; }
+  .ocean__train, .ocean__bob { animation: none; }
   .ocean__glow, .ocean__neon { transition: none; }
   .storm { display: none; }                    /* a frozen half-drawn bolt reads as a bug */
 }
@@ -1450,7 +1404,7 @@ body::before {
 /* ── Animate backgrounds (Settings; data-bg-motion on <html>) ────
    Reduced halves the ambient rate (skin.css); Off holds the loops still
    and hides the storm (a frozen half-drawn bolt reads as a bug). */
-:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__train, .ocean__roll, .aurora__blob) { animation-play-state: paused; }
+:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__train, .aurora__blob) { animation-play-state: paused; }
 :root[data-bg-motion="off"] .storm { display: none; }
 
 /* ── Canvas dim (Glass › Dim canvas) ─────────────────────────────

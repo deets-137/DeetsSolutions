@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [games/table-do.js, profile/profile.js, mahjong/engine.js, poker/engine.js, cities/engine.js]
-updated: 2026-10-27
+updated: 2026-11-23
 ---
 # Game stats — the accounts phase-2 design
 
@@ -1084,7 +1084,7 @@ engine settles a hand (g.results[] grows)
   persisted `t.handsReported` and sends every entry past it. A hand that
   slips past one apply is caught by the next, and nothing depends on a
   `handOver` event's shape.
-- **Default `null`**, so cities and tanks send nothing and change nothing.
+- **Default `null`**, so cities sends nothing and change nothing.
   Like `reportResults()`, the POST lives in the base so no game can forget it.
 - **Rematch** resets `t.handsReported` with `g.results`, and the new
   `rematchIndex` keeps the keys apart.

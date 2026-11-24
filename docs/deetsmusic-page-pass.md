@@ -348,7 +348,7 @@ same day. 7a–7d below are the plan as written before the build; **7e is what w
   `?v=2026-10-06`), `styles/skin.css` (the app's `--ocean-*` tokens, values one to one),
   one line each in `js/home.js` and `sotd/sotd.js` (hand songs.json over),
   `tanks/designer.html` (`data-ocean-sea="classic"`). Docs: [ui.md](ui.md) "Motion",
-  [architecture.md](architecture.md), [tanks.md](tanks.md), [ui-direction.md](ui-direction.md).
+  [architecture.md](architecture.md), [tanks.md](archive/tanks.md), [ui-direction.md](ui-direction.md).
 - **The swell** is the app's: same rows, bands, seeds, tokens, roll and bob timings, the
   `light-dark()` crest ink, the trough shade, REPAINT_PX 24, dpr capped at 2.
 - **The glow** is the app's `asGlow` and CSS (`--ocean-glow` 0.28, 2.4 s crossfade), fed by
@@ -425,7 +425,7 @@ The app's `docs/features/OCEAN.md` §3. In short:
    JS in `js/`, or pre-render the band PNGs per theme and ship them as files (cheaper at run time,
    but a theme change needs a set of files per theme).
 3. **Tanks** is pinned to Ocean × Moonlight and injects its own ocean layer
-   ([tanks.md](tanks.md) "the injected ocean layer"). Decide whether Tanks follows the new sea or
+   ([tanks.md](archive/tanks.md) "the injected ocean layer"). Decide whether Tanks follows the new sea or
    keeps the old one.
 4. **The sand edges and the Ocean sliders** (ui.md "Skin sliders") must keep working.
 

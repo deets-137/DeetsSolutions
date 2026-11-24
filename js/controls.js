@@ -944,7 +944,6 @@
      is loaded the first time the skin is Ocean (loadOcean below), so pages
      carry no tag for it. CSS moves the boxes (chrome.css). */
   function buildOcean() {
-    if (document.documentElement.getAttribute("data-ocean-sea") === "classic") return buildClassicOcean();
     var sea = layer("ocean");
     ["far", "mid", "near"].forEach(function (n) {
       var bob = sea.appendChild(document.createElement("div"));
@@ -965,7 +964,7 @@
   var oceanLoading = false;
   function loadOcean() {
     if (oceanLoading || !SELF_SRC || !skinIs("ocean")) return;
-    if (!document.body.querySelector(':scope > .ocean:not([data-sea="classic"])')) return;
+    if (!document.body.querySelector(":scope > .ocean")) return;
     oceanLoading = true;
     var q = SELF_SRC.indexOf("?") >= 0 ? SELF_SRC.slice(SELF_SRC.indexOf("?")) : "";
     var s = document.createElement("script");
@@ -992,45 +991,6 @@
     if (!songs || !songs.length) return;
     sotdSongs = songs;
     if (window.DeetsOcean) window.DeetsOcean.offer(songs);
-  }
-
-  /* The classic sea, kept for the Tanks level designer (tanks/designer.html
-     sets data-ocean-sea="classic"; docs/tanks.md): three wave trains, each
-     an opaque fill under a hairline crest, so a nearer swell occludes the
-     ones behind it. Each tile is one full sine period (Q + T reflection),
-     so the curve's value AND tangent match at the tile edge: no seam, no
-     crossings. The tiles are CSS masks built here from the geometry table;
-     ink/fill are theme roles (.ocean[data-sea="classic"] in chrome.css). */
-  function svgMask(w, h, body) {
-    return 'url("data:image/svg+xml,' + encodeURIComponent(
-      "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h + "'>" +
-      body + "</svg>") + '")';
-  }
-  function buildClassicOcean() {
-    var sea = layer("ocean");
-    sea.setAttribute("data-sea", "classic");
-    // [tile width, tile height, crest baseline, amplitude], farthest first
-    // so the nearest train paints last (on top).
-    var SWELLS = { 3: [80, 46, 26, 4], 2: [64, 38, 22, 5], 1: [48, 30, 17, 6] };
-    [3, 2, 1].forEach(function (n) {
-      var s = SWELLS[n], W = s[0], H = s[1], c = s[2], a = s[3];
-      var crest = "M0 " + c + " Q" + W / 4 + " " + (c - a) + " " + W / 2 + " " + c +
-                  " T" + W + " " + c;
-      // bob and roll are separate boxes so their transform animations
-      // compose instead of overwriting each other.
-      var bob = document.createElement("div");
-      bob.className = "ocean__bob ocean__bob--" + n;
-      var roll = document.createElement("div");
-      roll.className = "ocean__roll ocean__roll--" + n;
-      roll.style.setProperty("--swell-tile", W + "px " + H + "px");
-      roll.style.setProperty("--swell-fill",
-        svgMask(W, H, "<path d='" + crest + " L" + W + " " + H + " L0 " + H + " Z'/>"));
-      roll.style.setProperty("--swell-crest",
-        svgMask(W, H, "<path d='" + crest + "' fill='none' stroke='#000' stroke-width='1'/>"));
-      bob.appendChild(roll);
-      sea.appendChild(bob);
-    });
-    return sea;
   }
 
   /* Aurora: three blobs, one gradient each (Glass's --aurora-* tokens). */

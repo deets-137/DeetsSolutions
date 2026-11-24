@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: [scripts/page-inventory.js]
-updated: 2026-11-23
+updated: 2026-11-24
 ---
 # Page inventory
 
@@ -34,8 +34,6 @@ token sheets `fonts.css`, `palette.css`, `themes.css`, `skin.css` (`chrome.css` 
 | [/radio/](../radio/index.html) | DeetsRadio | chrome.css, <#main> parsed, main.css, inline script | strings.js, dev-token.js, transport-mock.js, transport.js, apple.js, yt-key.js, youtube.js, radio.js | https://www.googleapis.com/youtube/v3/, https://www.youtube.com/oembed?format=json&url=, radio-api.deets.solutions | site-main #main |
 | [/resume/](../resume/index.html) | Resume | chrome.css, <#main> parsed, main.css, section-nav.js (blocking=render), inline script | section-nav.js; no walkers.js | — | site-main resume #main, section nav |
 | [/sotd/](../sotd/index.html) | SOTD | chrome.css, <#main> parsed, main.css, inline script | covers.js, sotd.js | songs.json | site-main #main |
-| [/tanks/](../tanks/index.html) | — (not in the nav) | chrome.css, <#main> parsed, table.css, tanks.css, inline script | strings.js, colors.js, engine.js, levels.js, transport.js, table-mock.js, transport-mock.js, table.js, input.js, art.js, render.js, net.js, tanks.js | tanks-api.deets.solutions | site-main #main |
-| [/tanks/designer.html](../tanks/designer.html) | no nav | chrome.css, tanks.css | engine.js, levels.js, art.js, render.js, input.js; no account.js, toast.js, walkers.js | — | none |
 
 ## Stylesheet stamps
 
@@ -44,26 +42,24 @@ after a deploy ([architecture.md](architecture.md), "Token stamps").
 
 | Page | Stylesheets (`name@stamp`; `—` = no stamp) | Pre-paint script |
 | --- | --- | --- |
-| / | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /404.html | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| / | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /404.html | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
 | /auth/done.html | chrome.css@2026-11-23p | shared |
 | /cities/ | chrome.css@2026-11-23p, table.css@2026-10-28, cities.css@2026-11-16 | shared |
-| /deetsmusic/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /deetsmusic/admin/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /deetsmusic/demo/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /league/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /deetsmusic/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /deetsmusic/admin/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /deetsmusic/demo/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /league/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
 | /mahjong/ | chrome.css@2026-11-23p, table.css@2026-10-28, mahjong.css@2026-11-04c | shared |
-| /movies/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /poker/ | chrome.css@2026-11-23p, table.css@—, poker.css@— | shared |
-| /portfolio/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
+| /movies/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /poker/ | chrome.css@2026-11-23p, table.css@2026-10-28, poker.css@2026-08-05 | shared |
+| /portfolio/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
 | /privacy/ | chrome.css@2026-11-23p | shared |
 | /privacy/deetsfilm/ | chrome.css@2026-11-23p | shared |
-| /profile/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /radio/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /resume/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /sotd/ | chrome.css@2026-11-23p, main.css@2026-11-23h | shared |
-| /tanks/ | chrome.css@2026-11-23p, table.css@—, tanks.css@— | shared |
-| /tanks/designer.html | chrome.css@2026-11-23p, tanks.css@— | none |
+| /profile/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /radio/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /resume/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
+| /sotd/ | chrome.css@2026-11-23p, main.css@2026-11-23i | shared |
 
 "Pre-paint script" is the inline theme script that must be byte-identical on every page,
 with its hash in `_headers`' CSP (CLAUDE.md, "Never").

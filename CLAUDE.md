@@ -27,7 +27,7 @@ served flat.
 - **Never rename a theme or skin id without a `RETIRED` entry.** The id is a
   contract with every visitor's `localStorage`. Add old → new to `RETIRED` in
   `controls.js` **and** to the mirrored `R` map in every pre-paint head
-  script (19 pages, `404.html` included), or everyone who picked that option
+  script (18 pages, `404.html` included), or everyone who picked that option
   silently loses it. Those scripts stay byte-identical, and any change to them
   means a new hash in `_headers`' CSP (its comment has the command). Full
   procedure: [architecture.md](docs/architecture.md), "Renaming a theme or
@@ -52,8 +52,9 @@ HANDOFF. **Lessons already paid for: [docs/LESSONS.md](docs/LESSONS.md).**
 | Porting DeetsMusic's UI (settings panel, pop motion, look schedule) | [ui-direction.md](docs/ui-direction.md) |
 | **Anything game-related — read FIRST** | **[games.md](docs/games.md)** |
 | **Designing a NEW game** | **[design-language.md](docs/design-language.md)** |
-| Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md), [tanks.md](docs/tanks.md) |
-| **Real-time games (tanks, doom)** — read before tanks.md | **[realtime.md](docs/realtime.md)** |
+| Per-game | [cities.md](docs/cities.md), [mahjong.md](docs/mahjong.md), [poker.md](docs/poker.md) |
+| Real-time games (DeetsDoom, parked) | [realtime.md](docs/realtime.md) |
+| Retired work, kept for reference (DeetsTanks, retired 2026-11-23) | [docs/archive/](docs/archive/) |
 | Bot brains + difficulty tiers | [bots.md](docs/bots.md) |
 | Other tabs | [league.md](docs/league.md), [radio.md](docs/radio.md), [youtube.md](docs/youtube.md), [spotify.md](docs/spotify.md), [data.md](docs/data.md) |
 | The home page's first-run walk (`/?tour`) | [onboarding.md](docs/onboarding.md) |
@@ -168,7 +169,6 @@ plainly, with no `[ph]`. Only the owner reads them. He edits one when he wants t
 | Mahjong | Done — he cleared every remaining `[ph]` at once (chat, 2026-11-04); zero `[ph]` left |
 | Cities | Done — he cleared every remaining `[ph]` at once (chat, 2026-10-28); zero `[ph]` left |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
-| Tanks | Done — whole-file pass 2026-08-05 (build day); the nine level names added 2026-08-07 approved same day; zero `[ph]` left |
 | DeetsMusic | Done — whole-page pass 2026-09-14 in chat (filter/sort included), the board-thread strings 2026-09-15 (thread page, comments, moderation menu), and the poll strings 2026-09-15. The product pass-1 block (Features, Demos, Requirements and trust; 2026-10-06) approved in chat the same day, alt texts included; zero `[ph]` left |
 | Settings panel (shared chrome) | Copy lives in the `S` table in `js/controls.js`, not a `strings.js`. Labels reused from DeetsMusic need no `[ph]` (his call, 2026-09-15); only new site-only wording does |
 

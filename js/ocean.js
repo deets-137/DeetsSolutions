@@ -34,7 +34,7 @@
   if (window.DeetsOcean) return;
 
   var root = document.documentElement;
-  var sea = document.querySelector('body > .ocean:not([data-sea="classic"])');
+  var sea = document.querySelector('body > .ocean');
   if (!sea) return;
 
   /* The three depth bands (ocean-worker.js BANDS; tile widths in CSS px). */

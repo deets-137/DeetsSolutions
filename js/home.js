@@ -642,8 +642,10 @@
   /* DeetsMusic card — the latest release's version + date, in the DeetsMusic
      page's install-box format, read from the same route its release notes
      use (CORS allows deets.solutions and the 8787/8788 dev origins). The
-     whole card links to the page. Hidden until that loads; a failed fetch
-     leaves the card out. */
+     whole card links to the page. The card is in the HTML from the first
+     frame with its version line's height reserved (main.css), so this only
+     fills text and never moves the page; a failed fetch leaves the line
+     empty and the card still links to the page. */
   function dmNumericDay(iso) {   // 9/16/2026, in UTC like the DeetsMusic page
     var d = new Date(iso);
     return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -659,7 +661,6 @@
         if (!rel) return;
         card.querySelector("[data-dm-card-ver]").textContent =
           "V" + rel.version + (rel.pub_date ? " · " + dmNumericDay(rel.pub_date) : "");
-        card.hidden = false;
       })
       .catch(function () {});
   })();

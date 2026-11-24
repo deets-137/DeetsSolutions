@@ -58,7 +58,7 @@ decorative SVG layers that individual skins opt into via a display token:
 the **storm** (Cyber's lightning bolts) and the **ocean** (Ocean's swell:
 three depth bands painted by `js/ocean.js` + `js/ocean-worker.js`, which
 `controls.js` loads only when the skin is Ocean, plus a glow in today's Song
-of the Day cover color; the Tanks designer keeps the old masked wave trains —
+of the Day cover color —
 [ui.md](ui.md) "Motion"). The storm's geometry lives in `controls.js`; in
 both cases the ink is a theme role and the motion is skin tokens.
 
@@ -80,7 +80,7 @@ migration, not a find-and-replace. Three things move together:
    resolves through it and `apply()` writes the new id back, so a saved choice
    self-heals on first load instead of silently falling back to the default.
    One map serves both axes, which is safe only while no id appears on both.
-3. The **same map, mirrored into every pre-paint head script** (19 pages
+3. The **same map, mirrored into every pre-paint head script** (18 pages
    as of 2026-10-23, `404.html` included; they must stay byte-identical, since
    `_headers`' CSP allows the script by its hash) — an id
    resolved only after `controls.js` runs is exactly the flash of the wrong
@@ -214,7 +214,7 @@ has the why:
 The motion is `--dur-glide` / `--ease-glide` in `skin.css` ("Heavy",
 `cubic-bezier(0.83, 0, 0.17, 1)` over 0.44s). The dev server's Glide picker
 tries others ([tooling.md](tooling.md) §3d). Pages outside the nav (League,
-Profile, Privacy, Tanks, the 404, DeetsMusic admin) have no glass, so arriving
+Profile, Privacy, the 404, DeetsMusic admin) have no glass, so arriving
 there just swaps. [pages.md](pages.md) shows each page's nav tile and what its
 first frame waits for.
 

@@ -102,7 +102,6 @@ CARDS = {
     "cities":     {"emblem": ([SPRITES / "cities" / "die-6.png"], True), "flourish": "sparkles"},
     "mahjong":    {"emblem": ([SPRITES / "mahjong" / "traditional" / "tile-dr.png"], True), "flourish": "sparkles"},
     "poker":      {"emblem": ([SPRITES / "poker" / "card-back.png"], True), "flourish": "sparkles"},
-    "tanks":      {"emblem": ([SPRITES / "tanks" / "hull-p1.png", SPRITES / "tanks" / "turret-p1.png"], True), "flourish": "sparkles"},
 }
 
 

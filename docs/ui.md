@@ -227,10 +227,9 @@ Ported from DeetsMusic 2026-09-15 ([ui-direction.md](ui-direction.md), steps 1â€
     `deets-ocean-glow` (`{at, art, date, rgb}`); songs.json is checked at most every 20 h,
     3 s after load so the home page and the SOTD journal can hand their copy over first
     (`DeetsAppearance.offerSotd`). No heave, ripples or neon (they need a player).
-  - The Tanks level designer keeps the **classic** sea (masked wave trains,
-    `controls.js` `buildClassicOcean()`, `.ocean[data-sea="classic"]` in chrome.css): it
-    sets `data-ocean-sea="classic"` on its `<html>`. While the radio shell is open the
-    parent page's sea is `display: none` (the framed page runs its own).
+  - While the radio shell is open the parent page's sea is `display: none` (the framed
+    page runs its own). (The Tanks designer's "classic" masked-wave sea was removed with
+    Tanks, 2026-11-23: [archive/tanks.md](archive/tanks.md).)
   - Glass's aurora: its own `.aurora` layer of three drifting blobs (`--aurora-*` tokens),
     no longer a `background-position` drift on `body::before`. `--canvas-bg` is for still
     patterns only.

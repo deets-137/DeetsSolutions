@@ -1018,6 +1018,9 @@
 }
 .dm-homecard__ver {
   margin: 0;
+  /* One line held open before home.js fills it, so the card is its final
+     height from the first frame (see index.html's card comment). */
+  min-height: 1lh;
   color: var(--subtext);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;

@@ -1,16 +1,25 @@
 ---
-status: live
-sources: [tanks/levels.js, tanks/designer.html, scripts/build-tanks-levels.py, scripts/build-tanks-art.py]
-updated: 2026-10-06
+status: archived
+sources: []
+updated: 2026-11-23
 ---
 # DeetsTanks — top-down tank arena, PvE campaign + PvP mode
 
+> **RETIRED 2026-11-23 (his call: nobody was playing it).** The game, its level designer,
+> its art, its build scripts and the designer-only "classic sea" were deleted from the
+> site; `/tanks/*` 301s to `/`. No worker was ever built. Everything below describes the
+> code as it stood at its last commit, **`7da1351`** (branch `re-dezine`). To bring it back:
+> `git checkout 7da1351 -- tanks assets/sprites/tanks assets/og/tanks.jpg scripts/build-tanks-art.py scripts/build-tanks-levels.py scripts/build-tanks-tiles.py`,
+> then restore the pieces listed in that retirement commit (portfolio card, `_headers`,
+> `_redirects`, the classic sea in `controls.js` / `chrome.css` / `skin.css`).
+> The real-time framework it was built on is still designed for DeetsDoom: [realtime.md](../realtime.md).
+
 A Wii-Play-Tanks-style game: top-down, real-time, slow ricocheting shells,
 small grid arenas, hand-designed levels. Built on the **real-time**
-foundation ([realtime.md](realtime.md) — read that first; it owns the
+foundation ([realtime.md](../realtime.md) — read that first; it owns the
 tick, the authority model, the Durable Object posture and the cost
 model), which is itself a sibling of the turn-based one
-([games.md](games.md)).
+([games.md](../games.md)).
 
 **Built and playable on branch `DeetsTanks`** — the game, the level
 designer, the terrain vocabulary and the full enemy cast all landed
@@ -28,7 +37,7 @@ His calls, chat 2026-08-05, unless marked.
 
 1. **PvP is a separate mode, not a table setting.** It changes the win
    condition, and by the settings filter
-   ([design-language.md](design-language.md)) that makes it rules, not a
+   ([design-language.md](../design-language.md)) that makes it rules, not a
    toggle. **PvE is the default.**
 2. **PvE is a campaign**: numbered levels, **3 lives**, enemy tanks that
    grow harder as levels climb, and **terrain that changes per level**.
@@ -47,7 +56,7 @@ His calls, chat 2026-08-05, unless marked.
 7. **Layered renderer**, his structure: floor beneath, hulls and
    obstacles above, turrets above those. Refined here into a
    static-vs-dynamic split (see "Renderer").
-8. Inherited from [realtime.md](realtime.md): server-authoritative sim in
+8. Inherited from [realtime.md](../realtime.md): server-authoritative sim in
    a non-hibernating DO, 60 Hz sim / 20 Hz broadcast, deterministic
    projectiles as one event each, all rendering client-side, mock-first
    with injected latency.
@@ -123,7 +132,7 @@ scripts/build-tanks-tiles.py   seeds a theme's terrain tiles from tanks.css
 separable concerns (sim-adjacent netcode, a canvas renderer, an art
 pipeline, an input mapper) that a turn-based one does not, and three of
 those five are the promotion candidates for `games/rt-*.js`
-([realtime.md](realtime.md), "The promotion question"). Keeping them
+([realtime.md](../realtime.md), "The promotion question"). Keeping them
 separate from the start is what makes that promotion an afternoon.
 
 ---
@@ -179,13 +188,13 @@ the shell dies on expiry.
 
 ### Enemy AI
 
-Lives in `engine.js`, per house rule ([games.md](games.md)) — never in a
+Lives in `engine.js`, per house rule ([games.md](../games.md)) — never in a
 mock, never in a worker, so the two cannot drift.
 
 **Difficulty is not `BOT_TIER_LIST`.** That contract assumes a bot
 occupies a *seat*; Tanks enemies are world state. Difficulty rides the
 **enemy type**, and the level chooses which types it spawns. Recorded
-here because [design-language.md](design-language.md)'s decision tree
+here because [design-language.md](../design-language.md)'s decision tree
 does not cover it.
 
 Per-type behaviour parameters, all engine constants:
@@ -667,7 +676,7 @@ not this one). The arena is small and fits whole — **no camera scrolling
 in v1**. Prefer an integer scale factor if the floor ends up chunky.
 
 Render loop is `requestAnimationFrame`; the sim runs on a fixed-timestep
-accumulator, entirely decoupled ([realtime.md](realtime.md)).
+accumulator, entirely decoupled ([realtime.md](../realtime.md)).
 
 ### Two things the renderer draws that the sprites must not
 
@@ -710,7 +719,7 @@ theme gets its own shell and its own rim by copying a block.
 
 ## Netcode
 
-Per [realtime.md](realtime.md), nothing game-specific:
+Per [realtime.md](../realtime.md), nothing game-specific:
 
 - The DO is authoritative and the sole judge of damage, death, pickups
   and scoring.
@@ -743,7 +752,7 @@ exists for turn-based deltas and would force a pointless reconnect on
 every dropped tick.
 
 **And the sim channel must bypass the shell's paint path.**
-[table.js:393](../games/table.js) turns `state` into a full `cfg.render()`
+[table.js:393](../../games/table.js) turns `state` into a full `cfg.render()`
 DOM rebuild; at 20 Hz that is twenty DOM teardowns a second under the
 frame loop. Lobby/roster/participants traffic goes through `paint()`;
 `tick` and `ev` go straight into the interpolation buffer. HUD panels
@@ -753,7 +762,7 @@ update on-change or at ≤10 Hz, never per frame.
 
 ## Page layout
 
-Standard bento ([design-language.md](design-language.md), "form follows
+Standard bento ([design-language.md](../design-language.md), "form follows
 information"), nothing invented:
 
 - **Big tile** — the arena. Fixed `clamp()` height, letterboxed to the
@@ -951,7 +960,7 @@ copy now and off-limits like the rest.
   player respawns next level or sits out.
 - **Campaign progress.** Lose all lives — restart the level or the
   campaign? Does furthest-level-reached persist to the accounts D1
-  ([stats.md](stats.md))? "Start at level N, once earned" is a plausible
+  ([stats.md](../stats.md))? "Start at level N, once earned" is a plausible
   table setting; "skip to any level" is not.
 - **PvP's own shape.** Arena choice, round structure, score to win — a
   separate mode means a separate design pass, deferred.

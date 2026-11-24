@@ -90,7 +90,6 @@ const PAGES = {
   cities:       { path: '/cities/?mock', run: PLAY_GAME(2, 9000) },
   mahjong:      { path: '/mahjong/?mock', run: PLAY_GAME(3, 9000) },
   poker:        { path: '/poker/?mock', run: PLAY_GAME(4, 9000) },
-  tanks:        { path: '/tanks/?mock', run: PLAY_GAME(0, 5000) },
 };
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));

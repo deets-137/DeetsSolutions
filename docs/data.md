@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [scripts/nightly-sotd.ps1, scripts/build-project-dates.py]
-updated: 2026-11-10
+updated: 2026-11-23
 ---
 # Data pipelines
 
@@ -177,7 +177,7 @@ repo's default-branch head, plus one REST call per path-scoped source),
 so private repos count. Where a project's repos come from: its card's
 GitHub links, plus the script's `OVERRIDES` table for projects with no
 public link or whose code lives in a folder of this site repo
-(`DeetsSolutions:tanks/` dates the newest commit touching `tanks/`). The
+(`DeetsSolutions:poker/` dates the newest commit touching `poker/`). The
 newest date across a project's sources wins. **Add a project with no
 GitHub link → add it to `OVERRIDES`**, or the strip files it last.
 
