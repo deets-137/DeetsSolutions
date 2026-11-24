@@ -417,6 +417,7 @@ body::before {
   font-weight: var(--fw-title);
   font-size: var(--fs-title);
   color: var(--title);
+  text-decoration: none;
   letter-spacing: 0.01em;
   line-height: 1;
   padding: var(--space-1) var(--space-2);
