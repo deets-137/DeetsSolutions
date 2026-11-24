@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-23T02:00:25Z",
+  "generated_at": "2026-11-24T21:06:05Z",
   "channel": "song-of-the-day",
-  "count": 495,
+  "count": 497,
   "songs": [
     {
       "post_id": 1,
@@ -11387,6 +11387,52 @@
       "apple_music_url": "https://music.apple.com/us/album/mr-cool/1818226363?i=1818226365&uo=4",
       "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0c/3f/83/0c3f8319-7bec-ebaa-9b2b-e6ed1e166d70/mzaf_4165988419754013085.plus.aac.p.m4a",
       "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5a/67/30/5a6730d4-b94f-6334-c086-c2bef1bc5639/054391232298.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 44051,
+      "posted_at": "2026-11-23T10:33:53.901000+00:00",
+      "date": "2026-11-22",
+      "day": "Sun",
+      "month": "11_2026",
+      "track_name": "Alive!",
+      "artist_name": "Bakar",
+      "album": "Halo",
+      "genre": "Alternative",
+      "duration": "3:52",
+      "duration_sec": 232,
+      "release_date": "2023-06-30",
+      "release_year": 2023,
+      "age_yrs": 3,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/us/album/alive/1693877094?i=1693877113",
+      "apple_music_url": "https://music.apple.com/us/album/alive/1693877094?i=1693877113&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3d/a6/6d/3da66d49-db1f-ff35-8548-7731fb44236c/mzaf_12269968101645058322.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/22/0b/91/220b914f-dfee-696d-6037-bebbfc560744/196871235082.jpg/600x600bb.jpg"
+    },
+    {
+      "post_id": 44052,
+      "posted_at": "2026-11-23T19:22:37.123000+00:00",
+      "date": "2026-11-23",
+      "day": "Mon",
+      "month": "11_2026",
+      "track_name": "Sexy Magic",
+      "artist_name": "CA7RIEL & Paco Amoroso, PinkPantheress, Etienne de Crécy & Fred again..",
+      "album": "Grand Theft Auto VI: The Album",
+      "genre": "Pop",
+      "duration": "3:15",
+      "duration_sec": 195,
+      "release_date": "2026-09-17",
+      "release_year": 2026,
+      "age_yrs": 0,
+      "service": "apple_music",
+      "resolved": "yes",
+      "author": "Deets",
+      "url": "https://music.apple.com/song/6812477269",
+      "apple_music_url": "https://music.apple.com/us/album/sexy-magic/6812476961?i=6812477269&uo=4",
+      "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ed/29/c0/ed29c0e8-9033-732c-210c-f6af9821c690/mzaf_2682090079327170053.plus.aac.p.m4a",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5d/d3/1c/5dd31c9c-1e1c-0bbc-104f-4a42e2bb4c59/075679556424.jpg/600x600bb.jpg"
     }
   ]
 }
