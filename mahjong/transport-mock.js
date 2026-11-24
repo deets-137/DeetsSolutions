@@ -79,6 +79,13 @@
     // bot brain plays it, the table sees a human — for designing per-player
     // options (the Beginner toggle) on the demo table
     standIns: true,
+    // a table saved before the claim tiers (2026-10-27) holds a window with
+    // no ask/tier, which botPending can't read. Back then every claimant was
+    // asked at once, so: ask them all, as the last tier, and it resolves.
+    reviveGame: function (g) {
+      var cl = g.claims;
+      if (cl && !cl.ask) { cl.ask = Object.keys(cl.can || {}).map(Number); cl.tier = 2; cl.responses = cl.responses || {}; }
+    },
 
     defaultSettings: function () { return { minFaan: 3, capFaan: 13, winds: 1, timerSec: 0 }; },
     minSeats: function () { return 4; },

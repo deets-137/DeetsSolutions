@@ -19,7 +19,9 @@
 
 [data-skin] {
   /* -- typography -------------------------------------------- */
-  --font-title: "Liberation Serif", Georgia, "Times New Roman", serif;
+  /* each bundled face is followed by its metric-matched stand-in
+     (fonts.css, "Fallback faces"), so a late face doesn't reflow the page */
+  --font-title: "Liberation Serif", "Liberation Serif Fallback", Georgia, "Times New Roman", serif;
   --font-body:  system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   --fs-title: 1.6rem;   /* the "Deets" wordmark + page headings */
@@ -302,8 +304,8 @@
    here, on purpose; a soft edge would break the illusion.
    ============================================================ */
 [data-skin="press"] {
-  --font-title: "Anton", "Haettenschweiler", "Arial Narrow", sans-serif;
-  --font-body:  "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-title: "Anton", "Anton Fallback", "Haettenschweiler", "Arial Narrow", sans-serif;
+  --font-body:  "IBM Plex Mono", "IBM Plex Mono Fallback", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --fw-title:   400;              /* Anton ships one weight, and it is heavy */
   --fs-title:   1.7rem;           /* condensed caps take the extra size well */
   --fs-nav:     0.9rem;           /* mono runs wide — size the nav down so the
@@ -367,8 +369,8 @@
    serif body, over a surface of gently rolling waves.
    ============================================================ */
 [data-skin="ocean"] {
-  --font-title: "Cinzel", Georgia, "Times New Roman", serif;
-  --font-body:  "Spectral", Georgia, "Times New Roman", serif;
+  --font-title: "Cinzel", "Cinzel Fallback", Georgia, "Times New Roman", serif;
+  --font-body:  "Spectral", "Spectral Fallback", Georgia, "Times New Roman", serif;
   --fw-title:   600;
   --fs-title:   1.5rem;      /* all-caps reads large; size down */
 
@@ -581,8 +583,8 @@
    grid behind the content.
    ============================================================ */
 [data-skin="cyber"] {
-  --font-title: "Orbitron", "Segoe UI", system-ui, sans-serif;
-  --font-body:  "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --font-title: "Orbitron", "Orbitron Fallback", "Segoe UI", system-ui, sans-serif;
+  --font-body:  "Rajdhani", "Rajdhani Fallback", "Segoe UI", system-ui, sans-serif;
   --fw-title:   700;
   --fs-title:   1.4rem;
   --lh-text:    1.55;

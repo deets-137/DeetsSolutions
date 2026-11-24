@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [js/controls.js, js/account.js, js/toast.js, js/ocean.js, styles/chrome.css]
-updated: 2026-11-23
+updated: 2026-11-24
 ---
 # UI
 
@@ -166,7 +166,9 @@ wordmark's `position: relative` anchor). Two decisions keep it honest:
   and not keeping up for phones — and a group left with no links drops its
   heading. (2026-11-22: DeetsRadio moved under DeetsMusic, and the
   Utilities group is gone; League has no nav link, reached from its URL or
-  Cool Stuff's card.) The menu caps at
+  Cool Stuff's card. 2026-11-24: DeetsPoker left the Games menu the same
+  way, his call; `/poker/` still loads, Portfolio's card and Profile's
+  stats still link it, and it stays in the sitemap and `llms.txt`.) The menu caps at
   the viewport height and scrolls, for landscape phones.
 - **The wordmark serves both roles from one element.** Its click handler
   checks `matchMedia("(max-width: 56rem)")`: when narrow it opens the menu

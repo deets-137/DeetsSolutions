@@ -17,10 +17,10 @@
    stamp here and change it in every head too (docs/architecture.md,
    "Token stamps"); a preload that misses its import downloads twice.
    ============================================================ */
-@import "./fonts.css?v=2026-11-23";
+@import "./fonts.css?v=2026-11-24";
 @import "./palette.css?v=2026-10-23";
 @import "./themes.css?v=2026-10-23";
-@import "./skin.css?v=2026-11-23d";
+@import "./skin.css?v=2026-11-24";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */

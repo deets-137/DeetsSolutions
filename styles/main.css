@@ -1158,6 +1158,13 @@
   min-width: 0;
 }
 .sotd-hub[hidden] { display: none; }
+/* Until songs.json lands the hub is an unseen skeleton at its final
+   height (index.html), so the side stack, which stretches to this
+   column, never moves when it fills (2026-11-24). Every part below is
+   held to a fixed size for the same reason: one line per text, one row
+   of chips, six week rows, six fact slots. */
+.sotd-hub[data-hub-pending] { visibility: hidden; }
+.sotd-hub .is-ghost { visibility: hidden; }
 .sotd-hub__head {
   display: flex;
   flex-wrap: wrap;             /* narrow screens: link drops under the title
@@ -1196,14 +1203,45 @@
   font-size: calc(var(--fs-title) * 0.9);
   line-height: 1.2;
   color: var(--title);
+  /* always two lines tall, clipped at two */
+  min-height: calc(2em * 1.2);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 .sotd-hub__artist { color: var(--text); font-size: 1rem; }
 .sotd-hub__album  { color: var(--subtext); font-size: 0.85rem; }
+.sotd-hub__when,
+.sotd-hub__artist,
+.sotd-hub__album,
+.sotd-cal__label,
+.sotd-fact__label,
+.sotd-fact__value,
+.sotd-fact__note {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sotd-hub__details .song__tags,
+.sotd-hub__details .song__links { flex-wrap: nowrap; overflow: hidden; }
+.sotd-hub__details .song__tags > *,
+.sotd-hub__details .song__links > * { flex: 0 0 auto; }
 @media (max-width: 30rem) {
   .sotd-hub__hero { grid-template-columns: 1fr; }
 }
 
-.sotd-hub__stats { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* one row whatever the chips say; past the edge it scrolls sideways */
+.sotd-hub__stats {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sotd-hub__stats::-webkit-scrollbar { display: none; }
+.sotd-hub__stats > * { flex: 0 0 auto; }
 
 /* ── Cover calendar ──────────────────────────────────────────────
    A month of thumbnails: days with a pick are buttons (art + day

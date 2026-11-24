@@ -38,14 +38,14 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-23p" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-24" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
-    <link rel="preload" href="../styles/fonts.css?v=2026-11-23" as="style" />
+    <link rel="preload" href="../styles/fonts.css?v=2026-11-24" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="../styles/skin.css?v=2026-11-23d" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-23i" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-24" as="style" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-24" />
     <script src="../js/controls.js?v=2026-10-24" defer></script>
     <script src="../js/account.js?v=2026-11-23" defer></script>
     <script src="../js/toast.js" defer></script>
@@ -75,7 +75,6 @@
           <div class="nav-group__menu" role="menu">
             <a href="/cities/" role="menuitem">DeetsCities</a>
             <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
-            <a href="/poker/" role="menuitem">DeetsPoker</a>
           </div>
         </div>
         <div class="nav-group">

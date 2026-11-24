@@ -91,6 +91,9 @@
           conns: [], timer: null, timerFor: null, timerBonus: 0, turnEndsAt: null, driving: false
         };
         EXTRA_KEYS.forEach(function (k) { t[k] = s[k] == null ? EXTRA[k]() : s[k]; });
+        // a save from an older engine shape: the game's hook brings it up to
+        // date before the drive reads it (mahjong: pre-tier claim windows)
+        if (t.game && spec.reviveGame) spec.reviveGame(t.game);
         // legacy saves carried color NAMES ("red"); seats are hex now
         t.seats.forEach(function (st) {
           if (st && st.color && Colors.LEGACY[st.color]) st.color = Colors.LEGACY[st.color];
@@ -102,7 +105,12 @@
         if (running) setTimeout(function () { if (TABLES[code] === t) postApply(t); }, 0);
       });
     }
-    boot();
+    // Boot on first USE, not on load: every game page loads this file, and
+    // a live page (no ?mock) must not revive saved dev tables and drive
+    // their bots in the background (2026-11-24: an old mahjong save threw
+    // in botPending on plain /mahjong/). The API's functions call this.
+    var booted = false;
+    function ensureBooted() { if (!booted) { booted = true; boot(); } }
 
     /* ── seats / host / identity ────────────────────────────────── */
     function seatOfToken(t, token) {
@@ -791,6 +799,10 @@
       },
       tables: function () { return TABLES; }
     };
+    Object.keys(API).forEach(function (k) {
+      var fn = API[k];
+      if (typeof fn === "function") API[k] = function () { ensureBooted(); return fn.apply(this, arguments); };
+    });
     return API;
   }
 

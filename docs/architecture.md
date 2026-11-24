@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [js/controls.js, js/section-nav.js, js/account.js, styles/chrome.css, styles/themes.css, styles/skin.css, scripts/dev.js, _headers]
-updated: 2026-11-23
+updated: 2026-11-24
 ---
 # Architecture
 
@@ -238,7 +238,20 @@ so the portfolio stays the single source. `js/home.js` also fills each
 card's `[data-live]` line with a count and the latest entry (latest by
 `date` for songs; latest watched, `status: "watched"` only, for films);
 if JS or a fetch fails, the static fallback copy simply stays and the
-strips stay hidden. The head carries the site's only
+strips stay hidden.
+
+**Nothing moves on arrival (2026-11-24).** The two columns stretch to one
+height, so a late change in either one moves the other. Both hold their final
+size from the first paint. Each strip holds a ghost card. The SOTD hub is an
+unseen skeleton of its own anatomy (`data-hub-pending`) until `songs.json`
+lands, and every part of it is a fixed size: the track 2 lines, the other
+texts 1 line (ellipsis, full text in `title`), the stat chips one row that
+scrolls sideways, the calendar always 6 week rows, and the liner notes always
+6 slots, an unused one left as an unseen placeholder. A change there must keep
+the skeleton in `index.html` and the filled hub the same height. Check both
+against each other in every skin. If the fetch fails, the hub folds. The fonts'
+metric-matched fallbacks (`fonts.css`) keep a late web font from reflowing
+either column. The head carries the site's only
 meta description + Open Graph tags — the home page is the recruiter
 landing page, so it's the one that must index well.
 

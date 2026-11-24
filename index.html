@@ -94,16 +94,16 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="styles/chrome.css?v=2026-11-23p" />
+    <link rel="stylesheet" href="styles/chrome.css?v=2026-11-24" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
-    <link rel="preload" href="styles/fonts.css?v=2026-11-23" as="style" />
+    <link rel="preload" href="styles/fonts.css?v=2026-11-24" as="style" />
     <link rel="preload" href="styles/palette.css?v=2026-10-23" as="style" />
     <link rel="preload" href="styles/themes.css?v=2026-10-23" as="style" />
-    <link rel="preload" href="styles/skin.css?v=2026-11-23d" as="style" />
+    <link rel="preload" href="styles/skin.css?v=2026-11-24" as="style" />
     <!-- ?v= for the same reason as deetsmusic/index.html: _headers is not
          applying, and the DeetsMusic card needs this main.css + home.js. -->
-    <link rel="stylesheet" href="styles/main.css?v=2026-11-23i" />
+    <link rel="stylesheet" href="styles/main.css?v=2026-11-24" />
     <script src="js/controls.js?v=2026-10-24" defer></script>
     <script src="js/account.js?v=2026-11-23" defer></script>
     <script src="js/toast.js" defer></script>
@@ -112,7 +112,7 @@
          and it cannot be asked for until this list is in. -->
     <link rel="preload" href="sotd/songs.json" as="fetch" crossorigin />
     <script src="js/covers.js?v=2026-10-23" defer></script>
-    <script src="js/home.js?v=2026-11-23" defer></script>
+    <script src="js/home.js?v=2026-11-24" defer></script>
     <script src="js/walkers.js?v=2026-09-24" defer></script>
   </head>
 
@@ -137,7 +137,6 @@
           <div class="nav-group__menu" role="menu">
             <a href="cities/" role="menuitem">DeetsCities</a>
             <a href="mahjong/" role="menuitem">DeetsMahjong</a>
-            <a href="poker/" role="menuitem">DeetsPoker</a>
           </div>
         </div>
         <div class="nav-group">
@@ -199,27 +198,57 @@
              latest of Deets' picks (friends' picks stay behind the journal's
              vanity gate) and builds the cover calendar — clicking a day loads
              that day's song into the hero; "Open the journal" is the real
-             navigation. Hidden until songs.json loads; if that fetch fails,
-             the hub simply never appears and the nav link still covers SOTD. -->
-        <section class="sotd-hub" aria-labelledby="sotd-hub-title" data-sotd-hub hidden>
+             navigation.
+             It holds its final height from the first paint (2026-11-24):
+             until songs.json lands it is an unseen skeleton of the real
+             anatomy (data-hub-pending), and every part is a fixed size (one
+             row of stat chips, a 6-week calendar, 6 one-line facts). The
+             side stack stretches to this column, so a hub that grew late
+             pushed the Portfolio and Movies cards down. If the fetch fails
+             the hub folds and the nav link still covers SOTD. -->
+        <section class="sotd-hub" aria-labelledby="sotd-hub-title" data-sotd-hub data-hub-pending>
           <div class="sotd-hub__head">
             <h2 class="home-card__title" id="sotd-hub-title">Song of the Day</h2>
             <a class="home__cta home__cta--soft" href="sotd/">Open the journal →</a>
           </div>
-          <div class="sotd-hub__hero" data-hub-hero></div>
-          <div class="sotd-hub__stats" data-hub-stats></div>
+          <div class="sotd-hub__hero" data-hub-hero>
+            <div class="song__cover"></div>
+            <div class="sotd-hub__details">
+              <p class="sotd-hub__when">&nbsp;</p>
+              <p class="sotd-hub__track">&nbsp;</p>
+              <p class="sotd-hub__artist">&nbsp;</p>
+              <p class="sotd-hub__album">&nbsp;</p>
+              <div class="song__tags"><span class="song__chip">&nbsp;</span></div>
+              <div class="song__links"><span class="song__link">&nbsp;</span></div>
+            </div>
+          </div>
+          <div class="sotd-hub__stats" data-hub-stats><span class="song__chip">&nbsp;</span></div>
           <div class="sotd-cal" data-hub-cal>
             <div class="sotd-cal__head">
               <button type="button" class="sotd-cal__nav" data-cal-prev aria-label="Previous month">‹</button>
-              <span class="sotd-cal__label" data-cal-label aria-live="polite"></span>
+              <span class="sotd-cal__label" data-cal-label aria-live="polite">&nbsp;</span>
               <button type="button" class="sotd-cal__nav" data-cal-next aria-label="Next month">›</button>
             </div>
-            <div class="sotd-cal__grid" data-cal-grid></div>
+            <div class="sotd-cal__grid" data-cal-grid><span class="sotd-cal__dow">&nbsp;</span><span class="sotd-cal__dow">&nbsp;</span><span class="sotd-cal__dow">&nbsp;</span><span class="sotd-cal__dow">&nbsp;</span><span class="sotd-cal__dow">&nbsp;</span><span class="sotd-cal__dow">&nbsp;</span><span class="sotd-cal__dow">&nbsp;</span>
+              <span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span>
+              <span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span>
+              <span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span>
+              <span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span>
+              <span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span>
+              <span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span><span class="sotd-cal__day sotd-cal__day--blank"></span>
+            </div>
           </div>
           <!-- Liner notes: journal-wide fun stats, computed by home.js from
-               the same picks the hero/calendar use. Stays hidden if no fact
-               clears its threshold. -->
-          <div class="sotd-facts" data-hub-facts hidden></div>
+               the same picks the hero/calendar use. Always six slots; a fact
+               that doesn't clear its threshold leaves its slot empty. -->
+          <div class="sotd-facts" data-hub-facts>
+            <div class="sotd-fact"><span class="sotd-fact__label">&nbsp;</span><span class="sotd-fact__value">&nbsp;</span><span class="sotd-fact__note">&nbsp;</span></div>
+            <div class="sotd-fact"><span class="sotd-fact__label">&nbsp;</span><span class="sotd-fact__value">&nbsp;</span><span class="sotd-fact__note">&nbsp;</span></div>
+            <div class="sotd-fact"><span class="sotd-fact__label">&nbsp;</span><span class="sotd-fact__value">&nbsp;</span><span class="sotd-fact__note">&nbsp;</span></div>
+            <div class="sotd-fact"><span class="sotd-fact__label">&nbsp;</span><span class="sotd-fact__value">&nbsp;</span><span class="sotd-fact__note">&nbsp;</span></div>
+            <div class="sotd-fact"><span class="sotd-fact__label">&nbsp;</span><span class="sotd-fact__value">&nbsp;</span><span class="sotd-fact__note">&nbsp;</span></div>
+            <div class="sotd-fact"><span class="sotd-fact__label">&nbsp;</span><span class="sotd-fact__value">&nbsp;</span><span class="sotd-fact__note">&nbsp;</span></div>
+          </div>
         </section>
         </div>
 

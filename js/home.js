@@ -149,16 +149,23 @@
       var track = el("h3", "sotd-hub__track", song.track_name || "(unresolved link)");
       track.title = song.track_name || "";
       d.appendChild(track);
-      if (song.artist_name) d.appendChild(el("p", "sotd-hub__artist", song.artist_name));
+      // Every line is always there (empty if the song lacks it), so the
+      // hero is one height for every song (index.html, the hub's note)
+      var artist = el("p", "sotd-hub__artist", song.artist_name || " ");
+      artist.title = song.artist_name || "";
+      d.appendChild(artist);
       var albumParts = [];
       if (song.album) albumParts.push(song.album);
       if (song.release_year) albumParts.push(song.release_year);
-      if (albumParts.length) d.appendChild(el("p", "sotd-hub__album", albumParts.join(" · ")));
+      var album = el("p", "sotd-hub__album", albumParts.join(" · ") || " ");
+      album.title = albumParts.join(" · ");
+      d.appendChild(album);
 
       var tags = el("div", "song__tags");
       if (song.genre) tags.appendChild(el("span", "song__chip", song.genre));
       if (song.duration) tags.appendChild(el("span", "song__chip song__chip--soft", song.duration));
-      if (tags.childNodes.length) d.appendChild(tags);
+      if (!tags.childNodes.length) tags.appendChild(el("span", "song__chip is-ghost", " "));
+      d.appendChild(tags);
 
       var links = el("div", "song__links");
       if (song.apple_music_url) {
@@ -170,13 +177,15 @@
         src.href = song.url; src.target = "_blank"; src.rel = "noopener";
         links.appendChild(src);
       }
-      if (links.childNodes.length) d.appendChild(links);
+      if (!links.childNodes.length) links.appendChild(el("span", "song__link is-ghost", " "));
+      d.appendChild(links);
       heroBox.appendChild(d);
     }
 
     // ── Stat chips: pick count, streak, top genre ───────────────
     var statsBox = hub.querySelector("[data-hub-stats]");
     if (statsBox) {
+      statsBox.textContent = "";                       // the skeleton's chip
       statsBox.appendChild(el("span", "song__chip", picks.length + " picks"));
 
       // Streak: consecutive days with a pick, counting back from the
@@ -326,6 +335,10 @@
         if (iso === TODAY) cell.classList.add("is-today");
         calGrid.appendChild(cell);
       }
+      // always six week rows, so the month never changes the hub's height
+      for (var pad = lead + days; pad < 42; pad++) {
+        calGrid.appendChild(el("span", "sotd-cal__day sotd-cal__day--blank"));
+      }
       markSelection();
     }
 
@@ -340,16 +353,25 @@
     nextBtn.addEventListener("click", function () { step(1); });
 
     // ── Liner notes — journal-wide fun stats ────────────────────
-    // Each fact only renders when it has something worth saying; the
-    // whole block stays hidden if none do.
+    // Each fact only renders when it has something worth saying. The
+    // block always keeps FACT_SLOTS slots, one line each, so it is one
+    // height whatever clears (index.html, the hub's note); an unused slot
+    // stays as an unseen placeholder.
+    var FACT_SLOTS = 6;
     var factsBox = hub.querySelector("[data-hub-facts]");
     if (factsBox) {
-      function fact(label, value, note) {
-        var f = el("div", "sotd-fact");
-        f.appendChild(el("span", "sotd-fact__label", label));
-        f.appendChild(el("span", "sotd-fact__value", value));
-        if (note) f.appendChild(el("span", "sotd-fact__note", note));
+      factsBox.textContent = "";                       // the skeleton's slots
+      function slot(label, value, note, ghost) {
+        var f = el("div", "sotd-fact" + (ghost ? " is-ghost" : ""));
+        [["label", label], ["value", value], ["note", note]].forEach(function (p) {
+          var s = el("span", "sotd-fact__" + p[0], p[1] || " ");
+          if (p[1]) s.title = p[1];
+          f.appendChild(s);
+        });
         factsBox.appendChild(f);
+      }
+      function fact(label, value, note) {
+        if (factsBox.childNodes.length < FACT_SLOTS) slot(label, value, note, false);
       }
       function topOf(counts) {
         var best = null;
@@ -457,26 +479,32 @@
           "within a week of release");
       }
 
-      factsBox.hidden = !factsBox.childNodes.length;
+      while (factsBox.childNodes.length < FACT_SLOTS) slot("", "", "", true);
     }
 
     renderHero(byDate[latestDate]);
     renderCal();
-    hub.hidden = false;
+    hub.removeAttribute("data-hub-pending");
     // The hero shows at once (it is the page's first picture); the
     // calendar's covers wait and wave in, measured now the hub has a box.
     DeetsCovers.reveal(calGrid, ".sotd-cal__day");
     return true;
   }
 
+  // no songs to show: the skeleton folds away (the nav still has SOTD)
+  function dropHub() {
+    var hub = document.querySelector("[data-sotd-hub]");
+    if (hub && hub.hasAttribute("data-hub-pending")) hub.hidden = true;
+  }
   fetch("sotd/songs.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      initHub(data.songs || []);
+      try { if (!initHub(data.songs || [])) dropHub(); }
+      catch (e) { dropHub(); throw e; }
       // the Ocean sea's glow takes today's cover from this list (controls.js)
       if (window.DeetsAppearance && DeetsAppearance.offerSotd) DeetsAppearance.offerSotd(data.songs);
     })
-    .catch(function () {});
+    .catch(function () { dropHub(); });
 
   /* ── Side strips ───────────────────────────────────────────────
      Each side card carries a sideways-scrolling strip of that tab's

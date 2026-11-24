@@ -1,7 +1,7 @@
 ---
 status: foundation
 sources: [games/table.js, games/table-do.js, games/table-mock.js, games/transport.js, games/colors.js, games/stage.js, games/seating.js, styles/table.css]
-updated: 2026-11-19
+updated: 2026-11-24
 ---
 # Deets games — the shared foundation
 
@@ -38,7 +38,11 @@ games/flights.js       the steering chip-flight layer (every game's fly-ins)
 games/stage.js         a phase change: seams that melt, pieces in a wave
 games/seating.js       the seating roll's board, staging and pad morph
 games/table-do.js      the Durable Object base every worker subclasses
-games/table-mock.js    the in-page fake worker behind ?mock (a dev tool)
+games/table-mock.js    the in-page fake worker behind ?mock (a dev tool). Every
+                       game page loads it, so it boots its saved tables on
+                       first USE, never on load (2026-11-24: a stale save
+                       threw on live /mahjong/). A spec's reviveGame(game)
+                       upgrades an older save's shape before the drive reads it
 styles/chrome.css      shared site chrome + the token @imports (every page)
 styles/table.css       the shell's chrome, under the `gt-` class prefix
 docs/games.md          this file
