@@ -18,9 +18,9 @@
    "Token stamps"); a preload that misses its import downloads twice.
    ============================================================ */
 @import "./fonts.css?v=2026-11-24";
-@import "./palette.css?v=2026-10-23";
-@import "./themes.css?v=2026-10-23";
-@import "./skin.css?v=2026-11-24";
+@import "./palette.css?v=2026-11-24";
+@import "./themes.css?v=2026-11-24";
+@import "./skin.css?v=2026-11-24b";
 
 /* Structural site tokens — NOT skin-varied (page frame + spacing scale).
    Everything type / shape / material / motion lives in skin.css. */
@@ -119,14 +119,13 @@ body::before {
 }
 
 /* ── Ambient layers (injected by controls.js) ───────────────────
-   Ocean swell / Glass aurora / Cyber storm, each inert unless a
+   Ocean swell / Cyber storm, each inert unless a
    skin opts in via its --*-display token. Only transform + opacity
    animate, so the compositor moves rasterized boxes and an idle layer
    costs no main-thread paint. Loops are stepped at --ambient-fps (see
    the @supports block below), pause while the tab is hidden, and yield
    to prefers-reduced-motion. Ported from DeetsMusic e931c8c. */
 .ocean,
-.aurora,
 .storm {
   position: fixed;
   inset: 0;
@@ -219,20 +218,6 @@ body::before {
    only be painted and rolled out of sight. */
 :root[data-radio-shell] .ocean { display: none; }
 
-/* Aurora — each blob is oversized by --aurora-slack on every side so the
-   drift never drags a gradient's cut edge into view. */
-.aurora { display: var(--aurora-display, none); }
-.aurora__blob {
-  position: absolute;
-  inset: calc(-1 * var(--aurora-slack));
-  background-repeat: no-repeat;
-  animation: aurora-drift var(--aurora-dur) linear infinite;   /* ease sampled into the keyframes */
-  will-change: transform;
-}
-.aurora__blob--1 { background-image: var(--aurora-1); --drift-x: var(--aurora-drift-1-x); --drift-y: var(--aurora-drift-1-y); }
-.aurora__blob--2 { background-image: var(--aurora-2); --drift-x: var(--aurora-drift-2-x); --drift-y: var(--aurora-drift-2-y); }
-.aurora__blob--3 { background-image: var(--aurora-3); --drift-x: var(--aurora-drift-3-x); --drift-y: var(--aurora-drift-3-y); }
-
 /* Storm — a WIPE, not a stroke draw: the bolt (glow included) is painted
    once; the strike box slides down and clips it while the hold box
    counter-slides by the same amount, so the bolt stays still. Both run
@@ -281,23 +266,21 @@ body::before {
 .storm__strike--4 { --strike-cycle: var(--storm-cycle-1); --strike-path: var(--storm-path-2); --strike-at: translateX(98px) scaleX(-1); --strike-delay: 6.5s; }
 
 /* Stepped at --ambient-fps: one step per frame at that rate, per keyframe
-   segment (ocean-bob has 5, aurora-drift 10; the storm wipe is its 0→60%
+   segment (ocean-bob has 5; the storm wipe is its 0→60%
    segment). A browser without round() / unit division runs them smooth. */
 @supports (animation-timing-function: steps(round(1s * 30 / 1s))) {
   .ocean__bob    { animation-timing-function: steps(round(var(--bob-s) * var(--ambient-fps) / 5)); }
   .ocean__train  { animation-timing-function: steps(round(var(--roll-s) * var(--ambient-fps))); }
-  .aurora__blob  { animation-timing-function: steps(round(var(--aurora-dur) * var(--ambient-fps) / 10 / 1s)); }
   .storm__strike,
   .storm__hold   { animation-timing-function: steps(round(var(--strike-cycle) * 0.6 * var(--ambient-fps) / 1s)); }
 }
 
 /* Hidden tab (controls.js): hold still, keep position. */
-:root[data-ambient="paused"] :is(.ocean__bob, .ocean__train, .aurora__blob, .storm__strike, .storm__hold) {
+:root[data-ambient="paused"] :is(.ocean__bob, .ocean__train, .storm__strike, .storm__hold) {
   animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora__blob { animation: none; }           /* freeze the Glass aurora */
   /* Ocean stays VISIBLE, just still: a motionless sea is still a sea. */
   .ocean__train, .ocean__bob { animation: none; }
   .ocean__glow, .ocean__neon { transition: none; }
@@ -428,16 +411,12 @@ body::before {
   align-items: center;
 }
 
-/* Wordmark — the title-face signature, links home. The editorial
-   underline is a skin opt-in (Vanilla only), inked in currentColor. */
+/* Wordmark — the title-face signature, links home. */
 .wordmark {
   font-family: var(--font-title);
   font-weight: var(--fw-title);
   font-size: var(--fs-title);
   color: var(--title);
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
   letter-spacing: 0.01em;
   line-height: 1;
   padding: var(--space-1) var(--space-2);
@@ -704,7 +683,7 @@ body::before {
 }
 .settings__trigger:hover { background: var(--surface-hover); border-color: var(--title); transform: var(--hover-lift); }
 
-/* The menu + flyouts adopt the skin's material (Glass frosts them). */
+/* The menu + flyouts adopt the skin's material. */
 .menu {
   position: absolute;
   top: calc(100% + var(--space-2));
@@ -907,9 +886,6 @@ body::before {
   color: var(--title);
   line-height: 1.1;
   white-space: nowrap;
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
 }
 /* Phones: a long title ("Aditya Sundaram [AKA Deets]") outruns the screen
    on one line, so let it wrap. .sotd__title gets the same below. */
@@ -1038,9 +1014,6 @@ body::before {
   color: var(--title);
   line-height: 1.1;
   white-space: nowrap;
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
 }
 @media (max-width: 41rem) {
   .sotd__title { white-space: normal; min-width: 0; overflow-wrap: break-word; }
@@ -1404,20 +1377,8 @@ body::before {
 /* ── Animate backgrounds (Settings; data-bg-motion on <html>) ────
    Reduced halves the ambient rate (skin.css); Off holds the loops still
    and hides the storm (a frozen half-drawn bolt reads as a bug). */
-:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__train, .aurora__blob) { animation-play-state: paused; }
+:root[data-bg-motion="off"] :is(.ocean__bob, .ocean__train) { animation-play-state: paused; }
 :root[data-bg-motion="off"] .storm { display: none; }
-
-/* ── Canvas dim (Glass › Dim canvas) ─────────────────────────────
-   Over the canvas texture and the ambient layers (all earlier at z ≤ 0),
-   under the content (z 1). Static: it never repaints on its own. */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: var(--canvas-dim-layer);
-}
 
 /* ── Look-change cover (controls.js; DeetsMusic appearance.ts) ───
    A theme or skin change runs stages on <html data-boot>:
@@ -1859,6 +1820,9 @@ select:focus-visible,
     margin-left: var(--space-2);
     transform-origin: top left;
   }
+  /* the flyout opens to the RIGHT here, so the caret turns to it
+     (controls.js keeps it inside the window: fitFlyout) */
+  .site-dock .menu__chev { display: inline-block; transform: scaleX(-1); }
 
   .site-main {
     grid-column: 2;

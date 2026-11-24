@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [deetsmusic/index.html, deetsmusic/strings.js, deetsmusic/admin/admin.js, deetsmusic/mock.js, js/home.js]
-updated: 2026-11-23
+updated: 2026-11-24
 ---
 # Support — status, installs, releases and boards for every Deets app
 
@@ -1563,7 +1563,7 @@ it sees only what the app showed them first.
 `DeetsSolutions/deetsmusic/`, served at `deets.solutions/deetsmusic/`,
 with a nav entry. A normal site tab: `chrome.css` → `main.css`, tokens
 for every colour and every measurement, strings in
-`deetsmusic/strings.js`, and all 36 theme×skin combos must survive. A
+`deetsmusic/strings.js`, and all 18 theme×skin combos must survive. A
 new page carries the pre-paint head script, so the `R` map count in
 CLAUDE.md ("all 14 pre-paint head scripts") goes up by one.
 

@@ -91,6 +91,22 @@ Newest plan first. Each entry: status, the doc that holds the design, the first 
   Checked: skeleton = filled height in all 6 skins at 1440/1100/820/390, a cold load shows
   no shift, and month changes no longer change the hub's height. Visible change: a short
   month's calendar carries a blank 6th row; long texts end in an ellipsis.
+- *Skins trimmed to Press, Ocean and Cyber* (his call; the first step of consolidating the
+  look system, curated theme + skin looks next). Vanilla, Glass and Metal are gone: their
+  `skin.css` blocks, Glass's aurora layer, canvas dim and four Settings rows, Metal's
+  per-theme metals and paints, and Vanilla's title underline. Saved picks go to their
+  closest feel (Vanilla → Press, Glass → Ocean, Metal → Cyber) through `RETIRED` and the 18
+  pre-paint scripts (new CSP hash). The removed code is verbatim in
+  [archive/old-skins.md](archive/old-skins.md), with how to bring one back. Checked: each
+  retired pick migrates and heals its saved value, and 11 pages pass all 18 combos headless
+  with no errors. **His call, open:** Glass's four row labels in `controls.js`'s `S` table
+  are unused now, and `bgMotionHint` still says "Ocean, Glass, and Cyber" (his words); the
+  balloon ride in `js/walkers.js` belonged to Glass; `resume/index.html`'s head still sets
+  the inert `--title-underline: none` (left to spare a PDF rebuild).
+- *Vibe menu flyouts stay on screen.* From the bottom-left dock the Skin list ran past the
+  window's bottom. `fitFlyout` (controls.js) slides an open flyout up to fit and caps a
+  taller one so it scrolls; the dock's caret now points right, where the flyout opens.
+  Checked headless at 1440×900/650/420/240 and 1100×650/380.
 - *DeetsPoker left the Games menu* (his call, no cost found): all 17 pages; `/poker/`
   is now an unlisted page like League (no glass), still linked from Portfolio and Profile,
   still in the sitemap ([ui.md](ui.md), "The mobile nav menu").

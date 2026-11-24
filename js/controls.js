@@ -5,7 +5,7 @@
 
    The attributes are also set inline in each page's <head> (before CSS) to
    avoid a flash of the defaults on load; this script wires the picker,
-   keeps localStorage in sync, and injects the ocean + aurora + storm layers. */
+   keeps localStorage in sync, and injects the ocean + storm layers. */
 (function () {
   "use strict";
 
@@ -36,13 +36,12 @@
       // theme default above. Kept in sync with the inline pre-paint script in
       // each page's <head>.
       def: function () { return osPair().skin; },
+      // Three since 2026-11-24 (his call): Vanilla, Glass and Metal retired
+      // to their closest feel (RETIRED below).
       options: [
-        { id: "vanilla",      label: "Vanilla" },
         { id: "press",        label: "Press" },
         { id: "ocean",        label: "Ocean" },
-        { id: "glass",        label: "Glass" },
-        { id: "cyber", label: "Cyber" },
-        { id: "metal",        label: "Metal" },
+        { id: "cyber",        label: "Cyber" },
       ],
     },
   };
@@ -74,6 +73,10 @@
     viper:      "black-red",
     cyberstorm: "cyber",
     "retro-future": "cyber",
+    // 2026-11-24: three skins retired to their closest feel (his call)
+    vanilla:    "press",
+    glass:      "ocean",
+    metal:      "cyber",
   };
 
   function current(axis) {
@@ -127,6 +130,8 @@
     oceanCardsHint: "Ocean only. How solid the sunken cards are. Lower: the sea shows through",
     oceanLight: "Album light",       // DeetsMusic's row label
     oceanLightHint: "Ocean only. How strongly today's Song of the Day cover lights the sea. High: the waves glow like neon, and cost more on a PC without a graphics card",
+    // Glass's four rows: unused since Glass retired (2026-11-24). His
+    // words, so his call to delete them (and bgMotionHint still names Glass).
     glassCanvas: "Canvas glow",
     glassCanvasHint: "Glass only. How brightly the colors glow on the background. The cards do not change",
     glassDim: "Dim canvas",
@@ -170,8 +175,7 @@
      from storage. */
   var SETTINGS_KEY = "deets-settings";
   var FOLDS_KEY = "deets-settings-folds";
-  // The skins' tuned values (his call, 2026-09-15): Glass ships with his
-  // slider values (a first-visit look until 2026-10-23), Ocean (the dark
+  // The skins' tuned values (his call, 2026-09-15): Ocean (the dark
   // first-visit look, now with Black & Red) with
   // soft edges, cards at 60% and the album light at 80 (his calls,
   // 2026-10-11; 80 is his app's value). The CSS var() fallbacks and the sand selector mirror these, so
@@ -183,10 +187,6 @@
     oceanSand: 20,             // Ocean sand: 0–100 across --sand-reach-min…max
     oceanCardOpacity: 60,      // Ocean, 0–100: how solid the sunken cards are (100 = solid)
     oceanLight: 80,           // Ocean album light: 0 = the plain sea, 100 = neon crests (js/ocean.js)
-    glassCanvasGlow: 74,       // Glass, 0–100: aurora strength (50 = as the skin writes it)
-    glassCanvasDim: 21,        // Glass, 0–100: darkens the canvas; the cards undo it
-    glassBacklight: 65,        // Glass, 0–100: the light behind each card
-    glassTint: 26,             // Glass, 0–100: the card color over the backlight
     toasts: "all",             // "failures" = warn + error (+ questions) only
   };
   function readJSON(key) {
@@ -220,10 +220,6 @@
      blocks in skin.css read (other skins ignore them). Applied at once, so a
      returning visitor's values land as early as this deferred script runs. */
   var SKIN_PROPS = {
-    glassTint:       ["--glass-tint", "%"],
-    glassBacklight:  ["--glass-backlight", ""],
-    glassCanvasGlow: ["--glass-canvas", ""],
-    glassCanvasDim:  ["--glass-canvas-dim", ""],
     oceanSand:       ["--ocean-sand", ""],
     oceanCardOpacity: ["--ocean-card-opacity", ""],
     oceanLight:     ["--ocean-light", ""],
@@ -259,12 +255,9 @@
      the OS asks for reduced motion. Never on page load: navigations are full
      reloads, and a cover on every click would feel slow. */
   var SKIN_FONTS = {
-    vanilla: ['12px "Liberation Serif"'],
     press: ['12px "Anton"', '12px "IBM Plex Mono"'],
     ocean: ['12px "Cinzel"', '12px "Spectral"'],
-    glass: [],
-    "cyber": ['12px "Orbitron"', '12px "Rajdhani"'],
-    metal: ['12px "Bahnschrift"'],   // Windows' own face: nothing bundled, only warmed
+    cyber: ['12px "Orbitron"', '12px "Rajdhani"'],
   };
   var cover = { phase: null, jobs: [], timer: 0 };
   // A time token ("0.8s" / "70ms") in ms.
@@ -394,9 +387,41 @@
     if (willOpen) {
       group.classList.add("is-open");
       group.querySelector(".menu__row").setAttribute("aria-expanded", "true");
+      fitFlyout(group);
     }
     return willOpen;
   }
+
+  /* Keep an open flyout inside the window. It hangs down from its row, so
+     from the dock at the bottom left (the wide layout) the Skin list ran
+     off the screen (2026-11-24). Slide it up by whatever passes the
+     bottom edge; one taller than the window is capped and scrolls. Read
+     from offsetTop / offsetHeight, which ignore the pop's entry transform. */
+  function fitFlyout(group) {
+    var flyout = group.querySelector(".flyout");
+    if (!flyout) return;
+    flyout.style.top = "";
+    flyout.style.maxHeight = "";
+    flyout.style.overflowY = "";
+    var cs = getComputedStyle(flyout);
+    var edge = parseFloat(cs.marginLeft) || parseFloat(cs.marginRight) || 8;   // the gap it keeps from the menu
+    var room = window.innerHeight - 2 * edge;
+    var base = group.getBoundingClientRect().top;
+    var top = flyout.offsetTop;
+    var h = flyout.offsetHeight;
+    if (h > room) {
+      flyout.style.maxHeight = room + "px";
+      flyout.style.overflowY = "auto";
+      h = room;
+    }
+    var bottom = base + top + h;
+    if (bottom > window.innerHeight - edge) top -= bottom - (window.innerHeight - edge);
+    if (base + top < edge) top = edge - base;
+    if (top !== flyout.offsetTop) flyout.style.top = top + "px";
+  }
+  window.addEventListener("resize", function () {
+    document.querySelectorAll(".menu__group.is-open").forEach(fitFlyout);
+  });
 
   function make(tag, cls, text) {
     var node = document.createElement(tag);
@@ -431,7 +456,6 @@
      (no key; a button that calls `run`). A row with `when` shows only while
      it holds (the skin-only rows). */
   function skinIs(id) { return document.documentElement.getAttribute("data-skin") === id; }
-  function glass() { return skinIs("glass"); }
   var SECTIONS = [
     {
       title: S.look,
@@ -450,12 +474,6 @@
           when: function () { return skinIs("ocean"); } },
         { kind: "range", id: "oceansand", label: S.oceanSand, hint: S.oceanSandHint, key: "oceanSand", unit: "%",
           when: function () { return skinIs("ocean") && setting("oceanEdges") === "sand"; } },
-        // Glass: the layers in paint order, back to front — the background
-        // (glow, then its dim), then the card (its backlight, then the tint).
-        { kind: "range", id: "glasscanvas", label: S.glassCanvas, hint: S.glassCanvasHint, key: "glassCanvasGlow", unit: "%", when: glass },
-        { kind: "range", id: "glassdim", label: S.glassDim, hint: S.glassDimHint, key: "glassCanvasDim", unit: "%", when: glass },
-        { kind: "range", id: "glassbacklight", label: S.glassBacklight, hint: S.glassBacklightHint, key: "glassBacklight", unit: "%", when: glass },
-        { kind: "range", id: "glasstint", label: S.glassTint, hint: S.glassTintHint, key: "glassTint", unit: "%", when: glass },
         { kind: "choice", id: "toasts", label: S.toasts, hint: S.toastsHint, key: "toasts",
           options: [["all", S.everything], ["failures", S.failures]] },
       ],
@@ -920,7 +938,7 @@
     syncMode();
   }
 
-  /* The ambient layers (ocean / aurora / storm). Each is injected once and
+  /* The ambient layers (ocean / storm). Each is injected once and
      inert (CSS display:none) until the active skin opts in via its
      --*-display token. Motion is CSS (chrome.css + skin.css keyframes) and
      animates transform + opacity only, so the compositor moves already-
@@ -993,15 +1011,6 @@
     if (window.DeetsOcean) window.DeetsOcean.offer(songs);
   }
 
-  /* Aurora: three blobs, one gradient each (Glass's --aurora-* tokens). */
-  function buildAurora() {
-    var sky = layer("aurora");
-    [1, 2, 3].forEach(function (n) {
-      sky.appendChild(document.createElement("div")).className = "aurora__blob aurora__blob--" + n;
-    });
-    return sky;
-  }
-
   /* Storm: four bolts, two down each edge. A bolt is painted once (glow
      included) and revealed by a WIPE: the strike box slides down and clips
      it while the hold box counter-slides, so the bolt itself stays still.
@@ -1057,7 +1066,7 @@
   };
 
   function init() {
-    inject(buildOcean()); inject(buildAurora()); inject(buildStorm()); inject(layer("boot-cover"));
+    inject(buildOcean()); inject(buildStorm()); inject(layer("boot-cover"));
     watchVisibility(); watchOcean(); buildMenu(); buildNavMenu();
   }
 

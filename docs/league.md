@@ -1,7 +1,7 @@
 ---
 status: live
 sources: [league/index.html, league/league.js]
-updated: 2026-10-20
+updated: 2026-11-24
 ---
 # League tab
 
@@ -224,7 +224,7 @@ and the backend does no background work when the site is idle.
 
 Follows the sotd.js/movies.js convention — the toolbar/popover kit is
 deliberately duplicated (fix a bug there, mirror it here), tokens only,
-all 36 theme×skin combos.
+all 18 theme×skin combos.
 
 - **The bar**: where the journals put an `<h1>`, a combo-box input styled
   in the title tokens (dashed hem = "editable") that flexes into all the

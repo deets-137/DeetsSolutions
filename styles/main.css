@@ -2403,9 +2403,6 @@ html:has(.section-nav) { scroll-behavior: smooth; }
   font-size: var(--fs-title);
   color: var(--title);
   margin: 0 0 var(--space-2);
-  text-decoration-line: var(--title-underline);
-  text-decoration-thickness: var(--title-underline-w);
-  text-underline-offset: var(--title-underline-offset);
 }
 /* Column bodies scroll on their own (DeetsMusic panels), themed thin
    scrollbar (same recipe as .vibe__list). Cards are LOCKED at full height
