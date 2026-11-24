@@ -69,8 +69,10 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-11-24 — Mahjong crash fixed, Home's nudge fixed, Poker out of the nav (on
-`re-dezine`, uncommitted at time of writing). Next: his look at Home, then the merge.**
+**2026-11-24 — Mahjong crash fixed, Home's nudge fixed, Poker out of the nav, skins trimmed
+(MERGED: `re-dezine` fast-forwarded into `master` at `aeb89d7` and pushed 2026-11-24, so
+LIVE on Pages, the whole re-dezine branch with it). Next: his look at the live site, then
+the curated looks (theme + skin pairs).**
 - *Mahjong `claims.ask` crash: FIXED.* Cause: every game page loads `games/table-mock.js`,
   which revived saved `?mock` tables from localStorage on load, live pages included, and
   drove their bots. A save from before the 2026-10-27 claim tiers has `claims` with no
