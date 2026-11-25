@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: [scripts/page-inventory.js]
-updated: 2026-11-24
+updated: 2026-11-25
 ---
 # Page inventory
 
@@ -59,7 +59,7 @@ after a deploy ([architecture.md](architecture.md), "Token stamps").
 | /profile/ | chrome.css@2026-11-24c, main.css@2026-11-24b | shared |
 | /radio/ | chrome.css@2026-11-24c, main.css@2026-11-24b | shared |
 | /resume/ | chrome.css@2026-11-24c, main.css@2026-11-24b | shared |
-| /sotd/ | chrome.css@2026-11-24c, main.css@2026-11-24b | shared |
+| /sotd/ | chrome.css@2026-11-24c, main.css@2026-11-24b | DIFFERENT (tmwqQJ83vS) |
 
 "Pre-paint script" is the inline theme script that must be byte-identical on every page,
 with its hash in `_headers`' CSP (CLAUDE.md, "Never").
