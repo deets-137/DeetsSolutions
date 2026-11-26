@@ -2122,6 +2122,7 @@ select:focus-visible,
   .site-nav .nav-group__menu a[href$="deetsmusic/"]  { view-transition-name: nav-app; }
   .site-nav .nav-group__menu a[href$="demo/"]        { view-transition-name: nav-demo; }
   .site-nav .nav-group__menu a[href$="radio/"]       { view-transition-name: nav-radio; }
+  .site-nav .nav-group__menu a[href$="ball/"]        { view-transition-name: nav-ball; }
   .site-nav .nav-group__menu a[href$="cities/"]      { view-transition-name: nav-cities; }
   .site-nav .nav-group__menu a[href$="mahjong/"]     { view-transition-name: nav-mahjong; }
   .site-nav .nav-group__menu a[href$="poker/"]       { view-transition-name: nav-poker; }

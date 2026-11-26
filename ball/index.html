@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="lilac" data-skin="cyber">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeetsBall — Deets</title>
+    <link rel="canonical" href="https://deets.solutions/ball/" />
+    <!-- The demo skeleton (DeetsBall repo, docs/DESIGN.md D20): open to anyone with the link, kept out of search. -->
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          /* Retired ids → successor, both axes. Mirrors RETIRED in controls.js. */
+          var R = { desk: "press", fairy: "lilac", glade: "green",
+                    hornet: "black-yellow", viper: "black-red",
+                    cyberstorm: "cyber", "retro-future": "cyber",
+                    vanilla: "press", glass: "ocean", metal: "cyber" };
+          var t = localStorage.getItem("deets-theme");
+          if (!t) { t = dark ? "black-red" : "lilac"; }
+          document.documentElement.setAttribute("data-theme", R[t] || t);
+          var s = localStorage.getItem("deets-skin");
+          if (!s) { s = dark ? "ocean" : "press"; }
+          document.documentElement.setAttribute("data-skin", R[s] || s);
+        } catch (e) {}
+      })();
+    </script>
+        <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
+    <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-25" />
+    <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
+    <!-- chrome.css's token imports, fetched beside it rather than after it -->
+    <link rel="preload" href="../styles/fonts.css?v=2026-11-24" as="style" />
+    <link rel="preload" href="../styles/palette.css?v=2026-11-24" as="style" />
+    <link rel="preload" href="../styles/themes.css?v=2026-11-24" as="style" />
+    <link rel="preload" href="../styles/skin.css?v=2026-11-24b" as="style" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-25h" />
+    <script src="../js/controls.js?v=2026-11-25" defer></script>
+    <script src="../js/toast.js" defer></script>
+    <script src="../js/account.js?v=2026-11-23" defer></script>
+    <script src="./strings.js?v=2026-11-25e" defer></script>
+    <script src="./ball.js?v=2026-11-25c" defer></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-brand">
+        <a class="wordmark" href="/">Deets<span class="wordmark__more"> Solutions</span></a>
+      </div>
+      <nav class="site-nav" aria-label="Primary">
+        <span class="site-nav__glass" aria-hidden="true"></span>
+        <a class="site-nav__home" href="/">Home</a>
+        <div class="nav-group">
+          <a class="nav-group__label" href="/deetsmusic/" aria-haspopup="true">DeetsMusic<span class="nav-group__caret" aria-hidden="true">&#9662;</span></a>
+          <div class="nav-group__menu" role="menu">
+            <a href="/deetsmusic/" role="menuitem">App</a>
+            <a href="/deetsmusic/demo/" role="menuitem">Demo</a>
+            <a href="/radio/" role="menuitem" data-nav-desktop>DeetsRadio</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <a class="nav-group__label" href="/ball/" aria-haspopup="true">DeetsBall<span class="nav-group__caret" aria-hidden="true">&#9662;</span></a>
+          <div class="nav-group__menu" role="menu">
+            <a href="/ball/" role="menuitem" aria-current="page">Demo</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Games<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/cities/" role="menuitem">DeetsCities</a>
+            <a href="/mahjong/" role="menuitem">DeetsMahjong</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">Blog<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/sotd/" role="menuitem" data-nav-core>SOTD</a>
+            <a href="/movies/" role="menuitem">Movies</a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="nav-group__label" aria-haspopup="true">About Me<span class="nav-group__caret" aria-hidden="true">&#9662;</span></button>
+          <div class="nav-group__menu" role="menu">
+            <a href="/portfolio/" role="menuitem" data-nav-core>Portfolio</a>
+            <a href="/resume/" role="menuitem">Resume</a>
+          </div>
+        </div>
+      </nav>
+      <div class="site-dock"><span class="settings" data-settings></span></div>
+    </header>
+
+    <main id="main" class="site-main">
+      <!-- The demo skeleton: pick a team, see its players. ball.js reads snapshot.json, an export of DeetsBall's D1 tables (Core_Teams, Core_Player_Bios). -->
+      <section class="page-bar">
+        <h1 class="page-bar__title">DeetsBall</h1>
+        <div class="page-bar__actions">
+          <a class="home__cta" href="draft/" data-s="draftButton">Draft</a>
+        </div>
+      </section>
+      <section class="ball-panel" data-ball>
+        <div class="ball-panel__bar" data-ball-toolbar></div>
+        <ul class="ball-roster" data-ball-roster aria-live="polite"></ul>
+      </section>
+    </main>
+  </body>
+</html>

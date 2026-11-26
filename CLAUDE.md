@@ -60,6 +60,7 @@ HANDOFF. **Lessons already paid for: [docs/LESSONS.md](docs/LESSONS.md).**
 | The home page's first-run walk (`/?tour`) | [onboarding.md](docs/onboarding.md) |
 | Accounts + game stats | [accounts.md](docs/accounts.md), [accounts-setup.md](docs/accounts-setup.md), [stats.md](docs/stats.md) |
 | DeetsMusic page (`deetsmusic/`): status, installs, releases, boards | [support.md](docs/support.md) |
+| DeetsBall's demo pages (`ball/`, `ball/draft/`): a demo, not the product | [ball.md](docs/ball.md) |
 | DeetsMusic page's product pass | [deetsmusic-page-pass.md](docs/deetsmusic-page-pass.md) |
 | DeetsMusic web demo (`deetsmusic/demo/app/` is a build copy — never hand-edit) | DeetsMusic repo `docs/features/WEB-DEMO.md` |
 | A Status row for DeetsMusic's rooms worker | [rooms-status.md](docs/rooms-status.md) |
@@ -170,6 +171,7 @@ plainly, with no `[ph]`. Only the owner reads them. He edits one when he wants t
 | Cities | Done — he cleared every remaining `[ph]` at once (chat, 2026-10-28); zero `[ph]` left |
 | Poker | Done — three passes (2026-08-03, 2026-08-04 ×2); zero `[ph]` left |
 | DeetsMusic | Done — whole-page pass 2026-09-14 in chat (filter/sort included), the board-thread strings 2026-09-15 (thread page, comments, moderation menu), and the poll strings 2026-09-15. The product pass-1 block (Features, Demos, Requirements and trust; 2026-10-06) approved in chat the same day, alt texts included; zero `[ph]` left |
+| DeetsBall demo (`ball/`) | No `[ph]` needed (his call, 2026-11-25): Claude writes `ball/strings.js` plainly |
 | Settings panel (shared chrome) | Copy lives in the `S` table in `js/controls.js`, not a `strings.js`. Labels reused from DeetsMusic need no `[ph]` (his call, 2026-09-15); only new site-only wording does |
 
 The blank album cover (`assets/sprites/radio/cover-blank.svg`) is his
@@ -188,6 +190,7 @@ Sibling Cloudflare Worker repos, each deployed with `npx wrangler deploy`.
 | DeetsAccounts | `id.deets.solutions` | private repo; sole owner of the D1 |
 | DeetsPoker | `poker-api.deets.solutions` | private repo; secrets set 2026-08-03 (rotated across all five workers) |
 | DeetsSupport | `support.deets.solutions` + `music-api.deets.solutions` | **worker live 2026-09-11, page shipped 2026-09-14** — [support.md](docs/support.md). Owner routes (`/admin/*`) need `SESSION_SECRET` (shared with DeetsAccounts) + `OWNER_UID`, both set. Two custom-domain routes on one worker: the boards' JSON API on `support.`, and DeetsMusic's host on `music-api.` (`/token`, `/signin`, `/update/` installers from R2). The page lives at `deets.solutions/deetsmusic/`, never on `support.` |
+| DeetsBall (`worker/`) | `ball-api.deets.solutions` | **demo only**, live 2026-11-25: the draft demo's JS worker (`deetsball-draft`, two DOs; a room closes 1 h after it is made). Not the Rust backend DeetsBall's design calls for — [ball.md](docs/ball.md) |
 
 - **All Riot traffic must flow through the worker's `riotFetch`** (call ledger
   + guardrails). Never call Riot or spend key budget from the browser.

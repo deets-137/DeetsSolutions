@@ -112,6 +112,9 @@ by TMDB).
 - [docs/league.md](docs/league.md) — the League tab: worker architecture,
   data model, rate-limit guardrails, and what the Riot API can and can't
   reveal.
+- [docs/ball.md](docs/ball.md) — DeetsBall's demo pages: a team's players,
+  and the Shotgun draft demo (host screen + GM phone page). A demo, not
+  the product.
 - [docs/games.md](docs/games.md) — the shared game foundation: wire
   protocol, the table shell, the Durable Object base, and how to add a
   game. Read this first for anything game-related.

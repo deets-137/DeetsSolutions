@@ -74,6 +74,9 @@
 /sotd/*
   Cache-Control: public, max-age=0, must-revalidate
 
+/ball/*
+  Cache-Control: public, max-age=0, must-revalidate
+
 /movies/*
   Cache-Control: public, max-age=0, must-revalidate
 

@@ -19,6 +19,9 @@ token sheets `fonts.css`, `palette.css`, `themes.css`, `skin.css` (`chrome.css` 
 | [/](../index.html) | Home | chrome.css, <#main> parsed, main.css, inline script | covers.js, home.js | https://music-api.deets.solutions/update/deetsmusic/releases, movies/movies.json, music-api.deets.solutions, portfolio/index.html, portfolio/projects.json, sotd/songs.json | site-main #main |
 | [/404.html](../404.html) | — (not in the nav) | chrome.css, <#main> parsed, main.css, inline script | no walkers.js | — | site-main #main |
 | [/auth/done.html](../auth/done.html) | no nav | chrome.css, <#main> parsed, inline script | no controls.js, account.js, toast.js, walkers.js | — | site-main auth-done #main |
+| [/ball/](../ball/index.html) | Demo | chrome.css, <#main> parsed, main.css, inline script | strings.js, ball.js; no walkers.js | snapshot.json | site-main #main, 1 stamped strings |
+| [/ball/draft/](../ball/draft/index.html) | — (not in the nav) | chrome.css, <#main> parsed, main.css, inline script | strings.js, draft-common.js, draft-host.js; no walkers.js | /ball/snapshot.json, ball-api.deets.solutions | site-main draft-host #main |
+| [/ball/draft/room/](../ball/draft/room/index.html) | — (not in the nav) | chrome.css, <#main> parsed, main.css, inline script | strings.js, draft-common.js, draft-gm.js; no walkers.js | /ball/snapshot.json, ball-api.deets.solutions | site-main draft-gm #main |
 | [/cities/](../cities/index.html) | DeetsCities | chrome.css, <#main> parsed, table.css, cities.css, inline script | strings.js, colors.js, board-data.js, engine.js, transport.js, table-mock.js, transport-mock.js, table.js, flights.js, stage.js, seating.js, cities.js | cities-api.deets.solutions | site-main #main |
 | [/deetsmusic/](../deetsmusic/index.html) | App | chrome.css, <#main> parsed, main.css, inline script | strings.js, mock.js, deetsmusic.js | music-api.deets.solutions, support.deets.solutions | site-main #main, 91 stamped strings |
 | [/deetsmusic/admin/](../deetsmusic/admin/index.html) | — (not in the nav) | chrome.css, <#main> parsed, main.css, inline script | strings.js, mock.js, usage-settings.js, flags.js, admin.js; no walkers.js | music-api.deets.solutions, support.deets.solutions | site-main #main, 57 stamped strings |
@@ -45,6 +48,9 @@ after a deploy ([architecture.md](architecture.md), "Token stamps").
 | / | chrome.css@2026-11-25, main.css@2026-11-25 | shared |
 | /404.html | chrome.css@2026-11-25, main.css@2026-11-25 | shared |
 | /auth/done.html | chrome.css@2026-11-25 | shared |
+| /ball/ | chrome.css@2026-11-25, main.css@2026-11-25h | shared |
+| /ball/draft/ | chrome.css@2026-11-25, main.css@2026-11-25h | shared |
+| /ball/draft/room/ | chrome.css@2026-11-25, main.css@2026-11-25h | shared |
 | /cities/ | chrome.css@2026-11-25, table.css@2026-10-28, cities.css@2026-11-16 | shared |
 | /deetsmusic/ | chrome.css@2026-11-25, main.css@2026-11-25 | shared |
 | /deetsmusic/admin/ | chrome.css@2026-11-25, main.css@2026-11-25 | shared |

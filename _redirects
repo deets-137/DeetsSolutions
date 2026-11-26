@@ -11,3 +11,9 @@
 # Old links and search results land on Home. docs/archive/tanks.md.
 /tanks       /    301
 /tanks/*     /    301
+
+# DeetsBall draft demo: a GM opens /ball/draft/<code> on a phone. Every code
+# is served the GM page (a rewrite, not a redirect); draft-gm.js reads the
+# code from the URL. Codes are 4 capital letters (DeetsBall worker).
+/ball/draft/:code   /ball/draft/room/   200
+/ball/draft/:code/  /ball/draft/room/   200

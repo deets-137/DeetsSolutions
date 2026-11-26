@@ -5419,3 +5419,349 @@ button.dm-poll__opt:hover { border-color: var(--title); }
   border: 0;
   transform-origin: top left;
 }
+
+/* ============================================================
+   DeetsBall — /ball/, the demo skeleton (ball/ball.js). One panel:
+   a Team pill (the tb- kit) over that team's players. The panel
+   rides the card tokens, as Profile's boxes do, so it holds across
+   every theme×skin combo.
+   ============================================================ */
+.ball-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--measure);
+  padding: var(--space-4);
+  background: var(--card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.ball-panel__bar { display: flex; }
+/* The Team control spans the panel as one rounded box, a .tb-pill's
+   frame: a fixed "Team" label sized to its word, a hairline, then the
+   pill, which alone hovers and opens. The team's name centers in it. */
+.ball-team {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  transition: border-color var(--dur-fast) var(--ease-ui);
+}
+.ball-team:has(.tb-pill[aria-expanded="true"]) { border-color: var(--title); }
+.ball-team__label {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-right: 1px solid var(--border);
+  font-family: var(--font-body);
+  font-size: var(--fs-nav);
+  color: var(--text);
+}
+.ball-team .tb-ctrl { flex: 1 1 auto; min-width: 0; display: flex; }
+.ball-team .tb-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  /* the box's inner corners on the right only */
+  border-radius: 0 max(0px, calc(var(--radius-control) - 1px)) max(0px, calc(var(--radius-control) - 1px)) 0;
+}
+.ball-team .tb-pill:hover,
+.ball-team .tb-pill[aria-expanded="true"] { background: var(--surface-hover); }
+.ball-team .tb-pill__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 0;
+  border-left: none;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The team popover hangs under the pill's half only, and scrolls: 30
+   teams outrun a short window. */
+.ball-teams {
+  left: 0;
+  right: 0;
+  --pop-origin: top left;
+  max-height: min(24rem, calc(100dvh - var(--header-h) - var(--space-6)));
+  overflow-y: auto;
+}
+.ball-roster { list-style: none; margin: 0; padding: 0; }
+.ball-roster__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.ball-roster__row:first-child { border-top: none; }
+.ball-roster__name { color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.ball-roster__pos { color: var(--subtext); white-space: nowrap; }
+.ball-roster__empty { color: var(--subtext); padding: var(--space-2) 0; }
+
+/* ── DeetsBall draft (ball/draft-host.js, ball/draft-gm.js) ──────────
+   The host screen (/ball/draft/) is for a laptop or a TV: one column per
+   team, then every round. The GM page (/ball/draft/<code>) is for a
+   phone: the ballot on top, the roster below. Quick demo styling. */
+.draft-note { color: var(--subtext); margin: 0; padding: var(--space-2) 0; }
+.draft-host .page-bar__actions .home__cta:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+/* the room list */
+.draft-rooms { display: grid; gap: var(--space-2); max-width: var(--measure); }
+.draft-room {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  text-decoration: none;
+}
+.draft-room:hover { border-color: var(--title); }
+.draft-room__code {
+  grid-row: span 2;
+  align-self: center;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  letter-spacing: 0.08em;
+}
+.draft-room__status { color: var(--title); }
+.draft-room__teams { color: var(--subtext); font-size: var(--fs-nav); }
+
+/* the board */
+.draft-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.draft-join, .draft-phase {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+}
+.draft-phase { color: var(--text); }
+.draft-teams {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.draft-team {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+.draft-team > .home__cta { align-self: flex-start; }
+.draft-team__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.draft-team__name {
+  margin: 0;
+  margin-right: auto;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  overflow-wrap: anywhere;
+}
+.draft-team__name--open { color: var(--subtext); }
+.draft-team__sub {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-nav);
+  font-weight: var(--fw-nav);
+  color: var(--subtext);
+}
+.draft-chip {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.draft-chip--in { color: var(--go); border-color: var(--go); }
+
+.draft-roster, .draft-ballot { list-style: none; margin: 0; padding: 0; }
+.draft-roster { counter-reset: slot; }
+.draft-roster__row, .draft-ballot__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--border);
+  min-height: 1lh;
+}
+.draft-roster__row:first-child, .draft-ballot__row:first-child { border-top: none; }
+.draft-roster__name, .draft-ballot__name { color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.draft-roster__meta, .draft-ballot__result { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }
+.draft-roster__row--empty { opacity: 0.4; }
+/* A vote's result as a color, the same green and red on every theme
+   (themes.css --status-ok / --status-fail): won is green, a tie is red,
+   a vote that no longer mattered (the player went at a higher rank, or
+   the roster was full) is gray. On the host board a closing round shows
+   its ballots .is-pending first, then turns one rank at a time
+   (draft-host.js, "The round reveal"). */
+.draft-ballot__name, .draft-ballot__result {
+  transition: color var(--dur-glide) var(--ease-ui), opacity var(--dur-glide) var(--ease-ui);
+}
+.draft-ballot__row--won .draft-ballot__name,
+.draft-ballot__row--won .draft-ballot__result { color: var(--status-ok); }
+.draft-ballot__row--tie .draft-ballot__name,
+.draft-ballot__row--tie .draft-ballot__result { color: var(--status-fail); }
+.draft-ballot__row--taken .draft-ballot__name,
+.draft-ballot__row--tied .draft-ballot__name,
+.draft-ballot__row--full .draft-ballot__name,
+.draft-ballot__row--taken .draft-ballot__result,
+.draft-ballot__row--tied .draft-ballot__result,
+.draft-ballot__row--full .draft-ballot__result { color: var(--subtext); opacity: 0.55; }
+.draft-ballot__row.is-pending .draft-ballot__name { color: var(--text); opacity: 1; }
+.draft-ballot__row.is-pending .draft-ballot__result { opacity: 0; }
+.draft-results { margin-bottom: var(--space-4); }
+
+.draft-history { margin-top: var(--space-6); }
+.draft-history__head {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+}
+.draft-round { margin-bottom: var(--space-4); }
+.draft-round__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.draft-round__team { margin: 0 0 var(--space-1); color: var(--title); font-weight: var(--fw-nav); }
+
+/* the GM's phone */
+/* One column on a phone. Wider, while a ballot is open: the ballot on
+   the left, the last round and the roster stacked on the right. */
+.draft-gm [data-gm-view] { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (min-width: 48rem) {
+  .draft-gm [data-gm-view]:has(> .draft-gm__ballot:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .draft-gm [data-gm-view] > .draft-note,
+  .draft-gm [data-gm-view] > .draft-gm__panel:first-child { grid-column: 1 / -1; }
+  .draft-gm__ballot { grid-column: 1; grid-row: span 2; }
+  .draft-gm [data-gm-view]:has(> .draft-gm__ballot:not([hidden])) > .draft-gm__side { grid-column: 2; }
+}
+.draft-gm__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--card);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.draft-gm__panel[hidden], .draft-note[hidden] { display: none; }
+.draft-gm__head {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: var(--fw-title);
+  font-size: var(--fs-title);
+  color: var(--title);
+  overflow-wrap: anywhere;
+}
+.draft-gm__status { margin: 0; color: var(--subtext); min-height: 1lh; }
+.draft-gm__send { align-self: stretch; text-align: center; justify-content: center; }
+.draft-gm__send:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+.draft-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.draft-slot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  min-height: 2.75rem;
+}
+.draft-slot--empty { border-style: dashed; background: transparent; color: var(--subtext); }
+.draft-slot--empty .draft-slot__btn { visibility: hidden; }
+.draft-slot__rank { flex: none; width: 1.5rem; text-align: center; color: var(--title); font-weight: var(--fw-nav); }
+.draft-slot__who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+/* one line each, so a long name never makes its slot taller */
+.draft-slot__name, .draft-slot__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.draft-slot__name { color: inherit; }
+.draft-slot__meta { color: var(--subtext); font-size: 0.8rem; }
+.draft-slot__btn {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.draft-slot__btn:hover { background: var(--surface-hover); color: var(--title); }
+.draft-slot__btn:disabled { opacity: 0.3; cursor: default; }
+
+.draft-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: max(1rem, var(--fs-nav));   /* 16px or more: iOS does not zoom the page */
+}
+.draft-search:focus { border-color: var(--title); outline: none; }
+.draft-join-form { display: flex; gap: var(--space-2); }
+.draft-results { list-style: none; margin: 0; padding: 0; }
+.draft-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.draft-results li:first-child .draft-result { border-top: none; }
+.draft-result:hover { background: var(--surface-hover); }
+.draft-result__meta { color: var(--subtext); font-size: 0.85rem; white-space: nowrap; }

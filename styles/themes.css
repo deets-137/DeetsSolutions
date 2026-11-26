@@ -47,7 +47,9 @@
      and the monochrome themes' own traffic lights can't (Moonlight's are
      white → gray). So these are Sepia's three lights, declared once here
      and never redefined per theme. Used by the DeetsMusic status dot,
-     check strip and its admin page's New dot only; toasts and chips keep the theme's --go/--pause/--stop. */
+     check strip and its admin page's New dot, and DeetsBall's draft
+     results (won green, tie red; he asked for green and red, 2026-11-25);
+     toasts and chips keep the theme's --go/--pause/--stop. */
   --status-ok:   var(--paint-olive-leaf);
   --status-warn: var(--paint-amber-glow);
   --status-fail: var(--paint-terracotta);

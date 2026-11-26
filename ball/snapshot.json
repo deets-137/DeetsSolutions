@@ -1,0 +1,5030 @@
+{
+ "database": "deetsball-dev",
+ "source": "nba_api",
+ "as_of": {
+  "teams": "2026-11-26T02:38:45Z",
+  "players": "2026-11-26T02:38:47Z"
+ },
+ "teams": {
+  "table": "Core_Teams",
+  "count": 30,
+  "rows": [
+   {
+    "id": 1,
+    "name": "Atlanta Hawks",
+    "abbreviation": "ATL",
+    "city": "Atlanta",
+    "nickname": "Hawks",
+    "slug": "hawks"
+   },
+   {
+    "id": 2,
+    "name": "Boston Celtics",
+    "abbreviation": "BOS",
+    "city": "Boston",
+    "nickname": "Celtics",
+    "slug": "celtics"
+   },
+   {
+    "id": 3,
+    "name": "Brooklyn Nets",
+    "abbreviation": "BKN",
+    "city": "Brooklyn",
+    "nickname": "Nets",
+    "slug": "nets"
+   },
+   {
+    "id": 4,
+    "name": "Charlotte Hornets",
+    "abbreviation": "CHA",
+    "city": "Charlotte",
+    "nickname": "Hornets",
+    "slug": "hornets"
+   },
+   {
+    "id": 5,
+    "name": "Chicago Bulls",
+    "abbreviation": "CHI",
+    "city": "Chicago",
+    "nickname": "Bulls",
+    "slug": "bulls"
+   },
+   {
+    "id": 6,
+    "name": "Cleveland Cavaliers",
+    "abbreviation": "CLE",
+    "city": "Cleveland",
+    "nickname": "Cavaliers",
+    "slug": "cavaliers"
+   },
+   {
+    "id": 7,
+    "name": "Dallas Mavericks",
+    "abbreviation": "DAL",
+    "city": "Dallas",
+    "nickname": "Mavericks",
+    "slug": "mavericks"
+   },
+   {
+    "id": 8,
+    "name": "Denver Nuggets",
+    "abbreviation": "DEN",
+    "city": "Denver",
+    "nickname": "Nuggets",
+    "slug": "nuggets"
+   },
+   {
+    "id": 9,
+    "name": "Detroit Pistons",
+    "abbreviation": "DET",
+    "city": "Detroit",
+    "nickname": "Pistons",
+    "slug": "pistons"
+   },
+   {
+    "id": 10,
+    "name": "Golden State Warriors",
+    "abbreviation": "GSW",
+    "city": "Golden State",
+    "nickname": "Warriors",
+    "slug": "warriors"
+   },
+   {
+    "id": 11,
+    "name": "Houston Rockets",
+    "abbreviation": "HOU",
+    "city": "Houston",
+    "nickname": "Rockets",
+    "slug": "rockets"
+   },
+   {
+    "id": 12,
+    "name": "Indiana Pacers",
+    "abbreviation": "IND",
+    "city": "Indiana",
+    "nickname": "Pacers",
+    "slug": "pacers"
+   },
+   {
+    "id": 13,
+    "name": "LA Clippers",
+    "abbreviation": "LAC",
+    "city": "LA",
+    "nickname": "Clippers",
+    "slug": "clippers"
+   },
+   {
+    "id": 14,
+    "name": "Los Angeles Lakers",
+    "abbreviation": "LAL",
+    "city": "Los Angeles",
+    "nickname": "Lakers",
+    "slug": "lakers"
+   },
+   {
+    "id": 15,
+    "name": "Memphis Grizzlies",
+    "abbreviation": "MEM",
+    "city": "Memphis",
+    "nickname": "Grizzlies",
+    "slug": "grizzlies"
+   },
+   {
+    "id": 16,
+    "name": "Miami Heat",
+    "abbreviation": "MIA",
+    "city": "Miami",
+    "nickname": "Heat",
+    "slug": "heat"
+   },
+   {
+    "id": 17,
+    "name": "Milwaukee Bucks",
+    "abbreviation": "MIL",
+    "city": "Milwaukee",
+    "nickname": "Bucks",
+    "slug": "bucks"
+   },
+   {
+    "id": 18,
+    "name": "Minnesota Timberwolves",
+    "abbreviation": "MIN",
+    "city": "Minnesota",
+    "nickname": "Timberwolves",
+    "slug": "timberwolves"
+   },
+   {
+    "id": 19,
+    "name": "New Orleans Pelicans",
+    "abbreviation": "NOP",
+    "city": "New Orleans",
+    "nickname": "Pelicans",
+    "slug": "pelicans"
+   },
+   {
+    "id": 20,
+    "name": "New York Knicks",
+    "abbreviation": "NYK",
+    "city": "New York",
+    "nickname": "Knicks",
+    "slug": "knicks"
+   },
+   {
+    "id": 21,
+    "name": "Oklahoma City Thunder",
+    "abbreviation": "OKC",
+    "city": "Oklahoma City",
+    "nickname": "Thunder",
+    "slug": "thunder"
+   },
+   {
+    "id": 22,
+    "name": "Orlando Magic",
+    "abbreviation": "ORL",
+    "city": "Orlando",
+    "nickname": "Magic",
+    "slug": "magic"
+   },
+   {
+    "id": 23,
+    "name": "Philadelphia 76ers",
+    "abbreviation": "PHI",
+    "city": "Philadelphia",
+    "nickname": "76ers",
+    "slug": "sixers"
+   },
+   {
+    "id": 24,
+    "name": "Phoenix Suns",
+    "abbreviation": "PHX",
+    "city": "Phoenix",
+    "nickname": "Suns",
+    "slug": "suns"
+   },
+   {
+    "id": 25,
+    "name": "Portland Trail Blazers",
+    "abbreviation": "POR",
+    "city": "Portland",
+    "nickname": "Trail Blazers",
+    "slug": "blazers"
+   },
+   {
+    "id": 26,
+    "name": "Sacramento Kings",
+    "abbreviation": "SAC",
+    "city": "Sacramento",
+    "nickname": "Kings",
+    "slug": "kings"
+   },
+   {
+    "id": 27,
+    "name": "San Antonio Spurs",
+    "abbreviation": "SAS",
+    "city": "San Antonio",
+    "nickname": "Spurs",
+    "slug": "spurs"
+   },
+   {
+    "id": 28,
+    "name": "Toronto Raptors",
+    "abbreviation": "TOR",
+    "city": "Toronto",
+    "nickname": "Raptors",
+    "slug": "raptors"
+   },
+   {
+    "id": 29,
+    "name": "Utah Jazz",
+    "abbreviation": "UTA",
+    "city": "Utah",
+    "nickname": "Jazz",
+    "slug": "jazz"
+   },
+   {
+    "id": 30,
+    "name": "Washington Wizards",
+    "abbreviation": "WAS",
+    "city": "Washington",
+    "nickname": "Wizards",
+    "slug": "wizards"
+   }
+  ]
+ },
+ "players": {
+  "table": "Core_Player_Bios",
+  "count": 530,
+  "rows": [
+   {
+    "id": 1,
+    "name": "Precious Achiuwa",
+    "positions": "F",
+    "team": "SAC",
+    "height_in": 80,
+    "name_search": "precious achiuwa",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 2,
+    "name": "Darius Acuff Jr.",
+    "positions": "G",
+    "team": "SAC",
+    "height_in": 74,
+    "name_search": "darius acuff jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 3,
+    "name": "Steven Adams",
+    "positions": "C",
+    "team": "HOU",
+    "height_in": 83,
+    "name_search": "steven adams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 4,
+    "name": "Bam Adebayo",
+    "positions": "C,F",
+    "team": "MIA",
+    "height_in": 81,
+    "name_search": "bam adebayo",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 5,
+    "name": "Jonas Aidoo",
+    "positions": "C",
+    "team": "UTA",
+    "height_in": 83,
+    "name_search": "jonas aidoo",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 6,
+    "name": "Michael Ajayi",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 79,
+    "name_search": "michael ajayi",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 7,
+    "name": "Jaden Akins",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 74,
+    "name_search": "jaden akins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 8,
+    "name": "Santi Aldama",
+    "positions": "F,C",
+    "team": "DAL",
+    "height_in": 84,
+    "name_search": "santi aldama",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 9,
+    "name": "Nickeil Alexander-Walker",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 77,
+    "name_search": "nickeil alexander-walker",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 10,
+    "name": "Grayson Allen",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 76,
+    "name_search": "grayson allen",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 11,
+    "name": "Jarrett Allen",
+    "positions": "C",
+    "team": "CLE",
+    "height_in": 81,
+    "name_search": "jarrett allen",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 12,
+    "name": "Jose Alvarado",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 72,
+    "name_search": "jose alvarado",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 13,
+    "name": "Nate Ament",
+    "positions": "F",
+    "team": "MIL",
+    "height_in": 82,
+    "name_search": "nate ament",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 14,
+    "name": "Christian Anderson",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 73,
+    "name_search": "christian anderson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 15,
+    "name": "Kyle Anderson",
+    "positions": "F,G",
+    "team": "TOR",
+    "height_in": 80,
+    "name_search": "kyle anderson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 16,
+    "name": "Giannis Antetokounmpo",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 83,
+    "name_search": "giannis antetokounmpo",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 17,
+    "name": "OG Anunoby",
+    "positions": "F,G",
+    "team": "NYK",
+    "height_in": 79,
+    "name_search": "og anunoby",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 18,
+    "name": "Zack Austin",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 77,
+    "name_search": "zack austin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 19,
+    "name": "Deni Avdija",
+    "positions": "F",
+    "team": "POR",
+    "height_in": 80,
+    "name_search": "deni avdija",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 20,
+    "name": "Tobe Awaka",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 80,
+    "name_search": "tobe awaka",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 21,
+    "name": "Deandre Ayton",
+    "positions": "C",
+    "team": "WAS",
+    "height_in": 84,
+    "name_search": "deandre ayton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 22,
+    "name": "Marvin Bagley III",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 82,
+    "name_search": "marvin bagley iii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 23,
+    "name": "Ace Bailey",
+    "positions": "F",
+    "team": "UTA",
+    "height_in": 81,
+    "name_search": "ace bailey",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 24,
+    "name": "LaMelo Ball",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 79,
+    "name_search": "lamelo ball",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 25,
+    "name": "Mo Bamba",
+    "positions": "C",
+    "team": "UTA",
+    "height_in": 84,
+    "name_search": "mo bamba",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 26,
+    "name": "Paolo Banchero",
+    "positions": "F",
+    "team": "ORL",
+    "height_in": 82,
+    "name_search": "paolo banchero",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 27,
+    "name": "Desmond Bane",
+    "positions": "G",
+    "team": "ORL",
+    "height_in": 78,
+    "name_search": "desmond bane",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 28,
+    "name": "Dominick Barlow",
+    "positions": "F",
+    "team": "PHI",
+    "height_in": 81,
+    "name_search": "dominick barlow",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 29,
+    "name": "Harrison Barnes",
+    "positions": "F",
+    "team": "SAS",
+    "height_in": 79,
+    "name_search": "harrison barnes",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 30,
+    "name": "Scottie Barnes",
+    "positions": "F,G",
+    "team": "TOR",
+    "height_in": 80,
+    "name_search": "scottie barnes",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 31,
+    "name": "Brooks Barnhizer",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 77,
+    "name_search": "brooks barnhizer",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 32,
+    "name": "RJ Barrett",
+    "positions": "F,G",
+    "team": "TOR",
+    "height_in": 78,
+    "name_search": "rj barrett",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 33,
+    "name": "Charles Bassey",
+    "positions": "F,C",
+    "team": "GSW",
+    "height_in": 81,
+    "name_search": "charles bassey",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 34,
+    "name": "Jamison Battle",
+    "positions": "F",
+    "team": "TOR",
+    "height_in": 79,
+    "name_search": "jamison battle",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 35,
+    "name": "Bradley Beal",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 76,
+    "name_search": "bradley beal",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 36,
+    "name": "Reece Beekman",
+    "positions": "G",
+    "team": "WAS",
+    "height_in": 73,
+    "name_search": "reece beekman",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 37,
+    "name": "Joan Beringer",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 84,
+    "name_search": "joan beringer",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 38,
+    "name": "Saddiq Bey",
+    "positions": "F",
+    "team": "NOP",
+    "height_in": 80,
+    "name_search": "saddiq bey",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 39,
+    "name": "Tarik Biberović",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 78,
+    "name_search": "tarik biberovic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 40,
+    "name": "Tyler Bilodeau",
+    "positions": "F",
+    "team": "BKN",
+    "height_in": 80,
+    "name_search": "tyler bilodeau",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 41,
+    "name": "Goga Bitadze",
+    "positions": "C,F",
+    "team": "ORL",
+    "height_in": 83,
+    "name_search": "goga bitadze",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 42,
+    "name": "Nate Bittle",
+    "positions": "C",
+    "team": "TOR",
+    "height_in": 84,
+    "name_search": "nate bittle",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 43,
+    "name": "Anthony Black",
+    "positions": "G",
+    "team": "ORL",
+    "height_in": 79,
+    "name_search": "anthony black",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 44,
+    "name": "Leaky Black",
+    "positions": "F",
+    "team": "SAC",
+    "height_in": 79,
+    "name_search": "leaky black",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 45,
+    "name": "Bogdan Bogdanović",
+    "positions": "G",
+    "team": "HOU",
+    "height_in": 77,
+    "name_search": "bogdan bogdanovic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 46,
+    "name": "Adem Bona",
+    "positions": "F",
+    "team": "PHI",
+    "height_in": 82,
+    "name_search": "adem bona",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 47,
+    "name": "Devin Booker",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 77,
+    "name_search": "devin booker",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 48,
+    "name": "Cameron Boozer",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 80,
+    "name_search": "cameron boozer",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 49,
+    "name": "Kylan Boswell",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 73,
+    "name_search": "kylan boswell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 50,
+    "name": "Jamaree Bouyea",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 74,
+    "name_search": "jamaree bouyea",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 51,
+    "name": "Jaden Bradley",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 75,
+    "name_search": "jaden bradley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 52,
+    "name": "Tony Bradley",
+    "positions": "C,F",
+    "team": "UTA",
+    "height_in": 82,
+    "name_search": "tony bradley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 53,
+    "name": "Christian Braun",
+    "positions": "G",
+    "team": "DEN",
+    "height_in": 78,
+    "name_search": "christian braun",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 54,
+    "name": "Trevon Brazile",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 82,
+    "name_search": "trevon brazile",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 55,
+    "name": "Mikal Bridges",
+    "positions": "G,F",
+    "team": "NYK",
+    "height_in": 78,
+    "name_search": "mikal bridges",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 56,
+    "name": "Miles Bridges",
+    "positions": "F",
+    "team": "PHX",
+    "height_in": 79,
+    "name_search": "miles bridges",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 57,
+    "name": "Dillon Brooks",
+    "positions": "G,F",
+    "team": "PHX",
+    "height_in": 79,
+    "name_search": "dillon brooks",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 58,
+    "name": "Johni Broome",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 81,
+    "name_search": "johni broome",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 59,
+    "name": "Jaylen Brown",
+    "positions": "G,F",
+    "team": "PHI",
+    "height_in": 78,
+    "name_search": "jaylen brown",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 60,
+    "name": "Kobe Brown",
+    "positions": "F",
+    "team": "IND",
+    "height_in": 79,
+    "name_search": "kobe brown",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 61,
+    "name": "Maliq Brown",
+    "positions": "F",
+    "team": "SAS",
+    "height_in": 80,
+    "name_search": "maliq brown",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 62,
+    "name": "Mikel Brown Jr.",
+    "positions": "G",
+    "team": "BKN",
+    "height_in": 76,
+    "name_search": "mikel brown jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 63,
+    "name": "Jalen Brunson",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 74,
+    "name_search": "jalen brunson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 64,
+    "name": "Carter Bryant",
+    "positions": "F",
+    "team": "SAS",
+    "height_in": 78,
+    "name_search": "carter bryant",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 65,
+    "name": "Thomas Bryant",
+    "positions": "C,F",
+    "team": "CLE",
+    "height_in": 81,
+    "name_search": "thomas bryant",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 66,
+    "name": "Kobe Bufkin",
+    "positions": "G",
+    "team": "UTA",
+    "height_in": 77,
+    "name_search": "kobe bufkin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 67,
+    "name": "Brayden Burries",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 76,
+    "name_search": "brayden burries",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 68,
+    "name": "Jimmy Butler III",
+    "positions": "F",
+    "team": "GSW",
+    "height_in": 78,
+    "name_search": "jimmy butler iii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 69,
+    "name": "Matas Buzelis",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 81,
+    "name_search": "matas buzelis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 70,
+    "name": "Jamal Cain",
+    "positions": "F",
+    "team": "ORL",
+    "height_in": 79,
+    "name_search": "jamal cain",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 71,
+    "name": "Kentavious Caldwell-Pope",
+    "positions": "G",
+    "team": "PHI",
+    "height_in": 77,
+    "name_search": "kentavious caldwell-pope",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 72,
+    "name": "Toumani Camara",
+    "positions": "F",
+    "team": "POR",
+    "height_in": 79,
+    "name_search": "toumani camara",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 73,
+    "name": "Clint Capela",
+    "positions": "C",
+    "team": "HOU",
+    "height_in": 82,
+    "name_search": "clint capela",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 74,
+    "name": "Dylan Cardwell",
+    "positions": "C",
+    "team": "SAC",
+    "height_in": 82,
+    "name_search": "dylan cardwell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 75,
+    "name": "Branden Carlson",
+    "positions": "C",
+    "team": "POR",
+    "height_in": 84,
+    "name_search": "branden carlson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 76,
+    "name": "Cameron Carr",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 77,
+    "name_search": "cameron carr",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 77,
+    "name": "Bub Carrington",
+    "positions": "G",
+    "team": "WAS",
+    "height_in": 76,
+    "name_search": "bub carrington",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 78,
+    "name": "Devin Carter",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 74,
+    "name_search": "devin carter",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 79,
+    "name": "Jevon Carter",
+    "positions": "G",
+    "team": "ORL",
+    "height_in": 73,
+    "name_search": "jevon carter",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 80,
+    "name": "Wendell Carter Jr.",
+    "positions": "C,F",
+    "team": "ORL",
+    "height_in": 82,
+    "name_search": "wendell carter jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 81,
+    "name": "Alex Caruso",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 77,
+    "name_search": "alex caruso",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 82,
+    "name": "Stephon Castle",
+    "positions": "G",
+    "team": "SAS",
+    "height_in": 78,
+    "name_search": "stephon castle",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 83,
+    "name": "Colin Castleton",
+    "positions": "C",
+    "team": "ORL",
+    "height_in": 83,
+    "name_search": "colin castleton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 84,
+    "name": "Rafael Castro",
+    "positions": "C",
+    "team": "ATL",
+    "height_in": 83,
+    "name_search": "rafael castro",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 85,
+    "name": "Chris Cenac Jr.",
+    "positions": "F",
+    "team": "BOS",
+    "height_in": 83,
+    "name_search": "chris cenac jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 86,
+    "name": "Julian Champagnie",
+    "positions": "F",
+    "team": "SAS",
+    "height_in": 79,
+    "name_search": "julian champagnie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 87,
+    "name": "Justin Champagnie",
+    "positions": "G,F",
+    "team": "WAS",
+    "height_in": 78,
+    "name_search": "justin champagnie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 88,
+    "name": "Cam Christie",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 77,
+    "name_search": "cam christie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 89,
+    "name": "Max Christie",
+    "positions": "G",
+    "team": "DAL",
+    "height_in": 77,
+    "name_search": "max christie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 90,
+    "name": "Sidy Cissoko",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 78,
+    "name_search": "sidy cissoko",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 91,
+    "name": "Moussa Cissé",
+    "positions": "C",
+    "team": "DAL",
+    "height_in": 83,
+    "name_search": "moussa cisse",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 92,
+    "name": "Jaylen Clark",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 77,
+    "name_search": "jaylen clark",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 93,
+    "name": "Jordan Clarkson",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 77,
+    "name_search": "jordan clarkson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 94,
+    "name": "Nic Claxton",
+    "positions": "C",
+    "team": "CHI",
+    "height_in": 83,
+    "name_search": "nic claxton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 95,
+    "name": "Walter Clayton Jr.",
+    "positions": "G",
+    "team": "DAL",
+    "height_in": 75,
+    "name_search": "walter clayton jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 96,
+    "name": "Nique Clifford",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 77,
+    "name_search": "nique clifford",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 97,
+    "name": "Donovan Clingan",
+    "positions": "C",
+    "team": "POR",
+    "height_in": 86,
+    "name_search": "donovan clingan",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 98,
+    "name": "Noah Clowney",
+    "positions": "F,C",
+    "team": "BKN",
+    "height_in": 82,
+    "name_search": "noah clowney",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 99,
+    "name": "Isaiah Collier",
+    "positions": "G",
+    "team": "UTA",
+    "height_in": 76,
+    "name_search": "isaiah collier",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 100,
+    "name": "John Collins",
+    "positions": "F,C",
+    "team": "DET",
+    "height_in": 81,
+    "name_search": "john collins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 101,
+    "name": "Zach Collins",
+    "positions": "F,C",
+    "team": "CHI",
+    "height_in": 81,
+    "name_search": "zach collins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 102,
+    "name": "Mike Conley",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 72,
+    "name_search": "mike conley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 103,
+    "name": "Ryan Conwell",
+    "positions": "G",
+    "team": "MIA",
+    "height_in": 74,
+    "name_search": "ryan conwell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 104,
+    "name": "Carson Cooper",
+    "positions": "F",
+    "team": "LAL",
+    "height_in": 82,
+    "name_search": "carson cooper",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 105,
+    "name": "Quadir Copeland",
+    "positions": "G",
+    "team": "HOU",
+    "height_in": 77,
+    "name_search": "quadir copeland",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 106,
+    "name": "Bilal Coulibaly",
+    "positions": "G",
+    "team": "WAS",
+    "height_in": 79,
+    "name_search": "bilal coulibaly",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 107,
+    "name": "Cedric Coward",
+    "positions": "G",
+    "team": "MEM",
+    "height_in": 78,
+    "name_search": "cedric coward",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 108,
+    "name": "Isaiah Crawford",
+    "positions": "F",
+    "team": "HOU",
+    "height_in": 78,
+    "name_search": "isaiah crawford",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 109,
+    "name": "LJ Cryer",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 72,
+    "name_search": "lj cryer",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 110,
+    "name": "Cade Cunningham",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 78,
+    "name_search": "cade cunningham",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 111,
+    "name": "Stephen Curry",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 74,
+    "name_search": "stephen curry",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 112,
+    "name": "Pacôme Dadiet",
+    "positions": "F",
+    "team": "NYK",
+    "height_in": 81,
+    "name_search": "pacome dadiet",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 113,
+    "name": "Dyson Daniels",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 79,
+    "name_search": "dyson daniels",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 114,
+    "name": "Anthony Davis",
+    "positions": "F,C",
+    "team": "WAS",
+    "height_in": 82,
+    "name_search": "anthony davis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 115,
+    "name": "DeMar DeRozan",
+    "positions": "G,F",
+    "team": "DEN",
+    "height_in": 78,
+    "name_search": "demar derozan",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 116,
+    "name": "RayJ Dennis",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 73,
+    "name_search": "rayj dennis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 117,
+    "name": "Donte DiVincenzo",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 76,
+    "name_search": "donte divincenzo",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 118,
+    "name": "Malik Dia",
+    "positions": "F",
+    "team": "NOP",
+    "height_in": 81,
+    "name_search": "malik dia",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 119,
+    "name": "Moussa Diabaté",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 82,
+    "name_search": "moussa diabate",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 120,
+    "name": "Alpha Diallo",
+    "positions": "G",
+    "team": "DEN",
+    "height_in": 79,
+    "name_search": "alpha diallo",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 121,
+    "name": "Mohamed Diawara",
+    "positions": "F",
+    "team": "NYK",
+    "height_in": 81,
+    "name_search": "mohamed diawara",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 122,
+    "name": "Gradey Dick",
+    "positions": "G,F",
+    "team": "LAC",
+    "height_in": 79,
+    "name_search": "gradey dick",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 123,
+    "name": "Ousmane Dieng",
+    "positions": "F",
+    "team": "MIL",
+    "height_in": 81,
+    "name_search": "ousmane dieng",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 124,
+    "name": "Khalifa Diop",
+    "positions": "C",
+    "team": "CLE",
+    "height_in": 82,
+    "name_search": "khalifa diop",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 125,
+    "name": "Josh Dix",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 77,
+    "name_search": "josh dix",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 126,
+    "name": "Tre Donaldson",
+    "positions": "G",
+    "team": "MIA",
+    "height_in": 73,
+    "name_search": "tre donaldson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 127,
+    "name": "Luka Dončić",
+    "positions": "F,G",
+    "team": "LAL",
+    "height_in": 80,
+    "name_search": "luka doncic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 128,
+    "name": "Luguentz Dort",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 76,
+    "name_search": "luguentz dort",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 129,
+    "name": "Ayo Dosunmu",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 76,
+    "name_search": "ayo dosunmu",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 130,
+    "name": "Andre Drummond",
+    "positions": "C",
+    "team": "NYK",
+    "height_in": 82,
+    "name_search": "andre drummond",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 131,
+    "name": "Kris Dunn",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 75,
+    "name_search": "kris dunn",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 132,
+    "name": "Ryan Dunn",
+    "positions": "F",
+    "team": "PHX",
+    "height_in": 79,
+    "name_search": "ryan dunn",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 133,
+    "name": "Kevin Durant",
+    "positions": "F",
+    "team": "HOU",
+    "height_in": 83,
+    "name_search": "kevin durant",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 134,
+    "name": "Jalen Duren",
+    "positions": "C",
+    "team": "DET",
+    "height_in": 82,
+    "name_search": "jalen duren",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 135,
+    "name": "AJ Dybantsa",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 81,
+    "name_search": "aj dybantsa",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 136,
+    "name": "Egor Dëmin",
+    "positions": "G",
+    "team": "BKN",
+    "height_in": 81,
+    "name_search": "egor demin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 137,
+    "name": "Tari Eason",
+    "positions": "F",
+    "team": "HOU",
+    "height_in": 80,
+    "name_search": "tari eason",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 138,
+    "name": "Zach Edey",
+    "positions": "C",
+    "team": "MEM",
+    "height_in": 88,
+    "name_search": "zach edey",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 139,
+    "name": "VJ Edgecombe",
+    "positions": "G",
+    "team": "PHI",
+    "height_in": 77,
+    "name_search": "vj edgecombe",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 140,
+    "name": "Anthony Edwards",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 76,
+    "name_search": "anthony edwards",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 141,
+    "name": "Justin Edwards",
+    "positions": "F",
+    "team": "PHI",
+    "height_in": 79,
+    "name_search": "justin edwards",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 142,
+    "name": "Zuby Ejiofor",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 80,
+    "name_search": "zuby ejiofor",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 143,
+    "name": "Keon Ellis",
+    "positions": "G",
+    "team": "BKN",
+    "height_in": 76,
+    "name_search": "keon ellis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 144,
+    "name": "Joel Embiid",
+    "positions": "C,F",
+    "team": "PHI",
+    "height_in": 84,
+    "name_search": "joel embiid",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 145,
+    "name": "Tristan Enaruna",
+    "positions": "F",
+    "team": null,
+    "height_in": 79,
+    "name_search": "tristan enaruna",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 146,
+    "name": "Noa Essengue",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 81,
+    "name_search": "noa essengue",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 147,
+    "name": "Isaiah Evans",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 78,
+    "name_search": "isaiah evans",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 148,
+    "name": "Tacko Fall",
+    "positions": "C",
+    "team": "PHI",
+    "height_in": 90,
+    "name_search": "tacko fall",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 149,
+    "name": "Jeremiah Fears",
+    "positions": "G",
+    "team": "NOP",
+    "height_in": 75,
+    "name_search": "jeremiah fears",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 150,
+    "name": "Kyle Filipowski",
+    "positions": "C",
+    "team": "UTA",
+    "height_in": 83,
+    "name_search": "kyle filipowski",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 151,
+    "name": "Dorian Finney-Smith",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 79,
+    "name_search": "dorian finney-smith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 152,
+    "name": "Cooper Flagg",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 82,
+    "name_search": "cooper flagg",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 153,
+    "name": "Rasheer Fleming",
+    "positions": "F",
+    "team": "PHX",
+    "height_in": 81,
+    "name_search": "rasheer fleming",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 154,
+    "name": "Kingston Flemings",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 75,
+    "name_search": "kingston flemings",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 155,
+    "name": "Simone Fontecchio",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 79,
+    "name_search": "simone fontecchio",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 156,
+    "name": "De'Aaron Fox",
+    "positions": "G",
+    "team": "SAS",
+    "height_in": 75,
+    "name_search": "de'aaron fox",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 157,
+    "name": "Johnny Furphy",
+    "positions": "G",
+    "team": "IND",
+    "height_in": 80,
+    "name_search": "johnny furphy",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 158,
+    "name": "Daniel Gafford",
+    "positions": "F,C",
+    "team": "DAL",
+    "height_in": 82,
+    "name_search": "daniel gafford",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 159,
+    "name": "Myron Gardner",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 77,
+    "name_search": "myron gardner",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 160,
+    "name": "Darius Garland",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 73,
+    "name_search": "darius garland",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 161,
+    "name": "Luka Garza",
+    "positions": "C",
+    "team": "BOS",
+    "height_in": 82,
+    "name_search": "luka garza",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 162,
+    "name": "Keyonte George",
+    "positions": "G",
+    "team": "UTA",
+    "height_in": 77,
+    "name_search": "keyonte george",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 163,
+    "name": "Kyshawn George",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 80,
+    "name_search": "kyshawn george",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 164,
+    "name": "Paul George",
+    "positions": "F",
+    "team": "BOS",
+    "height_in": 80,
+    "name_search": "paul george",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 165,
+    "name": "Josh Giddey",
+    "positions": "G",
+    "team": "CHI",
+    "height_in": 80,
+    "name_search": "josh giddey",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 166,
+    "name": "Shai Gilgeous-Alexander",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 78,
+    "name_search": "shai gilgeous-alexander",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 167,
+    "name": "Anthony Gill",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 80,
+    "name_search": "anthony gill",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 168,
+    "name": "Collin Gillespie",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 73,
+    "name_search": "collin gillespie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 169,
+    "name": "Ja'Kobi Gillespie",
+    "positions": "G",
+    "team": "SAS",
+    "height_in": 72,
+    "name_search": "ja'kobi gillespie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 170,
+    "name": "Rudy Gobert",
+    "positions": "C",
+    "team": "MIN",
+    "height_in": 85,
+    "name_search": "rudy gobert",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 171,
+    "name": "Vladislav Goldin",
+    "positions": "C",
+    "team": "MIA",
+    "height_in": 84,
+    "name_search": "vladislav goldin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 172,
+    "name": "Hugo González",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 78,
+    "name_search": "hugo gonzalez",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 173,
+    "name": "Jordan Goodwin",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 75,
+    "name_search": "jordan goodwin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 174,
+    "name": "Aaron Gordon",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 80,
+    "name_search": "aaron gordon",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 175,
+    "name": "Jerami Grant",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 79,
+    "name_search": "jerami grant",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 176,
+    "name": "Allen Graves",
+    "positions": "F",
+    "team": "TOR",
+    "height_in": 80,
+    "name_search": "allen graves",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 177,
+    "name": "AJ Green",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 76,
+    "name_search": "aj green",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 178,
+    "name": "Draymond Green",
+    "positions": "F,C",
+    "team": "GSW",
+    "height_in": 78,
+    "name_search": "draymond green",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 179,
+    "name": "Jalen Green",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 76,
+    "name_search": "jalen green",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 180,
+    "name": "Javonte Green",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 77,
+    "name_search": "javonte green",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 181,
+    "name": "Josh Green",
+    "positions": "G",
+    "team": "UTA",
+    "height_in": 78,
+    "name_search": "josh green",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 182,
+    "name": "Quentin Grimes",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 76,
+    "name_search": "quentin grimes",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 183,
+    "name": "Mouhamed Gueye",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 83,
+    "name_search": "mouhamed gueye",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 184,
+    "name": "Rui Hachimura",
+    "positions": "F",
+    "team": "LAC",
+    "height_in": 80,
+    "name_search": "rui hachimura",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 185,
+    "name": "Tyrese Haliburton",
+    "positions": "G",
+    "team": "IND",
+    "height_in": 77,
+    "name_search": "tyrese haliburton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 186,
+    "name": "PJ Hall",
+    "positions": "C",
+    "team": "CHA",
+    "height_in": 81,
+    "name_search": "pj hall",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 187,
+    "name": "Tim Hardaway Jr.",
+    "positions": "G",
+    "team": "MIA",
+    "height_in": 77,
+    "name_search": "tim hardaway jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 188,
+    "name": "James Harden",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 76,
+    "name_search": "james harden",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 189,
+    "name": "Jaden Hardy",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 76,
+    "name_search": "jaden hardy",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 190,
+    "name": "Elijah Harkless",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 75,
+    "name_search": "elijah harkless",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 191,
+    "name": "Dylan Harper",
+    "positions": "G",
+    "team": "SAS",
+    "height_in": 77,
+    "name_search": "dylan harper",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 192,
+    "name": "Ron Harper Jr.",
+    "positions": "G,F",
+    "team": "BOS",
+    "height_in": 77,
+    "name_search": "ron harper jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 193,
+    "name": "Tobias Harris",
+    "positions": "F",
+    "team": "SAS",
+    "height_in": 80,
+    "name_search": "tobias harris",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 194,
+    "name": "Josh Hart",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 77,
+    "name_search": "josh hart",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 195,
+    "name": "Isaiah Hartenstein",
+    "positions": "C,F",
+    "team": "OKC",
+    "height_in": 84,
+    "name_search": "isaiah hartenstein",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 196,
+    "name": "Sam Hauser",
+    "positions": "F",
+    "team": "BOS",
+    "height_in": 79,
+    "name_search": "sam hauser",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 197,
+    "name": "Jordan Hawkins",
+    "positions": "G",
+    "team": "CHI",
+    "height_in": 76,
+    "name_search": "jordan hawkins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 198,
+    "name": "Jaxson Hayes",
+    "positions": "C,F",
+    "team": "UTA",
+    "height_in": 84,
+    "name_search": "jaxson hayes",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 199,
+    "name": "Scoot Henderson",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 75,
+    "name_search": "scoot henderson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 200,
+    "name": "Taylor Hendricks",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 81,
+    "name_search": "taylor hendricks",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 201,
+    "name": "Tyler Herro",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 77,
+    "name_search": "tyler herro",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 202,
+    "name": "Mario Hezonja",
+    "positions": "F,G",
+    "team": "CLE",
+    "height_in": 80,
+    "name_search": "mario hezonja",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 203,
+    "name": "Buddy Hield",
+    "positions": "G",
+    "team": "CHI",
+    "height_in": 77,
+    "name_search": "buddy hield",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 204,
+    "name": "Jrue Holiday",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 76,
+    "name_search": "jrue holiday",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 205,
+    "name": "Ronald Holland II",
+    "positions": "F",
+    "team": "DET",
+    "height_in": 80,
+    "name_search": "ronald holland ii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 206,
+    "name": "DaRon Holmes II",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 81,
+    "name_search": "daron holmes ii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 207,
+    "name": "Chet Holmgren",
+    "positions": "C,F",
+    "team": "OKC",
+    "height_in": 85,
+    "name_search": "chet holmgren",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 208,
+    "name": "Bryce Hopkins",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 79,
+    "name_search": "bryce hopkins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 209,
+    "name": "Al Horford",
+    "positions": "C",
+    "team": "GSW",
+    "height_in": 80,
+    "name_search": "al horford",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 210,
+    "name": "Jett Howard",
+    "positions": "G",
+    "team": "DAL",
+    "height_in": 80,
+    "name_search": "jett howard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 211,
+    "name": "Kevin Huerter",
+    "positions": "G,F",
+    "team": "DET",
+    "height_in": 78,
+    "name_search": "kevin huerter",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 212,
+    "name": "Jay Huff",
+    "positions": "C",
+    "team": "IND",
+    "height_in": 85,
+    "name_search": "jay huff",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 213,
+    "name": "Ariel Hukporti",
+    "positions": "C",
+    "team": "PHI",
+    "height_in": 84,
+    "name_search": "ariel hukporti",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 214,
+    "name": "De'Andre Hunter",
+    "positions": "F,G",
+    "team": "SAC",
+    "height_in": 79,
+    "name_search": "de'andre hunter",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 215,
+    "name": "Bones Hyland",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 74,
+    "name_search": "bones hyland",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 216,
+    "name": "Oso Ighodaro",
+    "positions": "F",
+    "team": "PHX",
+    "height_in": 83,
+    "name_search": "oso ighodaro",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 217,
+    "name": "Graham Ike",
+    "positions": "F,C",
+    "team": "GSW",
+    "height_in": 82,
+    "name_search": "graham ike",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 218,
+    "name": "Brandon Ingram",
+    "positions": "F",
+    "team": "LAC",
+    "height_in": 80,
+    "name_search": "brandon ingram",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 219,
+    "name": "Harrison Ingram",
+    "positions": "F",
+    "team": "UTA",
+    "height_in": 77,
+    "name_search": "harrison ingram",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 220,
+    "name": "Kyrie Irving",
+    "positions": "G",
+    "team": "DAL",
+    "height_in": 74,
+    "name_search": "kyrie irving",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 221,
+    "name": "Jonathan Isaac",
+    "positions": "F",
+    "team": "ORL",
+    "height_in": 82,
+    "name_search": "jonathan isaac",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 222,
+    "name": "GG Jackson",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 81,
+    "name_search": "gg jackson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 223,
+    "name": "Isaiah Jackson",
+    "positions": "F",
+    "team": "LAC",
+    "height_in": 80,
+    "name_search": "isaiah jackson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 224,
+    "name": "Quenton Jackson",
+    "positions": "G",
+    "team": "IND",
+    "height_in": 76,
+    "name_search": "quenton jackson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 225,
+    "name": "Jaren Jackson Jr.",
+    "positions": "F,C",
+    "team": "UTA",
+    "height_in": 82,
+    "name_search": "jaren jackson jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 226,
+    "name": "Trayce Jackson-Davis",
+    "positions": "F",
+    "team": "TOR",
+    "height_in": 81,
+    "name_search": "trayce jackson-davis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 227,
+    "name": "Kasparas Jakučionis",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 77,
+    "name_search": "kasparas jakucionis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 228,
+    "name": "Bronny James",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 74,
+    "name_search": "bronny james",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 229,
+    "name": "LeBron James",
+    "positions": "F",
+    "team": "PHI",
+    "height_in": 81,
+    "name_search": "lebron james",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 230,
+    "name": "Sion James",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 77,
+    "name_search": "sion james",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 231,
+    "name": "Jaime Jaquez Jr.",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 79,
+    "name_search": "jaime jaquez jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 232,
+    "name": "Joshua Jefferson",
+    "positions": "F",
+    "team": "BKN",
+    "height_in": 80,
+    "name_search": "joshua jefferson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 233,
+    "name": "Daniss Jenkins",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 76,
+    "name_search": "daniss jenkins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 234,
+    "name": "Ty Jerome",
+    "positions": "G,F",
+    "team": "MEM",
+    "height_in": 77,
+    "name_search": "ty jerome",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 235,
+    "name": "Isaiah Joe",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 76,
+    "name_search": "isaiah joe",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 236,
+    "name": "AJ Johnson",
+    "positions": "G",
+    "team": "NOP",
+    "height_in": 78,
+    "name_search": "aj johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 237,
+    "name": "Cameron Johnson",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 80,
+    "name_search": "cameron johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 238,
+    "name": "Chaney Johnson",
+    "positions": "G,F",
+    "team": "BKN",
+    "height_in": 79,
+    "name_search": "chaney johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 239,
+    "name": "Jalen Johnson",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 80,
+    "name_search": "jalen johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 240,
+    "name": "Keldon Johnson",
+    "positions": "F,G",
+    "team": "SAS",
+    "height_in": 77,
+    "name_search": "keldon johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 241,
+    "name": "Keshad Johnson",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 78,
+    "name_search": "keshad johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 242,
+    "name": "Tre Johnson",
+    "positions": "G",
+    "team": "WAS",
+    "height_in": 77,
+    "name_search": "tre johnson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 243,
+    "name": "Morez Johnson Jr.",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 82,
+    "name_search": "morez johnson jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 244,
+    "name": "Nikola Jokić",
+    "positions": "C",
+    "team": "DEN",
+    "height_in": 83,
+    "name_search": "nikola jokic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 245,
+    "name": "Herbert Jones",
+    "positions": "F",
+    "team": "NOP",
+    "height_in": 79,
+    "name_search": "herbert jones",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 246,
+    "name": "Isaac Jones",
+    "positions": "F",
+    "team": "DET",
+    "height_in": 80,
+    "name_search": "isaac jones",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 247,
+    "name": "Kam Jones",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 76,
+    "name_search": "kam jones",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 248,
+    "name": "Spencer Jones",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 79,
+    "name_search": "spencer jones",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 249,
+    "name": "Tre Jones",
+    "positions": "G",
+    "team": "CHI",
+    "height_in": 73,
+    "name_search": "tre jones",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 250,
+    "name": "Tyus Jones",
+    "positions": "G",
+    "team": "DEN",
+    "height_in": 73,
+    "name_search": "tyus jones",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 251,
+    "name": "David Jones Garcia",
+    "positions": "G",
+    "team": "SAS",
+    "height_in": 76,
+    "name_search": "david jones garcia",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 252,
+    "name": "Derrick Jones Jr.",
+    "positions": "F",
+    "team": "LAC",
+    "height_in": 78,
+    "name_search": "derrick jones jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 253,
+    "name": "DeAndre Jordan",
+    "positions": "C",
+    "team": "NOP",
+    "height_in": 83,
+    "name_search": "deandre jordan",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 254,
+    "name": "Nikola Jović",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 82,
+    "name_search": "nikola jovic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 255,
+    "name": "Ryan Kalkbrenner",
+    "positions": "C",
+    "team": "CHA",
+    "height_in": 85,
+    "name_search": "ryan kalkbrenner",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 256,
+    "name": "Arthur Kaluma",
+    "positions": "F",
+    "team": "LAL",
+    "height_in": 79,
+    "name_search": "arthur kaluma",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 257,
+    "name": "Alex Karaban",
+    "positions": "F",
+    "team": "SAC",
+    "height_in": 79,
+    "name_search": "alex karaban",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 258,
+    "name": "Luke Kennard",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 77,
+    "name_search": "luke kennard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 259,
+    "name": "Jayson Kent",
+    "positions": "F",
+    "team": "POR",
+    "height_in": 80,
+    "name_search": "jayson kent",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 260,
+    "name": "Walker Kessler",
+    "positions": "C",
+    "team": "LAL",
+    "height_in": 85,
+    "name_search": "walker kessler",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 261,
+    "name": "Corey Kispert",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 78,
+    "name_search": "corey kispert",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 262,
+    "name": "Dalton Knecht",
+    "positions": "F",
+    "team": "NYK",
+    "height_in": 77,
+    "name_search": "dalton knecht",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 263,
+    "name": "Kon Knueppel",
+    "positions": "G,F",
+    "team": "CHA",
+    "height_in": 78,
+    "name_search": "kon knueppel",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 264,
+    "name": "Tyler Kolek",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 74,
+    "name_search": "tyler kolek",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 265,
+    "name": "Luke Kornet",
+    "positions": "C,F",
+    "team": "SAS",
+    "height_in": 85,
+    "name_search": "luke kornet",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 266,
+    "name": "Vít Krejčí",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 80,
+    "name_search": "vit krejci",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 267,
+    "name": "Jonathan Kuminga",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 79,
+    "name_search": "jonathan kuminga",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 268,
+    "name": "Kyle Kuzma",
+    "positions": "F",
+    "team": "MIL",
+    "height_in": 80,
+    "name_search": "kyle kuzma",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 269,
+    "name": "Jake LaRavia",
+    "positions": "F",
+    "team": "LAL",
+    "height_in": 80,
+    "name_search": "jake laravia",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 270,
+    "name": "Zach LaVine",
+    "positions": "G",
+    "team": "SAC",
+    "height_in": 77,
+    "name_search": "zach lavine",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 271,
+    "name": "Jock Landale",
+    "positions": "C",
+    "team": "ATL",
+    "height_in": 83,
+    "name_search": "jock landale",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 272,
+    "name": "Chaz Lanier",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 76,
+    "name_search": "chaz lanier",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 273,
+    "name": "Pelle Larsson",
+    "positions": "G",
+    "team": "MIA",
+    "height_in": 77,
+    "name_search": "pelle larsson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 274,
+    "name": "Tobi Lawal",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 79,
+    "name_search": "tobi lawal",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 275,
+    "name": "Caris LeVert",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 79,
+    "name_search": "caris levert",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 276,
+    "name": "Yaxel Lendeborg",
+    "positions": "F",
+    "team": "GSW",
+    "height_in": 81,
+    "name_search": "yaxel lendeborg",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 277,
+    "name": "Kawhi Leonard",
+    "positions": "F",
+    "team": "TOR",
+    "height_in": 79,
+    "name_search": "kawhi leonard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 278,
+    "name": "Malevy Leons",
+    "positions": "F",
+    "team": "GSW",
+    "height_in": 81,
+    "name_search": "malevy leons",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 279,
+    "name": "Damian Lillard",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 74,
+    "name_search": "damian lillard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 280,
+    "name": "Dereck Lively II",
+    "positions": "C",
+    "team": "DAL",
+    "height_in": 85,
+    "name_search": "dereck lively ii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 281,
+    "name": "Kevon Looney",
+    "positions": "F",
+    "team": "LAL",
+    "height_in": 81,
+    "name_search": "kevon looney",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 282,
+    "name": "Brook Lopez",
+    "positions": "C",
+    "team": "LAC",
+    "height_in": 85,
+    "name_search": "brook lopez",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 283,
+    "name": "Caleb Love",
+    "positions": "G",
+    "team": "PHI",
+    "height_in": 75,
+    "name_search": "caleb love",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 284,
+    "name": "Lawson Lovering",
+    "positions": "C",
+    "team": null,
+    "height_in": 84,
+    "name_search": "lawson lovering",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 285,
+    "name": "Trey Lyles",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 81,
+    "name_search": "trey lyles",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 286,
+    "name": "Karim López",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 80,
+    "name_search": "karim lopez",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 287,
+    "name": "Khaman Maluach",
+    "positions": "C",
+    "team": "PHX",
+    "height_in": 85,
+    "name_search": "khaman maluach",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 288,
+    "name": "Sandro Mamukelashvili",
+    "positions": "F,C",
+    "team": "LAL",
+    "height_in": 82,
+    "name_search": "sandro mamukelashvili",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 289,
+    "name": "Terance Mann",
+    "positions": "G,F",
+    "team": "BKN",
+    "height_in": 77,
+    "name_search": "terance mann",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 290,
+    "name": "Tre Mann",
+    "positions": "G",
+    "team": "WAS",
+    "height_in": 76,
+    "name_search": "tre mann",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 291,
+    "name": "Aday Mara",
+    "positions": "C",
+    "team": "OKC",
+    "height_in": 87,
+    "name_search": "aday mara",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 292,
+    "name": "Lauri Markkanen",
+    "positions": "F,C",
+    "team": "UTA",
+    "height_in": 85,
+    "name_search": "lauri markkanen",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 293,
+    "name": "Bogoljub Marković",
+    "positions": "F",
+    "team": "MIL",
+    "height_in": 82,
+    "name_search": "bogoljub markovic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 294,
+    "name": "Naji Marshall",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 78,
+    "name_search": "naji marshall",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 295,
+    "name": "Alijah Martin",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 74,
+    "name_search": "alijah martin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 296,
+    "name": "Caleb Martin",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 77,
+    "name_search": "caleb martin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 297,
+    "name": "Nick Martinelli",
+    "positions": "F",
+    "team": "LAC",
+    "height_in": 79,
+    "name_search": "nick martinelli",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 298,
+    "name": "Jahmai Mashack",
+    "positions": "G",
+    "team": "MEM",
+    "height_in": 76,
+    "name_search": "jahmai mashack",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 299,
+    "name": "Bennedict Mathurin",
+    "positions": "G,F",
+    "team": "NOP",
+    "height_in": 77,
+    "name_search": "bennedict mathurin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 300,
+    "name": "Karlo Matković",
+    "positions": "F,C",
+    "team": "NOP",
+    "height_in": 83,
+    "name_search": "karlo matkovic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 301,
+    "name": "Tyrese Maxey",
+    "positions": "G",
+    "team": "PHI",
+    "height_in": 74,
+    "name_search": "tyrese maxey",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 302,
+    "name": "Chris Mañon",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 76,
+    "name_search": "chris manon",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 303,
+    "name": "Miles McBride",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 74,
+    "name_search": "miles mcbride",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 304,
+    "name": "Jared McCain",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 74,
+    "name_search": "jared mccain",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 305,
+    "name": "CJ McCollum",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 74,
+    "name_search": "cj mccollum",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 306,
+    "name": "T.J. McConnell",
+    "positions": "G",
+    "team": "IND",
+    "height_in": 73,
+    "name_search": "t.j. mcconnell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 307,
+    "name": "Kevin McCullar Jr.",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 78,
+    "name_search": "kevin mccullar jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 308,
+    "name": "Jaden McDaniels",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 81,
+    "name_search": "jaden mcdaniels",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 309,
+    "name": "Bryce McGowens",
+    "positions": "G",
+    "team": "NOP",
+    "height_in": 78,
+    "name_search": "bryce mcgowens",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 310,
+    "name": "Jordan McLaughlin",
+    "positions": "G",
+    "team": "SAS",
+    "height_in": 71,
+    "name_search": "jordan mclaughlin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 311,
+    "name": "Liam McNeeley",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 80,
+    "name_search": "liam mcneeley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 312,
+    "name": "De'Anthony Melton",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 74,
+    "name_search": "de'anthony melton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 313,
+    "name": "Sam Merrill",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 76,
+    "name_search": "sam merrill",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 314,
+    "name": "Khris Middleton",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 79,
+    "name_search": "khris middleton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 315,
+    "name": "Baba Miller",
+    "positions": "F",
+    "team": "LAC",
+    "height_in": 83,
+    "name_search": "baba miller",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 316,
+    "name": "Brandon Miller",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 79,
+    "name_search": "brandon miller",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 317,
+    "name": "Jordan Miller",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 77,
+    "name_search": "jordan miller",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 318,
+    "name": "Leonard Miller",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 82,
+    "name_search": "leonard miller",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 319,
+    "name": "Riley Minix",
+    "positions": "F",
+    "team": null,
+    "height_in": 79,
+    "name_search": "riley minix",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 320,
+    "name": "Josh Minott",
+    "positions": "F",
+    "team": "BKN",
+    "height_in": 81,
+    "name_search": "josh minott",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 321,
+    "name": "Yves Missi",
+    "positions": "C",
+    "team": "NOP",
+    "height_in": 83,
+    "name_search": "yves missi",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 322,
+    "name": "Ajay Mitchell",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 76,
+    "name_search": "ajay mitchell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 323,
+    "name": "Davion Mitchell",
+    "positions": "G",
+    "team": "MIA",
+    "height_in": 72,
+    "name_search": "davion mitchell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 324,
+    "name": "Dillon Mitchell",
+    "positions": "F",
+    "team": "BOS",
+    "height_in": 78,
+    "name_search": "dillon mitchell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 325,
+    "name": "Donovan Mitchell",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 74,
+    "name_search": "donovan mitchell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 326,
+    "name": "Evan Mobley",
+    "positions": "C",
+    "team": "CLE",
+    "height_in": 83,
+    "name_search": "evan mobley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 327,
+    "name": "Jonathan Mogbo",
+    "positions": "F",
+    "team": "SAC",
+    "height_in": 79,
+    "name_search": "jonathan mogbo",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 328,
+    "name": "Malik Monk",
+    "positions": "G",
+    "team": "SAC",
+    "height_in": 75,
+    "name_search": "malik monk",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 329,
+    "name": "Moses Moody",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 77,
+    "name_search": "moses moody",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 330,
+    "name": "Alex Morales",
+    "positions": "G",
+    "team": "ORL",
+    "height_in": 78,
+    "name_search": "alex morales",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 331,
+    "name": "Ja Morant",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 74,
+    "name_search": "ja morant",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 332,
+    "name": "Trey Murphy III",
+    "positions": "F",
+    "team": "NOP",
+    "height_in": 81,
+    "name_search": "trey murphy iii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 333,
+    "name": "Dejounte Murray",
+    "positions": "G",
+    "team": "NOP",
+    "height_in": 76,
+    "name_search": "dejounte murray",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 334,
+    "name": "Jamal Murray",
+    "positions": "G",
+    "team": "DEN",
+    "height_in": 76,
+    "name_search": "jamal murray",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 335,
+    "name": "Keegan Murray",
+    "positions": "F",
+    "team": "SAC",
+    "height_in": 80,
+    "name_search": "keegan murray",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 336,
+    "name": "Kris Murray",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 80,
+    "name_search": "kris murray",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 337,
+    "name": "Collin Murray-Boyles",
+    "positions": "F",
+    "team": "TOR",
+    "height_in": 79,
+    "name_search": "collin murray-boyles",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 338,
+    "name": "Svi Mykhailiuk",
+    "positions": "G,F",
+    "team": "UTA",
+    "height_in": 78,
+    "name_search": "svi mykhailiuk",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 339,
+    "name": "Pete Nance",
+    "positions": "F",
+    "team": "MIL",
+    "height_in": 81,
+    "name_search": "pete nance",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 340,
+    "name": "Larry Nance Jr.",
+    "positions": "F,C",
+    "team": "IND",
+    "height_in": 80,
+    "name_search": "larry nance jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 341,
+    "name": "Grant Nelson",
+    "positions": "F",
+    "team": "BKN",
+    "height_in": 82,
+    "name_search": "grant nelson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 342,
+    "name": "Izaiyah Nelson",
+    "positions": "F",
+    "team": "ORL",
+    "height_in": 82,
+    "name_search": "izaiyah nelson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 343,
+    "name": "Andrew Nembhard",
+    "positions": "G,F",
+    "team": "IND",
+    "height_in": 76,
+    "name_search": "andrew nembhard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 344,
+    "name": "Ryan Nembhard",
+    "positions": "G",
+    "team": "DEN",
+    "height_in": 71,
+    "name_search": "ryan nembhard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 345,
+    "name": "Aaron Nesmith",
+    "positions": "G,F",
+    "team": "IND",
+    "height_in": 77,
+    "name_search": "aaron nesmith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 346,
+    "name": "Asa Newell",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 81,
+    "name_search": "asa newell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 347,
+    "name": "Georges Niang",
+    "positions": "F",
+    "team": "GSW",
+    "height_in": 79,
+    "name_search": "georges niang",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 348,
+    "name": "Tyler Nickel",
+    "positions": "F",
+    "team": "NYK",
+    "height_in": 79,
+    "name_search": "tyler nickel",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 349,
+    "name": "Yanic Konan Niederhäuser",
+    "positions": "C",
+    "team": "LAC",
+    "height_in": 83,
+    "name_search": "yanic konan niederhauser",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 350,
+    "name": "Zeke Nnaji",
+    "positions": "F,C",
+    "team": "DEN",
+    "height_in": 82,
+    "name_search": "zeke nnaji",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 351,
+    "name": "Jusuf Nurkić",
+    "positions": "C",
+    "team": "UTA",
+    "height_in": 84,
+    "name_search": "jusuf nurkic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 352,
+    "name": "Royce O'Neale",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 78,
+    "name_search": "royce o'neale",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 353,
+    "name": "Josh Okogie",
+    "positions": "G",
+    "team": "UTA",
+    "height_in": 76,
+    "name_search": "josh okogie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 354,
+    "name": "Onyeka Okongwu",
+    "positions": "F,C",
+    "team": "ATL",
+    "height_in": 82,
+    "name_search": "onyeka okongwu",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 355,
+    "name": "Ebuka Okorie",
+    "positions": "G",
+    "team": "DET",
+    "height_in": 74,
+    "name_search": "ebuka okorie",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 356,
+    "name": "Isaac Okoro",
+    "positions": "F,G",
+    "team": "CHI",
+    "height_in": 78,
+    "name_search": "isaac okoro",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 357,
+    "name": "Felix Okpara",
+    "positions": "C",
+    "team": "WAS",
+    "height_in": 83,
+    "name_search": "felix okpara",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 358,
+    "name": "Norchad Omier",
+    "positions": "F",
+    "team": "CLE",
+    "height_in": 77,
+    "name_search": "norchad omier",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 359,
+    "name": "Ugonna Onyenso",
+    "positions": "C",
+    "team": "DET",
+    "height_in": 83,
+    "name_search": "ugonna onyenso",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 360,
+    "name": "Kelly Oubre Jr.",
+    "positions": "F,G",
+    "team": "IND",
+    "height_in": 79,
+    "name_search": "kelly oubre jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 361,
+    "name": "Gary Payton II",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 74,
+    "name_search": "gary payton ii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 362,
+    "name": "Koa Peat",
+    "positions": "F",
+    "team": "PHX",
+    "height_in": 80,
+    "name_search": "koa peat",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 363,
+    "name": "Micah Peavy",
+    "positions": "G,F",
+    "team": "OKC",
+    "height_in": 78,
+    "name_search": "micah peavy",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 364,
+    "name": "Sean Pedulla",
+    "positions": "G",
+    "team": "SAC",
+    "height_in": 73,
+    "name_search": "sean pedulla",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 365,
+    "name": "Noah Penda",
+    "positions": "G,F",
+    "team": "ORL",
+    "height_in": 79,
+    "name_search": "noah penda",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 366,
+    "name": "Darryn Peterson",
+    "positions": "G",
+    "team": "UTA",
+    "height_in": 78,
+    "name_search": "darryn peterson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 367,
+    "name": "Julian Phillips",
+    "positions": "F",
+    "team": "HOU",
+    "height_in": 79,
+    "name_search": "julian phillips",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 368,
+    "name": "Labaron Philon Jr.",
+    "positions": "G",
+    "team": "PHI",
+    "height_in": 75,
+    "name_search": "labaron philon jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 369,
+    "name": "Jalen Pickett",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 74,
+    "name_search": "jalen pickett",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 370,
+    "name": "Jaron Pierre Jr.",
+    "positions": "G",
+    "team": "NOP",
+    "height_in": 78,
+    "name_search": "jaron pierre jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 371,
+    "name": "Scotty Pippen Jr.",
+    "positions": "G",
+    "team": "MEM",
+    "height_in": 73,
+    "name_search": "scotty pippen jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 372,
+    "name": "Daeqwon Plowden",
+    "positions": "G,F",
+    "team": "SAC",
+    "height_in": 76,
+    "name_search": "daeqwon plowden",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 373,
+    "name": "Mason Plumlee",
+    "positions": "F,C",
+    "team": "SAC",
+    "height_in": 84,
+    "name_search": "mason plumlee",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 374,
+    "name": "Brandin Podziemski",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 76,
+    "name_search": "brandin podziemski",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 375,
+    "name": "Jakob Poeltl",
+    "positions": "C",
+    "team": "TOR",
+    "height_in": 84,
+    "name_search": "jakob poeltl",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 376,
+    "name": "Jordan Poole",
+    "positions": "G",
+    "team": "NOP",
+    "height_in": 76,
+    "name_search": "jordan poole",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 377,
+    "name": "Craig Porter Jr.",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 73,
+    "name_search": "craig porter jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 378,
+    "name": "Michael Porter Jr.",
+    "positions": "F",
+    "team": "BKN",
+    "height_in": 82,
+    "name_search": "michael porter jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 379,
+    "name": "Bobby Portis Jr.",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 82,
+    "name_search": "bobby portis jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 380,
+    "name": "Kristaps Porziņģis",
+    "positions": "F,C",
+    "team": "GSW",
+    "height_in": 86,
+    "name_search": "kristaps porzingis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 381,
+    "name": "Quinten Post",
+    "positions": "C",
+    "team": "MEM",
+    "height_in": 84,
+    "name_search": "quinten post",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 382,
+    "name": "Micah Potter",
+    "positions": "C",
+    "team": "POR",
+    "height_in": 81,
+    "name_search": "micah potter",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 383,
+    "name": "Drake Powell",
+    "positions": "G,F",
+    "team": "BKN",
+    "height_in": 78,
+    "name_search": "drake powell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 384,
+    "name": "Norman Powell",
+    "positions": "G",
+    "team": "CHI",
+    "height_in": 76,
+    "name_search": "norman powell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 385,
+    "name": "Taurean Prince",
+    "positions": "F",
+    "team": "DET",
+    "height_in": 78,
+    "name_search": "taurean prince",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 386,
+    "name": "Payton Pritchard",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 73,
+    "name_search": "payton pritchard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 387,
+    "name": "Tyrese Proctor",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 76,
+    "name_search": "tyrese proctor",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 388,
+    "name": "Olivier-Maxence Prosper",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 79,
+    "name_search": "olivier-maxence prosper",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 389,
+    "name": "Zyon Pullin",
+    "positions": "G",
+    "team": "MIN",
+    "height_in": 76,
+    "name_search": "zyon pullin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 390,
+    "name": "Jayden Quaintance",
+    "positions": "F",
+    "team": "SAS",
+    "height_in": 81,
+    "name_search": "jayden quaintance",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 391,
+    "name": "Derik Queen",
+    "positions": "C",
+    "team": "NOP",
+    "height_in": 83,
+    "name_search": "derik queen",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 392,
+    "name": "Neemias Queta",
+    "positions": "C",
+    "team": "BOS",
+    "height_in": 84,
+    "name_search": "neemias queta",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 393,
+    "name": "Immanuel Quickley",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 75,
+    "name_search": "immanuel quickley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 394,
+    "name": "Julius Randle",
+    "positions": "F,C",
+    "team": "BKN",
+    "height_in": 81,
+    "name_search": "julius randle",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 395,
+    "name": "Maxime Raynaud",
+    "positions": "C",
+    "team": "SAC",
+    "height_in": 85,
+    "name_search": "maxime raynaud",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 396,
+    "name": "Duop Reath",
+    "positions": "C",
+    "team": "PHX",
+    "height_in": 82,
+    "name_search": "duop reath",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 397,
+    "name": "Austin Reaves",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 77,
+    "name_search": "austin reaves",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 398,
+    "name": "Paul Reed",
+    "positions": "F",
+    "team": "DET",
+    "height_in": 81,
+    "name_search": "paul reed",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 399,
+    "name": "Tarris Reed Jr.",
+    "positions": "C",
+    "team": "SAS",
+    "height_in": 82,
+    "name_search": "tarris reed jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 400,
+    "name": "Julian Reese",
+    "positions": "F",
+    "team": "NOP",
+    "height_in": 83,
+    "name_search": "julian reese",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 401,
+    "name": "Naz Reid",
+    "positions": "C,F",
+    "team": "CHA",
+    "height_in": 81,
+    "name_search": "naz reid",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 402,
+    "name": "Will Richard",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 75,
+    "name_search": "will richard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 403,
+    "name": "Nick Richards",
+    "positions": "C",
+    "team": "MIA",
+    "height_in": 83,
+    "name_search": "nick richards",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 404,
+    "name": "Jase Richardson",
+    "positions": "G",
+    "team": "ORL",
+    "height_in": 74,
+    "name_search": "jase richardson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 405,
+    "name": "Will Riley",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 81,
+    "name_search": "will riley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 406,
+    "name": "Zaccharie Risacher",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 80,
+    "name_search": "zaccharie risacher",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 407,
+    "name": "Duncan Robinson",
+    "positions": "F",
+    "team": "DET",
+    "height_in": 79,
+    "name_search": "duncan robinson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 408,
+    "name": "Mitchell Robinson",
+    "positions": "C,F",
+    "team": "BOS",
+    "height_in": 84,
+    "name_search": "mitchell robinson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 409,
+    "name": "Ryan Rollins",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 75,
+    "name_search": "ryan rollins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 410,
+    "name": "Rayan Rupert",
+    "positions": "G,F",
+    "team": "PHI",
+    "height_in": 79,
+    "name_search": "rayan rupert",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 411,
+    "name": "Cormac Ryan",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 77,
+    "name_search": "cormac ryan",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 412,
+    "name": "Domantas Sabonis",
+    "positions": "F,C",
+    "team": "SAC",
+    "height_in": 82,
+    "name_search": "domantas sabonis",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 413,
+    "name": "Tidjane Salaün",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 82,
+    "name_search": "tidjane salaun",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 414,
+    "name": "Kobe Sanders",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 80,
+    "name_search": "kobe sanders",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 415,
+    "name": "Gui Santos",
+    "positions": "F",
+    "team": "GSW",
+    "height_in": 79,
+    "name_search": "gui santos",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 416,
+    "name": "Ben Saraf",
+    "positions": "G",
+    "team": "BKN",
+    "height_in": 77,
+    "name_search": "ben saraf",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 417,
+    "name": "Alex Sarr",
+    "positions": "C",
+    "team": "WAS",
+    "height_in": 84,
+    "name_search": "alex sarr",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 418,
+    "name": "Marcus Sasser",
+    "positions": "G",
+    "team": "DAL",
+    "height_in": 74,
+    "name_search": "marcus sasser",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 419,
+    "name": "Richie Saunders",
+    "positions": "G",
+    "team": "MEM",
+    "height_in": 77,
+    "name_search": "richie saunders",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 420,
+    "name": "Baylor Scheierman",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 78,
+    "name_search": "baylor scheierman",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 421,
+    "name": "Dennis Schröder",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 73,
+    "name_search": "dennis schroder",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 422,
+    "name": "Jaylin Sellers",
+    "positions": "G",
+    "team": "CHI",
+    "height_in": 76,
+    "name_search": "jaylin sellers",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 423,
+    "name": "Alperen Sengun",
+    "positions": "C",
+    "team": "HOU",
+    "height_in": 83,
+    "name_search": "alperen sengun",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 424,
+    "name": "Brice Sensabaugh",
+    "positions": "F",
+    "team": "UTA",
+    "height_in": 78,
+    "name_search": "brice sensabaugh",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 425,
+    "name": "Collin Sexton",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 73,
+    "name_search": "collin sexton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 426,
+    "name": "Landry Shamet",
+    "positions": "G",
+    "team": "NYK",
+    "height_in": 77,
+    "name_search": "landry shamet",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 427,
+    "name": "Terrence Shannon Jr",
+    "positions": "G,F",
+    "team": "MIN",
+    "height_in": 78,
+    "name_search": "terrence shannon jr",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 428,
+    "name": "Emanuel Sharp",
+    "positions": "G",
+    "team": "SAC",
+    "height_in": 75,
+    "name_search": "emanuel sharp",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 429,
+    "name": "Day'Ron Sharpe",
+    "positions": "C",
+    "team": "BKN",
+    "height_in": 82,
+    "name_search": "day'ron sharpe",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 430,
+    "name": "Shaedon Sharpe",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 77,
+    "name_search": "shaedon sharpe",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 431,
+    "name": "Jamal Shead",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 73,
+    "name_search": "jamal shead",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 432,
+    "name": "Ben Sheppard",
+    "positions": "G",
+    "team": "IND",
+    "height_in": 78,
+    "name_search": "ben sheppard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 433,
+    "name": "Reed Sheppard",
+    "positions": "G",
+    "team": "HOU",
+    "height_in": 74,
+    "name_search": "reed sheppard",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 434,
+    "name": "Pascal Siakam",
+    "positions": "F",
+    "team": "IND",
+    "height_in": 81,
+    "name_search": "pascal siakam",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 435,
+    "name": "Ben Simmons",
+    "positions": "G,F",
+    "team": "SAC",
+    "height_in": 81,
+    "name_search": "ben simmons",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 436,
+    "name": "Anfernee Simons",
+    "positions": "G",
+    "team": "PHI",
+    "height_in": 76,
+    "name_search": "anfernee simons",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 437,
+    "name": "Jericho Sims",
+    "positions": "C",
+    "team": "MIL",
+    "height_in": 82,
+    "name_search": "jericho sims",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 438,
+    "name": "Jalen Slawson",
+    "positions": "F",
+    "team": "IND",
+    "height_in": 79,
+    "name_search": "jalen slawson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 439,
+    "name": "Javon Small",
+    "positions": "G",
+    "team": "MEM",
+    "height_in": 73,
+    "name_search": "javon small",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 440,
+    "name": "Marcus Smart",
+    "positions": "G",
+    "team": "HOU",
+    "height_in": 75,
+    "name_search": "marcus smart",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 441,
+    "name": "Braden Smith",
+    "positions": "G",
+    "team": "IND",
+    "height_in": 71,
+    "name_search": "braden smith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 442,
+    "name": "Dru Smith",
+    "positions": "G",
+    "team": "MIA",
+    "height_in": 74,
+    "name_search": "dru smith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 443,
+    "name": "Jalen Smith",
+    "positions": "F,C",
+    "team": "CHI",
+    "height_in": 81,
+    "name_search": "jalen smith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 444,
+    "name": "Malachi Smith",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 76,
+    "name_search": "malachi smith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 445,
+    "name": "Tolu Smith",
+    "positions": "F",
+    "team": "DET",
+    "height_in": 83,
+    "name_search": "tolu smith",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 446,
+    "name": "Jabari Smith Jr.",
+    "positions": "F",
+    "team": "HOU",
+    "height_in": 83,
+    "name_search": "jabari smith jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 447,
+    "name": "Thomas Sorber",
+    "positions": "C",
+    "team": "OKC",
+    "height_in": 81,
+    "name_search": "thomas sorber",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 448,
+    "name": "Cam Spencer",
+    "positions": "G",
+    "team": "MEM",
+    "height_in": 75,
+    "name_search": "cam spencer",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 449,
+    "name": "Pat Spencer",
+    "positions": "G",
+    "team": "PHX",
+    "height_in": 74,
+    "name_search": "pat spencer",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 450,
+    "name": "Hannes Steinbach",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 82,
+    "name_search": "hannes steinbach",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 451,
+    "name": "Isaiah Stewart",
+    "positions": "F,C",
+    "team": "MEM",
+    "height_in": 80,
+    "name_search": "isaiah stewart",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 452,
+    "name": "Bennett Stirtz",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 75,
+    "name_search": "bennett stirtz",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 453,
+    "name": "Julian Strawther",
+    "positions": "G",
+    "team": "DEN",
+    "height_in": 78,
+    "name_search": "julian strawther",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 454,
+    "name": "Max Strus",
+    "positions": "G,F",
+    "team": "LAC",
+    "height_in": 77,
+    "name_search": "max strus",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 455,
+    "name": "Jalen Suggs",
+    "positions": "G",
+    "team": "ORL",
+    "height_in": 77,
+    "name_search": "jalen suggs",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 456,
+    "name": "Dailyn Swain",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 78,
+    "name_search": "dailyn swain",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 457,
+    "name": "Jae'Sean Tate",
+    "positions": "F",
+    "team": "HOU",
+    "height_in": 76,
+    "name_search": "jae'sean tate",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 458,
+    "name": "Jayson Tatum",
+    "positions": "F,G",
+    "team": "BOS",
+    "height_in": 80,
+    "name_search": "jayson tatum",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 459,
+    "name": "Dalen Terry",
+    "positions": "F",
+    "team": null,
+    "height_in": 79,
+    "name_search": "dalen terry",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 460,
+    "name": "Adou Thiero",
+    "positions": "G",
+    "team": "LAL",
+    "height_in": 79,
+    "name_search": "adou thiero",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 461,
+    "name": "Meleek Thomas",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 75,
+    "name_search": "meleek thomas",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 462,
+    "name": "Amen Thompson",
+    "positions": "G,F",
+    "team": "HOU",
+    "height_in": 79,
+    "name_search": "amen thompson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 463,
+    "name": "Ausar Thompson",
+    "positions": "G,F",
+    "team": "DET",
+    "height_in": 79,
+    "name_search": "ausar thompson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 464,
+    "name": "Klay Thompson",
+    "positions": "G,F",
+    "team": "MIA",
+    "height_in": 77,
+    "name_search": "klay thompson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 465,
+    "name": "Bruce Thornton",
+    "positions": "G",
+    "team": "HOU",
+    "height_in": 72,
+    "name_search": "bruce thornton",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 466,
+    "name": "Matisse Thybulle",
+    "positions": "G,F",
+    "team": "LAL",
+    "height_in": 77,
+    "name_search": "matisse thybulle",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 467,
+    "name": "Drew Timme",
+    "positions": "F",
+    "team": "PHX",
+    "height_in": 81,
+    "name_search": "drew timme",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 468,
+    "name": "Nae'Qwan Tomlin",
+    "positions": "F",
+    "team": "CLE",
+    "height_in": 80,
+    "name_search": "nae'qwan tomlin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 469,
+    "name": "John Tonje",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 76,
+    "name_search": "john tonje",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 470,
+    "name": "Nikola Topić",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 78,
+    "name_search": "nikola topic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 471,
+    "name": "Obi Toppin",
+    "positions": "F",
+    "team": "IND",
+    "height_in": 81,
+    "name_search": "obi toppin",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 472,
+    "name": "Karl-Anthony Towns",
+    "positions": "C,F",
+    "team": "NYK",
+    "height_in": 84,
+    "name_search": "karl-anthony towns",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 473,
+    "name": "Nolan Traore",
+    "positions": "G",
+    "team": "BKN",
+    "height_in": 76,
+    "name_search": "nolan traore",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 474,
+    "name": "Gary Trent Jr.",
+    "positions": "G",
+    "team": "MIL",
+    "height_in": 76,
+    "name_search": "gary trent jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 475,
+    "name": "Oscar Tshiebwe",
+    "positions": "F,C",
+    "team": "HOU",
+    "height_in": 80,
+    "name_search": "oscar tshiebwe",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 476,
+    "name": "Myles Turner",
+    "positions": "C,F",
+    "team": "MIL",
+    "height_in": 83,
+    "name_search": "myles turner",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 477,
+    "name": "Jaylon Tyson",
+    "positions": "G,F",
+    "team": "CLE",
+    "height_in": 78,
+    "name_search": "jaylon tyson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 478,
+    "name": "Ernest Udeh Jr.",
+    "positions": "C",
+    "team": "CLE",
+    "height_in": 81,
+    "name_search": "ernest udeh jr.",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 479,
+    "name": "Fred VanVleet",
+    "positions": "G",
+    "team": "HOU",
+    "height_in": 72,
+    "name_search": "fred vanvleet",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 480,
+    "name": "Jarred Vanderbilt",
+    "positions": "F",
+    "team": "LAL",
+    "height_in": 80,
+    "name_search": "jarred vanderbilt",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 481,
+    "name": "Devin Vassell",
+    "positions": "G,F",
+    "team": "SAS",
+    "height_in": 77,
+    "name_search": "devin vassell",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 482,
+    "name": "Henri Veesaar",
+    "positions": "C",
+    "team": "ATL",
+    "height_in": 83,
+    "name_search": "henri veesaar",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 483,
+    "name": "Gabe Vincent",
+    "positions": "G",
+    "team": "SAC",
+    "height_in": 74,
+    "name_search": "gabe vincent",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 484,
+    "name": "Tristan Vukčević",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 84,
+    "name_search": "tristan vukcevic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 485,
+    "name": "Nikola Vučević",
+    "positions": "C",
+    "team": "ORL",
+    "height_in": 83,
+    "name_search": "nikola vucevic",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 486,
+    "name": "Dean Wade",
+    "positions": "F,C",
+    "team": "PHI",
+    "height_in": 81,
+    "name_search": "dean wade",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 487,
+    "name": "Keaton Wagler",
+    "positions": "G",
+    "team": "LAC",
+    "height_in": 78,
+    "name_search": "keaton wagler",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 488,
+    "name": "Franz Wagner",
+    "positions": "F",
+    "team": "ORL",
+    "height_in": 82,
+    "name_search": "franz wagner",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 489,
+    "name": "Moritz Wagner",
+    "positions": "F,C",
+    "team": "BKN",
+    "height_in": 83,
+    "name_search": "moritz wagner",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 490,
+    "name": "Jabari Walker",
+    "positions": "F",
+    "team": "PHI",
+    "height_in": 79,
+    "name_search": "jabari walker",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 491,
+    "name": "Jarace Walker",
+    "positions": "F",
+    "team": "IND",
+    "height_in": 79,
+    "name_search": "jarace walker",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 492,
+    "name": "Cason Wallace",
+    "positions": "G",
+    "team": "OKC",
+    "height_in": 75,
+    "name_search": "cason wallace",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 493,
+    "name": "Jordan Walsh",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 78,
+    "name_search": "jordan walsh",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 494,
+    "name": "Ja'Kobe Walter",
+    "positions": "G",
+    "team": "TOR",
+    "height_in": 77,
+    "name_search": "ja'kobe walter",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 495,
+    "name": "Kel'el Ware",
+    "positions": "C",
+    "team": "MIL",
+    "height_in": 84,
+    "name_search": "kel'el ware",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 496,
+    "name": "P.J. Washington",
+    "positions": "F",
+    "team": "DAL",
+    "height_in": 78,
+    "name_search": "p.j. washington",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 497,
+    "name": "Trendon Watford",
+    "positions": "G,F",
+    "team": "NOP",
+    "height_in": 81,
+    "name_search": "trendon watford",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 498,
+    "name": "Jamir Watkins",
+    "positions": "F",
+    "team": "WAS",
+    "height_in": 77,
+    "name_search": "jamir watkins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 499,
+    "name": "Peyton Watson",
+    "positions": "G",
+    "team": "CLE",
+    "height_in": 79,
+    "name_search": "peyton watson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 500,
+    "name": "Jaylen Wells",
+    "positions": "F",
+    "team": "MEM",
+    "height_in": 79,
+    "name_search": "jaylen wells",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 501,
+    "name": "Victor Wembanyama",
+    "positions": "F,C",
+    "team": "SAS",
+    "height_in": 88,
+    "name_search": "victor wembanyama",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 502,
+    "name": "Blake Wesley",
+    "positions": "G",
+    "team": null,
+    "height_in": 76,
+    "name_search": "blake wesley",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 503,
+    "name": "Coby White",
+    "positions": "G",
+    "team": "CHA",
+    "height_in": 77,
+    "name_search": "coby white",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 504,
+    "name": "Derrick White",
+    "positions": "G",
+    "team": "BOS",
+    "height_in": 76,
+    "name_search": "derrick white",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 505,
+    "name": "Cam Whitmore",
+    "positions": "F",
+    "team": "DEN",
+    "height_in": 78,
+    "name_search": "cam whitmore",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 506,
+    "name": "Aaron Wiggins",
+    "positions": "G",
+    "team": "ATL",
+    "height_in": 77,
+    "name_search": "aaron wiggins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 507,
+    "name": "Andrew Wiggins",
+    "positions": "F",
+    "team": "MIA",
+    "height_in": 78,
+    "name_search": "andrew wiggins",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 508,
+    "name": "Amari Williams",
+    "positions": "F,C",
+    "team": "BOS",
+    "height_in": 83,
+    "name_search": "amari williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 509,
+    "name": "Brandon Williams",
+    "positions": "G",
+    "team": "GSW",
+    "height_in": 73,
+    "name_search": "brandon williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 510,
+    "name": "Cody Williams",
+    "positions": "F",
+    "team": "MIN",
+    "height_in": 79,
+    "name_search": "cody williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 511,
+    "name": "Grant Williams",
+    "positions": "F",
+    "team": "CHA",
+    "height_in": 79,
+    "name_search": "grant williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 512,
+    "name": "Jalen Williams",
+    "positions": "G,F",
+    "team": "OKC",
+    "height_in": 77,
+    "name_search": "jalen williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 513,
+    "name": "Jaylin Williams",
+    "positions": "F",
+    "team": "OKC",
+    "height_in": 81,
+    "name_search": "jaylin williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 514,
+    "name": "Kenrich Williams",
+    "positions": "G,F",
+    "team": "OKC",
+    "height_in": 79,
+    "name_search": "kenrich williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 515,
+    "name": "Mark Williams",
+    "positions": "C",
+    "team": "PHX",
+    "height_in": 85,
+    "name_search": "mark williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 516,
+    "name": "Patrick Williams",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 79,
+    "name_search": "patrick williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 517,
+    "name": "Ziaire Williams",
+    "positions": "F",
+    "team": "LAL",
+    "height_in": 81,
+    "name_search": "ziaire williams",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 518,
+    "name": "Robert Williams III",
+    "positions": "C,F",
+    "team": "POR",
+    "height_in": 81,
+    "name_search": "robert williams iii",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 519,
+    "name": "Zion Williamson",
+    "positions": "F",
+    "team": "NOP",
+    "height_in": 78,
+    "name_search": "zion williamson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 520,
+    "name": "Caleb Wilson",
+    "positions": "F",
+    "team": "CHI",
+    "height_in": 82,
+    "name_search": "caleb wilson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 521,
+    "name": "Jalen Wilson",
+    "positions": "F",
+    "team": "ATL",
+    "height_in": 78,
+    "name_search": "jalen wilson",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 522,
+    "name": "James Wiseman",
+    "positions": "C",
+    "team": "NYK",
+    "height_in": 84,
+    "name_search": "james wiseman",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 523,
+    "name": "Danny Wolf",
+    "positions": "F",
+    "team": "BKN",
+    "height_in": 83,
+    "name_search": "danny wolf",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 524,
+    "name": "Yang Hansen",
+    "positions": "C",
+    "team": "POR",
+    "height_in": 85,
+    "name_search": "yang hansen",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 525,
+    "name": "Trae Young",
+    "positions": "G",
+    "team": "WAS",
+    "height_in": 73,
+    "name_search": "trae young",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 526,
+    "name": "Chris Youngblood",
+    "positions": "G",
+    "team": "POR",
+    "height_in": 76,
+    "name_search": "chris youngblood",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 527,
+    "name": "Rocco Zikarsky",
+    "positions": "C",
+    "team": "MIN",
+    "height_in": 87,
+    "name_search": "rocco zikarsky",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 528,
+    "name": "Ivica Zubac",
+    "positions": "C",
+    "team": "IND",
+    "height_in": 84,
+    "name_search": "ivica zubac",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 529,
+    "name": "Tristan da Silva",
+    "positions": "F",
+    "team": "ORL",
+    "height_in": 80,
+    "name_search": "tristan da silva",
+    "updated_at": "2026-11-26T02:32:51Z"
+   },
+   {
+    "id": 530,
+    "name": "Sergio de Larrea",
+    "positions": "G",
+    "team": "DAL",
+    "height_in": 78,
+    "name_search": "sergio de larrea",
+    "updated_at": "2026-11-26T02:32:51Z"
+   }
+  ]
+ }
+}
