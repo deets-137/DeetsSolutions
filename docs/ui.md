@@ -1,7 +1,7 @@
 ---
 status: foundation
-sources: [js/controls.js, js/account.js, js/toast.js, js/ocean.js, styles/chrome.css]
-updated: 2026-11-24
+sources: [js/controls.js, js/account.js, js/toast.js, js/ocean.js, js/section-nav.js, styles/chrome.css]
+updated: 2026-11-25
 ---
 # UI
 
@@ -140,45 +140,55 @@ Glass's `blur(16px) saturate(1.4)`). Shape comes from `--radius-panel` /
   must resolve through tier-2/3 roles and hold up across all 30 combos — add
   a role rather than a literal.
 
-## The mobile nav menu
+## The mobile nav menu: the compact bar
 
 Below the 56rem breakpoint the six inline nav links plus the Vibe button
 don't fit (they overflow tablet widths, not just phones — which is why this
 sits wider than the 41rem skin-default breakpoint), so the nav collapses:
-the inline `.site-nav` is hidden and
-the **"Deets" wordmark itself becomes the trigger** for a `.nav-menu`
-dropdown of every destination (Home + the page's links, with a `▾` caret).
-Desktop is untouched — the wordmark stays a plain home link and the inline
-nav shows.
+the inline `.site-nav` is hidden and a **second header row, the compact bar**,
+takes its place. It is DeetsHealth's console on a phone (its CONSOLE.md §11,
+his ask 2026-11-25). The "Deets" wordmark stays a plain home link at every
+width.
 
-Built by `controls.js`'s `buildNavMenu()`, mounted in `.site-brand` (the
-wordmark's `position: relative` anchor). Two decisions keep it honest:
+- **The row.** At the left, the **page pill**: the page's name with `▾`,
+  opening a `.nav-menu` of every destination. At the right, **the page's own
+  nav** where it has one: Resume and Portfolio's section pill
+  (`js/section-nav.js` moves it into `.compact-bar__aside`). The two are equal
+  halves; a page with no nav of its own gives the page pill the whole row (his
+  pick 1A).
+- **It pins** (his pick 2A): below 56rem the header is `position: sticky` with
+  `top: -var(--header-h)`, so the wordmark row scrolls away and the pill row
+  stays at the top of the screen. `html { scroll-padding-top }` keeps a `#jump`
+  under it. The row's height is reserved in CSS (`--compact-bar-h`), so the
+  script that fills it moves nothing on the first frame.
+- **The pill kit is shared:** `.pick`, `.pick__button`, `.pick__menu`,
+  `.pick__row` in `chrome.css` (DeetsHealth's `picker.ts` look: the accent
+  pill, the current row filled, ▾ turning on open, `--pick-h` tall). The page
+  pill's menu is the grouped `.nav-menu`, its current page filled the same way.
+- **The page's name** is its own nav link's text. A link under a group whose
+  label is the same page (DeetsMusic's "App") takes the group's name. A page
+  the nav doesn't list (Profile, Privacy, 404) reads `S.pages` ("Pages",
+  his call 2026-11-25).
+
+Built by `controls.js`'s `buildNavMenu()`, appended to `.site-header`. Two
+decisions keep it honest:
 
 - **Links are cloned from the live `.site-nav`**, so the destinations and each
   page's `aria-current` stay defined in one place — the page's own markup —
-  rather than re-listed in JS. A "Home" link is prepended (the wordmark no
-  longer navigates on mobile). **Every tab rides it, grouped like the
-  desktop dropdowns** (2026-10-24): each `.nav-group`'s label becomes a
-  small heading (`.nav-menu__group`) over clones of that group's links.
-  It used to clone only `data-nav-core` links (SOTD + Cool Stuff); that
-  attribute is still in the markup but no longer read. Links marked
-  **`data-nav-desktop`** stay off it — DeetsRadio, which he is retiring
-  and not keeping up for phones — and a group left with no links drops its
-  heading. (2026-11-22: DeetsRadio moved under DeetsMusic, and the
-  Utilities group is gone; League has no nav link, reached from its URL or
-  Cool Stuff's card. 2026-11-24: DeetsPoker left the Games menu the same
-  way, his call; `/poker/` still loads, Portfolio's card and Profile's
-  stats still link it, and it stays in the sitemap and `llms.txt`.) The menu caps at
-  the viewport height and scrolls, for landscape phones.
-- **The wordmark serves both roles from one element.** Its click handler
-  checks `matchMedia("(max-width: 56rem)")`: when narrow it opens the menu
-  (`preventDefault`), on desktop it follows the `/` link. `syncMode()` (run on
-  load and `resize`) adds/removes `aria-haspopup` / `aria-expanded` as the
-  viewport crosses the breakpoint, and closes an open menu on the way up.
-
-Dismissal mirrors the Vibe menu: Escape (refocusing the wordmark) and
-outside-click, both scoped to `.site-brand`. CSS hides `.nav-menu` outright
-at ≥ 56rem so it can never show on desktop.
+  rather than re-listed in JS. A "Home" link is prepended. **Every tab rides
+  it, grouped like the desktop dropdowns** (2026-10-24): each `.nav-group`'s
+  label becomes a small heading (`.nav-menu__group`) over clones of that
+  group's links. Links marked **`data-nav-desktop`** stay off it — DeetsRadio,
+  which he is retiring and not keeping up for phones — and a group left with
+  no links drops its heading. (2026-11-22: DeetsRadio moved under DeetsMusic,
+  and the Utilities group is gone; League has no nav link. 2026-11-24:
+  DeetsPoker left the Games menu the same way, his call; `/poker/` still
+  loads.) The menu caps at the viewport height and scrolls, for landscape
+  phones. `account.js` appends Sign in last.
+- **Keyboard and touch are DeetsHealth's:** ↓ or ↑ on a pill opens its menu on
+  the current row; ↑ ↓ Home End move; Escape closes and refocuses the pill;
+  Tab, a press outside, or crossing 56rem closes it. Hover washes apply only
+  with `hover: hover`; with `pointer: coarse` rows are `--pick-h` tall.
 
 ## Motion
 

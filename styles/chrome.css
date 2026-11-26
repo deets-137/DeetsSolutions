@@ -33,6 +33,12 @@
   --space-6: 2rem;
 
   --header-h:    4rem;
+  /* The compact bar (below 56rem; "The compact bar" below): a pill's
+     height, a finger's tap (DeetsHealth's --tap-min), and the bar's height
+     around it (its padding and hairline border), reserved before the
+     script builds it so nothing moves. */
+  --pick-h:        calc(var(--space-6) + var(--space-3));
+  --compact-bar-h: calc(var(--pick-h) + 2 * var(--space-2) + 2px);
   /* The site's frame below the wide layout, which every page was first
      laid out in. The wide layout raises --content-max; a page not yet
      redesigned for it can keep its old width with --content-max-base. */
@@ -402,9 +408,7 @@ body::before {
   margin: 0 auto;
 }
 
-/* Brand — the wordmark, alone at the left. On mobile it doubles as the nav
-   menu trigger (see .nav-menu), so it's the positioning anchor for that
-   dropdown. */
+/* Brand — the wordmark, alone at the left, a home link at every width. */
 .site-brand {
   position: relative;
   display: inline-flex;
@@ -555,14 +559,14 @@ body::before {
 }
 
 /* ── Mobile nav menu ──────────────────────────────────────────────
-   Below the breakpoint the inline nav can't fit, so the wordmark becomes a
-   dropdown trigger (wired in controls.js) and the destinations live in this
-   popover — same panel material as the Vibe menu. Desktop never shows it. */
+   Below the breakpoint the inline nav can't fit, so the compact bar's page
+   pill opens this popover of every destination (wired in controls.js) —
+   same panel material as the Vibe menu. Desktop never shows it. */
 .nav-menu {
   position: absolute;
   top: calc(100% + var(--space-2));
   left: 0;
-  min-width: 11rem;
+  min-width: max(11rem, 100%);
   background: var(--menu-surface);
   -webkit-backdrop-filter: var(--menu-backdrop);
   backdrop-filter: var(--menu-backdrop);
@@ -574,7 +578,7 @@ body::before {
   display: flex;
   flex-direction: column;
   /* Every tab now rides this menu, which outgrows a landscape phone. */
-  max-height: calc(100dvh - var(--header-h));
+  max-height: calc(100dvh - var(--compact-bar-h) - var(--space-6));
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -606,8 +610,15 @@ body::before {
   font-size: var(--fs-nav);
   white-space: nowrap;
 }
-.nav-menu__item:hover { background: var(--surface-hover); color: var(--title); }
-.nav-menu__item[aria-current="page"] { color: var(--title); }
+@media (hover: hover) {
+  .nav-menu__item:hover { background: var(--surface-hover); color: var(--title); }
+}
+/* The current page is the filled pill, as in the pick's menu. */
+.nav-menu__item[aria-current="page"],
+.nav-menu__item[aria-current="page"]:hover { background: var(--title); color: var(--canvas); }
+@media (pointer: coarse) {
+  .nav-menu__item { min-height: var(--pick-h); display: flex; align-items: center; }
+}
 
 /* Desktop keeps the inline nav; the wordmark's dropdown stays inert.
    NOTE: the nav collapses at 56rem — wider than the 41rem skin-default
@@ -642,19 +653,134 @@ body::before {
   .toast-host { top: calc(var(--header-h) + var(--space-6)); }
 }
 /* Narrow: hide the inline links, keep the Vibe button pinned right on its
-   own, and flag the wordmark as a menu with a caret. */
+   own; the compact bar below takes the nav's place. */
 @media (max-width: 56rem) {
   .site-nav { display: none; }
   .settings { margin-left: auto; }
-  /* The wordmark menu's copy takes over. Scoped to .site-dock so it
+  /* The page menu's copy takes over. Scoped to .site-dock so it
      outranks the base `.header-account { display: flex }` further down. */
   .site-dock > .header-account { display: none; }
-  .wordmark[aria-haspopup]::after {
-    content: "▾";
-    margin-left: var(--space-1);
-    font-size: 0.7em;
-    text-decoration: none;
+}
+
+/* ── The compact bar ──────────────────────────────────────────────
+   DeetsHealth's console on a phone (its CONSOLE.md §11; his ask,
+   2026-11-25): below 56rem a second header row of pills. The left pill
+   names the page and opens the page menu (.nav-menu); the right one is the
+   page's own nav, where it has one (Resume and Portfolio's sections,
+   js/section-nav.js). The two share the row in equal halves; a page with
+   no nav of its own gives the page pill the whole row (his pick 1A).
+   The header pins with its top row scrolled away, so the pill row stays at
+   the top of the screen (his pick 2A). Its height is reserved here, so the
+   script filling it (controls.js › buildNavMenu) moves nothing. */
+.compact-bar { display: none; }
+@media (max-width: 56rem) {
+  .site-header:has(.site-nav) {
+    position: sticky;
+    /* flush: a gap above the bar would show the page sliding past */
+    top: calc(-1 * var(--header-h));
+    height: auto;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: var(--header-h) var(--compact-bar-h);
+    gap: 0 var(--space-4);
+    align-items: center;
   }
+  .site-header:has(.site-nav) > .site-brand { grid-row: 1; grid-column: 1; }
+  .site-header:has(.site-nav) > .site-dock { grid-row: 1; grid-column: 2; justify-self: end; }
+  .compact-bar {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    align-self: stretch;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: var(--menu-surface);
+    -webkit-backdrop-filter: var(--menu-backdrop);
+    backdrop-filter: var(--menu-backdrop);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+  }
+  .compact-bar__aside:empty { display: none; }
+  /* Under the bar: a #jump lands below it, and the journals' toolbar pins
+     under it, not behind it. */
+  html:has(.compact-bar) { scroll-padding-top: calc(var(--compact-bar-h) + var(--space-4)); }
+  html:has(.compact-bar) .sotd-toolbar { top: calc(var(--compact-bar-h) + var(--space-4)); }
+}
+
+/* The pick: DeetsHealth's dropdown pill (its picker.ts). One pill naming
+   the current choice, a chevron at its right; its menu at least as wide
+   as the pill, the current row filled. Shared by the compact bar's page
+   pill (controls.js) and the section pill (js/section-nav.js). */
+.pick { position: relative; min-width: 0; }
+.pick__button {
+  width: 100%;
+  min-height: var(--pick-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--title);
+  color: var(--canvas);
+  font: inherit;
+  font-family: var(--font-body);
+  font-weight: var(--fw-nav);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.pick__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick__chev {
+  line-height: 1;
+  transition: transform var(--dur-med) var(--ease-ui);
+}
+.pick__button[aria-expanded="true"] .pick__chev { transform: rotate(180deg); }
+.pick__menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 100%;
+  z-index: 20;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background: var(--menu-surface);
+  -webkit-backdrop-filter: var(--menu-backdrop);
+  backdrop-filter: var(--menu-backdrop);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+.pick__menu[hidden] { display: none; }
+/* The right-hand pill's menu hangs from the right edge. */
+.compact-bar__aside .pick__menu { left: auto; right: 0; }
+.pick__row {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--subtext);
+  font-weight: var(--fw-nav);
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
+}
+@media (hover: hover) {
+  .pick__row:hover { background: var(--surface-hover); color: var(--text); }
+}
+.pick__row[aria-current],
+.pick__row[aria-current]:hover { background: var(--title); color: var(--canvas); }
+@media (pointer: coarse) {
+  .pick__row { min-height: var(--pick-h); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pick__chev { transition: none; }
 }
 
 /* ============================================================

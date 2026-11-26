@@ -28,18 +28,18 @@
   // ---- the compact dropdown (DeetsHealth's picker.ts). Built here so a
   // page without JS keeps the plain row of links.
   var pick = document.createElement("div");
-  pick.className = "section-pick";
+  pick.className = "pick";
   pick.innerHTML =
-    '<button class="section-pick__button" type="button" aria-expanded="false" aria-controls="section-pick-menu">' +
-    '<span class="section-pick__name"></span><span class="section-pick__chev" aria-hidden="true">▾</span></button>' +
-    '<ul class="section-pick__menu" id="section-pick-menu" hidden></ul>';
-  var button = pick.querySelector(".section-pick__button");
-  var nameEl = pick.querySelector(".section-pick__name");
-  var menu = pick.querySelector(".section-pick__menu");
+    '<button class="pick__button" type="button" aria-expanded="false" aria-controls="section-pick-menu">' +
+    '<span class="pick__name"></span><span class="pick__chev" aria-hidden="true">▾</span></button>' +
+    '<ul class="pick__menu" id="section-pick-menu" hidden></ul>';
+  var button = pick.querySelector(".pick__button");
+  var nameEl = pick.querySelector(".pick__name");
+  var menu = pick.querySelector(".pick__menu");
   var rows = links.map(function (a) {
     var li = document.createElement("li");
     var row = document.createElement("a");
-    row.className = "section-pick__row";
+    row.className = "pick__row";
     row.href = a.getAttribute("href");
     row.textContent = a.textContent;
     li.appendChild(row);
@@ -47,7 +47,20 @@
     return row;
   });
   nav.appendChild(pick);
-  nav.classList.add("has-pick");
+
+  // On a narrow screen the dropdown is the right half of the header's
+  // compact bar (controls.js builds it, and runs first: both scripts are
+  // deferred, it is listed first). The nav then steps aside (.has-pick).
+  // Wide again, the dropdown comes back here and waits, hidden.
+  var compact = window.matchMedia("(max-width: 56rem)"); // chrome.css's compact bar
+  function dock() {
+    var aside = document.querySelector(".compact-bar__aside");
+    var inBar = compact.matches && !!aside;
+    if (inBar && pick.parentNode !== aside) aside.appendChild(pick);
+    else if (!inBar && pick.parentNode !== nav) nav.appendChild(pick);
+    nav.classList.toggle("has-pick", inBar);
+  }
+  dock();
 
   function openMenu(focus) {
     menu.hidden = false;
@@ -83,9 +96,8 @@
     if (!pick.contains(e.target)) closeMenu(false);
   });
   window.addEventListener("blur", function () { closeMenu(false); });
-  // Wide again: the dropdown is gone, so is its menu.
-  var compact = window.matchMedia("(max-width: 56rem)");
-  compact.addEventListener("change", function (e) { if (!e.matches) closeMenu(false); });
+  // Across the line: an open menu closes, and the dropdown moves.
+  compact.addEventListener("change", function () { closeMenu(false); dock(); });
 
   /** Moves the pill onto link i, in whole pixels. */
   function place(i, animate) {
@@ -135,10 +147,15 @@
 
   // A link in the list or a row in the dropdown: the browser jumps (the
   // link is an #anchor); this only marks it.
-  nav.addEventListener("click", function (e) {
-    var a = e.target.closest(".section-nav__item, .section-pick__row");
+  // The dropdown listens on its own: it may sit in the compact bar.
+  nav.addEventListener("click", function (e) { onPick(e, e.target.closest(".section-nav__item")); });
+  pick.addEventListener("click", function (e) {
+    var row = e.target.closest(".pick__row");
+    if (row) closeMenu(e.detail === 0);
+    onPick(e, row);
+  });
+  function onPick(e, a) {
     if (!a) return;
-    if (a.classList.contains("section-pick__row")) closeMenu(e.detail === 0);
     // The pill goes straight to the clicked link, not through every section
     // the smooth scroll passes; the scroll takes over again once it settles.
     held = hrefs.indexOf(a.getAttribute("href"));
@@ -146,7 +163,7 @@
     choose(held);
     clearTimeout(holdTimer);
     holdTimer = setTimeout(release, 1200);
-  });
+  }
 
   function release() {
     held = -1;
