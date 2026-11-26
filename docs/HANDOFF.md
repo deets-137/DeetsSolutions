@@ -69,13 +69,12 @@ npm run dev
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
 
-**2026-11-25 — DeetsBall demo pages (MERGED: `re-dezine` into `master`; not pushed, so not
-yet live on Pages).** A DeetsBall nav group, `/ball/` (a team's players from a JSON snapshot)
+**2026-11-25 — DeetsBall demo pages (MERGED: `re-dezine` into `master` at `92059f5` and
+pushed 2026-11-25, so LIVE on Pages).** A DeetsBall nav group, `/ball/` (a team's players from a JSON snapshot)
 and `/ball/draft/` (the Shotgun draft demo: a host screen for a TV, a GM page for phones). The
 draft's worker is live at `ball-api.deets.solutions` (DeetsBall repo, `worker/`). **A demo
 that breaks rules on purpose**, not the product: [ball.md](ball.md).
-- *Next:* his look at the pages, more design passes on them, then a real-phone draft once
-  `master` is pushed.
+- *Next:* his look at the pages, more design passes on them, and a draft on real phones.
 
 **2026-11-25 — The phone header: DeetsHealth's pill row (MERGED: `re-dezine` into
 `master` at `cf4ce11` and pushed 2026-11-25, so LIVE on Pages).** Below 56rem a second header row: the page pill (the page's
