@@ -1529,77 +1529,14 @@ html:has(.section-nav) { scroll-behavior: smooth; }
 .section-nav.in-rail .section-nav__item[aria-current],
 .section-nav.in-rail .section-nav__item[aria-current]:hover { background: transparent; color: var(--title); }
 .section-nav.in-rail .section-nav__pill { background: var(--surface-hover); }
-.section-nav.in-rail .section-pick { display: none; }
+/* The dropdown waits here while the screen is wide; it shows only from
+   the compact bar. */
+.section-nav .pick { display: none; }
 
-/* The compact dropdown (DeetsHealth's picker, its chat page on a phone):
-   one pill naming the section in view, with a chevron; its menu lists
-   every section, the one in view filled. The script builds it, so it only
-   exists with JS. Hidden on a wide screen. */
-.section-pick { display: none; position: relative; }
-.section-pick__button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-radius: var(--radius-control);
-  background: var(--title);
-  color: var(--canvas);
-  font: inherit;
-  font-weight: var(--fw-nav);
-  font-size: 0.92rem;
-  cursor: pointer;
-}
-.section-pick__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.section-pick__chev {
-  line-height: 1;
-  transition: transform var(--dur-med) var(--ease-ui);
-}
-.section-pick__button[aria-expanded="true"] .section-pick__chev { transform: rotate(180deg); }
-.section-pick__menu {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  right: 0;
-  z-index: 20;
-  list-style: none;
-  margin: 0;
-  padding: var(--space-1);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  background: var(--menu-surface);
-  -webkit-backdrop-filter: var(--menu-backdrop);
-  backdrop-filter: var(--menu-backdrop);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
-}
-.section-pick__menu[hidden] { display: none; }
-.section-pick__row {
-  display: block;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-control);
-  color: var(--subtext);
-  font-weight: var(--fw-nav);
-  font-size: 0.92rem;
-  text-decoration: none;
-  transition: background-color var(--dur-fast) var(--ease-ui), color var(--dur-fast) var(--ease-ui);
-}
-@media (hover: hover) {
-  .section-pick__row:hover { background: var(--surface-hover); color: var(--text); }
-}
-.section-pick__row[aria-current],
-.section-pick__row[aria-current]:hover { background: var(--title); color: var(--canvas); }
-@media (prefers-reduced-motion: reduce) {
-  .section-pick__chev { transition: none; }
-}
-
-/* Narrower than nav + content: the nav sticks to the top as you scroll, and
-   becomes the dropdown. Without JS it is the same links as a row that
-   swipes sideways. */
+/* Narrower than nav + content: without JS the nav sticks to the top as you
+   scroll, a row of links that swipes sideways. With JS its dropdown (the
+   shared .pick, chrome.css) moves into the compact bar's right half and
+   the nav itself steps aside (js/section-nav.js). */
 @media (max-width: 56rem) {
   .section-layout { grid-template-columns: minmax(0, 1fr); }
   /* Sticky over the text, so it takes the menus' material, not the card's:
@@ -1610,19 +1547,14 @@ html:has(.section-nav) { scroll-behavior: smooth; }
     background: var(--menu-surface);
     -webkit-backdrop-filter: var(--menu-backdrop);
     backdrop-filter: var(--menu-backdrop);
+    overflow-x: auto;
+    scrollbar-width: none;
   }
-  .section-nav:not(.has-pick) { overflow-x: auto; scrollbar-width: none; }
-  .section-nav:not(.has-pick)::-webkit-scrollbar { display: none; }
-  .section-nav:not(.has-pick) .section-nav__list { flex-direction: row; width: max-content; }
+  .section-nav::-webkit-scrollbar { display: none; }
+  .section-nav .section-nav__list { flex-direction: row; width: max-content; }
   .section-nav__item { white-space: nowrap; }
-  .section-nav.has-pick .section-nav__list,
-  .section-nav.has-pick .section-nav__pill { display: none; }
-  .section-nav.has-pick .section-pick { display: block; }
-  .section-layout__body > section { scroll-margin-top: calc(var(--space-6) * 2.5); }
-}
-/* A finger needs a taller target than a pointer. */
-@media (pointer: coarse) {
-  .section-pick__button, .section-pick__row { min-height: calc(var(--space-6) + var(--space-3)); }
+  .section-nav.has-pick { display: none; }
+  .section-nav:not(.has-pick) + .section-layout__body > section { scroll-margin-top: calc(var(--space-6) * 2.5); }
 }
 
 /* ============================================================

@@ -1,7 +1,7 @@
 ---
 status: sop
 sources: []
-updated: 2026-11-24
+updated: 2026-11-25
 ---
 # Deets.Solutions — Handoff / Status
 
@@ -68,6 +68,17 @@ npm run dev
 ## Next up
 
 Newest plan first. Each entry: status, the doc that holds the design, the first step.
+
+**2026-11-25 — The phone header: DeetsHealth's pill row (BUILT on `re-dezine`, pushed; not
+yet merged into `master`).** Below 56rem a second header row: the page pill (the page's
+name ▾, the grouped page menu) and, at the right, the page's own nav (Resume and
+Portfolio's section pill). No own nav: the page pill takes the row (his 1A). The row pins,
+the wordmark row scrolls away (his 2A). Design: [ui.md](ui.md), "The mobile nav menu: the
+compact bar". Checked in the iOS simulator on Resume, Portfolio, SOTD, Cities.
+- *Next:* his look on a phone, then merge into `master`.
+- *Found, not fixed:* SOTD and Movies' Sort/View/Filter toolbar never pinned on a phone. Its
+  sticky is scoped to `.sotd__bar` (title + toolbar, ~99px), so it scrolls away with the
+  title. Older than this change.
 
 **2026-11-24 — Mahjong crash fixed, Home's nudge fixed, Poker out of the nav, skins trimmed
 (MERGED: `re-dezine` fast-forwarded into `master` at `aeb89d7` and pushed 2026-11-24, so

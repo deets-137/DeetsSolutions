@@ -36,18 +36,18 @@
     </script>
         <!-- The page-transition opt-in, inline so it arrives with the HTML: a rule in a stylesheet can still be loading when the browser checks for it (chrome.css, "The wide layout"). -->
     <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
-    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-24c" />
+    <link rel="stylesheet" href="../styles/chrome.css?v=2026-11-25" />
     <link rel="expect" href="#main" blocking="render" /><!-- first frame after <main> parses: the page transition attaches to it (chrome.css, "The wide layout") -->
     <!-- chrome.css's token imports, fetched beside it rather than after it -->
     <link rel="preload" href="../styles/fonts.css?v=2026-11-24" as="style" />
     <link rel="preload" href="../styles/palette.css?v=2026-11-24" as="style" />
     <link rel="preload" href="../styles/themes.css?v=2026-11-24" as="style" />
     <link rel="preload" href="../styles/skin.css?v=2026-11-24b" as="style" />
-    <link rel="stylesheet" href="../styles/main.css?v=2026-11-24b" />
+    <link rel="stylesheet" href="../styles/main.css?v=2026-11-25" />
     <!-- MusicKit JS from Apple's CDN — the documented exception to the
          site's no-CDN rule, this page only (docs/radio.md, "Limits & costs") -->
     <script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" async></script>
-    <script src="../js/controls.js?v=2026-11-24b" defer></script>
+    <script src="../js/controls.js?v=2026-11-25" defer></script>
     <script src="../js/account.js?v=2026-11-23" defer></script>
     <script src="../js/toast.js" defer></script>
     <script src="./strings.js" defer></script>

@@ -151,6 +151,9 @@
     tips: "Tips",                    // DeetsMusic's section name
     tour: "Show the tour again",     // DeetsMusic's row label
     tourHint: "Deets and Happy walk you round the home page, the way they did on your first visit",
+    // The compact bar's page pill, on a page the nav doesn't list
+    // (Profile, Privacy, 404). His call, 2026-11-25: no [ph].
+    pages: "Pages",
   };
 
   /* The two first-visit looks: Lilac × Press (light) and Black & Red × Ocean
@@ -838,19 +841,16 @@
   }
 
   /* Mobile nav menu: on narrow viewports the inline nav links don't fit, so
-     the "Deets" wordmark itself becomes the trigger for a dropdown. Desktop
-     is untouched — the wordmark stays a plain home link and the inline nav
-     shows; the media query in chrome.css hides this menu and the mobile-only
-     affordances there. Links are CLONED from the live .site-nav so the
-     destinations (and each page's aria-current) stay defined in one place:
-     the page's markup. The menu carries only the links marked
-     data-nav-core (Home + the essentials — the deep-cut tabs are
-     desktop-only by design); a page with nothing marked gets them all. */
+     the compact bar's page pill opens a dropdown of them (DeetsHealth's
+     console on a phone, his ask 2026-11-25). Desktop is untouched — the
+     inline nav shows and chrome.css hides the bar. The "Deets" wordmark is
+     a plain home link at every width. Links are CLONED from the live
+     .site-nav so the destinations (and each page's aria-current) stay
+     defined in one place: the page's markup. */
   function buildNavMenu() {
-    var brand = document.querySelector(".site-brand");
-    var wordmark = brand && brand.querySelector(".wordmark");
-    var nav = document.querySelector(".site-nav");
-    if (!brand || !wordmark || !nav) return;
+    var header = document.querySelector(".site-header");
+    var nav = header && header.querySelector(".site-nav");
+    if (!nav) return;
 
     var menu = document.createElement("div");
     menu.className = "nav-menu";
@@ -894,48 +894,95 @@
     } else {
       nav.querySelectorAll(SHOWN).forEach(addItem);
     }
-    brand.appendChild(menu);
+    var current = nav.querySelector('a[aria-current="page"]');
+    if (current && current.classList.contains("site-nav__home")) home.setAttribute("aria-current", "page");
 
-    // Mirrors the CSS nav-collapse breakpoint (56rem), which is wider than
-    // the 41rem phone breakpoint the rest of the site uses: six inline links
-    // + the Vibe button overflow tablet widths long before phone widths.
-    function mobile() { return window.matchMedia("(max-width: 56rem)").matches; }
-    function open() {
+    // The compact bar (chrome.css, "The compact bar"; DeetsHealth's
+    // picker.ts): the page pill at the left, naming the page; the page's own
+    // nav at the right (js/section-nav.js fills .compact-bar__aside). CSS
+    // shows it below 56rem only and has reserved its row already.
+    var bar = document.createElement("div");
+    bar.className = "compact-bar";
+    var pick = document.createElement("div");
+    pick.className = "pick compact-bar__page";
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "pick__button";
+    button.setAttribute("aria-haspopup", "menu");
+    button.setAttribute("aria-expanded", "false");
+    var nameEl = document.createElement("span");
+    nameEl.className = "pick__name";
+    nameEl.textContent = pageName(current);
+    var chev = document.createElement("span");
+    chev.className = "pick__chev";
+    chev.setAttribute("aria-hidden", "true");
+    chev.textContent = "▾";
+    button.appendChild(nameEl);
+    button.appendChild(chev);
+    pick.appendChild(button);
+    pick.appendChild(menu);
+    var aside = document.createElement("div");
+    aside.className = "compact-bar__aside";
+    bar.appendChild(pick);
+    bar.appendChild(aside);
+    header.appendChild(bar);
+
+    // The page's name, from its own link: a link under a group whose label
+    // is the same page (DeetsMusic's "App") takes the group's name.
+    function pageName(a) {
+      if (!a) return S.pages;
+      var group = a.closest(".nav-group");
+      var label = group && group.querySelector("a.nav-group__label");
+      if (label && label.href === a.href) return label.firstChild.textContent.trim();
+      return a.textContent.trim();
+    }
+
+    // The rows: links and the Sign in button account.js appends later.
+    function rows() { return Array.prototype.slice.call(menu.querySelectorAll(".nav-menu__item")); }
+    function open(focus) {
       menu.hidden = false;
-      wordmark.setAttribute("aria-expanded", "true");
-      document.addEventListener("click", onOutside, true);
-      document.addEventListener("keydown", onKey);
-    }
-    function close() {
-      menu.hidden = true;
-      wordmark.setAttribute("aria-expanded", "false");
-      document.removeEventListener("click", onOutside, true);
-      document.removeEventListener("keydown", onKey);
-    }
-    function onOutside(e) { if (!brand.contains(e.target)) close(); }
-    function onKey(e) { if (e.key === "Escape") { close(); wordmark.focus(); } }
-
-    // The wordmark is a menu trigger only while mobile; on desktop it's a
-    // normal home link. syncMode keeps its ARIA honest as the viewport crosses
-    // the breakpoint (and closes an open menu on the way up).
-    function syncMode() {
-      if (mobile()) {
-        wordmark.setAttribute("aria-haspopup", "true");
-        wordmark.setAttribute("aria-expanded", String(!menu.hidden));
-      } else {
-        if (!menu.hidden) close();
-        wordmark.removeAttribute("aria-haspopup");
-        wordmark.removeAttribute("aria-expanded");
+      button.setAttribute("aria-expanded", "true");
+      if (focus) {
+        var r = rows();
+        (menu.querySelector('.nav-menu__item[aria-current="page"]') || r[0]).focus();
       }
     }
-
-    wordmark.addEventListener("click", function (e) {
-      if (!mobile()) return;            // desktop: follow the home link
-      e.preventDefault();
-      menu.hidden ? open() : close();
+    function close(refocus) {
+      if (menu.hidden) return;
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      if (refocus) button.focus();
+    }
+    // e.detail is 0 for a keyboard press: then focus moves into the menu.
+    button.addEventListener("click", function (e) {
+      if (menu.hidden) open(e.detail === 0); else close(false);
     });
-    window.addEventListener("resize", syncMode);
-    syncMode();
+    button.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); open(true); }
+    });
+    menu.addEventListener("keydown", function (e) {
+      var r = rows();
+      var at = r.indexOf(document.activeElement);
+      if (e.key === "Escape") { e.preventDefault(); close(true); }
+      else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        r[(at + (e.key === "ArrowDown" ? 1 : -1) + r.length) % r.length].focus();
+      } else if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        r[e.key === "Home" ? 0 : r.length - 1].focus();
+      } else if (e.key === "Tab") close(false);
+    });
+    menu.addEventListener("click", function (e) {
+      if (e.target.closest(".nav-menu__item")) close(false);
+    });
+    document.addEventListener("pointerdown", function (e) {
+      if (!pick.contains(e.target)) close(false);
+    });
+    window.addEventListener("blur", function () { close(false); });
+    // Wide again: the bar is gone, so is its menu. 56rem is chrome.css's
+    // nav-collapse line, wider than the 41rem phone line: the inline nav
+    // and Vibe overflow tablet widths long before phone widths.
+    window.matchMedia("(max-width: 56rem)").addEventListener("change", function () { close(false); });
   }
 
   /* The ambient layers (ocean / storm). Each is injected once and
